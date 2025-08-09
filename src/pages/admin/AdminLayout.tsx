@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import toast, { Toaster } from 'react-hot-toast';
 
 const AdminLayout = () => {
   return (
@@ -9,16 +11,36 @@ const AdminLayout = () => {
         <AdminSidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border bg-card px-4">
-            <SidebarTrigger />
-            <h1 className="ml-4 text-lg font-semibold text-foreground">Admin Dashboard</h1>
-          </header>
+          <AdminHeader />
           
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto bg-background p-6">
             <Outlet />
           </main>
         </div>
       </div>
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--card-foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+          success: {
+            iconTheme: {
+              primary: 'hsl(var(--primary))',
+              secondary: 'hsl(var(--primary-foreground))',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'hsl(var(--destructive))',
+              secondary: 'hsl(var(--destructive-foreground))',
+            },
+          },
+        }}
+      />
     </SidebarProvider>
   );
 };
