@@ -21,6 +21,8 @@ import AdminCommunities from "./pages/admin/AdminCommunities";
 import AdminCommunityForm from "./pages/admin/AdminCommunityForm";
 import AdminBlogForm from "./pages/admin/AdminBlogForm";
 import AdminEventForm from "./pages/admin/AdminEventForm";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +109,8 @@ const App = () => (
             <Route path="blog/new" element={<AdminBlogForm />} />
             <Route path="eventos" element={<div className="p-6">Events Management (Coming Soon)</div>} />
             <Route path="eventos/new" element={<AdminEventForm />} />
+            <Route path="usuarios" element={<AdminUsers />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="settings" element={<div className="p-6">Settings (Coming Soon)</div>} />
           </Route>
           
