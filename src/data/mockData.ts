@@ -224,6 +224,12 @@ export const mockStats = [
     trend: { value: "+12%", isPositive: true }
   },
   {
+    title: "Comunidades Activas",
+    value: "5",
+    description: "Grupos y comunidades registradas",
+    trend: { value: "+25%", isPositive: true }
+  },
+  {
     title: "Eventos Realizados",
     value: "24",
     description: "Meetups y conferencias organizadas",
@@ -231,7 +237,7 @@ export const mockStats = [
   },
   {
     title: "Miembros Comunidad",
-    value: "2,500",
+    value: "12,350",
     description: "Desarrolladores y entusiastas",
     trend: { value: "+25%", isPositive: true }
   },
@@ -242,3 +248,6 @@ export const mockStats = [
     trend: { value: "+15%", isPositive: true }
   }
 ];
+
+// Re-export communities
+export { mockCommunities } from "./communities";

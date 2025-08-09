@@ -8,6 +8,8 @@ import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
 import StartupsPage from "./pages/StartupsPage";
 import StartupDetailPage from "./pages/StartupDetailPage";
+import ComunidadesPage from "./pages/ComunidadesPage";
+import CommunityDetailPage from "./pages/CommunityDetailPage";
 import BlogPage from "./pages/BlogPage";
 import EventosPage from "./pages/EventosPage";
 import NotFound from "./pages/NotFound";
@@ -15,6 +17,9 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStartups from "./pages/admin/AdminStartups";
 import AdminStartupForm from "./pages/admin/AdminStartupForm";
+import AdminCommunityForm from "./pages/admin/AdminCommunityForm";
+import AdminBlogForm from "./pages/admin/AdminBlogForm";
+import AdminEventForm from "./pages/admin/AdminEventForm";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +58,24 @@ const App = () => (
               <Footer />
             </div>
           } />
+          <Route path="/comunidades" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <ComunidadesPage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          <Route path="/comunidades/:id" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <CommunityDetailPage />
+              </main>
+              <Footer />
+            </div>
+          } />
           <Route path="/blog" element={
             <div className="min-h-screen flex flex-col">
               <Navbar />
@@ -77,10 +100,12 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="startups" element={<AdminStartups />} />
             <Route path="startups/new" element={<AdminStartupForm />} />
+            <Route path="comunidades" element={<div className="p-6">Communities Management (Coming Soon)</div>} />
+            <Route path="comunidades/new" element={<AdminCommunityForm />} />
             <Route path="blog" element={<div className="p-6">Blog Management (Coming Soon)</div>} />
-            <Route path="blog/new" element={<div className="p-6">New Blog Post (Coming Soon)</div>} />
+            <Route path="blog/new" element={<AdminBlogForm />} />
             <Route path="eventos" element={<div className="p-6">Events Management (Coming Soon)</div>} />
-            <Route path="eventos/new" element={<div className="p-6">New Event (Coming Soon)</div>} />
+            <Route path="eventos/new" element={<AdminEventForm />} />
             <Route path="settings" element={<div className="p-6">Settings (Coming Soon)</div>} />
           </Route>
           
