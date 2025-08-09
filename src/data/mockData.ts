@@ -7,7 +7,19 @@ export const mockStartups = [
     founders: ["María González", "Carlos Ruiz", "Ana López"],
     website: "https://cryptolend.mx",
     tvl: "$2.3M",
-    users: "1,200"
+    users: "1,200",
+    tags: ["DeFi", "Lending", "Collateral"],
+    longDescription: "CryptoLend MX revoluciona el acceso al crédito en México mediante una plataforma descentralizada que elimina intermediarios tradicionales. Los usuarios pueden obtener préstamos instantáneos usando sus criptomonedas como garantía, con tasas de interés competitivas determinadas algorítmicamente. La plataforma soporta múltiples tipos de colateral incluyendo BTC, ETH y tokens ERC-20, ofreciendo flexibilidad tanto a prestamistas como prestatarios. Con smart contracts auditados y un sistema de liquidación automática, CryptoLend MX garantiza la seguridad de los fondos mientras democratiza el acceso al capital financiero.",
+    socialLinks: {
+      twitter: "https://twitter.com/cryptolendmx",
+      linkedin: "https://linkedin.com/company/cryptolendmx",
+      telegram: "https://t.me/cryptolendmx"
+    },
+    metrics: {
+      totalLoans: "450",
+      avgLoanSize: "$5,200",
+      liquidationRate: "2.3%"
+    }
   },
   {
     id: "2", 
@@ -17,7 +29,18 @@ export const mockStartups = [
     founders: ["Roberto Hernández", "Sofía Martínez"],
     website: "https://aztecswap.io",
     tvl: "$850K",
-    users: "850"
+    users: "850",
+    tags: ["DEX", "AMM", "Liquidity"],
+    longDescription: "AztecSwap es el primer DEX automatizado diseñado específicamente para el mercado mexicano. Utiliza un modelo de Market Maker Automatizado (AMM) que optimiza la liquidez para pares de trading únicos como MXN/ETH, MXN/BTC y otros tokens locales. La plataforma ofrece farming de liquidez con recompensas atractivas, swaps con slippage mínimo y una interfaz intuitiva en español. Los usuarios pueden participar como proveedores de liquidez y ganar fees de transacción, mientras que los traders disfrutan de intercambios instantáneos sin necesidad de libros de órdenes tradicionales.",
+    socialLinks: {
+      twitter: "https://twitter.com/aztecswap",
+      discord: "https://discord.gg/aztecswap"
+    },
+    metrics: {
+      dailyVolume: "$125K",
+      totalTrades: "12,450",
+      liquidityPairs: "28"
+    }
   },
   {
     id: "3",
@@ -27,7 +50,19 @@ export const mockStartups = [
     founders: ["Diego Morales", "Lucía Fernández", "Manuel Torres", "Carla Jiménez"],
     website: "https://pesostable.com",
     tvl: "$5.7M",
-    users: "3,400"
+    users: "3,400",
+    tags: ["Stablecoin", "Payments", "MXN"],
+    longDescription: "PesoStable es la primera stablecoin totalmente respaldada por pesos mexicanos, diseñada para ser el puente entre el sistema financiero tradicional y DeFi. Cada token MXNS está respaldado 1:1 por pesos mexicanos en cuentas bancarias auditadas regularmente. La plataforma permite transferencias instantáneas a costo prácticamente nulo, pagos a comercios, y integración con protocolos DeFi para yield farming y lending. Con licencias regulatorias completas y auditorías mensuales de reservas, PesoStable ofrece la estabilidad del peso con la innovación de blockchain.",
+    socialLinks: {
+      twitter: "https://twitter.com/pesostable",
+      linkedin: "https://linkedin.com/company/pesostable",
+      medium: "https://medium.com/@pesostable"
+    },
+    metrics: {
+      circulatingSupply: "5.7M MXNS",
+      monthlyTransactions: "45,200",
+      merchantPartners: "180"
+    }
   },
   {
     id: "4",
@@ -37,7 +72,19 @@ export const mockStartups = [
     founders: ["Alejandro Vega", "Patricia Sánchez"],
     website: "https://yieldhacienda.finance",
     tvl: "$1.2M",
-    users: "680"
+    users: "680",
+    tags: ["Yield Farming", "Auto-investing", "Strategy"],
+    longDescription: "Yield Hacienda automatiza las estrategias de yield farming más rentables del ecosistema DeFi latinoamericano. El protocolo utiliza algoritmos avanzados para reasignar automáticamente los fondos de los usuarios hacia las oportunidades de mayor rendimiento, rebalanceando portfolios y compound de rewards de forma continua. Los usuarios pueden elegir entre diferentes perfiles de riesgo, desde conservadores hasta agresivos, mientras que los smart contracts se encargan de ejecutar las estrategias óptimas. Con integración a múltiples protocolos DeFi y una interfaz simplificada, democratiza el acceso a estrategias de inversión sofisticadas.",
+    socialLinks: {
+      twitter: "https://twitter.com/yieldhacienda",
+      discord: "https://discord.gg/yieldhacienda",
+      github: "https://github.com/yieldhacienda"
+    },
+    metrics: {
+      avgAPY: "24.5%",
+      strategiesActive: "12",
+      totalHarvests: "1,240"
+    }
   },
   {
     id: "5",
@@ -47,7 +94,18 @@ export const mockStartups = [
     founders: ["Fernando Castro", "Gabriela Ramos", "Héctor Delgado"],
     website: "https://micrdefi.org",
     tvl: "$680K",
-    users: "2,100"
+    users: "2,100",
+    tags: ["Microfinance", "SME", "Social Impact"],
+    longDescription: "MicrDeFi revoluciona las microfinanzas en México mediante tecnología blockchain, ofreciendo préstamos pequeños a comerciantes y emprendedores sin acceso al sistema bancario tradicional. La plataforma utiliza modelos de scoring alternativos basados en datos de comportamiento comercial y social, eliminando la necesidad de garantías físicas. Los prestamistas pueden participar como inversores sociales ganando rendimientos mientras apoyan el desarrollo económico local. Con pagos flexibles, educación financiera integrada y reportes de impacto social transparentes, MicrDeFi construye un ecosistema financiero más inclusivo y sostenible.",
+    socialLinks: {
+      twitter: "https://twitter.com/micrdefi",
+      linkedin: "https://linkedin.com/company/micrdefi"
+    },
+    metrics: {
+      avgLoanSize: "$320",
+      repaymentRate: "96.8%",
+      businessesSupported: "1,850"
+    }
   }
 ];
 

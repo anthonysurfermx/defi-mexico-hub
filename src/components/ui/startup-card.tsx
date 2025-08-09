@@ -15,6 +15,7 @@ interface StartupCardProps {
   logo?: string;
   tvl?: string;
   users?: string;
+  tags?: string[];
 }
 
 const StartupCard = ({ 
@@ -26,7 +27,8 @@ const StartupCard = ({
   website, 
   logo, 
   tvl, 
-  users 
+  users,
+  tags 
 }: StartupCardProps) => {
   return (
     <motion.div
@@ -66,6 +68,16 @@ const StartupCard = ({
           <p className="text-muted-foreground text-sm line-clamp-3">
             {description}
           </p>
+
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="default" className="text-xs bg-primary/10 text-primary hover:bg-primary/20">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {founders.slice(0, 2).map((founder) => (
