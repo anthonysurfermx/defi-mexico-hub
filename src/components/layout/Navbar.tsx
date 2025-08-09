@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -96,19 +97,11 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-full">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3 group">
-              <motion.div
-                className={`bg-gradient-primary rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  isScrolled ? "w-8 h-8" : "w-10 h-10"
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span className={`font-bold text-primary-foreground transition-all duration-300 ${
-                  isScrolled ? "text-sm" : "text-lg"
-                }`}>
-                  D
-                </span>
-              </motion.div>
+              <LogoDeFiMx 
+                size={isScrolled ? "sm" : "md"}
+                animated
+                className="transition-all duration-300"
+              />
               <motion.span
                 className={`font-bold text-foreground transition-all duration-300 ${
                   isScrolled ? "text-lg" : "text-xl"

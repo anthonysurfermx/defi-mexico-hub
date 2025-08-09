@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { Github, Twitter, Linkedin, Mail, Zap } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 
 const Footer = () => {
   const quickLinks = [
@@ -25,9 +26,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <LogoDeFiMx size="sm" />
               <span className="text-xl font-bold text-gradient">DeFi México</span>
             </div>
             <p className="text-muted-foreground mb-6 max-w-md">
@@ -94,17 +93,45 @@ const Footer = () => {
           
           {/* Social Links */}
           <div className="flex space-x-4 mt-4 sm:mt-0">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-              <Twitter className="w-5 h-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-muted-foreground hover:text-primary"
+              asChild
+            >
+              <a href="https://t.me/defimexico" target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="w-5 h-5" />
+              </a>
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-              <Github className="w-5 h-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-muted-foreground hover:text-primary"
+              asChild
+            >
+              <a href="https://x.com/defimexico" target="_blank" rel="noopener noreferrer">
+                <Twitter className="w-5 h-5" />
+              </a>
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-              <Linkedin className="w-5 h-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-muted-foreground hover:text-primary"
+              asChild
+            >
+              <a href="https://lu.ma/defimexico" target="_blank" rel="noopener noreferrer">
+                <Send className="w-5 h-5" />
+              </a>
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-              <Mail className="w-5 h-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-muted-foreground hover:text-primary"
+              asChild
+            >
+              <a href="mailto:hola@defimexico.org" target="_blank" rel="noopener noreferrer">
+                <Mail className="w-5 h-5" />
+              </a>
             </Button>
           </div>
         </div>

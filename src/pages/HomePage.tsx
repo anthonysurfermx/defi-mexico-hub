@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Rocket, Users, TrendingUp, Calendar } from "lucide-react";
+import { ArrowRight, Rocket, Users, TrendingUp, Calendar, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import StartupCard from "@/components/ui/startup-card";
@@ -40,7 +40,10 @@ const HomePage = () => {
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                  <Link to="/eventos">Ver Eventos</Link>
+                  <a href="https://t.me/defimexico" target="_blank" rel="noopener noreferrer" className="flex items-center">
+                    Unirme comunidad de Telegram
+                    <MessageCircle className="ml-2 w-5 h-5" />
+                  </a>
                 </Button>
               </div>
             </motion.div>
