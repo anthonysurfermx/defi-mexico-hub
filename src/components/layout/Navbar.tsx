@@ -1,133 +1,320 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, Search, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isMobileMenuOpen]);
+
   const navItems = [
-    { name: "Inicio", path: "/" },
-    { name: "Startups", path: "/startups" },
-    { name: "Blog", path: "/blog" },
-    { name: "Eventos", path: "/eventos" },
-    { name: "Nosotros", path: "/nosotros" },
+    { label: "Inicio", href: "/" },
+    { label: "Startups", href: "/startups" },
+    { label: "Blog", href: "/blog" },
+    { label: "Eventos", href: "/eventos" },
+    { label: "Admin", href: "/admin" }
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActivePage = (href: string) => {
+    if (href === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(href);
+  };
+
+  // Generate breadcrumbs
+  const generateBreadcrumbs = () => {
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+    
+    if (pathSegments.length === 0) return null;
+
+    const breadcrumbs = [
+      { label: "Inicio", href: "/" }
+    ];
+
+    let currentPath = "";
+    pathSegments.forEach((segment) => {
+      currentPath += `/${segment}`;
+      const navItem = navItems.find(item => item.href === currentPath);
+      if (navItem) {
+        breadcrumbs.push({ label: navItem.label, href: currentPath });
+      } else {
+        // Handle dynamic routes like /startups/[id]
+        const capitalizedSegment = segment.charAt(0).toUpperCase() + segment.slice(1);
+        breadcrumbs.push({ label: capitalizedSegment, href: currentPath });
+      }
+    });
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center group-hover:animate-glow transition-all duration-300">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-gradient">DeFi México</span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                  isActive(item.path)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+    <>
+      <motion.header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled
+            ? "h-15 bg-background/80 backdrop-blur-md border-b border-border shadow-sm"
+            : "h-20 bg-background/95"
+        }`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex items-center justify-between h-full">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-3 group">
+              <motion.div
+                className={`bg-gradient-primary rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  isScrolled ? "w-8 h-8" : "w-10 h-10"
                 }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                {item.name}
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="navbar-active"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                <span className={`font-bold text-primary-foreground transition-all duration-300 ${
+                  isScrolled ? "text-sm" : "text-lg"
+                }`}>
+                  D
+                </span>
+              </motion.div>
+              <motion.span
+                className={`font-bold text-foreground transition-all duration-300 ${
+                  isScrolled ? "text-lg" : "text-xl"
+                }`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                DeFi México
+              </motion.span>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`relative text-sm font-medium transition-colors group ${
+                    isActivePage(item.href)
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                  <span
+                    className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                      isActivePage(item.href) ? "w-full" : ""
+                    }`}
                   />
-                )}
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </nav>
 
-          {/* Search and Mobile Menu */}
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSearch(!showSearch)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Search className="w-5 h-5" />
-            </Button>
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gradient-primary text-primary-foreground hover:shadow-neon transition-all duration-300"
+              >
+                Newsletter
+              </Button>
+            </div>
 
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsOpen(!isOpen)}
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Toggle menu"
             >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
+              <motion.div
+                animate={isMobileMenuOpen ? "open" : "closed"}
+                className="w-6 h-6 relative"
+              >
+                <motion.span
+                  variants={{
+                    closed: { rotate: 0, y: 0 },
+                    open: { rotate: 45, y: 8 }
+                  }}
+                  className="absolute w-6 h-0.5 bg-current top-1.5 left-0 origin-center transition-all"
+                />
+                <motion.span
+                  variants={{
+                    closed: { opacity: 1 },
+                    open: { opacity: 0 }
+                  }}
+                  className="absolute w-6 h-0.5 bg-current top-3 left-0"
+                />
+                <motion.span
+                  variants={{
+                    closed: { rotate: 0, y: 0 },
+                    open: { rotate: -45, y: -8 }
+                  }}
+                  className="absolute w-6 h-0.5 bg-current top-4.5 left-0 origin-center transition-all"
+                />
+              </motion.div>
+            </button>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <AnimatePresence>
-          {showSearch && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="pb-4"
-            >
-              <Input
-                placeholder="Buscar startups, artículos, eventos..."
-                className="max-w-md mx-auto"
-                autoFocus
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden py-4"
-            >
-              <div className="flex flex-col space-y-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`px-3 py-2 text-base font-medium rounded-lg transition-colors ${
-                      isActive(item.path)
-                        ? "text-primary bg-muted"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
+        {/* Breadcrumbs */}
+        {breadcrumbs && breadcrumbs.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="border-t border-border bg-background/50 backdrop-blur-sm"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+              <nav className="flex items-center space-x-2 text-sm">
+                {breadcrumbs.map((crumb, index) => (
+                  <div key={crumb.href} className="flex items-center">
+                    {index > 0 && (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground mx-2" />
+                    )}
+                    <Link
+                      to={crumb.href}
+                      className={`transition-colors ${
+                        index === breadcrumbs.length - 1
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {crumb.label}
+                    </Link>
+                  </div>
                 ))}
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </motion.header>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+            />
+
+            {/* Mobile Menu */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-80 bg-card border-l border-border z-50 md:hidden"
+            >
+              <div className="flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                  <span className="text-lg font-semibold text-foreground">
+                    Menú
+                  </span>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 px-6 py-4">
+                  <div className="space-y-2">
+                    {navItems.map((item, index) => (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Link
+                          to={item.href}
+                          className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                            isActivePage(item.href)
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </nav>
+
+                {/* Actions */}
+                <div className="p-6 border-t border-border space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Buscar
+                  </Button>
+                  <Button
+                    className="w-full bg-gradient-primary text-primary-foreground"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Newsletter
+                  </Button>
+                </div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </nav>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Spacer to prevent content overlap */}
+      <div className={isScrolled ? "h-15" : "h-20"} />
+    </>
   );
 };
 
