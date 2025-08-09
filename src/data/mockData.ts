@@ -121,89 +121,124 @@ export const mockBlogPosts = [
     title: "El auge de DeFi en Latinoamérica",
     author: "Elena Rodriguez",
     date: "2024-07-15",
+    publishedAt: "15 de Julio, 2024",
+    readTime: "5 min",
+    category: "DeFi",
+    excerpt: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región y su impacto en la inclusión financiera.",
     tags: ["DeFi", "Latinoamérica", "Tendencias"],
-    content: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región."
+    content: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región.",
+    image: "https://images.unsplash.com/photo-1642104704074-907c0698b98d?w=400&h=200&fit=crop"
   },
   {
     id: "2",
     title: "Cómo las DAOs están transformando la gobernanza",
     author: "Javier Pérez",
     date: "2024-07-10",
+    publishedAt: "10 de Julio, 2024",
+    readTime: "7 min",
+    category: "Gobernanza",
+    excerpt: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones en el ecosistema crypto.",
     tags: ["DAOs", "Gobernanza", "Blockchain"],
-    content: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones."
+    content: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones.",
+    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=200&fit=crop"
   },
   {
     id: "3",
     title: "NFTs: Más allá del arte digital",
     author: "Sofía Mendoza",
     date: "2024-07-05",
+    publishedAt: "5 de Julio, 2024",
+    readTime: "4 min",
+    category: "NFTs",
+    excerpt: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital y casos de uso empresariales.",
     tags: ["NFTs", "Arte Digital", "Casos de Uso"],
-    content: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital."
+    content: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital.",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=200&fit=crop"
   },
   {
     id: "4",
     title: "El impacto de la regulación en el ecosistema Crypto",
     author: "Ricardo Castro",
     date: "2024-06-28",
+    publishedAt: "28 de Junio, 2024",
+    readTime: "6 min",
+    category: "Regulación",
+    excerpt: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo, y su impacto en la adopción.",
     tags: ["Regulación", "Criptomonedas", "Leyes"],
-    content: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo."
+    content: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo.",
+    image: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=400&h=200&fit=crop"
   },
   {
     id: "5",
-    title: "Staking: Genera ingresos pasivos con tus criptos",
-    author: "Valeria Gómez",
+    title: "Staking: Una guía completa para principiantes",
+    author: "Ana García",
     date: "2024-06-20",
-    tags: ["Staking", "Ingresos Pasivos", "DeFi"],
-    content: "Aprende cómo puedes obtener recompensas al participar en la validación de redes blockchain."
+    publishedAt: "20 de Junio, 2024",
+    readTime: "8 min",
+    category: "Staking",
+    excerpt: "Todo lo que necesitas saber sobre staking: desde los conceptos básicos hasta las estrategias avanzadas para maximizar tus rendimientos.",
+    tags: ["Staking", "Yield", "Guía"],
+    content: "Todo lo que necesitas saber sobre staking: desde los conceptos básicos hasta las estrategias avanzadas.",
+    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=200&fit=crop"
   }
 ];
 
 export const mockEvents = [
   {
     id: "1",
-    title: "DeFi Summit CDMX",
-    date: "2024-08-05",
-    location: "Ciudad de México",
-    description: "El evento más importante de finanzas descentralizadas en México.",
+    title: "DeFi México Meetup - Ciudad de México",
+    type: "Meetup",
+    date: "2024-08-15",
+    time: "18:00",
+    location: "Polanco, CDMX",
+    description: "Únete a nuestra comunidad para discutir las últimas tendencias en DeFi y networking con otros entusiastas.",
     isUpcoming: true
   },
   {
     id: "2",
-    title: "Blockchain Day Monterrey",
-    date: "2024-09-12",
-    location: "Monterrey, Nuevo León",
-    description: "Un día completo de conferencias y talleres sobre tecnología blockchain.",
+    title: "Workshop: Construyendo tu primera DApp",
+    type: "Workshop",
+    date: "2024-08-22",
+    time: "10:00",
+    location: "Guadalajara, JAL",
+    description: "Taller práctico para desarrolladores que quieren aprender a crear aplicaciones descentralizadas.",
     isUpcoming: true
   },
   {
     id: "3",
-    title: "Web3 Nights Guadalajara",
-    date: "2024-10-20",
-    location: "Guadalajara, Jalisco",
-    description: "Networking y charlas sobre el futuro de la web descentralizada.",
-    isUpcoming: false
-  },
-  {
-    id: "4",
-    title: "DeFi Workshop Online",
-    date: "2024-11-10",
-    location: "Online",
-    description: "Aprende los fundamentos de las finanzas descentralizadas desde casa.",
-    isUpcoming: false
-  },
-  {
-    id: "5",
-    title: "Crypto Meetup Tijuana",
-    date: "2024-12-03",
-    location: "Tijuana, Baja California",
-    description: "Un encuentro para entusiastas de las criptomonedas en la frontera.",
-    isUpcoming: false
+    title: "Conferencia Anual DeFi México 2024",
+    type: "Conferencia",
+    date: "2024-09-10",
+    time: "09:00",
+    location: "Centro de Convenciones, CDMX",
+    description: "El evento más importante del ecosistema DeFi mexicano con speakers internacionales.",
+    isUpcoming: true
   }
 ];
 
 export const mockStats = [
-  { label: "Startups", value: 120 },
-  { label: "Blog Posts", value: 45 },
-  { label: "Active Events", value: 15 },
-  { label: "Monthly Visitors", value: 24500 }
+  {
+    title: "Startups Registradas",
+    value: "15",
+    description: "Proyectos activos en el ecosistema",
+    trend: { value: "+12%", isPositive: true }
+  },
+  {
+    title: "Eventos Realizados",
+    value: "24",
+    description: "Meetups y conferencias organizadas",
+    trend: { value: "+8%", isPositive: true }
+  },
+  {
+    title: "Miembros Comunidad",
+    value: "2,500",
+    description: "Desarrolladores y entusiastas",
+    trend: { value: "+25%", isPositive: true }
+  },
+  {
+    title: "TVL Total",
+    value: "$18.2M",
+    description: "Capital total bloqueado",
+    trend: { value: "+15%", isPositive: true }
+  }
 ];
