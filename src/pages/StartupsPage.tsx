@@ -184,10 +184,10 @@ const StartupsPage = () => {
               <Search className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
-              No se encontraron startups
+              Aún no hay startups registradas
             </h3>
             <p className="text-muted-foreground mb-4">
-              Intenta ajustar los filtros de búsqueda para encontrar lo que buscas.
+              ¡Sé el primero en registrar tu startup DeFi en nuestro ecosistema!
             </p>
             <Button 
               variant="outline" 

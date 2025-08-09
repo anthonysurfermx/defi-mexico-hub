@@ -89,7 +89,7 @@ const EventosPage = () => {
         </motion.div>
 
         {/* Upcoming Events */}
-        {upcomingEvents.length > 0 && (
+        {upcomingEvents.length > 0 ? (
           <section className="mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -111,6 +111,25 @@ const EventosPage = () => {
                 <EventCard key={event.id} event={event} index={index} />
               ))}
             </div>
+          </section>
+        ) : (
+          <section className="mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-center py-12"
+            >
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No hay eventos próximos
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Mantente atento a nuestras redes sociales para conocer los próximos eventos.
+              </p>
+            </motion.div>
           </section>
         )}
 

@@ -43,8 +43,7 @@ const Navbar = () => {
     { label: "Startups", href: "/startups" },
     { label: "Comunidades", href: "/comunidades" },
     { label: "Blog", href: "/blog" },
-    { label: "Eventos", href: "/eventos" },
-    { label: "Admin", href: "/admin" }
+    { label: "Eventos", href: "/eventos" }
   ];
 
   const isActivePage = (href: string) => {

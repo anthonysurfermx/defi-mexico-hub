@@ -113,10 +113,10 @@ const BlogPage = () => {
               <Search className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
-              No se encontraron artículos
+              Próximamente contenido educativo sobre DeFi
             </h3>
             <p className="text-muted-foreground mb-4">
-              Intenta ajustar los filtros de búsqueda para encontrar lo que buscas.
+              Estamos preparando artículos increíbles sobre finanzas descentralizadas. ¡Mantente atento!
             </p>
             <Button 
               variant="outline" 

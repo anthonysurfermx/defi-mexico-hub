@@ -35,13 +35,13 @@ const StartupCard = ({
       whileHover={{ y: -5 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <Card className="h-full bg-card hover:shadow-elegant transition-all duration-300 border-border hover:border-primary/30">
+      <Card className="h-full bg-card hover:shadow-elegant card-hover border-border hover:border-primary/30">
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center text-primary-foreground font-bold text-lg">
                 {logo ? (
-                  <img src={logo} alt={name} className="w-full h-full object-cover rounded-xl" />
+                  <img src={logo} alt={`Logo de ${name} - startup DeFi mexicana`} className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   name.charAt(0).toUpperCase()
                 )}

@@ -13,10 +13,10 @@ const Footer = () => {
   ];
 
   const resources = [
-    { name: "Documentación", path: "/docs" },
-    { name: "Whitepaper", path: "/whitepaper" },
-    { name: "Roadmap", path: "/roadmap" },
     { name: "FAQ", path: "/faq" },
+    { name: "Política de Privacidad", path: "/privacy" },
+    { name: "Términos de Uso", path: "/terms" },
+    { name: "Administración", path: "/admin" },
   ];
 
   return (
