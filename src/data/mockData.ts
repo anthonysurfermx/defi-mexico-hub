@@ -2,6 +2,7 @@ export const mockStartups = [
   {
     id: "1",
     name: "CryptoLend MX",
+    logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&h=100&fit=crop&crop=center",
     description: "Plataforma de préstamos descentralizados que permite a usuarios mexicanos acceder a crédito usando crypto como colateral, con tasas competitivas y sin intermediarios bancarios tradicionales.",
     foundedYear: 2022,
     founders: ["María González", "Carlos Ruiz", "Ana López"],
@@ -24,6 +25,7 @@ export const mockStartups = [
   {
     id: "2", 
     name: "AztecSwap",
+    logo: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=100&h=100&fit=crop&crop=center",
     description: "DEX automatizado que facilita el intercambio de tokens con pools de liquidez optimizados para el mercado mexicano, incluyendo pares MXN-crypto únicos.",
     foundedYear: 2023,
     founders: ["Roberto Hernández", "Sofía Martínez"],
@@ -45,6 +47,7 @@ export const mockStartups = [
   {
     id: "3",
     name: "PesoStable",
+    logo: "https://images.unsplash.com/photo-1516245834210-c4c142787335?w=100&h=100&fit=crop&crop=center",
     description: "Stablecoin respaldada por pesos mexicanos que permite pagos DeFi instantáneos y de bajo costo, conectando el peso tradicional con DeFi.",
     foundedYear: 2021,
     founders: ["Diego Morales", "Lucía Fernández", "Manuel Torres", "Carla Jiménez"],
@@ -59,52 +62,55 @@ export const mockStartups = [
       medium: "https://medium.com/@pesostable"
     },
     metrics: {
-      circulatingSupply: "5.7M MXNS",
-      monthlyTransactions: "45,200",
-      merchantPartners: "180"
+      circSupply: "5.7M MXNS",
+      monthlyTxns: "45,000",
+      avgTxnSize: "$127"
     }
   },
   {
     id: "4",
-    name: "Yield Hacienda",
-    description: "Protocolo de yield farming especializado en activos latinos, ofreciendo estrategias automatizadas de inversión para maximizar rendimientos.",
-    foundedYear: 2023,
-    founders: ["Alejandro Vega", "Patricia Sánchez"],
-    website: "https://yieldhacienda.finance",
-    tvl: "$1.2M",
-    users: "680",
-    tags: ["Yield Farming", "Auto-investing", "Strategy"],
-    longDescription: "Yield Hacienda automatiza las estrategias de yield farming más rentables del ecosistema DeFi latinoamericano. El protocolo utiliza algoritmos avanzados para reasignar automáticamente los fondos de los usuarios hacia las oportunidades de mayor rendimiento, rebalanceando portfolios y compound de rewards de forma continua. Los usuarios pueden elegir entre diferentes perfiles de riesgo, desde conservadores hasta agresivos, mientras que los smart contracts se encargan de ejecutar las estrategias óptimas. Con integración a múltiples protocolos DeFi y una interfaz simplificada, democratiza el acceso a estrategias de inversión sofisticadas.",
+    name: "YieldFarm MX",
+    logo: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=100&h=100&fit=crop&crop=center",
+    description: "Protocolo de yield farming optimizado para tokens mexicanos, ofreciendo estrategias automatizadas de inversión DeFi con retornos competitivos.",
+    foundedYear: 2022,
+    founders: ["Fernando Jiménez", "Isabella Torres"],
+    website: "https://yieldfarm.mx",
+    tvl: "$1.8M",
+    users: "920",
+    tags: ["Yield Farming", "Auto-strategies", "DeFi"],
+    longDescription: "YieldFarm MX democratiza las estrategias de inversión DeFi complejas mediante protocolos automatizados que optimizan rendimientos para usuarios mexicanos. La plataforma utiliza algoritmos avanzados para rebalancear automáticamente las posiciones entre diferentes protocolos, maximizando el APY mientras minimiza el riesgo. Los usuarios pueden depositar sus tokens y el protocolo se encarga de encontrar las mejores oportunidades de yield en tiempo real, desde lending hasta liquidity providing y staking rewards.",
     socialLinks: {
-      twitter: "https://twitter.com/yieldhacienda",
-      discord: "https://discord.gg/yieldhacienda",
-      github: "https://github.com/yieldhacienda"
+      twitter: "https://twitter.com/yieldfarm_mx",
+      telegram: "https://t.me/yieldfarm_mx",
+      github: "https://github.com/yieldfarm-mx"
     },
     metrics: {
-      avgAPY: "24.5%",
-      strategiesActive: "12",
-      totalHarvests: "1,240"
+      avgAPY: "18.5%",
+      totalHarvests: "2,340",
+      strategies: "12"
     }
   },
   {
     id: "5",
-    name: "MicrDeFi",
-    description: "Microfinanzas descentralizadas para pequeños comerciantes mexicanos, democratizando el acceso al capital sin garantías bancarias tradicionales.",
-    foundedYear: 2022,
-    founders: ["Fernando Castro", "Gabriela Ramos", "Héctor Delgado"],
-    website: "https://micrdefi.org",
-    tvl: "$680K",
-    users: "2,100",
-    tags: ["Microfinance", "SME", "Social Impact"],
-    longDescription: "MicrDeFi revoluciona las microfinanzas en México mediante tecnología blockchain, ofreciendo préstamos pequeños a comerciantes y emprendedores sin acceso al sistema bancario tradicional. La plataforma utiliza modelos de scoring alternativos basados en datos de comportamiento comercial y social, eliminando la necesidad de garantías físicas. Los prestamistas pueden participar como inversores sociales ganando rendimientos mientras apoyan el desarrollo económico local. Con pagos flexibles, educación financiera integrada y reportes de impacto social transparentes, MicrDeFi construye un ecosistema financiero más inclusivo y sostenible.",
+    name: "BlockRemit",
+    logo: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=100&h=100&fit=crop&crop=center",
+    description: "Plataforma de remesas descentralizada que conecta México con el mundo, ofreciendo transferencias instantáneas y de bajo costo usando blockchain.",
+    foundedYear: 2023,
+    founders: ["Miguel Ángel Valdez", "Paola Guerrero", "Andrés Muñoz"],
+    website: "https://blockremit.io",
+    tvl: "$4.2M",
+    users: "2,800",
+    tags: ["Remittances", "Cross-border", "Payments"],
+    longDescription: "BlockRemit revoluciona el mercado de remesas entre México y Estados Unidos utilizando blockchain para eliminar intermediarios costosos. La plataforma permite enviar dinero de forma instantánea con comisiones hasta 80% menores que los métodos tradicionales. Los usuarios pueden enviar desde USD, EUR o cryptos y el receptor puede recibir en pesos mexicanos directamente en su cuenta bancaria o wallet digital. Con partnerships con casas de cambio locales y compliance regulatorio completo, BlockRemit hace las transferencias internacionales accesibles para millones de familias mexicanas.",
     socialLinks: {
-      twitter: "https://twitter.com/micrdefi",
-      linkedin: "https://linkedin.com/company/micrdefi"
+      twitter: "https://twitter.com/blockremit",
+      linkedin: "https://linkedin.com/company/blockremit",
+      telegram: "https://t.me/blockremit"
     },
     metrics: {
-      avgLoanSize: "$320",
-      repaymentRate: "96.8%",
-      businessesSupported: "1,850"
+      monthlyVolume: "$4.2M",
+      avgSavings: "78%",
+      countries: "15"
     }
   }
 ];
@@ -112,92 +118,92 @@ export const mockStartups = [
 export const mockBlogPosts = [
   {
     id: "1",
-    title: "El Futuro de DeFi en México: Oportunidades y Desafíos Regulatorios",
-    excerpt: "Análisis profundo sobre el panorama regulatorio mexicano para DeFi y las oportunidades de crecimiento en el ecosistema financiero descentralizado nacional.",
-    publishedAt: "15 Dic 2024",
-    readTime: "8 min",
-    category: "Regulación",
-    author: "Equipo DeFi México",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=500&h=300&fit=crop"
+    title: "El auge de DeFi en Latinoamérica",
+    author: "Elena Rodriguez",
+    date: "2024-07-15",
+    tags: ["DeFi", "Latinoamérica", "Tendencias"],
+    content: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región."
   },
   {
-    id: "2", 
-    title: "Construyendo Bridges: Conectando Peso Mexicano con Blockchain",
-    excerpt: "Exploramos las últimas innovaciones en stablecoins respaldadas por MXN y cómo están transformando los pagos digitales en México.",
-    publishedAt: "12 Dic 2024",
-    readTime: "6 min",
-    category: "Tecnología",
-    author: "María González",
-    image: "https://images.unsplash.com/photo-1642104704074-907c0698cbd9?w=500&h=300&fit=crop"
+    id: "2",
+    title: "Cómo las DAOs están transformando la gobernanza",
+    author: "Javier Pérez",
+    date: "2024-07-10",
+    tags: ["DAOs", "Gobernanza", "Blockchain"],
+    content: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones."
   },
   {
     id: "3",
-    title: "Yield Farming en América Latina: Guía Completa para Principiantes",
-    excerpt: "Todo lo que necesitas saber sobre yield farming, desde conceptos básicos hasta estrategias avanzadas, con enfoque en el mercado latinoamericano.",
-    publishedAt: "10 Dic 2024", 
-    readTime: "12 min",
-    category: "Educación",
-    author: "Carlos Ruiz",
-    image: "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=500&h=300&fit=crop"
+    title: "NFTs: Más allá del arte digital",
+    author: "Sofía Mendoza",
+    date: "2024-07-05",
+    tags: ["NFTs", "Arte Digital", "Casos de Uso"],
+    content: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital."
+  },
+  {
+    id: "4",
+    title: "El impacto de la regulación en el ecosistema Crypto",
+    author: "Ricardo Castro",
+    date: "2024-06-28",
+    tags: ["Regulación", "Criptomonedas", "Leyes"],
+    content: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo."
+  },
+  {
+    id: "5",
+    title: "Staking: Genera ingresos pasivos con tus criptos",
+    author: "Valeria Gómez",
+    date: "2024-06-20",
+    tags: ["Staking", "Ingresos Pasivos", "DeFi"],
+    content: "Aprende cómo puedes obtener recompensas al participar en la validación de redes blockchain."
   }
 ];
 
 export const mockEvents = [
   {
     id: "1",
-    title: "DeFi México Summit 2024",
-    description: "El evento anual más importante del ecosistema DeFi mexicano. Speakers internacionales, startups, workshops y networking.",
-    date: "2024-12-20",
-    time: "09:00",
-    location: "Centro de Convenciones WTC, CDMX",
-    type: "Conferencia",
+    title: "DeFi Summit CDMX",
+    date: "2024-08-05",
+    location: "Ciudad de México",
+    description: "El evento más importante de finanzas descentralizadas en México.",
     isUpcoming: true
   },
   {
     id: "2",
-    title: "Workshop: Smart Contracts con Solidity",
-    description: "Taller práctico para desarrolladores sobre creación de smart contracts seguros para aplicaciones DeFi.",
-    date: "2024-12-18",
-    time: "14:00", 
-    location: "Online",
-    type: "Workshop",
+    title: "Blockchain Day Monterrey",
+    date: "2024-09-12",
+    location: "Monterrey, Nuevo León",
+    description: "Un día completo de conferencias y talleres sobre tecnología blockchain.",
     isUpcoming: true
   },
   {
     id: "3",
-    title: "Meetup DeFi CDMX - Noviembre",
-    description: "Encuentro mensual de la comunidad DeFi en Ciudad de México. Presentaciones de startups locales y networking.",
-    date: "2024-11-15",
-    time: "18:30",
-    location: "WeWork Polanco, CDMX",
-    type: "Meetup",
+    title: "Web3 Nights Guadalajara",
+    date: "2024-10-20",
+    location: "Guadalajara, Jalisco",
+    description: "Networking y charlas sobre el futuro de la web descentralizada.",
+    isUpcoming: false
+  },
+  {
+    id: "4",
+    title: "DeFi Workshop Online",
+    date: "2024-11-10",
+    location: "Online",
+    description: "Aprende los fundamentos de las finanzas descentralizadas desde casa.",
+    isUpcoming: false
+  },
+  {
+    id: "5",
+    title: "Crypto Meetup Tijuana",
+    date: "2024-12-03",
+    location: "Tijuana, Baja California",
+    description: "Un encuentro para entusiastas de las criptomonedas en la frontera.",
     isUpcoming: false
   }
 ];
 
 export const mockStats = [
-  {
-    title: "Startups Registradas",
-    value: "47",
-    description: "Startups DeFi mexicanas en nuestro ecosistema",
-    trend: { value: "12%", isPositive: true }
-  },
-  {
-    title: "Eventos Realizados", 
-    value: "23",
-    description: "Eventos organizados este año",
-    trend: { value: "8%", isPositive: true }
-  },
-  {
-    title: "Miembros Activos",
-    value: "2,340",
-    description: "Desarrolladores y entusiastas DeFi",
-    trend: { value: "15%", isPositive: true }
-  },
-  {
-    title: "TVL Total",
-    value: "$12.8M",
-    description: "Valor total bloqueado en protocolos mexicanos",
-    trend: { value: "23%", isPositive: true }
-  }
+  { label: "Startups", value: 120 },
+  { label: "Blog Posts", value: 45 },
+  { label: "Active Events", value: 15 },
+  { label: "Monthly Visitors", value: 24500 }
 ];

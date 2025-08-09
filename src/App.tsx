@@ -11,6 +11,10 @@ import StartupDetailPage from "./pages/StartupDetailPage";
 import BlogPage from "./pages/BlogPage";
 import EventosPage from "./pages/EventosPage";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminStartups from "./pages/admin/AdminStartups";
+import AdminStartupForm from "./pages/admin/AdminStartupForm";
 
 const queryClient = new QueryClient();
 
@@ -20,21 +24,69 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/startups" element={<StartupsPage />} />
-              <Route path="/startups/:id" element={<StartupDetailPage />} />
-              <Route path="/blog" element={<BlogPage />} />
-              <Route path="/eventos" element={<EventosPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <Routes>
+          {/* Public routes with layout */}
+          <Route path="/" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <HomePage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          <Route path="/startups" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <StartupsPage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          <Route path="/startups/:id" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <StartupDetailPage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          <Route path="/blog" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <BlogPage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          <Route path="/eventos" element={
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <EventosPage />
+              </main>
+              <Footer />
+            </div>
+          } />
+          
+          {/* Admin routes without public layout */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="startups" element={<AdminStartups />} />
+            <Route path="startups/new" element={<AdminStartupForm />} />
+            <Route path="blog" element={<div className="p-6">Blog Management (Coming Soon)</div>} />
+            <Route path="blog/new" element={<div className="p-6">New Blog Post (Coming Soon)</div>} />
+            <Route path="eventos" element={<div className="p-6">Events Management (Coming Soon)</div>} />
+            <Route path="eventos/new" element={<div className="p-6">New Event (Coming Soon)</div>} />
+            <Route path="settings" element={<div className="p-6">Settings (Coming Soon)</div>} />
+          </Route>
+          
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
