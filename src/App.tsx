@@ -16,6 +16,7 @@ const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
 const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const DashboardWeb3 = lazy(() => import('@/pages/DashboardWeb3'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
@@ -26,6 +27,7 @@ const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const ROUTES = {
   public: [
     { path: '/', element: <HomePage /> },
+    { path: '/dashboard-web3', element: <DashboardWeb3 /> },
     { path: '/startups', element: <StartupsPage /> },
     { path: '/startups/:id', element: <StartupDetailPage /> },
     { path: '/blog', element: <BlogPage /> },
