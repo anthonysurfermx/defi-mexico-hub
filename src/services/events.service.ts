@@ -63,7 +63,7 @@ export interface Page<T> {
 /* Helpers                                                                */
 /* ────────────────────────────────────────────────────────────────────── */
 const sanitize = (s: string) =>
-  s.replace(/,/g, ' ').replace(/%/g, '').trim().slice(0, 200);
+  s.replaceAll(',', ' ').replaceAll('%', '').trim().slice(0, 200);
 
 const normalizeUrl = (url?: string | null) => {
   if (!url) return null;

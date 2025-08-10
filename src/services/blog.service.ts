@@ -54,8 +54,8 @@ const DEFAULT_PAGE_SIZE = 12;
  */
 const sanitize = (s: unknown): string =>
   (typeof s === 'string' ? s : '')
-    .replace(/,/g, ' ')
-    .replace(/%/g, '')
+    .replaceAll(',', ' ')
+    .replaceAll('%', '')
     .trim()
     .slice(0, 200);
 

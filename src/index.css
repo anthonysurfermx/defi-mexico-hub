@@ -48,7 +48,6 @@
     --gradient-primary: linear-gradient(135deg, hsl(160 100% 50%), hsl(195 100% 50%));
     --gradient-dark: linear-gradient(135deg, hsl(220 13% 11%), hsl(220 13% 15%));
     --gradient-glow: linear-gradient(135deg, hsl(160 100% 50% / 0.1), hsl(195 100% 50% / 0.1));
-    --gradient-purple: linear-gradient(135deg, hsl(270 85% 60%), hsl(270 90% 40%));
     
     /* Shadows */
     --shadow-neon: 0 0 30px hsl(160 100% 50% / 0.3);
@@ -149,14 +148,6 @@
   
   .gradient-glow {
     background: var(--gradient-glow);
-  }
-  
-  .gradient-purple {
-    background: var(--gradient-purple);
-  }
-  
-  .glass-card {
-    @apply bg-card/60 backdrop-blur-md border border-border/60 shadow-elegant;
   }
   
   .shadow-neon {

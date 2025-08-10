@@ -6,7 +6,7 @@ export const startupsService = {
     const { data, error } = await supabase
       .from('startups')
       .select('*')
-      .eq('is_featured', true)
+      .eq('featured', true)  // Cambiado de is_featured a featured
       .order('created_at', { ascending: false })
       .limit(6);
 
@@ -25,72 +25,25 @@ export const startupsService = {
   },
 
   async getFiltered(filters: {
-    page?: number;
-    pageSize?: number;
     category?: string;
     search?: string;
   }) {
-    const page = Math.max(1, filters.page ?? 1);
-    const pageSize = Math.min(50, Math.max(1, filters.pageSize ?? 12));
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from('startups')
-      .select('*', { count: 'exact' });
+    let query = supabase.from('startups').select('*');
 
     if (filters.category) {
-      // Soporta tanto 'categories' (array) como 'category' (string)
-      query = query.or(`categories.cs.{${filters.category}},category.eq.${filters.category}`);
+      query = query.contains('categories', [filters.category]); // Usar categories array
     }
-
+    
     if (filters.search) {
-      const q = (filters.search || '').trim().slice(0, 200);
-      if (q) {
-        query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%`);
-      }
+      query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
     }
 
-    const { data, error, count } = await query
-      .order('is_featured', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(from, to);
+    const { data, error } = await query
+      .order('featured', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
-
-    const items = (data || []).map((row: any) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug ?? row.id,
-      description: row.description || '',
-      logo_url: row.logo_url ?? null,
-      website: row.website ?? null,
-      categories: row.categories ?? (row.category ? [row.category] : []),
-      founded_year: row.founded_year ?? null,
-      is_featured: row.is_featured ?? row.featured ?? false,
-      status: row.status ?? 'active',
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      founders: row.founders ?? [],
-    }));
-
-    return {
-      items,
-      total: count ?? items.length,
-      page,
-      pageSize,
-    };
-  },
-
-  async getCategories(): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('startups')
-      .select('category');
-
-    if (error) throw error;
-
-    const categories = Array.from(new Set((data || []).map((r: any) => r.category).filter(Boolean)));
-    return categories as string[];
+    return data || [];
   },
 
   async create(startup: any) {
