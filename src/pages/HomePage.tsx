@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion } from "framer-motion";
 import { useState, useEffect } from 'react';
+import Hero from "@/components/landing/Hero";
 
 // Animation variants
 const fadeUp = {
@@ -120,70 +121,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-background" />
-        
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={fadeUp}
-              transition={{ duration: 0.8 }}
-            >
-              {/* Badge */}
-              <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"
-              >
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">El Hub #1 de DeFi en México</span>
-              </motion.div>
-
-              <h1 className="text-5xl lg:text-7xl font-bold mb-6">
-                <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                  DeFi México Hub
-                </span>
-              </h1>
-              
-              <p className="text-xl lg:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-                Construimos el futuro de las finanzas descentralizadas en México. 
-                Conectamos startups, desarrolladores y entusiastas para crear un 
-                ecosistema DeFi próspero e inclusivo.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="group" asChild>
-                  <Link to="/startups" className="inline-flex items-center">
-                    Descubre Startups
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <a 
-                    href="https://t.me/defimexico" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center"
-                  >
-                    <MessageCircle className="mr-2 w-5 h-5" />
-                    Únete al Telegram
-                  </a>
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
+{/* Hero Section */}
+<Hero />
 
       {/* Stats Section */}
       <section className="py-16 bg-muted/30">
