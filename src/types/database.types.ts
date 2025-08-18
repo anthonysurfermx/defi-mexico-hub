@@ -1,10 +1,3 @@
-/**
- * Supabase-generated types + domain helpers for DeFi México
- * - Mantén este archivo libre de dependencias de runtime.
- * - NO cambies las formas de Row/Insert/Update sin actualizar la BD.
- * - Agrega tipos "Domain" por encima para una DX más estricta.
- */
-
 export type Json =
   | string
   | number
@@ -13,232 +6,1293 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// ────────────────────────────────────────────────────────────────────────────
-// Base Supabase schema (mantén esto alineado a tu BD real)
-// ────────────────────────────────────────────────────────────────────────────
-export interface Database {
+export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.4"
+  }
   public: {
     Tables: {
-      startups: {
-        Row: {
-          id: string
-          name: string
-          description: string
-          logo_url: string | null
-          website: string | null
-          category: string | null
-          founded_year: number | null
-          is_featured: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description: string
-          logo_url?: string | null
-          website?: string | null
-          category?: string | null
-          founded_year?: number | null
-          is_featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string
-          logo_url?: string | null
-          website?: string | null
-          category?: string | null
-          founded_year?: number | null
-          is_featured?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      founders: {
-        Row: {
-          id: string
-          startup_id: string
-          name: string
-          role: string
-          bio: string | null
-          image_url: string | null
-          linkedin_url: string | null
-          twitter_url: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          startup_id: string
-          name: string
-          role: string
-          bio?: string | null
-          image_url?: string | null
-          linkedin_url?: string | null
-          twitter_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          startup_id?: string
-          name?: string
-          role?: string
-          bio?: string | null
-          image_url?: string | null
-          linkedin_url?: string | null
-          twitter_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
       blog_posts: {
         Row: {
-          id: string
-          title: string
-          slug: string
-          excerpt: string
-          content: string
           author: string
-          category: string
-          tags: string[] | null
+          author_name: string | null
+          categories: string[] | null
+          category: string | null
+          content: string
+          created_at: string | null
+          excerpt: string | null
+          featured_image: string | null
+          id: string
           image_url: string | null
-          published: boolean
+          meta_description: string | null
+          meta_title: string | null
+          published: boolean | null
           published_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
+          read_time: number | null
           slug: string
-          excerpt: string
-          content: string
-          author: string
-          category: string
-          tags?: string[] | null
-          image_url?: string | null
-          published?: boolean
-          published_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          slug?: string
-          excerpt?: string
-          content?: string
-          author?: string
-          category?: string
-          tags?: string[] | null
-          image_url?: string | null
-          published?: boolean
-          published_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      events: {
-        Row: {
-          id: string
+          status: string | null
+          tags: string[] | null
           title: string
-          description: string
-          type: string
-          location: string
-          date: string
-          time: string
-          registration_url: string | null
-          image_url: string | null
-          is_upcoming: boolean
-          max_attendees: number | null
-          created_at: string
-          updated_at: string
+          updated_at: string | null
+          views: number | null
         }
         Insert: {
+          author?: string
+          author_name?: string | null
+          categories?: string[] | null
+          category?: string | null
+          content: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
           id?: string
-          title: string
-          description: string
-          type: string
-          location: string
-          date: string
-          time: string
-          registration_url?: string | null
           image_url?: string | null
-          is_upcoming?: boolean
-          max_attendees?: number | null
-          created_at?: string
-          updated_at?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published?: boolean | null
+          published_at?: string | null
+          read_time?: number | null
+          slug: string
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          views?: number | null
         }
         Update: {
+          author?: string
+          author_name?: string | null
+          categories?: string[] | null
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          excerpt?: string | null
+          featured_image?: string | null
           id?: string
-          title?: string
-          description?: string
-          type?: string
-          location?: string
-          date?: string
-          time?: string
-          registration_url?: string | null
           image_url?: string | null
-          is_upcoming?: boolean
-          max_attendees?: number | null
-          created_at?: string
-          updated_at?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          published?: boolean | null
+          published_at?: string | null
+          read_time?: number | null
+          slug?: string
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          views?: number | null
         }
+        Relationships: []
+      }
+      communities: {
+        Row: {
+          banner_url: string | null
+          category: string
+          created_at: string | null
+          description: string
+          founded_date: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          location: string | null
+          logo_url: string | null
+          member_count: number | null
+          name: string
+          slug: string
+          social_links: Json | null
+          tags: string[] | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          category: string
+          created_at?: string | null
+          description: string
+          founded_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location?: string | null
+          logo_url?: string | null
+          member_count?: number | null
+          name: string
+          slug: string
+          social_links?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          founded_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          location?: string | null
+          logo_url?: string | null
+          member_count?: number | null
+          name?: string
+          slug?: string
+          social_links?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      contact_forms: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          metadata: Json | null
+          name: string
+          phone: string | null
+          priority: Database["public"]["Enums"]["contact_priority"]
+          resolved_at: string | null
+          response_message: string | null
+          response_sent_at: string | null
+          source: Database["public"]["Enums"]["contact_source"]
+          status: Database["public"]["Enums"]["contact_status"]
+          subject: string
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          name: string
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["contact_priority"]
+          resolved_at?: string | null
+          response_message?: string | null
+          response_sent_at?: string | null
+          source?: Database["public"]["Enums"]["contact_source"]
+          status?: Database["public"]["Enums"]["contact_status"]
+          subject: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          name?: string
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["contact_priority"]
+          resolved_at?: string | null
+          response_message?: string | null
+          response_sent_at?: string | null
+          source?: Database["public"]["Enums"]["contact_source"]
+          status?: Database["public"]["Enums"]["contact_status"]
+          subject?: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_forms_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
+      }
+      event_registrations: {
+        Row: {
+          accessibility_needs: string | null
+          attendance_duration_minutes: number | null
+          certificate_issued: boolean | null
+          certificate_issued_at: string | null
+          check_in_time: string | null
+          company: string | null
+          confirmation_sent_at: string | null
+          created_at: string | null
+          dietary_restrictions: string | null
+          email: string
+          emergency_contact: string | null
+          emergency_phone: string | null
+          event_id: string
+          expectations: string | null
+          feedback_comments: string | null
+          feedback_rating: number | null
+          how_did_you_hear: string | null
+          id: string
+          job_title: string | null
+          marketing_opt_in: boolean | null
+          metadata: Json | null
+          name: string
+          networking_opt_in: boolean | null
+          phone: string | null
+          registration_date: string | null
+          reminder_sent_at: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessibility_needs?: string | null
+          attendance_duration_minutes?: number | null
+          certificate_issued?: boolean | null
+          certificate_issued_at?: string | null
+          check_in_time?: string | null
+          company?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string | null
+          email: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          event_id: string
+          expectations?: string | null
+          feedback_comments?: string | null
+          feedback_rating?: number | null
+          how_did_you_hear?: string | null
+          id?: string
+          job_title?: string | null
+          marketing_opt_in?: boolean | null
+          metadata?: Json | null
+          name: string
+          networking_opt_in?: boolean | null
+          phone?: string | null
+          registration_date?: string | null
+          reminder_sent_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessibility_needs?: string | null
+          attendance_duration_minutes?: number | null
+          certificate_issued?: boolean | null
+          certificate_issued_at?: string | null
+          check_in_time?: string | null
+          company?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string | null
+          email?: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          event_id?: string
+          expectations?: string | null
+          feedback_comments?: string | null
+          feedback_rating?: number | null
+          how_did_you_hear?: string | null
+          id?: string
+          job_title?: string | null
+          marketing_opt_in?: boolean | null
+          metadata?: Json | null
+          name?: string
+          networking_opt_in?: boolean | null
+          phone?: string | null
+          registration_date?: string | null
+          reminder_sent_at?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_attendance_analytics"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
       }
       event_speakers: {
         Row: {
-          id: string
-          event_id: string
-          name: string
           bio: string | null
           company: string | null
-          role: string | null
+          created_at: string | null
+          event_id: string | null
+          id: string
           image_url: string | null
           linkedin_url: string | null
+          name: string
+          role: string | null
+          topic: string | null
           twitter_url: string | null
-          created_at: string
-          updated_at: string
         }
         Insert: {
-          id?: string
-          event_id: string
-          name: string
           bio?: string | null
           company?: string | null
-          role?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
           image_url?: string | null
           linkedin_url?: string | null
+          name: string
+          role?: string | null
+          topic?: string | null
           twitter_url?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Update: {
-          id?: string
-          event_id?: string
-          name?: string
           bio?: string | null
           company?: string | null
-          role?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
           image_url?: string | null
           linkedin_url?: string | null
+          name?: string
+          role?: string | null
+          topic?: string | null
           twitter_url?: string | null
-          created_at?: string
-          updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "event_speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_old"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string | null
+          current_attendees: number | null
+          date: string
+          description: string
+          id: string
+          image_url: string | null
+          location: string
+          location_url: string | null
+          max_attendees: number | null
+          registration_url: string | null
+          slug: string | null
+          speakers: string[] | null
+          status: string | null
+          tags: string[] | null
+          time: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_attendees?: number | null
+          date: string
+          description: string
+          id?: string
+          image_url?: string | null
+          location: string
+          location_url?: string | null
+          max_attendees?: number | null
+          registration_url?: string | null
+          slug?: string | null
+          speakers?: string[] | null
+          status?: string | null
+          tags?: string[] | null
+          time: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_attendees?: number | null
+          date?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          location?: string
+          location_url?: string | null
+          max_attendees?: number | null
+          registration_url?: string | null
+          slug?: string | null
+          speakers?: string[] | null
+          status?: string | null
+          tags?: string[] | null
+          time?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      events_old: {
+        Row: {
+          address: string | null
+          banner_image: string | null
+          capacity: number | null
+          city: string | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          event_type: string | null
+          id: string
+          is_online: boolean | null
+          meeting_url: string | null
+          price: number | null
+          registration_url: string | null
+          requires_registration: boolean | null
+          slug: string
+          start_date: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          venue_name: string | null
+        }
+        Insert: {
+          address?: string | null
+          banner_image?: string | null
+          capacity?: number | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_type?: string | null
+          id?: string
+          is_online?: boolean | null
+          meeting_url?: string | null
+          price?: number | null
+          registration_url?: string | null
+          requires_registration?: boolean | null
+          slug: string
+          start_date: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          venue_name?: string | null
+        }
+        Update: {
+          address?: string | null
+          banner_image?: string | null
+          capacity?: number | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_type?: string | null
+          id?: string
+          is_online?: boolean | null
+          meeting_url?: string | null
+          price?: number | null
+          registration_url?: string | null
+          requires_registration?: boolean | null
+          slug?: string
+          start_date?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          venue_name?: string | null
+        }
+        Relationships: []
+      }
+      founders: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          linkedin_url: string | null
+          name: string
+          role: string | null
+          startup_id: string | null
+          twitter_url: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          linkedin_url?: string | null
+          name: string
+          role?: string | null
+          startup_id?: string | null
+          twitter_url?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          linkedin_url?: string | null
+          name?: string
+          role?: string | null
+          startup_id?: string | null
+          twitter_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founders_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logs: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          duration_ms: number | null
+          error_details: Json | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          level: Database["public"]["Enums"]["log_level"] | null
+          message: string | null
+          metadata: Json | null
+          referer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          level?: Database["public"]["Enums"]["log_level"] | null
+          message?: string | null
+          metadata?: Json | null
+          referer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          level?: Database["public"]["Enums"]["log_level"] | null
+          message?: string | null
+          metadata?: Json | null
+          referer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
+      }
+      newsletter_subscribers: {
+        Row: {
+          bounce_count: number | null
+          click_count: number | null
+          complaint_count: number | null
+          confirmed_at: string | null
+          created_at: string | null
+          email: string
+          engagement_score: number | null
+          id: string
+          interests: string[] | null
+          last_email_sent: string | null
+          metadata: Json | null
+          name: string | null
+          open_count: number | null
+          source: Database["public"]["Enums"]["newsletter_source"]
+          status: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at: string | null
+          unsubscribe_reason: string | null
+          unsubscribed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bounce_count?: number | null
+          click_count?: number | null
+          complaint_count?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          email: string
+          engagement_score?: number | null
+          id?: string
+          interests?: string[] | null
+          last_email_sent?: string | null
+          metadata?: Json | null
+          name?: string | null
+          open_count?: number | null
+          source?: Database["public"]["Enums"]["newsletter_source"]
+          status?: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bounce_count?: number | null
+          click_count?: number | null
+          complaint_count?: number | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          email?: string
+          engagement_score?: number | null
+          id?: string
+          interests?: string[] | null
+          last_email_sent?: string | null
+          metadata?: Json | null
+          name?: string | null
+          open_count?: number | null
+          source?: Database["public"]["Enums"]["newsletter_source"]
+          status?: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      platform_stats: {
+        Row: {
+          active_communities: number | null
+          created_at: string | null
+          draft_posts: number | null
+          featured_startups: number | null
+          id: string
+          last_blog_update: string | null
+          last_community_update: string | null
+          last_event_update: string | null
+          last_startup_update: string | null
+          published_posts: number | null
+          total_blog_posts: number | null
+          total_communities: number | null
+          total_events: number | null
+          total_members: number | null
+          total_startups: number | null
+          upcoming_events: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_communities?: number | null
+          created_at?: string | null
+          draft_posts?: number | null
+          featured_startups?: number | null
+          id?: string
+          last_blog_update?: string | null
+          last_community_update?: string | null
+          last_event_update?: string | null
+          last_startup_update?: string | null
+          published_posts?: number | null
+          total_blog_posts?: number | null
+          total_communities?: number | null
+          total_events?: number | null
+          total_members?: number | null
+          total_startups?: number | null
+          upcoming_events?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_communities?: number | null
+          created_at?: string | null
+          draft_posts?: number | null
+          featured_startups?: number | null
+          id?: string
+          last_blog_update?: string | null
+          last_community_update?: string | null
+          last_event_update?: string | null
+          last_startup_update?: string | null
+          published_posts?: number | null
+          total_blog_posts?: number | null
+          total_communities?: number | null
+          total_events?: number | null
+          total_members?: number | null
+          total_startups?: number | null
+          upcoming_events?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      startup_applications: {
+        Row: {
+          additional_info: string | null
+          business_model: string
+          co_founders: string | null
+          competitive_advantage: string
+          created_at: string | null
+          decision_deadline: string | null
+          demo_url: string | null
+          description: string
+          follow_up_date: string | null
+          founder_email: string
+          founder_name: string
+          funding_amount_sought: number | null
+          funding_stage: Database["public"]["Enums"]["funding_stage"]
+          github_url: string | null
+          id: string
+          industry: string
+          interview_scheduled_at: string | null
+          linkedin_profile: string | null
+          location: string
+          metadata: Json | null
+          pitch_deck_url: string | null
+          problem_statement: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_feedback: Json | null
+          score: number | null
+          solution: string
+          startup_name: string
+          status: Database["public"]["Enums"]["application_status"]
+          submitted_at: string | null
+          tags: string[] | null
+          target_market: string
+          team_size: number | null
+          technology_stack: string | null
+          traction: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          additional_info?: string | null
+          business_model: string
+          co_founders?: string | null
+          competitive_advantage: string
+          created_at?: string | null
+          decision_deadline?: string | null
+          demo_url?: string | null
+          description: string
+          follow_up_date?: string | null
+          founder_email: string
+          founder_name: string
+          funding_amount_sought?: number | null
+          funding_stage: Database["public"]["Enums"]["funding_stage"]
+          github_url?: string | null
+          id?: string
+          industry: string
+          interview_scheduled_at?: string | null
+          linkedin_profile?: string | null
+          location: string
+          metadata?: Json | null
+          pitch_deck_url?: string | null
+          problem_statement: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_feedback?: Json | null
+          score?: number | null
+          solution: string
+          startup_name: string
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string | null
+          tags?: string[] | null
+          target_market: string
+          team_size?: number | null
+          technology_stack?: string | null
+          traction: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          additional_info?: string | null
+          business_model?: string
+          co_founders?: string | null
+          competitive_advantage?: string
+          created_at?: string | null
+          decision_deadline?: string | null
+          demo_url?: string | null
+          description?: string
+          follow_up_date?: string | null
+          founder_email?: string
+          founder_name?: string
+          funding_amount_sought?: number | null
+          funding_stage?: Database["public"]["Enums"]["funding_stage"]
+          github_url?: string | null
+          id?: string
+          industry?: string
+          interview_scheduled_at?: string | null
+          linkedin_profile?: string | null
+          location?: string
+          metadata?: Json | null
+          pitch_deck_url?: string | null
+          problem_statement?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_feedback?: Json | null
+          score?: number | null
+          solution?: string
+          startup_name?: string
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string | null
+          tags?: string[] | null
+          target_market?: string
+          team_size?: number | null
+          technology_stack?: string | null
+          traction?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
+      }
+      startups: {
+        Row: {
+          active_users: number | null
+          categories: string[] | null
+          created_at: string | null
+          description: string | null
+          discord_url: string | null
+          docs_url: string | null
+          featured: boolean | null
+          founded_year: number | null
+          github_url: string | null
+          id: string
+          logo_url: string | null
+          long_description: string | null
+          medium_url: string | null
+          name: string
+          slug: string
+          status: string | null
+          telegram_url: string | null
+          token_symbol: string | null
+          total_transactions: number | null
+          tvl: number | null
+          twitter_url: string | null
+          updated_at: string | null
+          volume_24h: number | null
+          website: string | null
+        }
+        Insert: {
+          active_users?: number | null
+          categories?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          discord_url?: string | null
+          docs_url?: string | null
+          featured?: boolean | null
+          founded_year?: number | null
+          github_url?: string | null
+          id?: string
+          logo_url?: string | null
+          long_description?: string | null
+          medium_url?: string | null
+          name: string
+          slug: string
+          status?: string | null
+          telegram_url?: string | null
+          token_symbol?: string | null
+          total_transactions?: number | null
+          tvl?: number | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          volume_24h?: number | null
+          website?: string | null
+        }
+        Update: {
+          active_users?: number | null
+          categories?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          discord_url?: string | null
+          docs_url?: string | null
+          featured?: boolean | null
+          founded_year?: number | null
+          github_url?: string | null
+          id?: string
+          logo_url?: string | null
+          long_description?: string | null
+          medium_url?: string | null
+          name?: string
+          slug?: string
+          status?: string | null
+          telegram_url?: string | null
+          token_symbol?: string | null
+          total_transactions?: number | null
+          tvl?: number | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          volume_24h?: number | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          permissions: Json | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      active_user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_by_email: string | null
+          created_at: string | null
+          email: string | null
+          expires_at: string | null
+          id: string | null
+          metadata: Json | null
+          permissions: Json | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "reviewer_workload"
+            referencedColumns: ["reviewer_id"]
+          },
+        ]
+      }
+      contact_form_analytics: {
+        Row: {
+          avg_resolution_time_hours: number | null
+          date: string | null
+          high_priority_count: number | null
+          pending_count: number | null
+          resolved_count: number | null
+          total_forms: number | null
+          unique_contacts: number | null
+          urgent_count: number | null
+        }
+        Relationships: []
+      }
+      event_attendance_analytics: {
+        Row: {
+          attendance_rate: number | null
+          attended_count: number | null
+          avg_rating: number | null
+          companies_count: number | null
+          confirmed_count: number | null
+          event_date: string | null
+          event_id: string | null
+          event_title: string | null
+          max_attendees: number | null
+          no_show_count: number | null
+          total_registrations: number | null
+        }
+        Relationships: []
+      }
+      reviewer_workload: {
+        Row: {
+          avg_review_time_days: number | null
+          avg_score_given: number | null
+          completed: number | null
+          in_review: number | null
+          reviewer_email: string | null
+          reviewer_id: string | null
+          total_assigned: number | null
+        }
+        Relationships: []
+      }
+      startup_application_pipeline: {
+        Row: {
+          avg_days_in_stage: number | null
+          count: number | null
+          newest_application: string | null
+          oldest_application: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      assign_application_reviewer: {
+        Args: { application_id: string; reviewer_id: string }
+        Returns: boolean
+      }
+      assign_user_role: {
+        Args: {
+          target_user_id: string
+          new_role: Database["public"]["Enums"]["user_role"]
+          assigned_by_user_id?: string
+          expires_at_param?: string
+          permissions_param?: Json
+        }
+        Returns: string
+      }
+      bulk_update_application_status: {
+        Args: {
+          application_ids: string[]
+          new_status: Database["public"]["Enums"]["application_status"]
+          review_notes_text?: string
+        }
+        Returns: number
+      }
+      check_event_capacity: {
+        Args: { target_event_id: string }
+        Returns: boolean
+      }
+      check_in_attendee: {
+        Args: { registration_id: string; check_in_by?: string }
+        Returns: boolean
+      }
+      cleanup_old_logs: {
+        Args: { retention_days?: number }
+        Returns: number
+      }
+      get_applications_needing_review: {
+        Args: { reviewer_id?: string; limit_count?: number }
+        Returns: {
+          id: string
+          startup_name: string
+          founder_name: string
+          industry: string
+          funding_stage: Database["public"]["Enums"]["funding_stage"]
+          submitted_at: string
+          days_pending: number
+        }[]
+      }
+      get_contact_form_stats: {
+        Args: { days_back?: number }
+        Returns: Json
+      }
+      get_event_registration_stats: {
+        Args: { target_event_id: string }
+        Returns: Json
+      }
+      get_log_analytics: {
+        Args: { start_date?: string; end_date?: string }
+        Returns: Json
+      }
+      get_newsletter_stats: {
+        Args: { days_back?: number }
+        Returns: Json
+      }
+      get_startup_application_stats: {
+        Args: { days_back?: number }
+        Returns: Json
+      }
+      get_user_role: {
+        Args: { user_uuid?: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      log_event: {
+        Args: {
+          p_event_type: string
+          p_event_data?: Json
+          p_level?: Database["public"]["Enums"]["log_level"]
+          p_message?: string
+          p_user_id?: string
+          p_correlation_id?: string
+          p_duration_ms?: number
+          p_error_details?: Json
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      register_for_event: {
+        Args: {
+          target_event_id: string
+          registrant_name: string
+          registrant_email: string
+          registrant_phone?: string
+          registrant_company?: string
+          additional_info?: Json
+        }
+        Returns: string
+      }
+      score_application: {
+        Args: {
+          application_id: string
+          application_score: number
+          feedback_notes?: string
+        }
+        Returns: boolean
+      }
+      send_registration_reminders: {
+        Args: { target_event_id: string; hours_before_event?: number }
+        Returns: number
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
+      track_email_event: {
+        Args: {
+          subscriber_email: string
+          event_type: string
+          campaign_id?: string
+        }
+        Returns: boolean
+      }
+      update_platform_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      user_has_permission: {
+        Args: { permission_name: string; user_uuid?: string }
+        Returns: boolean
+      }
+      user_has_role: {
+        Args: {
+          required_role: Database["public"]["Enums"]["user_role"]
+          user_uuid?: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      application_status:
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "waitlisted"
+      contact_priority: "low" | "medium" | "high" | "urgent"
+      contact_source: "website" | "social" | "referral" | "event" | "other"
+      contact_status: "pending" | "in_progress" | "resolved" | "closed"
+      funding_stage:
+        | "pre_seed"
+        | "seed"
+        | "series_a"
+        | "series_b"
+        | "later"
+        | "bootstrap"
+      log_level: "debug" | "info" | "warn" | "error" | "fatal"
+      newsletter_source: "website" | "event" | "social" | "referral" | "import"
+      newsletter_status: "active" | "unsubscribed" | "bounced" | "complained"
+      registration_status:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "attended"
+        | "no_show"
+      user_role: "user" | "moderator" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -246,167 +1300,155 @@ export interface Database {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Helpers y utilidades de tipos (DX)
-// ────────────────────────────────────────────────────────────────────────────
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-// Alias semánticos (no cambian el runtime, pero mejoran legibilidad)
-export type UUID = string
-export type ISODateTime = string // "2025-08-09T19:00:00.000Z"
-export type URLString = string
-export type Slug = string
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-// Enums de dominio (frontend) — mapea strings libres de la BD a valores controlados
-export type StartupStatus = 'active' | 'inactive' | 'draft'
-export type PostStatus = 'draft' | 'published' | 'scheduled'
-export type EventStatus = 'upcoming' | 'ongoing' | 'completed'
-export type EventType = 'meetup' | 'workshop' | 'spaces' | 'conference' | 'hackathon' | 'other'
-
-// Generics para obtener tipos de tablas
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row']
-export type TablesInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert']
-export type TablesUpdate<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update']
-
-// Tipos específicos (Row/Insert/Update) — siguen el esquema actual de la BD
-export type Startup = Database['public']['Tables']['startups']['Row']
-export type StartupInsert = Database['public']['Tables']['startups']['Insert']
-export type StartupUpdate = Database['public']['Tables']['startups']['Update']
-
-export type Founder = Database['public']['Tables']['founders']['Row']
-export type FounderInsert = Database['public']['Tables']['founders']['Insert']
-export type FounderUpdate = Database['public']['Tables']['founders']['Update']
-
-export type BlogPost = Database['public']['Tables']['blog_posts']['Row']
-export type BlogPostInsert = Database['public']['Tables']['blog_posts']['Insert']
-export type BlogPostUpdate = Database['public']['Tables']['blog_posts']['Update']
-
-export type Event = Database['public']['Tables']['events']['Row']
-export type EventInsert = Database['public']['Tables']['events']['Insert']
-export type EventUpdate = Database['public']['Tables']['events']['Update']
-
-export type EventSpeaker = Database['public']['Tables']['event_speakers']['Row']
-export type EventSpeakerInsert = Database['public']['Tables']['event_speakers']['Insert']
-export type EventSpeakerUpdate = Database['public']['Tables']['event_speakers']['Update']
-
-// Relaciones convenientes para el front
-export interface StartupWithFounders extends Startup {
-  founders?: Founder[]
-}
-export interface EventWithSpeakers extends Event {
-  speakers?: EventSpeaker[]
-}
-export interface BlogPostWithAuthor extends BlogPost {
-  author_details?: {
-    name: string
-    avatar_url?: string
-    bio?: string
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-// ────────────────────────────────────────────────────────────────────────────
-// Tipos de "Domain" (más estrictos para UI/formularios)
-// No alteran la BD; sirven para validación y normalización en el front.
-// ────────────────────────────────────────────────────────────────────────────
-
-export interface DomainStartup {
-  id: UUID
-  name: string
-  slug: Slug // recomendable añadir en BD en el futuro
-  description: string
-  logo_url?: URLString | null
-  website?: URLString | null
-  categories?: string[] // en BD hoy es 'category' string — sugerido migrar a TEXT[]
-  founded_year?: number | null
-  is_featured: boolean
-  status?: StartupStatus // sugerido agregar en BD
-  created_at: ISODateTime
-  updated_at: ISODateTime
-  founders?: Array<{
-    id: UUID
-    name: string
-    role: string
-    linkedin_url?: URLString | null
-    twitter_url?: URLString | null
-    image_url?: URLString | null
-  }>
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-export interface DomainEvent {
-  id: UUID
-  title: string
-  slug: Slug // sugerido en BD
-  description: string
-  type: EventType // mapea desde events.type
-  location: string
-  start_at: ISODateTime // sugerencia: unificar date+time a ISO
-  end_at?: ISODateTime | null
-  registration_url?: URLString | null
-  image_url?: URLString | null
-  status: EventStatus // mapea desde is_upcoming + fechas
-  max_attendees?: number | null
-  created_at: ISODateTime
-  updated_at: ISODateTime
-  speakers?: Array<{
-    id: UUID
-    name: string
-    company?: string | null
-    role?: string | null
-    linkedin_url?: URLString | null
-    twitter_url?: URLString | null
-    image_url?: URLString | null
-  }>
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
-export interface DomainPost {
-  id: UUID
-  title: string
-  slug: Slug
-  excerpt: string
-  content: string // Markdown/MDX
-  author: string
-  categories?: string[] // mapea desde category
-  tags?: string[]
-  image_url?: URLString | null
-  status: PostStatus // derivado de published
-  published_at?: ISODateTime | null
-  created_at: ISODateTime
-  updated_at: ISODateTime
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
-// Tipos de Input para formularios (lo que el usuario puede enviar)
-export type StartupInput = Omit<
-  DomainStartup,
-  'id' | 'created_at' | 'updated_at' | 'founders' | 'status'
-> & { status?: StartupStatus }
-
-export type EventInput = Omit<
-  DomainEvent,
-  'id' | 'created_at' | 'updated_at' | 'speakers' | 'status'
-> & { status?: EventStatus }
-
-export type BlogPostInput = Omit<
-  DomainPost,
-  'id' | 'created_at' | 'updated_at' | 'status'
-> & { status?: PostStatus }
-
-// ────────────────────────────────────────────────────────────────────────────
-/**
- * Paginación y filtros reutilizables
- */
-export interface Page<T> {
-  items: T[]
-  total: number
-  page: number // 1-based
-  pageSize: number
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
-export interface ListParams {
-  page?: number
-  pageSize?: number
-  q?: string
-  categories?: string[]
-  status?: string
-  orderBy?: string // e.g. "created_at.desc"
-}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      application_status: [
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "waitlisted",
+      ],
+      contact_priority: ["low", "medium", "high", "urgent"],
+      contact_source: ["website", "social", "referral", "event", "other"],
+      contact_status: ["pending", "in_progress", "resolved", "closed"],
+      funding_stage: [
+        "pre_seed",
+        "seed",
+        "series_a",
+        "series_b",
+        "later",
+        "bootstrap",
+      ],
+      log_level: ["debug", "info", "warn", "error", "fatal"],
+      newsletter_source: ["website", "event", "social", "referral", "import"],
+      newsletter_status: ["active", "unsubscribed", "bounced", "complained"],
+      registration_status: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "attended",
+        "no_show",
+      ],
+      user_role: ["user", "moderator", "admin", "super_admin"],
+    },
+  },
+} as const

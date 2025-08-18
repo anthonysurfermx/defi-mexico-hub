@@ -1,13 +1,15 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { AuthProvider } from './hooks/useAuth';
+import ProtectedRoute, { GuestRoute } from '@/components/auth/ProtectedRoute';
 
-// Layout components (no lazy loading for layouts)
+// Layout components (no lazy loading para layouts)
 import MainLayout from '@/components/layout/MainLayout';
 import AdminLayout from '@/pages/admin/AdminLayout';
 
-// Lazy load all pages for better performance
+// Lazy load todas las páginas para mejor performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
@@ -15,49 +17,47 @@ const BlogPage = lazy(() => import('@/pages/BlogPage'));
 const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
 const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
+const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
+const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
+
+// Auth pages
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const CheckEmailPage = lazy(() => import('@/pages/CheckEmailPage'));
+const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
+const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
+const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
+const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 
-// Routes configuration
-const ROUTES = {
-  public: [
-    { path: '/', element: <HomePage /> },
-    { path: '/startups', element: <StartupsPage /> },
-    { path: '/startups/:id', element: <StartupDetailPage /> },
-    { path: '/blog', element: <BlogPage /> },
-    { path: '/comunidades', element: <ComunidadesPage /> },
-    { path: '/comunidades/:id', element: <CommunityDetailPage /> },
-    { path: '/eventos', element: <EventosPage /> }
-  ],
-  admin: [
-    { path: '', element: <AdminDashboard />, index: true },
-    { path: 'startups', element: <StartupsPage /> },
-    { path: 'blog', element: <AdminBlog /> },
-    { path: 'eventos', element: <AdminEvents /> },
-    { path: 'usuarios', element: <ComingSoon title="Gestión de Usuarios" /> },
-    { path: 'settings', element: <ComingSoon title="Configuración" /> }
-  ]
-};
+// Admin Startup Forms - NUEVAS RUTAS
+const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
 
-// Page loader component for Suspense fallback
+// Error pages
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
+
+// ==========================================
+// COMPONENTES
+// ==========================================
+
+// Componente de loading para Suspense
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-[60vh] flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <div className="relative">
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/5 blur-xl animate-pulse" />
-          
-          {/* Spinner */}
+          <div className="absolute inset-0 bg-primary/20 blur-xl animate-pulse" />
           <div className="relative">
             <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
           </div>
         </div>
-        
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Cargando</p>
           <p className="text-xs text-muted-foreground">DeFi México Hub</p>
@@ -67,46 +67,27 @@ function PageLoader() {
   );
 }
 
-// Coming Soon Component (temporary for unimplemented sections)
-function ComingSoon({ title }: { title: string }) {
+// Root layout que envuelve todo con AuthProvider
+function RootLayout() {
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="text-center space-y-4">
-        <div className="inline-flex p-4 bg-muted rounded-full mb-2">
-          <Loader2 className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Estamos trabajando en esta sección. Estará disponible pronto con nuevas funcionalidades.
-        </p>
-        <div className="flex justify-center gap-2 pt-4">
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-        </div>
-      </div>
-    </div>
+    <AuthProvider>
+      <Outlet />
+      <ScrollRestoration />
+      <Toaster 
+        position="top-right" 
+        richColors 
+        closeButton
+        duration={4000}
+        toastOptions={{
+          style: {
+            background: 'hsl(var(--background))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      />
+    </AuthProvider>
   );
-}
-
-// Scroll to top on route change
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  
-  useEffect(() => {
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'instant' // Use instant for route changes
-      });
-    }, 0);
-    
-    return () => clearTimeout(timer);
-  }, [pathname]);
-  
-  return null;
 }
 
 // Error Boundary Component
@@ -166,57 +147,299 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// Main App Component
-function App() {
+// ==========================================
+// ROUTER CON FUTURE FLAGS CONFIGURADAS
+// ==========================================
+
+// Crear el router con todas las rutas y future flags
+const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <RootLayout />,
+      errorElement: (
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <NotFound />
+          </Suspense>
+        </ErrorBoundary>
+      ),
+      children: [
+        // Rutas públicas con MainLayout
+        {
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <MainLayout />
+            </Suspense>
+          ),
+          children: [
+            {
+              index: true,
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <HomePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <StartupsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <StartupDetailPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'comunidades',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ComunidadesPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'comunidades/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <CommunityDetailPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'recursos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ResourcesPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'eventos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <EventosPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'eventos/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <EventDetailPage />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+
+        // Rutas de autenticación (sin layout principal)
+        {
+          path: 'login',
+          element: (
+            <GuestRoute>
+              <Suspense fallback={<PageLoader />}>
+                <LoginPage />
+              </Suspense>
+            </GuestRoute>
+          ),
+        },
+        {
+          path: 'register',
+          element: (
+            <GuestRoute>
+              <Suspense fallback={<PageLoader />}>
+                <RegisterPage />
+              </Suspense>
+            </GuestRoute>
+          ),
+        },
+        {
+          path: 'forgot-password',
+          element: (
+            <GuestRoute>
+              <Suspense fallback={<PageLoader />}>
+                <ForgotPasswordPage />
+              </Suspense>
+            </GuestRoute>
+          ),
+        },
+        {
+          path: 'reset-password',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <ResetPasswordPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'check-email',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <CheckEmailPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'auth/callback',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <AuthCallback />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'unauthorized',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <UnauthorizedPage />
+            </Suspense>
+          ),
+        },
+
+        // Rutas admin protegidas
+        {
+          path: 'admin',
+          element: (
+            <ProtectedRoute requireAllRoles={['admin']}>
+              <Suspense fallback={<PageLoader />}>
+                <AdminLayout />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+          errorElement: (
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <NotFound />
+              </Suspense>
+            </ErrorBoundary>
+          ),
+          children: [
+            {
+              index: true,
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminDashboard />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminStartups />
+                </Suspense>
+              ),
+            },
+            // NUEVAS RUTAS PARA STARTUPS ADMIN
+            {
+              path: 'startups/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminStartupForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups/edit/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminStartupForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups/:id/edit',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminStartupForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminBlog />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'eventos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminEvents />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'usuarios',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminUsers />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'settings',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminSettings />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+
+        // 404 catch-all
+        {
+          path: '*',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <NotFound />
+            </Suspense>
+          ),
+        },
+      ],
+    },
+  ],
+  {
+    basename: import.meta.env.VITE_BASE_PATH || '/',
+    // FUTURE FLAGS PARA REACT ROUTER V7
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+      v7_fetcherPersist: true,
+      v7_normalizeFormMethod: true,
+      v7_partialHydration: true,
+      v7_skipActionErrorRevalidation: true,
+    },
+  }
+);
+
+// ==========================================
+// MAIN APP COMPONENT
+// ==========================================
+
+export default function App() {
   return (
     <ErrorBoundary>
-      <Router>
-        <Toaster 
-          position="top-right" 
-          richColors 
-          closeButton
-          duration={4000}
-          toastOptions={{
-            style: {
-              background: 'hsl(var(--background))',
-              color: 'hsl(var(--foreground))',
-              border: '1px solid hsl(var(--border))',
-            },
-          }}
-        />
-        <ScrollToTop />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<MainLayout />}>
-              {ROUTES.public.map(({ path, element }) => (
-                <Route 
-                  key={path} 
-                  path={path} 
-                  element={element}
-                />
-              ))}
-            </Route>
-
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              {ROUTES.admin.map(({ path, element, index }) => (
-                <Route 
-                  key={path || 'admin-index'} 
-                  path={path} 
-                  element={element} 
-                  index={index}
-                />
-              ))}
-            </Route>
-
-            {/* 404 - Catch all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </Router>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   );
 }
-
-export default App;

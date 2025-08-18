@@ -1,81 +1,310 @@
 // src/services/startups.service.ts
-import { supabase } from '../lib/supabase';
+import { supabase, handleSupabaseError, queryWrapper } from '../lib/supabase';
+import type { 
+  StartupApplication,
+  StartupApplicationInsert,
+  ServiceResponse 
+} from '../types';
+import { platformService } from './platform.service';
+
+// Interface para la tabla startups real
+interface Startup {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  website?: string;
+  logo_url?: string;
+  founded_date?: string;
+  linkedin_url?: string;
+  twitter_url?: string;
+  github_url?: string;
+  tags?: string[];
+  categories?: string[];
+  total_users?: number;
+  is_featured?: boolean;
+  status: string;
+  country?: string;
+  city?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Campos adicionales que podrías tener
+  stage?: string;
+  funding_stage?: string;
+  employee_range?: string;
+  verification_status?: string;
+}
 
 export const startupsService = {
-  async getFeatured() {
-    const { data, error } = await supabase
-      .from('startups')
-      .select('*')
-      .eq('featured', true)  // Cambiado de is_featured a featured
-      .order('created_at', { ascending: false })
-      .limit(6);
+  // Obtener todas las startups publicadas
+  async getAll(): Promise<Startup[]> {
+    try {
+      const { data, error } = await supabase
+        .from('startups')
+        .select('*')
+        .in('status', ['published', 'approved']) // Buscar ambos estados
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        console.error('Error fetching startups:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getAll:', error);
+      return [];
+    }
   },
 
-  async getAll() {
-    const { data, error } = await supabase
-      .from('startups')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+  // Obtener startups por estado específico
+  async getByStatus(status: string): Promise<ServiceResponse<Startup[]>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false })
+    );
   },
 
-  async getFiltered(filters: {
-    category?: string;
-    search?: string;
-  }) {
-    let query = supabase.from('startups').select('*');
+  // Obtener startups destacadas
+  async getFeatured(limit: number = 3): Promise<ServiceResponse<Startup[]>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('*')
+        .in('status', ['published', 'approved'])
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    );
+  },
 
-    if (filters.category) {
-      query = query.contains('categories', [filters.category]); // Usar categories array
+  // Obtener una startup por ID
+  async getById(id: string): Promise<ServiceResponse<Startup>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('*')
+        .eq('id', id)
+        .single()
+    );
+  },
+
+  // Obtener una startup por slug
+  async getBySlug(slug: string): Promise<ServiceResponse<Startup>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('*')
+        .eq('slug', slug)
+        .single()
+    );
+  },
+
+  // Crear nueva startup
+  async create(startup: Partial<Startup>): Promise<ServiceResponse<Startup>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .insert(startup)
+        .select()
+        .single()
+    );
+    
+    if (result.data) {
+      // Log creación
+      await platformService.logEvent(
+        'startup_created',
+        { 
+          startup_name: startup.name,
+          startup_id: result.data.id
+        },
+        'info',
+        `New startup created: ${startup.name}`
+      );
     }
     
-    if (filters.search) {
-      query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    return result;
+  },
+
+  // Actualizar startup
+  async update(id: string, updates: Partial<Startup>): Promise<ServiceResponse<Startup>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+    );
+    
+    if (result.data) {
+      // Log actualización
+      await platformService.logEvent(
+        'startup_updated',
+        { 
+          startup_id: id,
+          updates: Object.keys(updates)
+        },
+        'info'
+      );
     }
-
-    const { data, error } = await query
-      .order('featured', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+    
+    return result;
   },
 
-  async create(startup: any) {
-    const { data, error } = await supabase
-      .from('startups')
-      .insert(startup)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+  // Actualizar estado de startup
+  async updateStatus(
+    id: string, 
+    status: string
+  ): Promise<ServiceResponse<Startup>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
+    
+    if (result.data) {
+      // Log cambio de estado
+      await platformService.logEvent(
+        'startup_status_changed',
+        { 
+          startup_id: id,
+          new_status: status
+        },
+        'info'
+      );
+    }
+    
+    return result;
   },
 
-  async update(id: string, updates: any) {
-    const { data, error } = await supabase
-      .from('startups')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+  // Eliminar startup
+  async delete(id: string): Promise<ServiceResponse<void>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .delete()
+        .eq('id', id)
+    );
+    
+    if (!result.error) {
+      // Log eliminación
+      await platformService.logEvent(
+        'startup_deleted',
+        { startup_id: id },
+        'warning'
+      );
+    }
+    
+    return result;
   },
 
-  async delete(id: string) {
-    const { error } = await supabase
-      .from('startups')
-      .delete()
-      .eq('id', id);
+  // Obtener estadísticas de startups
+  async getStats(): Promise<ServiceResponse<any>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('status, categories, tags, is_featured')
+        .order('created_at', { ascending: false })
+    );
+    
+    if (!result.data) {
+      return { data: null, error: result.error };
+    }
+    
+    // Procesar estadísticas
+    const stats = {
+      total: result.data.length,
+      published: result.data.filter(s => s.status === 'published' || s.status === 'approved').length,
+      draft: result.data.filter(s => s.status === 'draft').length,
+      featured: result.data.filter(s => s.is_featured).length,
+      byStatus: {} as Record<string, number>,
+      byCategory: {} as Record<string, number>,
+      byTag: {} as Record<string, number>
+    };
+    
+    result.data.forEach(startup => {
+      // Por estado
+      stats.byStatus[startup.status] = (stats.byStatus[startup.status] || 0) + 1;
+      
+      // Por categorías
+      if (startup.categories && Array.isArray(startup.categories)) {
+        startup.categories.forEach(cat => {
+          stats.byCategory[cat] = (stats.byCategory[cat] || 0) + 1;
+        });
+      }
+      
+      // Por tags
+      if (startup.tags && Array.isArray(startup.tags)) {
+        startup.tags.forEach(tag => {
+          stats.byTag[tag] = (stats.byTag[tag] || 0) + 1;
+        });
+      }
+    });
+    
+    return { data: stats, error: null };
+  },
 
-    if (error) throw error;
-    return true;
+  // Buscar startups
+  async search(query: string): Promise<ServiceResponse<Startup[]>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startups')
+        .select('*')
+        .in('status', ['published', 'approved'])
+        .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+        .order('created_at', { ascending: false })
+    );
+  },
+
+  // ========== MÉTODOS LEGACY PARA STARTUP_APPLICATIONS ==========
+  // Mantener para compatibilidad si todavía usas la tabla startup_applications
+
+  // Crear nueva aplicación
+  async apply(application: StartupApplicationInsert): Promise<ServiceResponse<StartupApplication>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startup_applications')
+        .insert(application)
+        .select()
+        .single()
+    );
+    
+    if (result.data) {
+      // Log aplicación
+      await platformService.logEvent(
+        'startup_application_submitted',
+        { 
+          startup_name: application.startup_name,
+          founder_email: application.founder_email,
+          funding_stage: application.funding_stage
+        },
+        'info',
+        `New startup application: ${application.startup_name}`
+      );
+    }
+    
+    return result;
+  },
+
+  // Obtener aplicaciones por estado
+  async getApplicationsByStatus(status: string): Promise<ServiceResponse<StartupApplication[]>> {
+    return queryWrapper(() =>
+      supabase
+        .from('startup_applications')
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false })
+    );
   }
 };
