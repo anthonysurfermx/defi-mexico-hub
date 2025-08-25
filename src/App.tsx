@@ -1,8 +1,9 @@
-// src/App.tsx - VERSIÓN COMPLETA
+// src/App.tsx - CON VERCEL ANALYTICS
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react'; // ✅ PARA REACT (no Next.js)
 import { AuthProvider } from './hooks/useAuth';
 import Web3ContextProvider from '@/libs/components/Web3ContextProvider';
 import ProtectedRoute, { GuestRoute } from '@/components/auth/ProtectedRoute';
@@ -94,6 +95,8 @@ function RootLayout() {
             },
           }}
         />
+        {/* ✨ VERCEL ANALYTICS COMPONENT */}
+        <Analytics />
       </AuthProvider>
     </Web3ContextProvider>
   );
