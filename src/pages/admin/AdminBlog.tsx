@@ -1,12 +1,11 @@
-
+// src/pages/admin/AdminBlog.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { blogService } from '@/services/blog.service';
-import type { BlogPost } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Pencil, Trash2, Search, X, FileText, Calendar, User, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Search, X, FileText, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -32,7 +31,7 @@ function visiblePages(total: number, current: number): number[] {
   return [current - 2, current - 1, current, current + 1, current + 2];
 }
 
-// Modal ligero (sin deps nuevas)
+// Modal simple
 function AdminModal({ 
   open, 
   title, 
@@ -42,78 +41,49 @@ function AdminModal({
   open: boolean; 
   title: string; 
   onClose: () => void; 
-  children: React.ReactNode 
+  children: React.ReactNode; 
 }) {
-  const ref = useRef<HTMLDivElement | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const first = ref.current?.querySelector<HTMLElement>('button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])');
-    first?.focus();
+    if (open && ref.current) {
+      ref.current.focus();
+    }
   }, [open]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { 
-      e.stopPropagation(); 
-      onClose(); 
-    }
-    if (e.key === 'Tab') {
-      const nodes = Array.from(
-        ref.current?.querySelectorAll<HTMLElement>(
-          'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
-        ) || []
-      ).filter(n => !n.hasAttribute('disabled'));
-      
-      if (nodes.length === 0) return;
-      
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      const idx = nodes.indexOf(document.activeElement as HTMLElement);
-      
-      if (e.shiftKey && (document.activeElement === first || idx === -1)) { 
-        e.preventDefault(); 
-        last.focus(); 
-      } else if (!e.shiftKey && (document.activeElement === last || idx === -1)) { 
-        e.preventDefault(); 
-        first.focus(); 
-      }
-    }
+    if (e.key === 'Escape') onClose();
   };
 
   if (!open) return null;
-  
+
   return (
     <AnimatePresence>
       <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        exit={{ opacity: 0 }} 
-        className="fixed inset-0 z-40 bg-black/50" 
-        onClick={onClose} 
-      />
-      <motion.div 
-        initial={{ opacity: 0, y: 20, scale: 0.98 }} 
+        initial={{ opacity: 0, y: 10, scale: 0.98 }} 
         animate={{ opacity: 1, y: 0, scale: 1 }} 
         exit={{ opacity: 0, y: 10, scale: 0.98 }} 
-        className="fixed inset-0 z-50 grid place-items-center p-4"
+        className="fixed inset-0 z-50 grid place-items-center p-4 bg-black/50"
+        onClick={onClose}
       >
         <div 
           role="dialog" 
           aria-modal="true" 
           aria-labelledby="admin-blog-title" 
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card border border-border rounded-xl shadow-xl p-6 relative" 
+          className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-card border border-border rounded-xl shadow-xl p-6 relative" 
           onClick={(e) => e.stopPropagation()} 
           onKeyDown={onKeyDown} 
           ref={ref}
+          tabIndex={-1}
         >
           <button 
             onClick={onClose} 
-            className="absolute right-3 top-3 p-1 rounded hover:bg-muted transition-colors" 
+            className="absolute right-3 top-3 p-2 rounded hover:bg-muted transition-colors" 
             aria-label="Cerrar"
           >
             <X className="w-4 h-4" />
           </button>
-          <h3 id="admin-blog-title" className="text-xl font-semibold mb-4">
+          <h3 id="admin-blog-title" className="text-xl font-semibold mb-6">
             {title}
           </h3>
           {children}
@@ -123,13 +93,25 @@ function AdminModal({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required = false }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <label className="block mb-4">
-      <span className="block text-sm font-medium mb-1">{label}</span>
+      <span className="block text-sm font-medium mb-2">
+        {label} {required && <span className="text-red-500">*</span>}
+      </span>
       {children}
     </label>
   );
+}
+
+// Helper para generar slug
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -147,191 +129,250 @@ export default function AdminBlog() {
 
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totalPosts, setTotalPosts] = useState(0);
 
   // Form state
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<BlogPost | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState({
     title: '',
     slug: '',
     excerpt: '',
     content: '',
-    author: '',
     category: '',
-    tags: '' as string,
-    image_url: '',
-    published: false,
+    tags: '',
+    featured_image: '',
+    status: 'draft' as 'draft' | 'published',
+    is_featured: false,
+    allow_comments: true,
   });
 
   const fetchToken = useRef(0);
   
+  // Actualizar URL cuando cambien los filtros
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page.toString());
+    if (debouncedQ) params.set('q', debouncedQ);
+    if (status !== 'all') params.set('status', status);
+    
+    const newSearch = params.toString();
+    if (newSearch !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [page, debouncedQ, status, setSearchParams, searchParams]);
+
   const load = useCallback(async () => {
     setLoading(true); 
     setError(null);
     const token = ++fetchToken.current;
     
     try {
-      const res = await blogService.getPosts(
-        page,
-        PAGE_SIZE,
-        {
-          search: debouncedQ || undefined,
-          published: status === 'all' ? undefined : status === 'published'
-        }
-      );
+      console.log('🔄 Loading posts with filters:', { status, search: debouncedQ });
       
-      if (token === fetchToken.current) {
-        setData(res);
+      const filters: any = {};
+      if (debouncedQ) filters.search = debouncedQ;
+      
+      // CLAVE: Ajustar el filtro para que coincida con el esquema real
+      if (status === 'published') {
+        filters.published = true; // Para buscar status = 'published'
+      } else if (status === 'draft') {
+        filters.published = false; // Para buscar status = 'draft'
       }
-    } catch (e: any) {
+      // Si status === 'all', no agregamos filtro (obtiene todos)
+
+      const response = await blogService.getPosts(1, 50, filters); // Página 1, límite alto para obtener todos
+      
+      console.log('📊 Response from blogService:', response);
+      
+      // Verificar si este fetch sigue siendo relevante
       if (token === fetchToken.current) {
-        setError(e.message || 'Error al cargar posts');
+        if (response && response.data) {
+          console.log('✅ Posts cargados:', response.data.length);
+          setData(response.data);
+          setTotalPosts(response.data.length);
+        } else {
+          console.log('❌ No se encontraron posts o error');
+          setError('Error al cargar los posts');
+          setData([]);
+          setTotalPosts(0);
+        }
+      }
+    } catch (err) {
+      console.error('💥 Error al cargar posts:', err);
+      if (token === fetchToken.current) {
+        setError(err instanceof Error ? err.message : 'Error inesperado');
+        setData([]);
+        setTotalPosts(0);
       }
     } finally {
       if (token === fetchToken.current) {
         setLoading(false);
       }
     }
-  }, [page, debouncedQ, status]);
+  }, [debouncedQ, status]);
 
   useEffect(() => {
-    const params: Record<string, string> = {};
-    if (page > 1) params.page = String(page);
-    if (debouncedQ) params.q = debouncedQ;
-    if (status !== 'all') params.status = status;
-    setSearchParams(params, { replace: true });
     load();
-  }, [page, debouncedQ, status, setSearchParams, load]);
+  }, [load]);
 
-  const totalPages = useMemo(() => {
-    return data?.totalPages || 1;
-  }, [data]);
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, status]);
 
-  // Handlers CRUD
   const openNew = () => {
     setEditing(null);
-    setForm({ 
-      title: '', 
-      slug: '', 
-      excerpt: '', 
-      content: '', 
-      author: '', 
-      category: '', 
-      tags: '', 
-      image_url: '', 
-      published: false 
+    setForm({
+      title: '',
+      slug: '',
+      excerpt: '',
+      content: '',
+      category: '',
+      tags: '',
+      featured_image: '',
+      status: 'draft',
+      is_featured: false,
+      allow_comments: true,
     });
     setOpen(true);
   };
 
-  const openEdit = (post: BlogPost) => {
+  const openEdit = (post: any) => {
     setEditing(post);
     setForm({
-      title: post.title || '',
-      slug: post.slug || '',
+      title: post.title,
+      slug: post.slug,
       excerpt: post.excerpt || '',
-      content: post.content || '',
-      author: post.author || '',
+      content: post.content,
       category: post.category || '',
-      tags: (post.tags ?? []).join(', '),
-      image_url: post.image_url || '',
-      published: post.published || false,
+      tags: post.tags?.join(', ') || '',
+      featured_image: post.featured_image || post.image_url || '',
+      status: post.status,
+      is_featured: post.is_featured || false,
+      allow_comments: post.allow_comments !== false, // Default true si no está definido
     });
     setOpen(true);
   };
 
-  const closeModal = () => setOpen(false);
-
-  const normalizeUrl = (url: string) => {
-    if (!url) return '';
-    const trimmed = url.trim();
-    if (!trimmed) return '';
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
+  const closeModal = () => {
+    setOpen(false);
+    setEditing(null);
+    setForm({
+      title: '',
+      slug: '',
+      excerpt: '',
+      content: '',
+      category: '',
+      tags: '',
+      featured_image: '',
+      status: 'draft',
+      is_featured: false,
+      allow_comments: true,
+    });
   };
 
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
+  // Auto-generar slug cuando cambie el título
+  useEffect(() => {
+    if (form.title && !editing) {
+      const autoSlug = generateSlug(form.title);
+      setForm(f => ({ ...f, slug: autoSlug }));
+    }
+  }, [form.title, editing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!form.title.trim()) { 
-      alert('El título es obligatorio'); 
-      return; 
+    if (!form.title.trim()) {
+      alert('El título es requerido');
+      return;
     }
-    
-    // Auto-generar slug si está vacío
-    const finalSlug = form.slug.trim() || generateSlug(form.title);
-    
+
     const payload: any = {
       title: form.title.trim(),
-      slug: finalSlug,
+      slug: form.slug.trim() || generateSlug(form.title),
       excerpt: form.excerpt.trim(),
-      content: form.content,
-      author: form.author.trim() || 'Equipo DeFi México',
-      category: form.category.trim() || 'General',
+      content: form.content.trim(),
+      category: form.category.trim() || null,
       tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      image_url: form.image_url ? normalizeUrl(form.image_url) : null,
-      published: !!form.published,
+      featured_image: form.featured_image.trim() || null,
+      status: form.status,
+      is_featured: form.is_featured,
+      allow_comments: form.allow_comments,
+      // Para compatibilidad con el BlogService
+      published: form.status === 'published',
+      image_url: form.featured_image.trim() || null,
     };
+
+    console.log('📝 Submitting payload:', payload);
 
     setIsSubmitting(true);
     
     try {
       if (editing) {
         await blogService.updatePost(editing.id, payload);
+        console.log('✅ Post updated');
       } else {
         await blogService.createPost(payload);
+        console.log('✅ Post created');
       }
       setOpen(false);
       await load();
     } catch (err) {
-      console.error(err);
-      alert('No se pudo guardar. Revisa la consola.');
+      console.error('💥 Submit error:', err);
+      alert('No se pudo guardar. Revisa la consola para más detalles.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (post: BlogPost) => {
+  const handleDelete = async (post: any) => {
     if (!confirm(`¿Eliminar "${post.title}"?`)) return;
     
     try {
       await blogService.deletePost(post.id);
+      console.log('✅ Post deleted');
       await load();
     } catch (err) {
-      console.error(err);
+      console.error('💥 Delete error:', err);
       alert('No se pudo eliminar');
     }
   };
 
-  const togglePublished = async (post: BlogPost) => {
+  const togglePublished = async (post: any) => {
     try {
+      const newStatus = post.status === 'published' ? 'draft' : 'published';
       await blogService.updatePost(post.id, { 
-        published: !post.published 
+        status: newStatus,
+        published: newStatus === 'published'
       });
+      console.log(`✅ Post status changed to: ${newStatus}`);
       await load();
     } catch (err) {
-      console.error(err);
+      console.error('💥 Toggle status error:', err);
       alert('No se pudo actualizar el estado');
     }
   };
 
+  // Calcular estadísticas
+  const stats = useMemo(() => {
+    const published = data.filter(p => p.status === 'published').length;
+    const drafts = data.filter(p => p.status === 'draft').length;
+    return { total: data.length, published, drafts };
+  }, [data]);
+
+  // Paginación en frontend
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const paginatedData = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
+      <header className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
         <div>
           <h2 className="text-2xl font-bold">Posts del Blog</h2>
           <p className="text-sm text-muted-foreground">
@@ -339,34 +380,39 @@ export default function AdminBlog() {
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={q}
-              onChange={(e) => { 
-                setPage(1); 
-                setQ(e.target.value); 
-              }}
+              onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por título..."
-              className="pl-8 w-64"
+              className="pl-10 w-64"
             />
+            {q && (
+              <button
+                onClick={() => setQ('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {/* Status Filter */}
           <select
             value={status}
-            onChange={(e) => { 
-              setPage(1); 
-              setStatus(e.target.value as any); 
+            onChange={(e) => {
+              console.log('🔄 Changing filter to:', e.target.value);
+              setStatus(e.target.value as any);
             }}
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="h-10 rounded-md border bg-background px-3 text-sm"
             aria-label="Filtro de estado"
           >
-            <option value="all">Todos</option>
-            <option value="published">Publicados</option>
-            <option value="draft">Borradores</option>
+            <option value="all">Todos ({stats.total})</option>
+            <option value="published">Publicados ({stats.published})</option>
+            <option value="draft">Borradores ({stats.drafts})</option>
           </select>
 
           {/* New Post Button */}
@@ -378,35 +424,39 @@ export default function AdminBlog() {
       </header>
 
       {/* Stats Cards */}
-      {data && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Total Posts</span>
-            </div>
-            <p className="text-2xl font-bold">{data.total}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-card p-4 rounded-lg border">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">Total Posts</span>
           </div>
-          
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center gap-2 mb-2">
-              <Eye className="w-4 h-4 text-green-500" />
-              <span className="text-sm font-medium">Publicados</span>
-            </div>
-            <p className="text-2xl font-bold">
-              {data.data?.filter((p: BlogPost) => p.published).length || 0}
-            </p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        
+        <div className="bg-card p-4 rounded-lg border">
+          <div className="flex items-center gap-2 mb-2">
+            <Eye className="w-4 h-4 text-green-500" />
+            <span className="text-sm font-medium">Publicados</span>
           </div>
-          
-          <div className="bg-card p-4 rounded-lg border">
-            <div className="flex items-center gap-2 mb-2">
-              <EyeOff className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium">Borradores</span>
-            </div>
-            <p className="text-2xl font-bold">
-              {data.data?.filter((p: BlogPost) => !p.published).length || 0}
-            </p>
+          <p className="text-2xl font-bold">{stats.published}</p>
+        </div>
+        
+        <div className="bg-card p-4 rounded-lg border">
+          <div className="flex items-center gap-2 mb-2">
+            <EyeOff className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium">Borradores</span>
           </div>
+          <p className="text-2xl font-bold">{stats.drafts}</p>
+        </div>
+      </div>
+
+      {/* Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-muted p-3 rounded text-xs">
+          <strong>Debug:</strong> Status: {status}, Posts: {data.length}, Loading: {loading.toString()}
+          {data.length > 0 && (
+            <div>Posts status: {data.map(p => p.status).join(', ')}</div>
+          )}
         </div>
       )}
 
@@ -430,23 +480,23 @@ export default function AdminBlog() {
             <table className="min-w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="text-left px-4 py-2 font-medium">Título</th>
-                  <th className="text-left px-4 py-2 font-medium">Estado</th>
-                  <th className="text-left px-4 py-2 font-medium">Categoría</th>
-                  <th className="text-left px-4 py-2 font-medium">Autor</th>
-                  <th className="text-left px-4 py-2 font-medium">Tags</th>
-                  <th className="text-left px-4 py-2 font-medium">Publicado</th>
-                  <th className="text-right px-4 py-2 font-medium">Acciones</th>
+                  <th className="text-left px-4 py-3 font-medium">Título</th>
+                  <th className="text-left px-4 py-3 font-medium">Estado</th>
+                  <th className="text-left px-4 py-3 font-medium">Categoría</th>
+                  <th className="text-left px-4 py-3 font-medium">Tags</th>
+                  <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                  <th className="text-right px-4 py-3 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {(data?.data ?? []).map((post: BlogPost) => (
+                {paginatedData.map((post) => (
                   <tr key={post.id} className="border-t hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <Link 
                           to={`/blog/${post.slug}`} 
                           className="font-medium hover:underline hover:text-primary transition-colors"
+                          target="_blank"
                         >
                           {post.title}
                         </Link>
@@ -462,81 +512,62 @@ export default function AdminBlog() {
                         onClick={() => togglePublished(post)}
                         className="cursor-pointer"
                       >
-                        {post.published ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                            <Eye className="w-3 h-3 mr-1" />
-                            Publicado
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="hover:bg-muted">
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Borrador
-                          </Badge>
-                        )}
+                        <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
+                          {post.status === 'published' ? 'Publicado' : 'Borrador'}
+                        </Badge>
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline">{post.category || 'General'}</Badge>
+                      <span className="text-muted-foreground">
+                        {post.category || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <User className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-sm">{post.author || 'Anónimo'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(post.tags ?? []).slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
+                      <div className="flex gap-1 flex-wrap">
+                        {(post.tags || []).slice(0, 2).map((tag, idx) => (
+                          <span key={idx} className="px-1 py-0.5 bg-muted text-xs rounded">
                             {tag}
-                          </Badge>
+                          </span>
                         ))}
-                        {(post.tags?.length ?? 0) > 3 && (
+                        {(post.tags?.length || 0) > 2 && (
                           <span className="text-xs text-muted-foreground">
-                            +{post.tags!.length - 3}
+                            +{(post.tags?.length || 0) - 2}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        {post.published_at 
-                          ? new Date(post.published_at).toLocaleDateString() 
-                          : '—'
-                        }
-                      </div>
+                      <span className="text-muted-foreground text-xs">
+                        {new Date(post.published_at || post.created_at).toLocaleDateString('es-MX')}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary" 
-                          onClick={() => openEdit(post)} 
-                          aria-label={`Editar ${post.title}`}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(post)}
+                          className="p-1 hover:bg-muted rounded transition-colors"
+                          title="Editar"
                         >
                           <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" 
-                          onClick={() => handleDelete(post)} 
-                          aria-label={`Eliminar ${post.title}`}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(post)}
+                          className="p-1 hover:bg-muted rounded text-destructive transition-colors"
+                          title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
-
-                {data && data.data?.length === 0 && !loading && (
+                {paginatedData.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No hay posts que coincidan con los filtros</p>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                      {q || status !== 'all' 
+                        ? 'No se encontraron posts con los filtros aplicados'
+                        : 'No hay posts creados aún'
+                      }
                     </td>
                   </tr>
                 )}
@@ -547,18 +578,18 @@ export default function AdminBlog() {
       </div>
 
       {/* Pagination */}
-      {data && totalPages > 1 && (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {data.total} post{data.total !== 1 ? 's' : ''}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Página {page} de {totalPages} ({data.length} post{data.length !== 1 ? 's' : ''} total{data.length !== 1 ? 'es' : ''})
           </p>
           
-          <div className="flex items-center gap-1" role="navigation" aria-label="Paginación">
+          <div className="flex items-center gap-1">
             <Button 
               variant="outline" 
               size="sm" 
               disabled={page === 1} 
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
             >
               Anterior
             </Button>
@@ -569,7 +600,6 @@ export default function AdminBlog() {
                 variant={n === page ? 'default' : 'outline'} 
                 size="sm" 
                 onClick={() => setPage(n)} 
-                aria-current={n === page ? 'page' : undefined} 
                 className="w-10"
               >
                 {n}
@@ -580,7 +610,7 @@ export default function AdminBlog() {
               variant="outline" 
               size="sm" 
               disabled={page === totalPages} 
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
               Siguiente
             </Button>
@@ -596,12 +626,13 @@ export default function AdminBlog() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Título *">
+            <Field label="Título" required>
               <Input 
                 value={form.title} 
                 onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} 
                 required 
                 autoFocus
+                placeholder="Título del artículo"
               />
             </Field>
             
@@ -614,112 +645,110 @@ export default function AdminBlog() {
             </Field>
           </div>
 
-          <Field label="Extracto (máx 200 caracteres)">
+          <Field label="Extracto">
             <Input 
               value={form.excerpt} 
               onChange={(e) => setForm(f => ({ ...f, excerpt: e.target.value.slice(0, 200) }))}
               placeholder="Resumen breve del artículo..."
+              maxLength={200}
             />
             <span className="text-xs text-muted-foreground">
               {form.excerpt.length}/200
             </span>
           </Field>
 
-          <Field label="Contenido (Markdown)">
+          <Field label="Contenido" required>
             <textarea
               value={form.content}
               onChange={(e) => setForm(f => ({ ...f, content: e.target.value }))}
-              className="w-full rounded-md border bg-background p-3 text-sm font-mono resize-y"
-              rows={10}
-              placeholder="# Título&#10;&#10;Contenido del artículo...&#10;&#10;## Subtítulo&#10;&#10;- Lista 1&#10;- Lista 2"
+              className="w-full rounded-md border bg-background p-3 text-sm resize-y min-h-[200px]"
+              placeholder="Escribe el contenido del artículo aquí..."
+              rows={12}
+              required
             />
           </Field>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Autor">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Categoría">
               <Input 
-                value={form.author} 
-                onChange={(e) => setForm(f => ({ ...f, author: e.target.value }))} 
-                placeholder="Equipo DeFi México"
+                value={form.category} 
+                onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} 
+                placeholder="DeFi, Blockchain, Tutorial... (opcional)"
               />
             </Field>
             
-            <Field label="Categoría">
-              <select
-                value={form.category}
-                onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full rounded-md border bg-background p-2 text-sm"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="Noticias">Noticias</option>
-                <option value="Educación">Educación</option>
-                <option value="Tutoriales">Tutoriales</option>
-                <option value="Análisis">Análisis</option>
-                <option value="Eventos">Eventos</option>
-                <option value="General">General</option>
-              </select>
-            </Field>
-            
-            <Field label="Tags (separados por coma)">
+            <Field label="Tags (separados por comas)">
               <Input 
                 value={form.tags} 
                 onChange={(e) => setForm(f => ({ ...f, tags: e.target.value }))} 
-                placeholder="defi, blockchain, ethereum"
+                placeholder="defi, ethereum, trading"
               />
             </Field>
           </div>
 
           <Field label="Imagen destacada (URL)">
             <Input 
-              value={form.image_url} 
-              onChange={(e) => setForm(f => ({ ...f, image_url: e.target.value }))} 
-              placeholder="https://example.com/imagen.jpg" 
-              inputMode="url"
+              type="url"
+              value={form.featured_image} 
+              onChange={(e) => setForm(f => ({ ...f, featured_image: e.target.value }))} 
+              placeholder="https://ejemplo.com/imagen.jpg"
             />
-            {form.image_url && (
-              <img 
-                src={normalizeUrl(form.image_url)} 
-                alt="Preview" 
-                className="mt-2 w-full h-32 object-cover rounded-md"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
           </Field>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={form.published} 
-              onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))}
-              className="rounded"
-            />
-            <span className="text-sm font-medium">
-              Publicar inmediatamente
-            </span>
-          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Field label="Estado">
+              <select
+                value={form.status}
+                onChange={(e) => setForm(f => ({ ...f, status: e.target.value as 'draft' | 'published' }))}
+                className="h-10 rounded-md border bg-background px-3 text-sm w-full"
+              >
+                <option value="draft">Borrador</option>
+                <option value="published">Publicado</option>
+              </select>
+            </Field>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Field label="Opciones">
+              <div className="flex items-center space-x-4 pt-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={form.is_featured}
+                    onChange={(e) => setForm(f => ({ ...f, is_featured: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Destacado</span>
+                </label>
+                
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={form.allow_comments}
+                    onChange={(e) => setForm(f => ({ ...f, allow_comments: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm">Comentarios</span>
+                </label>
+              </div>
+            </Field>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
             <Button 
               type="button" 
               variant="outline" 
-              onClick={closeModal} 
+              onClick={closeModal}
               disabled={isSubmitting}
             >
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-            >
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Guardando...
                 </>
               ) : (
-                editing ? 'Guardar cambios' : 'Crear post'
+                editing ? 'Actualizar' : 'Crear post'
               )}
             </Button>
           </div>

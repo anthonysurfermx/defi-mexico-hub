@@ -1,8 +1,10 @@
+// src/App.tsx - VERSIÓN COMPLETA
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider } from './hooks/useAuth';
+import Web3ContextProvider from '@/libs/components/Web3ContextProvider';
 import ProtectedRoute, { GuestRoute } from '@/components/auth/ProtectedRoute';
 
 // Layout components (no lazy loading para layouts)
@@ -14,6 +16,7 @@ const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
 const BlogPage = lazy(() => import('@/pages/BlogPage'));
+const BlogPostPage = lazy(() => import('@/pages/BlogPostPage')); // ✨ BLOG POST INDIVIDUAL
 const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
 const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
@@ -36,15 +39,19 @@ const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 
-// Admin Startup Forms - NUEVAS RUTAS
+// Admin Startup Forms
 const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
+
+// Admin Blog Forms - RUTAS DE BLOG
+const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
+const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
 
 // Error pages
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 
 // ==========================================
-// COMPONENTES
+// COMPONENTES AUXILIARES
 // ==========================================
 
 // Componente de loading para Suspense
@@ -67,26 +74,28 @@ function PageLoader() {
   );
 }
 
-// Root layout que envuelve todo con AuthProvider
+// Root layout que envuelve todo con AuthProvider y Web3ContextProvider
 function RootLayout() {
   return (
-    <AuthProvider>
-      <Outlet />
-      <ScrollRestoration />
-      <Toaster 
-        position="top-right" 
-        richColors 
-        closeButton
-        duration={4000}
-        toastOptions={{
-          style: {
-            background: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
-            border: '1px solid hsl(var(--border))',
-          },
-        }}
-      />
-    </AuthProvider>
+    <Web3ContextProvider>
+      <AuthProvider>
+        <Outlet />
+        <ScrollRestoration />
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton
+          duration={4000}
+          toastOptions={{
+            style: {
+              background: 'hsl(var(--background))',
+              color: 'hsl(var(--foreground))',
+              border: '1px solid hsl(var(--border))',
+            },
+          }}
+        />
+      </AuthProvider>
+    </Web3ContextProvider>
   );
 }
 
@@ -148,7 +157,7 @@ class ErrorBoundary extends React.Component<
 }
 
 // ==========================================
-// ROUTER CON FUTURE FLAGS CONFIGURADAS
+// CONFIGURACIÓN DEL ROUTER
 // ==========================================
 
 // Crear el router con todas las rutas y future flags
@@ -165,7 +174,9 @@ const router = createBrowserRouter(
         </ErrorBoundary>
       ),
       children: [
-        // Rutas públicas con MainLayout
+        // ==========================================
+        // RUTAS PÚBLICAS CON MAIN LAYOUT
+        // ==========================================
         {
           element: (
             <Suspense fallback={<PageLoader />}>
@@ -197,6 +208,9 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            // ==========================================
+            // RUTAS DEL BLOG
+            // ==========================================
             {
               path: 'blog',
               element: (
@@ -205,6 +219,17 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'blog/:slug', // ✅ RUTA PARA POSTS INDIVIDUALES
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogPostPage />
+                </Suspense>
+              ),
+            },
+            // ==========================================
+            // OTRAS RUTAS PÚBLICAS
+            // ==========================================
             {
               path: 'comunidades',
               element: (
@@ -248,7 +273,9 @@ const router = createBrowserRouter(
           ],
         },
 
-        // Rutas de autenticación (sin layout principal)
+        // ==========================================
+        // RUTAS DE AUTENTICACIÓN (SIN LAYOUT)
+        // ==========================================
         {
           path: 'login',
           element: (
@@ -312,7 +339,9 @@ const router = createBrowserRouter(
           ),
         },
 
-        // Rutas admin protegidas
+        // ==========================================
+        // RUTAS ADMIN PROTEGIDAS
+        // ==========================================
         {
           path: 'admin',
           element: (
@@ -330,6 +359,7 @@ const router = createBrowserRouter(
             </ErrorBoundary>
           ),
           children: [
+            // Dashboard admin
             {
               index: true,
               element: (
@@ -338,6 +368,10 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            
+            // ==========================================
+            // RUTAS ADMIN - STARTUPS
+            // ==========================================
             {
               path: 'startups',
               element: (
@@ -346,7 +380,6 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
-            // NUEVAS RUTAS PARA STARTUPS ADMIN
             {
               path: 'startups/new',
               element: (
@@ -371,6 +404,10 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+
+            // ==========================================
+            // RUTAS ADMIN - BLOG
+            // ==========================================
             {
               path: 'blog',
               element: (
@@ -379,6 +416,26 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'blog/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogNew />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog/edit/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogEditPage />
+                </Suspense>
+              ),
+            },
+
+            // ==========================================
+            // OTRAS RUTAS ADMIN
+            // ==========================================
             {
               path: 'eventos',
               element: (
@@ -406,7 +463,9 @@ const router = createBrowserRouter(
           ],
         },
 
-        // 404 catch-all
+        // ==========================================
+        // 404 CATCH-ALL
+        // ==========================================
         {
           path: '*',
           element: (

@@ -10,9 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { blogService } from '@/services/blog.service'; // 🚀 NUEVA IMPORTACIÓN
 
 interface BlogFormData {
   title: string;
@@ -38,12 +37,9 @@ interface BlogFormData {
 
 const AdminBlogForm = () => {
   const { toast } = useToast();
-  const navigate = useNavigate(); // 🚀 Para redirección
   const [isPreview, setIsPreview] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
-  const [isSaving, setIsSaving] = useState(false); // 🚀 Estado de guardado
-  const [isPublishing, setIsPublishing] = useState(false); // 🚀 Estado de publicación
   
   const [formData, setFormData] = useState<BlogFormData>({
     title: "",
@@ -122,160 +118,18 @@ const AdminBlogForm = () => {
     }));
   };
 
-  // 🚀 FUNCIÓN AUXILIAR PARA GENERAR SLUG
-  const generateSlug = (title: string): string => {
-    return title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
+  const handleSaveDraft = () => {
+    toast({
+      title: "Borrador guardado",
+      description: "El artículo se ha guardado como borrador.",
+    });
   };
 
-  // 🚀 FUNCIÓN PARA VALIDAR FORMULARIO
-  const validateForm = () => {
-    if (!formData.title.trim()) {
-      toast({
-        title: "Error de validación",
-        description: "El título es obligatorio",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.content.trim()) {
-      toast({
-        title: "Error de validación", 
-        description: "El contenido es obligatorio",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.excerpt.trim()) {
-      toast({
-        title: "Error de validación",
-        description: "El extracto es obligatorio",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  // 🚀 NUEVA FUNCIÓN: GUARDAR BORRADOR QUE FUNCIONA
-  const handleSaveDraft = async () => {
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-    
-    try {
-      // Preparar datos para Supabase
-      const postData = {
-        title: formData.title,
-        slug: formData.slug || generateSlug(formData.title),
-        excerpt: formData.excerpt,
-        content: formData.content,
-        featured_image_url: formData.featuredImage || null,
-        author_name: formData.author || 'Admin',
-        status: 'draft', // Guardar como borrador
-        is_featured: formData.featured,
-        tags: formData.tags,
-        meta_title: formData.metaTitle || formData.title,
-        meta_description: formData.metaDescription || formData.excerpt,
-        reading_time: Math.max(1, formData.readingTime || 5),
-      };
-
-      console.log('Saving draft:', postData);
-
-      const result = await blogService.createPost(postData);
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      toast({
-        title: "✅ Borrador guardado",
-        description: "El artículo se ha guardado como borrador correctamente.",
-      });
-
-      console.log('Draft saved successfully:', result.data);
-      
-      // Opcional: redirigir al dashboard después de 2 segundos
-      setTimeout(() => {
-        navigate('/admin/blog');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: "Error al guardar borrador",
-        description: error instanceof Error ? error.message : "Error desconocido al guardar",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 🚀 NUEVA FUNCIÓN: PUBLICAR QUE FUNCIONA
-  const handlePublish = async () => {
-    if (!validateForm()) return;
-
-    setIsPublishing(true);
-
-    try {
-      // Preparar datos para Supabase
-      const postData = {
-        title: formData.title,
-        slug: formData.slug || generateSlug(formData.title),
-        excerpt: formData.excerpt,
-        content: formData.content,
-        featured_image_url: formData.featuredImage || null,
-        author_name: formData.author || 'Admin',
-        status: 'published', // Publicar directamente
-        is_featured: formData.featured,
-        tags: formData.tags,
-        meta_title: formData.metaTitle || formData.title,
-        meta_description: formData.metaDescription || formData.excerpt,
-        reading_time: Math.max(1, formData.readingTime || 5),
-      };
-
-      console.log('Publishing post:', postData);
-
-      // Crear el post en Supabase
-      const result = await blogService.createPost(postData);
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      // Éxito
-      toast({
-        title: "🎉 ¡Post publicado exitosamente!",
-        description: `"${formData.title}" está ahora visible para todos los usuarios.`,
-      });
-
-      console.log('Post published successfully:', result.data);
-      
-      // Redirigir al dashboard después de 2 segundos
-      setTimeout(() => {
-        navigate('/admin/blog');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error publishing post:', error);
-      toast({
-        title: "Error al publicar",
-        description: error instanceof Error ? error.message : "Error desconocido al publicar",
-        variant: "destructive"
-      });
-    } finally {
-      setIsPublishing(false);
-    }
+  const handlePublish = () => {
+    toast({
+      title: "Artículo publicado",
+      description: "El artículo ha sido publicado exitosamente.",
+    });
   };
 
   // Preview Card Component
@@ -354,36 +208,16 @@ const AdminBlogForm = () => {
             variant="outline" 
             onClick={() => setIsPreview(!isPreview)}
             className="flex items-center"
-            disabled={isSaving || isPublishing}
           >
             <Eye className="w-4 h-4 mr-2" />
             {isPreview ? "Editar" : "Preview"}
           </Button>
-          
-          {/* 🚀 BOTÓN DE BORRADOR MEJORADO */}
-          <Button 
-            variant="outline" 
-            onClick={handleSaveDraft}
-            disabled={isSaving || isPublishing}
-            className="flex items-center"
-          >
+          <Button variant="outline" onClick={handleSaveDraft}>
             <Save className="w-4 h-4 mr-2" />
-            {isSaving ? "Guardando..." : "Guardar Borrador"}
+            Guardar Borrador
           </Button>
-          
-          {/* 🚀 BOTÓN DE PUBLICAR MEJORADO */}
-          <Button 
-            onClick={handlePublish} 
-            disabled={isSaving || isPublishing}
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-          >
-            {isPublishing ? (
-              "Publicando..."
-            ) : formData.status === "scheduled" ? (
-              "Programar"
-            ) : (
-              "🚀 Publicar"
-            )}
+          <Button onClick={handlePublish} className="bg-gradient-primary text-primary-foreground">
+            {formData.status === "scheduled" ? "Programar" : "Publicar"}
           </Button>
         </div>
       </div>
@@ -428,7 +262,6 @@ const AdminBlogForm = () => {
                           onChange={(e) => handleInputChange("title", e.target.value)}
                           placeholder="Título del artículo..."
                           className="text-lg font-medium"
-                          disabled={isSaving || isPublishing}
                         />
                       </div>
 
@@ -441,7 +274,6 @@ const AdminBlogForm = () => {
                             value={formData.slug}
                             onChange={(e) => handleInputChange("slug", e.target.value)}
                             placeholder="url-del-articulo"
-                            disabled={isSaving || isPublishing}
                           />
                         </div>
                       </div>
@@ -455,7 +287,6 @@ const AdminBlogForm = () => {
                           placeholder="Breve descripción del artículo..."
                           rows={3}
                           maxLength={160}
-                          disabled={isSaving || isPublishing}
                         />
                         <div className="text-xs text-muted-foreground text-right">
                           {formData.excerpt.length}/160 caracteres
@@ -471,7 +302,6 @@ const AdminBlogForm = () => {
                           placeholder="Escribe el contenido del artículo en Markdown..."
                           rows={12}
                           className="font-mono"
-                          disabled={isSaving || isPublishing}
                         />
                         <div className="text-xs text-muted-foreground">
                           Soporta Markdown: **negrita**, *cursiva*, # Encabezados, [enlaces](url), etc.
@@ -486,7 +316,6 @@ const AdminBlogForm = () => {
                           value={formData.featuredImage}
                           onChange={(e) => handleInputChange("featuredImage", e.target.value)}
                           placeholder="https://ejemplo.com/imagen.jpg"
-                          disabled={isSaving || isPublishing}
                         />
                         <div className="text-xs text-muted-foreground">
                           Arrastra una imagen o pega la URL
@@ -505,11 +334,7 @@ const AdminBlogForm = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="category">Categoría Principal *</Label>
-                          <Select 
-                            value={formData.category} 
-                            onValueChange={(value) => handleInputChange("category", value)}
-                            disabled={isSaving || isPublishing}
-                          >
+                          <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar categoría" />
                             </SelectTrigger>
@@ -525,11 +350,7 @@ const AdminBlogForm = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="author">Autor *</Label>
-                          <Select 
-                            value={formData.author} 
-                            onValueChange={(value) => handleInputChange("author", value)}
-                            disabled={isSaving || isPublishing}
-                          >
+                          <Select value={formData.author} onValueChange={(value) => handleInputChange("author", value)}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar autor" />
                             </SelectTrigger>
@@ -551,10 +372,7 @@ const AdminBlogForm = () => {
                             <Badge key={tag} variant="secondary" className="flex items-center gap-1">
                               <Hash className="w-3 h-3" />
                               {tag}
-                              <button 
-                                onClick={() => removeTag(tag)}
-                                disabled={isSaving || isPublishing}
-                              >
+                              <button onClick={() => removeTag(tag)}>
                                 <X className="w-3 h-3" />
                               </button>
                             </Badge>
@@ -566,13 +384,8 @@ const AdminBlogForm = () => {
                             onChange={(e) => setNewTag(e.target.value)}
                             placeholder="Escribe y presiona Enter para agregar tags..."
                             onKeyPress={(e) => e.key === "Enter" && addTag()}
-                            disabled={isSaving || isPublishing}
                           />
-                          <Button 
-                            onClick={addTag} 
-                            type="button"
-                            disabled={isSaving || isPublishing}
-                          >
+                          <Button onClick={addTag} type="button">
                             <Plus className="w-4 h-4" />
                           </Button>
                         </div>
@@ -585,7 +398,6 @@ const AdminBlogForm = () => {
                           type="date"
                           value={formData.publishDate}
                           onChange={(e) => handleInputChange("publishDate", e.target.value)}
-                          disabled={isSaving || isPublishing}
                         />
                       </div>
                     </CardContent>
@@ -606,7 +418,6 @@ const AdminBlogForm = () => {
                           onChange={(e) => handleInputChange("metaTitle", e.target.value)}
                           placeholder="Título para motores de búsqueda..."
                           maxLength={60}
-                          disabled={isSaving || isPublishing}
                         />
                         <div className="text-xs text-muted-foreground text-right">
                           {formData.metaTitle.length}/60 caracteres
@@ -622,7 +433,6 @@ const AdminBlogForm = () => {
                           placeholder="Descripción para motores de búsqueda..."
                           rows={3}
                           maxLength={160}
-                          disabled={isSaving || isPublishing}
                         />
                         <div className="text-xs text-muted-foreground text-right">
                           {formData.metaDescription.length}/160 caracteres
@@ -637,7 +447,6 @@ const AdminBlogForm = () => {
                           value={formData.canonicalUrl}
                           onChange={(e) => handleInputChange("canonicalUrl", e.target.value)}
                           placeholder="https://defi-mexico.com/blog/articulo"
-                          disabled={isSaving || isPublishing}
                         />
                       </div>
 
@@ -647,10 +456,7 @@ const AdminBlogForm = () => {
                           {formData.keywords.map((keyword) => (
                             <Badge key={keyword} variant="outline" className="flex items-center gap-1">
                               {keyword}
-                              <button 
-                                onClick={() => removeKeyword(keyword)}
-                                disabled={isSaving || isPublishing}
-                              >
+                              <button onClick={() => removeKeyword(keyword)}>
                                 <X className="w-3 h-3" />
                               </button>
                             </Badge>
@@ -662,13 +468,8 @@ const AdminBlogForm = () => {
                             onChange={(e) => setNewKeyword(e.target.value)}
                             placeholder="Agregar palabra clave..."
                             onKeyPress={(e) => e.key === "Enter" && addKeyword()}
-                            disabled={isSaving || isPublishing}
                           />
-                          <Button 
-                            onClick={addKeyword} 
-                            type="button"
-                            disabled={isSaving || isPublishing}
-                          >
+                          <Button onClick={addKeyword} type="button">
                             <Plus className="w-4 h-4" />
                           </Button>
                         </div>
@@ -698,7 +499,6 @@ const AdminBlogForm = () => {
                                 name="status"
                                 checked={formData.status === option.value}
                                 onChange={() => handleInputChange("status", option.value)}
-                                disabled={isSaving || isPublishing}
                               />
                               <Label htmlFor={option.value}>{option.label}</Label>
                             </div>
@@ -721,7 +521,6 @@ const AdminBlogForm = () => {
                                 name="visibility"
                                 checked={formData.visibility === option.value}
                                 onChange={() => handleInputChange("visibility", option.value)}
-                                disabled={isSaving || isPublishing}
                               />
                               <Label htmlFor={`visibility-${option.value}`}>{option.label}</Label>
                             </div>
@@ -738,7 +537,6 @@ const AdminBlogForm = () => {
                               id="allowComments"
                               checked={formData.allowComments}
                               onCheckedChange={(checked) => handleInputChange("allowComments", checked)}
-                              disabled={isSaving || isPublishing}
                             />
                           </div>
                           <div className="flex items-center justify-between">
@@ -747,7 +545,6 @@ const AdminBlogForm = () => {
                               id="featured"
                               checked={formData.featured}
                               onCheckedChange={(checked) => handleInputChange("featured", checked)}
-                              disabled={isSaving || isPublishing}
                             />
                           </div>
                           <div className="flex items-center justify-between">
@@ -756,7 +553,6 @@ const AdminBlogForm = () => {
                               id="newsletter"
                               checked={formData.newsletter}
                               onCheckedChange={(checked) => handleInputChange("newsletter", checked)}
-                              disabled={isSaving || isPublishing}
                             />
                           </div>
                         </div>
@@ -771,7 +567,6 @@ const AdminBlogForm = () => {
                           max="60"
                           value={formData.readingTime}
                           onChange={(e) => handleInputChange("readingTime", parseInt(e.target.value))}
-                          disabled={isSaving || isPublishing}
                         />
                       </div>
                     </CardContent>

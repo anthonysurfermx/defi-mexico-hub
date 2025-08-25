@@ -1,21 +1,43 @@
-// src/services/blog.service.ts
+// src/services/blog.service.ts - VERSIÓN FINAL COMPLETA
 import { supabase } from '../lib/supabase';
 
-// Types simplificados (ajusta según tu database.types.ts)
+// Types basados en tu esquema real de Supabase
 export interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  excerpt: string;
+  subtitle?: string;
   content: string;
-  author: string;
-  category: string | null;
-  tags: string[];
-  image_url: string | null;
-  published: boolean;
-  published_at: string | null;
+  content_html?: string;
+  excerpt?: string;
+  featured_image?: string;
+  featured_image_alt?: string;
+  category?: string;
+  tags?: string[];
+  author_id: string;
+  co_authors?: string[];
+  editor_id?: string;
+  status: string; // 'draft' | 'published' | 'scheduled'
+  published_at?: string;
+  scheduled_for?: string;
+  reading_time_minutes?: number;
+  is_featured: boolean;
+  is_premium: boolean;
+  allow_comments: boolean;
+  meta_title?: string;
+  meta_description?: string;
+  canonical_url?: string;
+  view_count: number;
+  unique_readers: number;
+  like_count: number;
+  share_count: number;
+  comment_count: number;
   created_at: string;
   updated_at: string;
+  views_count: number;
+  likes_count: number;
+  author: string;
+  image_url?: string;
 }
 
 export interface DomainPost {
@@ -32,6 +54,11 @@ export interface DomainPost {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  // Campos adicionales útiles
+  subtitle?: string;
+  reading_time_minutes?: number;
+  is_featured?: boolean;
+  view_count?: number;
 }
 
 export interface Page<T> {
@@ -42,15 +69,18 @@ export interface Page<T> {
 }
 
 /**
- * Campos a seleccionar de la BD
+ * Campos principales a seleccionar - optimizado para tu esquema real
  */
-const SELECT_FIELDS = 
-  'id,title,slug,excerpt,content,author,category,tags,image_url,published,published_at,created_at,updated_at';
+const SELECT_FIELDS = `
+  id,title,slug,subtitle,excerpt,content,author,category,tags,image_url,
+  status,published_at,created_at,updated_at,reading_time_minutes,
+  is_featured,view_count,views_count
+`.replace(/\s+/g, '');
 
 const DEFAULT_PAGE_SIZE = 12;
 
 /**
- * Helpers
+ * Helpers mejorados
  */
 const sanitize = (s: unknown): string =>
   (typeof s === 'string' ? s : '')
@@ -63,24 +93,28 @@ const toDomain = (row: BlogPost): DomainPost => ({
   id: row.id,
   title: row.title,
   slug: row.slug,
-  excerpt: row.excerpt || '',
+  subtitle: row.subtitle,
+  excerpt: row.excerpt || row.subtitle || '',
   content: row.content || '',
   author: row.author || 'Equipo DeFi México',
   categories: row.category ? [row.category] : [],
   tags: row.tags || [],
-  image_url: row.image_url,
-  status: row.published ? 'published' : 'draft',
+  image_url: row.image_url || row.featured_image || null,
+  status: row.status === 'published' ? 'published' : 'draft',
   published_at: row.published_at,
   created_at: row.created_at,
   updated_at: row.updated_at,
+  reading_time_minutes: row.reading_time_minutes,
+  is_featured: row.is_featured,
+  view_count: row.view_count || row.views_count || 0,
 });
 
 /**
- * Servicio de Blog con métodos completos y alias de compatibilidad
+ * Servicio de Blog - Versión Final con soporte completo para tu esquema
  */
 class BlogService {
   /**
-   * Obtener página de posts con filtros
+   * Obtener página de posts con filtros y AbortController
    */
   async getPage(params: {
     page?: number;
@@ -89,11 +123,14 @@ class BlogService {
     status?: 'published' | 'draft' | 'all';
     category?: string;
     tag?: string;
+    signal?: AbortSignal;
   } = {}): Promise<Page<DomainPost>> {
     const page = Math.max(1, params.page || 1);
     const pageSize = Math.min(50, Math.max(1, params.pageSize || DEFAULT_PAGE_SIZE));
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+
+    console.log(`🔍 BlogService.getPage: page=${page}, status=${params.status}, category=${params.category}, q='${params.q}'`);
 
     let query = supabase
       .from('blog_posts')
@@ -101,12 +138,13 @@ class BlogService {
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
-    // Aplicar filtros
+    // Aplicar filtros de status
     if (params.status === 'published') {
-      query = query.eq('published', true);
+      query = query.eq('status', 'published');
     } else if (params.status === 'draft') {
-      query = query.eq('published', false);
+      query = query.eq('status', 'draft');
     }
+    // Si es 'all', no filtrar por status
 
     if (params.category) {
       query = query.eq('category', params.category);
@@ -120,17 +158,24 @@ class BlogService {
       const q = sanitize(params.q);
       if (q) {
         query = query.or(
-          `title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%`
+          `title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%,subtitle.ilike.%${q}%`
         );
       }
+    }
+
+    // Configurar AbortController si se proporciona
+    if (params.signal) {
+      query = query.abortSignal(params.signal);
     }
 
     const { data, error, count } = await query.range(from, to);
     
     if (error) {
-      console.error('Error fetching blog posts:', error);
+      console.error('❌ Error fetching blog posts:', error);
       throw error;
     }
+
+    console.log(`✅ BlogService.getPage: Loaded ${data?.length || 0} posts (${count} total)`);
 
     return {
       items: (data || []).map(toDomain),
@@ -152,7 +197,8 @@ class BlogService {
       status?: 'published' | 'draft' | 'all';
       category?: string;
       tag?: string;
-    }
+    },
+    signal?: AbortSignal
   ) {
     // Convertir el filtro 'published' booleano a 'status' string
     let status: 'published' | 'draft' | 'all' = 'all';
@@ -162,6 +208,8 @@ class BlogService {
       status = filters.published ? 'published' : 'draft';
     }
 
+    console.log(`🔍 BlogService.getPosts: Converting filters - published:${filters?.published} → status:${status}`);
+
     const res = await this.getPage({
       page,
       pageSize: limit,
@@ -169,9 +217,10 @@ class BlogService {
       status,
       category: filters?.category,
       tag: filters?.tag,
+      signal,
     });
 
-    // Retornar en el formato que espera AdminBlog.tsx
+    // Formato esperado por AdminBlog
     return {
       data: res.items,
       total: res.total,
@@ -181,21 +230,25 @@ class BlogService {
   }
 
   /**
-   * Obtener posts recientes publicados
+   * Obtener posts recientes publicados - optimizado
    */
   async getRecent(limit = 3): Promise<DomainPost[]> {
+    console.log(`🔍 BlogService.getRecent: Fetching ${limit} recent published posts`);
+
     const { data, error } = await supabase
       .from('blog_posts')
       .select(SELECT_FIELDS)
-      .eq('published', true)
+      .eq('status', 'published') // Usar status en lugar de published
       .order('published_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching recent posts:', error);
+      console.error('❌ Error fetching recent posts:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.getRecent: Loaded ${data?.length || 0} recent posts`);
     return (data || []).map(toDomain);
   }
 
@@ -203,6 +256,8 @@ class BlogService {
    * Obtener post por slug
    */
   async getBySlug(slug: string): Promise<DomainPost | null> {
+    console.log(`🔍 BlogService.getBySlug: Fetching post with slug '${slug}'`);
+
     const { data, error } = await supabase
       .from('blog_posts')
       .select(SELECT_FIELDS)
@@ -210,11 +265,17 @@ class BlogService {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-      console.error('Error fetching post by slug:', error);
+      console.error('❌ Error fetching post by slug:', error);
       throw error;
     }
 
-    return data ? toDomain(data) : null;
+    if (!data) {
+      console.log(`⚠️ Post not found with slug '${slug}'`);
+      return null;
+    }
+
+    console.log(`✅ BlogService.getBySlug: Found post '${data.title}'`);
+    return toDomain(data);
   }
 
   /**
@@ -228,7 +289,7 @@ class BlogService {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching post by id:', error);
+      console.error('❌ Error fetching post by id:', error);
       throw error;
     }
 
@@ -236,24 +297,28 @@ class BlogService {
   }
 
   /**
-   * Buscar posts
+   * Buscar posts con query mejorada
    */
   async search(query: string): Promise<DomainPost[]> {
     const q = sanitize(query);
     if (!q) return [];
 
+    console.log(`🔍 BlogService.search: Searching for '${q}'`);
+
     const { data, error } = await supabase
       .from('blog_posts')
       .select(SELECT_FIELDS)
-      .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%`)
+      .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%,subtitle.ilike.%${q}%`)
+      .eq('status', 'published') // Solo buscar en posts publicados
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error searching posts:', error);
+      console.error('❌ Error searching posts:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.search: Found ${data?.length || 0} posts matching '${q}'`);
     return (data || []).map(toDomain);
   }
 
@@ -263,40 +328,50 @@ class BlogService {
   async getRelated(slug: string, tags: string[], limit = 3): Promise<DomainPost[]> {
     if (!tags?.length) return [];
 
+    console.log(`🔍 BlogService.getRelated: Finding posts related to '${slug}' with tags:`, tags);
+
     const { data, error } = await supabase
       .from('blog_posts')
       .select(SELECT_FIELDS)
       .neq('slug', slug)
       .overlaps('tags', tags)
-      .eq('published', true)
+      .eq('status', 'published')
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching related posts:', error);
+      console.error('❌ Error fetching related posts:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.getRelated: Found ${data?.length || 0} related posts`);
     return (data || []).map(toDomain);
   }
 
   /**
-   * Crear un nuevo post
+   * Crear un nuevo post - adaptado al esquema real
    */
   async create(post: Partial<BlogPost>): Promise<DomainPost> {
-    // Preparar el payload
     const payload: any = {
       title: post.title,
       slug: post.slug || this.generateSlug(post.title || ''),
+      subtitle: post.subtitle,
       excerpt: post.excerpt || '',
       content: post.content || '',
       author: post.author || 'Equipo DeFi México',
       category: post.category || null,
       tags: post.tags || [],
       image_url: post.image_url || null,
-      published: post.published || false,
-      published_at: post.published ? (post.published_at || new Date().toISOString()) : null,
+      status: post.status || 'draft',
+      published_at: post.status === 'published' ? 
+        (post.published_at || new Date().toISOString()) : null,
+      is_featured: post.is_featured || false,
+      is_premium: post.is_premium || false,
+      allow_comments: post.allow_comments !== false, // Default true
+      author_id: post.author_id || '00000000-0000-0000-0000-000000000000', // Placeholder UUID
     };
+
+    console.log(`🔍 BlogService.create: Creating post '${payload.title}' with status '${payload.status}'`);
 
     const { data, error } = await supabase
       .from('blog_posts')
@@ -305,10 +380,11 @@ class BlogService {
       .single();
 
     if (error) {
-      console.error('Error creating post:', error);
+      console.error('❌ Error creating post:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.create: Created post '${data.title}' (${data.id})`);
     return toDomain(data);
   }
 
@@ -319,14 +395,18 @@ class BlogService {
     const payload: any = { ...updates };
     
     // Si se está publicando y no tiene fecha de publicación, asignarla
-    if (updates.published === true && !updates.published_at) {
+    if (updates.status === 'published' && !updates.published_at) {
       payload.published_at = new Date().toISOString();
+      console.log(`📅 Setting published_at for post ${id}: ${payload.published_at}`);
     }
     
     // Si se está despublicando, quitar la fecha
-    if (updates.published === false) {
+    if (updates.status === 'draft') {
       payload.published_at = null;
+      console.log(`📅 Clearing published_at for post ${id} (status: draft)`);
     }
+
+    console.log(`🔍 BlogService.update: Updating post ${id} with:`, Object.keys(payload));
 
     const { data, error } = await supabase
       .from('blog_posts')
@@ -336,10 +416,11 @@ class BlogService {
       .single();
 
     if (error) {
-      console.error('Error updating post:', error);
+      console.error('❌ Error updating post:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.update: Updated post '${data.title}' (status: ${data.status})`);
     return toDomain(data);
   }
 
@@ -347,49 +428,134 @@ class BlogService {
    * Eliminar un post
    */
   async delete(id: string): Promise<boolean> {
+    console.log(`🗑️ BlogService.delete: Deleting post ${id}`);
+
     const { error } = await supabase
       .from('blog_posts')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting post:', error);
+      console.error('❌ Error deleting post:', error);
       throw error;
     }
 
+    console.log(`✅ BlogService.delete: Post ${id} deleted successfully`);
     return true;
   }
 
   /**
+   * Obtener todas las categorías únicas
+   */
+  async getCategories(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('category')
+      .not('category', 'is', null);
+
+    if (error) {
+      console.error('❌ Error fetching categories:', error);
+      throw error;
+    }
+
+    const categories = [...new Set(data?.map(item => item.category).filter(Boolean))];
+    console.log(`✅ BlogService.getCategories: Found ${categories.length} categories`);
+    return categories as string[];
+  }
+
+  /**
+   * Obtener todos los tags únicos
+   */
+  async getTags(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('tags');
+
+    if (error) {
+      console.error('❌ Error fetching tags:', error);
+      throw error;
+    }
+
+    const allTags = data?.flatMap(item => item.tags || []) || [];
+    const uniqueTags = [...new Set(allTags)];
+    console.log(`✅ BlogService.getTags: Found ${uniqueTags.length} unique tags`);
+    return uniqueTags;
+  }
+
+  /**
+   * Obtener estadísticas del blog
+   */
+  async getStats() {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('id, status, created_at');
+
+    if (error) {
+      console.error('❌ Error fetching stats:', error);
+      throw error;
+    }
+
+    const stats = {
+      total: data?.length || 0,
+      published: data?.filter(p => p.status === 'published').length || 0,
+      drafts: data?.filter(p => p.status === 'draft').length || 0,
+    };
+
+    console.log(`📊 BlogService.getStats:`, stats);
+    return stats;
+  }
+
+  /**
+   * Incrementar contador de vistas
+   */
+  async incrementViews(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('blog_posts')
+      .update({ 
+        view_count: supabase.rpc('increment_view_count', { post_id: id }),
+        views_count: supabase.rpc('increment_views_count', { post_id: id })
+      })
+      .eq('id', id);
+
+    if (error) {
+      // No es crítico si falla el incremento de vistas
+      console.warn('⚠️ Error incrementing views for post', id, ':', error.message);
+    }
+  }
+
+  /**
    * ====================================
-   * ALIAS DE COMPATIBILIDAD para AdminBlog.tsx
+   * ALIAS DE COMPATIBILIDAD
    * ====================================
    */
 
-  /**
-   * Alias de create() para compatibilidad
-   */
   async createPost(post: Partial<BlogPost>): Promise<DomainPost> {
     return this.create(post);
   }
 
-  /**
-   * Alias de update() para compatibilidad
-   */
   async updatePost(id: string, updates: Partial<BlogPost>): Promise<DomainPost> {
     return this.update(id, updates);
   }
 
-  /**
-   * Alias de delete() para compatibilidad
-   */
   async deletePost(id: string): Promise<boolean> {
     return this.delete(id);
   }
 
+  async getPostBySlug(slug: string): Promise<DomainPost | null> {
+    return this.getBySlug(slug);
+  }
+
+  async getAllTags(): Promise<string[]> {
+    return this.getTags();
+  }
+
+  async getAllCategories(): Promise<string[]> {
+    return this.getCategories();
+  }
+
   /**
    * ====================================
-   * UTILIDADES
+   * UTILIDADES PRIVADAS
    * ====================================
    */
 
@@ -406,60 +572,25 @@ class BlogService {
   }
 
   /**
-   * Obtener todas las categorías únicas
+   * Calcular tiempo de lectura estimado
    */
-  async getCategories(): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('category')
-      .not('category', 'is', null);
-
-    if (error) {
-      console.error('Error fetching categories:', error);
-      throw error;
-    }
-
-    const categories = [...new Set(data?.map(item => item.category).filter(Boolean))];
-    return categories as string[];
+  calculateReadingTime(content: string, wordsPerMinute = 200): number {
+    const words = content.trim().split(/\s+/).length;
+    return Math.max(1, Math.round(words / wordsPerMinute));
   }
 
   /**
-   * Obtener todos los tags únicos
+   * Generar excerpt automático si no existe
    */
-  async getTags(): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('tags');
-
-    if (error) {
-      console.error('Error fetching tags:', error);
-      throw error;
-    }
-
-    const allTags = data?.flatMap(item => item.tags || []) || [];
-    return [...new Set(allTags)];
-  }
-
-  /**
-   * Obtener estadísticas del blog
-   */
-  async getStats() {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('id, published, created_at');
-
-    if (error) {
-      console.error('Error fetching stats:', error);
-      throw error;
-    }
-
-    return {
-      total: data?.length || 0,
-      published: data?.filter(p => p.published).length || 0,
-      drafts: data?.filter(p => !p.published).length || 0,
-    };
+  generateExcerpt(content: string, maxLength = 160): string {
+    return content
+      .replace(/<[^>]*>/g, '') // Remover HTML
+      .replace(/\s+/g, ' ')    // Normalizar espacios
+      .trim()
+      .slice(0, maxLength)
+      .trim() + (content.length > maxLength ? '...' : '');
   }
 }
 
-// Exportar instancia del servicio
+// Exportar instancia singleton
 export const blogService = new BlogService();

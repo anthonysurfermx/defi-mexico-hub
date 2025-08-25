@@ -13,10 +13,12 @@ import {
   Linkedin,
   Mail,
   ChevronRight,
-  Rocket
+  Rocket,
+  Settings
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { WalletConnect } from '@/components/WalletConnect';
 
 export default function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,26 +77,26 @@ export default function MainLayout() {
               })}
             </div>
 
-            {/* CTA Button */}
+            {/* Wallet Connect - Reemplaza el botón Admin */}
             <div className="hidden md:flex items-center gap-4">
-              <Button asChild>
-                <Link to="/admin">
-                  Admin
-                </Link>
-              </Button>
+              <WalletConnect />
             </div>
 
             {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-accent"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              {/* Wallet Connect para móvil */}
+              <WalletConnect />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg hover:bg-accent"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -125,15 +127,6 @@ export default function MainLayout() {
                   </Link>
                 );
               })}
-              
-              <div className="pt-4 border-t">
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg bg-primary text-primary-foreground"
-                >
-                  Panel de Admin
-                </Link>
-              </div>
             </div>
           </div>
         )}
@@ -167,7 +160,7 @@ export default function MainLayout() {
                   <Twitter className="h-5 w-5" />
                 </a>
                 <a 
-                  href="https://github.com/defimexico" 
+                  href="https://github.com/anthonysurfermx/defi-mexico-hub" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
@@ -217,6 +210,16 @@ export default function MainLayout() {
               <h3 className="font-semibold mb-4">Recursos</h3>
               <ul className="space-y-2">
                 <li>
+                  <a 
+                    href="https://defillama.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    DefiLlama
+                  </a>
+                </li>
+                <li>
                   <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Guía DeFi
                   </a>
@@ -229,11 +232,6 @@ export default function MainLayout() {
                 <li>
                   <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Whitepapers
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Regulación
                   </a>
                 </li>
               </ul>
@@ -264,7 +262,7 @@ export default function MainLayout() {
               <p className="text-sm text-muted-foreground">
                 © 2024 DeFi México Hub. Todos los derechos reservados.
               </p>
-              <div className="flex space-x-6">
+              <div className="flex items-center space-x-6">
                 <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   Términos
                 </a>
@@ -275,6 +273,19 @@ export default function MainLayout() {
                   <Mail className="h-3 w-3" />
                   Contacto
                 </a>
+                
+                {/* Botón Admin movido aquí - discreto */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild
+                  className="text-muted-foreground hover:text-primary opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <Link to="/admin" className="inline-flex items-center gap-1">
+                    <Settings className="h-3 w-3" />
+                    <span className="text-xs">Admin</span>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>

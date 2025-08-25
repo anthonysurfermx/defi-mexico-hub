@@ -1,3 +1,4 @@
+// src/components/ui/blog-card.tsx - ARREGLADO
 import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { motion } from "framer-motion";
 
 interface BlogCardProps {
   id: string;
+  slug: string;  // ✅ AGREGADO - Para generar URL correcta
   title: string;
   excerpt: string;
   publishedAt: string;
@@ -17,6 +19,7 @@ interface BlogCardProps {
 
 const BlogCard = ({ 
   id, 
+  slug,      // ✅ NUEVO PARÁMETRO
   title, 
   excerpt, 
   publishedAt, 
@@ -77,7 +80,7 @@ const BlogCard = ({
 
         <CardFooter>
           <Link 
-            to={`/blog/${id}`} 
+            to={`/blog/${slug}`} // ✅ ARREGLADO - USA SLUG EN LUGAR DE ID
             className="inline-flex items-center text-primary hover:text-primary/80 transition-colors text-sm font-medium group"
           >
             Leer artículo
