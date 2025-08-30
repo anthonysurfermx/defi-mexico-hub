@@ -32,10 +32,7 @@ export const rpcWrapper = async <T = any>(
   functionName: string,
   args?: Record<string, any>
 ): Promise<{ data: T | null; error: string | null }> => {
-  return queryWrapper(async () => {
-    const result = await supabase.rpc(functionName, args);
-    return result;
-  });
+  return queryWrapper(() => supabase.rpc(functionName, args));
 };
 
 // Service response type
