@@ -23,6 +23,7 @@ const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
 const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
+const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -274,6 +275,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <EventDetailPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'oportunidades',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <InvestmentOpportunitiesPage />
                 </Suspense>
               ),
             },

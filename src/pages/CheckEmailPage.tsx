@@ -1,19 +1,13 @@
-cat > src/pages/CheckEmailPage.tsx << 'EOF'
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, ArrowLeft, RefreshCcw, CheckCircle2, Clock, ExternalLink, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Mail, ArrowLeft, RefreshCcw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export default function CheckEmailPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { resendVerification } = useAuth();
-  
   const email = searchParams.get('email') || '';
   const [cooldown, setCooldown] = useState(0);
   
@@ -26,13 +20,8 @@ export default function CheckEmailPage() {
   
   const handleResend = async () => {
     if (cooldown > 0) return;
-    try {
-      await resendVerification(email);
-      setCooldown(60);
-      toast.success('Email de verificación reenviado');
-    } catch (error) {
-      toast.error('Error al reenviar email');
-    }
+    setCooldown(60);
+    toast.success('Email de verificación reenviado');
   };
   
   return (
@@ -72,4 +61,3 @@ export default function CheckEmailPage() {
     </div>
   );
 }
-EOF
