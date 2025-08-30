@@ -10,6 +10,7 @@ import {
   Users, 
   TrendingUp,
   Calendar,
+  Clock,
   FileText,
   MessageCircle,
   Mail,
@@ -24,6 +25,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
+import { eventsService, type Event } from '@/services/events.service';
 
 // Animation variants
 const fadeUp = {
@@ -72,6 +74,8 @@ export default function HomePage() {
   const [loadingBlog, setLoadingBlog] = useState(true);
   const [featuredCommunities, setFeaturedCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
   const loadFeaturedBlogPosts = async () => {
@@ -115,10 +119,34 @@ export default function HomePage() {
     }
   };
 
-  // Cargar blog posts y comunidades al montar el componente
+  // ✨ FUNCIÓN PARA CARGAR EVENTOS DESTACADOS
+  const loadFeaturedEvents = async () => {
+    try {
+      setLoadingEvents(true);
+      console.log('🔍 Cargando eventos destacados para HomePage...');
+      
+      const result = await eventsService.getFeatured(4);
+      
+      if (result.data) {
+        setFeaturedEvents(result.data);
+        console.log('✅ Eventos destacados cargados:', result.data.length);
+      } else if (result.error) {
+        console.error('❌ Error loading featured events:', result.error);
+        setFeaturedEvents([]);
+      }
+    } catch (error) {
+      console.error('❌ Error in loadFeaturedEvents:', error);
+      setFeaturedEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  // Cargar blog posts, comunidades y eventos al montar el componente
   useEffect(() => {
     loadFeaturedBlogPosts();
     loadFeaturedCommunities();
+    loadFeaturedEvents();
   }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -574,90 +602,7 @@ export default function HomePage() {
                 )}
               </div>
             </motion.div>
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              variants={staggerContainer}
-              viewport={{ once: true }}
-            >
-              <motion.div variants={fadeUp} className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Últimas Publicaciones</h3>
-                  <p className="text-muted-foreground">
-                    Mantente actualizado con análisis y noticias del ecosistema DeFi
-                  </p>
-                </div>
-                <Button variant="outline" asChild>
-                  <Link to="/blog" className="inline-flex items-center">
-                    Ver todo <ArrowRight className="ml-1 w-4 h-4" />
-                  </Link>
-                </Button>
-              </motion.div>
-
-              <div className="space-y-6">
-                {loadingBlog ? (
-                  // Loading skeletons
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="p-4 bg-card rounded-lg border border-border animate-pulse">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="h-4 bg-muted rounded w-16"></div>
-                        <div className="h-3 bg-muted rounded w-20"></div>
-                      </div>
-                      <div className="h-5 bg-muted rounded w-3/4 mb-1"></div>
-                      <div className="h-4 bg-muted rounded w-full mb-3"></div>
-                      <div className="flex items-center justify-between">
-                        <div className="h-3 bg-muted rounded w-24"></div>
-                        <div className="h-3 bg-muted rounded w-20"></div>
-                      </div>
-                    </div>
-                  ))
-                ) : blogPosts.length > 0 ? (
-                  blogPosts.map((post) => (
-                    <motion.div key={post.id} variants={fadeUp}>
-                      <Link
-                        to={`/blog/${post.slug}`}
-                        className="block group"
-                      >
-                        <div className="p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-all">
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
-                              {(post.categories && post.categories.length > 0) ? post.categories[0] : 'General'}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimeAgo(post.published_at || post.created_at)}
-                            </span>
-                          </div>
-                          <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">
-                            {post.title}
-                          </h4>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                            {post.excerpt}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <FileText className="w-3 h-3 mr-1" />
-                              {calculateReadTime(post.content)} min de lectura
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              Por {post.author}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  ))
-                ) : (
-                  <motion.div variants={fadeUp} className="text-center py-8">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h4 className="font-semibold mb-2">Próximamente contenido educativo sobre DeFi</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Estamos preparando artículos increíbles sobre finanzas descentralizadas
-                    </p>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-
+            
             {/* Events Section */}
             <motion.div
               initial="hidden"
@@ -680,85 +625,83 @@ export default function HomePage() {
               </motion.div>
 
               <div className="space-y-6">
-                {/* Evento 1 */}
-                <motion.div variants={fadeUp}>
-                  <div className="p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                        Próximo
-                      </span>
-                      <span className="text-xs text-muted-foreground">15 Sep 2024</span>
+                {loadingEvents ? (
+                  // Loading skeletons para eventos
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-4 bg-card rounded-lg border border-border animate-pulse">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="h-4 bg-muted rounded w-16"></div>
+                        <div className="h-3 bg-muted rounded w-20"></div>
+                      </div>
+                      <div className="h-5 bg-muted rounded w-3/4 mb-1"></div>
+                      <div className="h-4 bg-muted rounded w-full mb-3"></div>
+                      <div className="flex items-center justify-between">
+                        <div className="h-3 bg-muted rounded w-28"></div>
+                        <div className="h-3 bg-muted rounded w-20"></div>
+                      </div>
                     </div>
-                    <h4 className="font-semibold mb-1">DeFi México Meetup - CDMX</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Networking y charlas sobre las últimas tendencias en DeFi mexicano
+                  ))
+                ) : featuredEvents.length > 0 ? (
+                  featuredEvents.map((event) => (
+                    <motion.div key={event.id} variants={fadeUp}>
+                      <Link
+                        to={`/eventos/${event.id}`}
+                        className="block group"
+                      >
+                        <div className="p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-all">
+                          <div className="flex items-start justify-between mb-2">
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              event.event_type === 'presencial' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                              event.event_type === 'online' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                              'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                            }`}>
+                              {event.event_type === 'presencial' ? 'Presencial' :
+                               event.event_type === 'online' ? 'Online' :
+                               'Híbrido'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {event.start_date ? new Date(event.start_date).toLocaleDateString('es-ES', { 
+                                day: 'numeric', 
+                                month: 'short' 
+                              }) : 'Fecha TBD'}
+                            </span>
+                          </div>
+                          <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
+                            {event.title}
+                          </h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                            {event.description || 'Evento del ecosistema DeFi mexicano'}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              <span className="line-clamp-1">
+                                {event.venue_name || event.venue_city || 'Ubicación TBD'}
+                              </span>
+                            </div>
+                            {event.start_time && (
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {event.start_time}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div variants={fadeUp} className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h4 className="font-semibold mb-2">Próximos eventos en camino</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Estamos preparando increíbles eventos para la comunidad DeFi mexicana
                     </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Polanco, Ciudad de México
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        18:00 - 21:00
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Evento 2 */}
-                <motion.div variants={fadeUp}>
-                  <div className="p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                        Workshop
-                      </span>
-                      <span className="text-xs text-muted-foreground">22 Sep 2024</span>
-                    </div>
-                    <h4 className="font-semibold mb-1">Construyendo tu primera DApp</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Taller práctico para desarrolladores sobre desarrollo en blockchain
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Guadalajara, JAL
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        10:00 - 16:00
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Evento 3 */}
-                <motion.div variants={fadeUp}>
-                  <div className="p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
-                        Conferencia
-                      </span>
-                      <span className="text-xs text-muted-foreground">10 Oct 2024</span>
-                    </div>
-                    <h4 className="font-semibold mb-1">Conferencia Anual DeFi México 2024</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      El evento más importante del ecosistema con speakers internacionales
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Centro de Convenciones, CDMX
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        09:00 - 18:00
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
+
           </div>
         </div>
       </section>

@@ -4,31 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, MapPin, Share2, Download, Clock, Mail } from "lucide-react";
-import { eventService } from "@/services/events.service";
+import { eventsService, type Event } from "@/services/events.service";
 
-type Speaker = {
-  id: string;
-  name: string;
-  title: string;
-  company?: string;
-  avatar?: string;
-};
-
-type AgendaItem = {
-  time: string;
-  title: string;
-  description?: string;
-  speakerId?: string;
-};
 
 export default function EventDetailPage() {
   const { id = "1" } = useParams();
-  const [event, setEvent] = useState<any>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [email, setEmail] = useState("");
@@ -40,31 +25,31 @@ export default function EventDetailPage() {
     async function loadEvent() {
       try {
         setLoading(true);
-        // Usamos el servicio existente de events
-        const events = await eventService.getAll();
-        const foundEvent = events.find(e => e.id === id) || events[0];
         
-        // Agregar datos mock para speakers y agenda
-        const enrichedEvent = {
-          ...foundEvent,
-          registrationOpen: true,
-          speakers: [
-            { id: "s1", name: "Anthony Chávez", title: "Community Lead LATAM", company: "Uniswap Labs" },
-            { id: "s2", name: "Guido", title: "Developer Advocate", company: "Scroll" },
-            { id: "s3", name: "Sandra", title: "BD Lead", company: "DeFi México" },
-          ],
-          agenda: [
-            { time: "10:00 - 10:30", title: "Registro y bienvenida" },
-            { time: "10:30 - 11:00", title: "Warm-up & Práctica" },
-            { time: "11:00 - 11:30", title: "Clasificación (Qualy)" },
-            { time: "11:45 - 12:30", title: "Carrera Final" },
-            { time: "12:30 - 13:00", title: "Premiación y networking" },
-          ],
-        };
+        // Primero intenta cargar por slug (si el ID parece un slug)
+        let result: Awaited<ReturnType<typeof eventsService.getById>>;
+        if (id.includes('-') && !id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          // Parece un slug, intenta getBySlug
+          result = await eventsService.getBySlug(id);
+        } else {
+          // Parece un UUID, intenta getById
+          result = await eventsService.getById(id);
+        }
         
-        setEvent(enrichedEvent);
+        // Si no encontró nada y el primer intento fue por slug, intenta por ID
+        if ((result.error || !result.data) && id.includes('-')) {
+          console.log('🔄 No encontrado por slug, intentando por ID...');
+          result = await eventsService.getById(id);
+        }
+        
+        if (result.error || !result.data) {
+          setError(new Error(result.error || 'Evento no encontrado'));
+          return;
+        }
+        
+        setEvent(result.data);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to load event'));
+        setError(err instanceof Error ? err : new Error('Error al cargar el evento'));
       } finally {
         setLoading(false);
       }
@@ -74,15 +59,17 @@ export default function EventDetailPage() {
 
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!event?.registrationOpen) return;
+    if (!event || !event.registration_required) return;
     setSubmitting(true);
     try {
-      // Aquí llamarías a tu API para registrar
-      await new Promise(r => setTimeout(r, 700));
+      const result = await eventsService.registerAttendee(event.id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert("No se pudo registrar, intenta de nuevo.");
+      alert(err instanceof Error ? err.message : "No se pudo registrar, intenta de nuevo.");
     } finally { 
       setSubmitting(false); 
     }
@@ -113,11 +100,11 @@ export default function EventDetailPage() {
               <p className="text-muted-foreground flex items-center gap-4 mt-1">
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-4 w-4"/>
-                  {new Date(event.date).toLocaleString()}
+                  {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Fecha por confirmar'}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="h-4 w-4"/>
-                  {event.location}
+                  {event.venue_name || 'Ubicación por confirmar'}
                 </span>
               </p>
             </div>
@@ -132,9 +119,9 @@ export default function EventDetailPage() {
           </div>
 
           <Card className="mt-6 overflow-hidden">
-            {event.cover_image && (
+            {(event.image_url || event.banner_url) && (
               <div className="h-48 w-full overflow-hidden">
-                <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover" />
+                <img src={event.image_url || event.banner_url} alt={event.title} className="w-full h-full object-cover" />
               </div>
             )}
             <CardContent className="pt-6">
@@ -147,7 +134,12 @@ export default function EventDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Registro</CardTitle>
-                <CardDescription>Reserva tu lugar. Cupos limitados.</CardDescription>
+                <CardDescription>
+                  {event.registration_required 
+                    ? `Reserva tu lugar. ${event.capacity ? `Cupos: ${event.current_attendees}/${event.capacity}` : 'Cupos limitados'}` 
+                    : 'Evento sin registro requerido'
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {submitted ? (
@@ -156,86 +148,134 @@ export default function EventDetailPage() {
                     <AlertDescription>Te enviamos un correo con la confirmación.</AlertDescription>
                   </Alert>
                 ) : (
-                  <form onSubmit={onRegister} className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        required 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        placeholder="tu@email.com"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="note">Notas (opcional)</Label>
-                      <Textarea 
-                        id="note" 
-                        value={note} 
-                        onChange={(e) => setNote(e.target.value)} 
-                        placeholder="Tu rol, expectativas, etc."
-                      />
-                    </div>
-                    <Button type="submit" disabled={!event.registrationOpen || submitting} className="gap-2">
-                      <Mail className="h-4 w-4"/>
-                      {submitting ? "Registrando..." : "Registrarme"}
-                    </Button>
-                  </form>
+                  event.registration_required ? (
+                    event.registration_url ? (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Este evento requiere registro externo.
+                        </p>
+                        <Button asChild className="gap-2">
+                          <a href={event.registration_url} target="_blank" rel="noopener noreferrer">
+                            <Mail className="h-4 w-4"/>
+                            Registrarse
+                          </a>
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={onRegister} className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input 
+                            id="email" 
+                            type="email" 
+                            required 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            placeholder="tu@email.com"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="note">Notas (opcional)</Label>
+                          <Textarea 
+                            id="note" 
+                            value={note} 
+                            onChange={(e) => setNote(e.target.value)} 
+                            placeholder="Tu rol, expectativas, etc."
+                          />
+                        </div>
+                        <Button type="submit" disabled={submitting} className="gap-2">
+                          <Mail className="h-4 w-4"/>
+                          {submitting ? "Registrando..." : "Registrarme"}
+                        </Button>
+                      </form>
+                    )
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Este es un evento abierto, no se requiere registro.
+                    </p>
+                  )
                 )}
               </CardContent>
             </Card>
 
-            {/* Speakers */}
+            {/* Información adicional */}
             <Card>
               <CardHeader>
-                <CardTitle>Speakers</CardTitle>
-                <CardDescription>Conoce a los ponentes.</CardDescription>
+                <CardTitle>Información del evento</CardTitle>
+                <CardDescription>Detalles importantes.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {event.speakers.map((s: Speaker) => (
-                    <div key={s.id} className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={s.avatar}/>
-                        <AvatarFallback>{s.name.slice(0,2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium leading-tight">{s.name}</p>
-                        <p className="text-sm text-muted-foreground leading-tight">
-                          {s.title}{s.company ? ` · ${s.company}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <CardContent className="space-y-4">
+                {event.start_time && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{event.start_time}{event.end_time && ` - ${event.end_time}`}</span>
+                  </div>
+                )}
+                {event.event_type && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Modalidad:</span>
+                    <span className="text-sm capitalize">{event.event_type}</span>
+                  </div>
+                )}
+                {event.venue_address && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{event.venue_address}</span>
+                  </div>
+                )}
+                {event.organizer_name && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Organizado por:</span>
+                    <span className="text-sm">{event.organizer_name}</span>
+                  </div>
+                )}
+                {event.tags && event.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {event.tags.map((tag, index) => (
+                      <span 
+                        key={index} 
+                        className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Agenda */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5"/>Agenda
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {event.agenda.map((item: AgendaItem, idx: number) => (
-                  <div key={idx} className="grid gap-2 rounded-xl border p-4 md:grid-cols-[140px_1fr]">
-                    <div className="text-sm font-medium">{item.time}</div>
-                    <div>
-                      <div className="font-medium">{item.title}</div>
-                      {item.description && (
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      )}
+          {event.agenda && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5"/>Agenda
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Array.isArray(event.agenda) ? (
+                    event.agenda.map((item: any, idx: number) => (
+                      <div key={idx} className="grid gap-2 rounded-xl border p-4 md:grid-cols-[140px_1fr]">
+                        <div className="text-sm font-medium">{item.time || `${idx + 1}. `}</div>
+                        <div>
+                          <div className="font-medium">{item.title || item}</div>
+                          {item.description && (
+                            <p className="text-sm text-muted-foreground">{item.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      <p>{typeof event.agenda === 'string' ? event.agenda : 'Agenda por confirmar'}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

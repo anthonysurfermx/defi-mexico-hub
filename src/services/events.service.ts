@@ -1,349 +1,518 @@
 // src/services/events.service.ts
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-/**
- * Evita seleccionar '*' para reducir payload.
- * Ajusta esta lista si agregas/quitas columnas en la tabla `events`.
- */
-const SELECT_FIELDS =
-  'id,title,description,date,time,location,location_url,image_url,registration_url,max_attendees,current_attendees,speakers,tags,status,created_at,updated_at';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
 
-const DEFAULT_PAGE_SIZE = 12;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-/* ────────────────────────────────────────────────────────────────────── */
-/* Tipos                                                                  */
-/* ────────────────────────────────────────────────────────────────────── */
-export type EventStatus = 'upcoming' | 'past' | 'cancelled';
-
+// Tipos basados en la estructura real de la tabla events en Supabase
 export interface Event {
   id: string;
   title: string;
+  slug: string | null;
+  subtitle: string | null;
   description: string;
-  date: string;          // YYYY-MM-DD
-  time: string;          // HH:mm (24h) - opcional si no manejas horas
-  location: string;
-  location_url?: string | null;
-  image_url?: string | null;
-  registration_url?: string | null;
-  max_attendees?: number | null;
-  current_attendees?: number | null;
-  speakers?: string[] | null;
-  tags?: string[] | null;
-  status: EventStatus;
+  agenda: Array<{
+    time?: string;
+    title: string;
+    description?: string;
+  }> | null;
+  start_date: string;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  timezone: string;
+  event_type: 'presencial' | 'online' | 'hibrido';
+  venue_name: string | null;
+  venue_address: string | null;
+  venue_city: string | null;
+  venue_state: string | null;
+  venue_country: string | null;
+  venue_postal_code: string | null;
+  venue_latitude: number | null;
+  venue_longitude: number | null;
+  online_platform: string | null;
+  online_url: string | null;
+  image_url: string | null;
+  banner_url: string | null;
+  video_url: string | null;
+  capacity: number | null;
+  current_attendees: number;
+  waitlist_enabled: boolean;
+  waitlist_count: number;
+  registration_required: boolean;
+  registration_url: string | null;
+  registration_deadline: string | null;
+  is_free: boolean;
+  price: number;
+  early_bird_price: number | null;
+  early_bird_deadline: string | null;
+  currency: string;
+  payment_methods: string[] | null;
+  category: string | null;
+  tags: string[] | null;
+  difficulty_level: string | null;
+  language: string[] | null;
+  organizer_id: string | null;
+  organizer_name: string | null;
+  organizer_email: string | null;
+  organizer_phone: string | null;
+  sponsors: Array<{
+    name: string;
+    logo?: string;
+    website?: string;
+  }> | null;
+  partners: Array<{
+    name: string;
+    logo?: string;
+    website?: string;
+  }> | null;
+  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  cancellation_reason: string | null;
+  is_featured: boolean;
+  view_count: number;
+  share_count: number;
+  created_by: string | null;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface EventInsert {
+export type EventInsert = Partial<Omit<Event, 'id' | 'created_at' | 'updated_at'>> & {
   title: string;
   description: string;
-  date: string;
-  time: string;
-  location: string;
-  location_url?: string | null;
-  image_url?: string | null;
-  registration_url?: string | null;
-  max_attendees?: number | null;
-  current_attendees?: number | null;
-  speakers?: string[] | null;
-  tags?: string[] | null;
-  status?: EventStatus;
-}
-
-export interface EventUpdate extends Partial<EventInsert> {}
-
-export interface Page<T> {
-  items: T[];
-  total: number;
-  page: number;     // 1-based
-  pageSize: number;
-}
-
-/* ────────────────────────────────────────────────────────────────────── */
-/* Helpers                                                                */
-/* ────────────────────────────────────────────────────────────────────── */
-const sanitize = (s: string) =>
-  s.replaceAll(',', ' ').replaceAll('%', '').trim().slice(0, 200);
-
-const normalizeUrl = (url?: string | null) => {
-  if (!url) return null;
-  const t = url.trim();
-  if (!t) return null;
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
+  start_date: string;
+  event_type: 'presencial' | 'online' | 'hibrido';
+  timezone: string;
 };
 
-function getISODate(date: string, time?: string) {
-  // Construye un ISO local aproximado para comparar con "ahora".
-  const base = time ? `${date}T${time}:00` : `${date}T00:00:00`;
-  return new Date(base);
+export type EventUpdate = Partial<Omit<Event, 'id' | 'created_at' | 'updated_at'>>;
+
+// Tipos adicionales para el frontend
+export type EventType = 'presencial' | 'online' | 'hibrido';
+export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
+
+// Interfaz para filtros
+export interface EventFilters {
+  search?: string;
+  status?: EventStatus;
+  event_type?: EventType;
+  category?: string;
+  is_featured?: boolean;
+  start_date_from?: string;
+  start_date_to?: string;
+  limit?: number;
+  offset?: number;
 }
 
-function computeStatus(e: Pick<Event, 'date' | 'time' | 'status'>): EventStatus {
-  if (e.status === 'cancelled') return 'cancelled';
-  const now = new Date();
-  const eventDate = getISODate(e.date, e.time);
-  return eventDate.getTime() < now.getTime() ? 'past' : 'upcoming';
+// Response types para manejar errores
+export interface ServiceResponse<T> {
+  data: T | null;
+  error: string | null;
 }
 
-function monthRange(ym: string) {
-  // ym formato "YYYY-MM"
-  const [yStr, mStr] = ym.split('-');
-  const y = Number(yStr);
-  const m = Number(mStr);
-  if (!y || !m || m < 1 || m > 12) return null;
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m, 0)); // último día del mes
-  const startStr = start.toISOString().slice(0, 10);
-  const endStr = end.toISOString().slice(0, 10);
-  return { start: startStr, end: endStr };
-}
+class EventsService {
+  // Obtener todos los eventos con filtros
+  async getAll(filters?: EventFilters): Promise<ServiceResponse<Event[]>> {
+    try {
+      let query = supabase
+        .from('events')
+        .select('*')
+        .order('start_date', { ascending: false })
+        .order('start_time', { ascending: false });
 
-/* ────────────────────────────────────────────────────────────────────── */
-/* Servicio                                                               */
-/* ────────────────────────────────────────────────────────────────────── */
-class EventService {
-  /**
-   * Listado paginado con filtros:
-   * - search: ilike en title/description
-   * - status: 'upcoming' | 'past' | 'cancelled'
-   * - month: "YYYY-MM"
-   */
-  async getPage(
-    params: {
-      page?: number;
-      pageSize?: number;
-      search?: string;
-      status?: EventStatus;
-      month?: string;
-    } = {}
-  ): Promise<Page<Event>> {
-    const page = Math.max(1, params.page ?? 1);
-    const pageSize = Math.min(50, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE));
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from('events')
-      .select(SELECT_FIELDS, { count: 'exact' });
-
-    // Filtros
-    if (params.status) {
-      query = query.eq('status', params.status);
-    }
-    if (params.search) {
-      const q = sanitize(params.search);
-      if (q) {
-        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+      // Aplicar filtros
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      } else {
+        // Por defecto solo mostrar eventos publicados
+        query = query.eq('status', 'published');
       }
-    }
-    if (params.month) {
-      const range = monthRange(params.month);
-      if (range) {
-        query = query.gte('date', range.start).lte('date', range.end);
+
+      if (filters?.event_type) {
+        query = query.eq('event_type', filters.event_type);
       }
+
+      if (filters?.category) {
+        query = query.eq('category', filters.category);
+      }
+
+      if (filters?.is_featured !== undefined) {
+        query = query.eq('is_featured', filters.is_featured);
+      }
+
+      if (filters?.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      if (filters?.start_date_from) {
+        query = query.gte('start_date', filters.start_date_from);
+      }
+
+      if (filters?.start_date_to) {
+        query = query.lte('start_date', filters.start_date_to);
+      }
+
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      if (filters?.offset) {
+        query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching events:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getAll:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
     }
-
-    // Orden por fecha/hora
-    query = query
-      .order('date', { ascending: true })
-      .order('time', { ascending: true })
-      .range(from, to);
-
-    const { data, error, count } = await query;
-    if (error) throw error;
-
-    const items =
-      (data ?? []).map((ev: any) => ({
-        ...ev,
-        location_url: normalizeUrl(ev.location_url),
-        image_url: normalizeUrl(ev.image_url),
-        registration_url: normalizeUrl(ev.registration_url),
-        current_attendees:
-          typeof ev.current_attendees === 'number' && ev.current_attendees < 0
-            ? 0
-            : ev.current_attendees,
-        status: computeStatus(ev),
-      })) as Event[];
-
-    return {
-      items,
-      total: count ?? 0,
-      page,
-      pageSize,
-    };
   }
 
-  /** Alias temporal para compatibilidad retro (antes tenías getEvents). */
-  async getEvents(
-    page = 1,
-    limit = DEFAULT_PAGE_SIZE,
-    filters?: { search?: string; status?: EventStatus; month?: string }
-  ) {
-    const res = await this.getPage({
-      page,
-      pageSize: limit,
-      search: filters?.search,
-      status: filters?.status,
-      month: filters?.month,
-    });
-    return {
-      data: res.items,
-      totalPages: Math.ceil(res.total / res.pageSize),
-      currentPage: res.page,
-      total: res.total,
-    };
-  }
+  // Obtener eventos próximos
+  async getUpcoming(limit: number = 6): Promise<ServiceResponse<Event[]>> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'published')
+        .gte('start_date', today)
+        .order('start_date', { ascending: true })
+        .order('start_time', { ascending: true })
+        .limit(limit);
 
-  async getEvent(id: string): Promise<Event | null> {
-    const { data, error } = await supabase
-      .from('events')
-      .select(SELECT_FIELDS)
-      .eq('id', id)
-      .single();
+      if (error) {
+        console.error('Error fetching upcoming events:', error);
+        return { data: null, error: error.message };
+      }
 
-    if (error) throw error;
-    if (!data) return null;
-
-    return {
-      ...(data as Event),
-      location_url: normalizeUrl(data.location_url),
-      image_url: normalizeUrl(data.image_url),
-      registration_url: normalizeUrl(data.registration_url),
-      current_attendees:
-        typeof data.current_attendees === 'number' && data.current_attendees < 0
-          ? 0
-          : data.current_attendees,
-      status: computeStatus(data as Event),
-    };
-  }
-
-  async createEvent(event: EventInsert): Promise<Event> {
-    // Determinar status inicial si no se proporciona
-    const payload: EventInsert = {
-      ...event,
-      status: event.status ?? computeStatus({ date: event.date, time: event.time, status: 'upcoming' }),
-      location_url: normalizeUrl(event.location_url),
-      image_url: normalizeUrl(event.image_url),
-      registration_url: normalizeUrl(event.registration_url),
-      current_attendees:
-        typeof event.current_attendees === 'number' && event.current_attendees < 0
-          ? 0
-          : event.current_attendees ?? 0,
-      max_attendees:
-        typeof event.max_attendees === 'number' && event.max_attendees < 0
-          ? 0
-          : event.max_attendees ?? null,
-    };
-
-    const { data, error } = await supabase
-      .from('events')
-      .insert([payload])
-      .select(SELECT_FIELDS)
-      .single();
-
-    if (error) throw error;
-    const created = data as Event;
-    return {
-      ...created,
-      status: computeStatus(created),
-    };
-  }
-
-  async updateEvent(id: string, updates: EventUpdate): Promise<Event> {
-    const normalized: EventUpdate = {
-      ...updates,
-      location_url: normalizeUrl(updates.location_url ?? null),
-      image_url: normalizeUrl(updates.image_url ?? null),
-      registration_url: normalizeUrl(updates.registration_url ?? null),
-    };
-
-    // Si se actualiza fecha/hora y no viene status explícito, recalcula.
-    if ((updates.date || updates.time) && !updates.status) {
-      normalized.status = computeStatus({
-        date: updates.date ?? (await this.getEvent(id))!.date,
-        time: updates.time ?? (await this.getEvent(id))!.time,
-        status: 'upcoming',
-      });
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getUpcoming:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
     }
+  }
 
-    // Normaliza contadores (no negativos)
-    if (typeof updates.current_attendees === 'number' && updates.current_attendees < 0) {
-      normalized.current_attendees = 0;
+  // Obtener eventos pasados
+  async getPast(limit: number = 10): Promise<ServiceResponse<Event[]>> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'published')
+        .lt('start_date', today)
+        .order('start_date', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching past events:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getPast:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
     }
-    if (typeof updates.max_attendees === 'number' && updates.max_attendees < 0) {
-      normalized.max_attendees = 0;
+  }
+
+  // Obtener eventos destacados
+  async getFeatured(limit: number = 4): Promise<ServiceResponse<Event[]>> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'published')
+        .eq('is_featured', true)
+        .gte('start_date', today)
+        .order('start_date', { ascending: true })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching featured events:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getFeatured:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
     }
-
-    const { data, error } = await supabase
-      .from('events')
-      .update(normalized)
-      .eq('id', id)
-      .select(SELECT_FIELDS)
-      .single();
-
-    if (error) throw error;
-    const updated = data as Event;
-    return {
-      ...updated,
-      status: computeStatus(updated),
-    };
   }
 
-  async deleteEvent(id: string) {
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    if (error) throw error;
+  // Obtener evento por ID
+  async getById(id: string): Promise<ServiceResponse<Event>> {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return { data: null, error: 'Evento no encontrado' };
+        }
+        console.error('Error fetching event:', error);
+        return { data: null, error: error.message };
+      }
+
+      // Incrementar contador de vistas
+      if (data) {
+        await supabase
+          .from('events')
+          .update({ view_count: (data.view_count || 0) + 1 })
+          .eq('id', id);
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      console.error('Error in getById:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
   }
 
-  async cancelEvent(id: string) {
-    return this.updateEvent(id, { status: 'cancelled' });
+  // Obtener evento por slug
+  async getBySlug(slug: string): Promise<ServiceResponse<Event>> {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return { data: null, error: 'Evento no encontrado' };
+        }
+        console.error('Error fetching event by slug:', error);
+        return { data: null, error: error.message };
+      }
+
+      // Incrementar contador de vistas
+      if (data) {
+        await supabase
+          .from('events')
+          .update({ view_count: (data.view_count || 0) + 1 })
+          .eq('slug', slug);
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      console.error('Error in getBySlug:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
   }
 
-  async updateAttendees(id: string, count: number) {
-    return this.updateEvent(id, { current_attendees: Math.max(0, count) });
+  // Crear evento
+  async create(event: EventInsert): Promise<ServiceResponse<Event>> {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert(event)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating event:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      console.error('Error in create:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
   }
 
-  async getUpcomingEvents(limit = 5): Promise<Event[]> {
-    const today = new Date().toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from('events')
-      .select(SELECT_FIELDS)
-      .gte('date', today)
-      .neq('status', 'cancelled')
-      .order('date', { ascending: true })
-      .order('time', { ascending: true })
-      .limit(limit);
+  // Actualizar evento
+  async update(id: string, updates: EventUpdate): Promise<ServiceResponse<Event>> {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error updating event:', error);
+        return { data: null, error: error.message };
+      }
 
-    return (data ?? []).map((e: any) => ({
-      ...e,
-      location_url: normalizeUrl(e.location_url),
-      image_url: normalizeUrl(e.image_url),
-      registration_url: normalizeUrl(e.registration_url),
-      status: computeStatus(e),
-    })) as Event[];
+      return { data, error: null };
+    } catch (err) {
+      console.error('Error in update:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
   }
 
-  async getPastEvents(limit = 10): Promise<Event[]> {
-    const today = new Date().toISOString().slice(0, 10);
-    const { data, error } = await supabase
-      .from('events')
-      .select(SELECT_FIELDS)
-      .lt('date', today)
-      .order('date', { ascending: false })
-      .limit(limit);
+  // Eliminar evento (soft delete - cambiar status a cancelled)
+  async delete(id: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ 
+          status: 'cancelled',
+          cancellation_reason: 'Evento cancelado por el administrador',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error deleting event:', error);
+        return { data: false, error: error.message };
+      }
 
-    return (data ?? []).map((e: any) => ({
-      ...e,
-      location_url: normalizeUrl(e.location_url),
-      image_url: normalizeUrl(e.image_url),
-      registration_url: normalizeUrl(e.registration_url),
-      status: computeStatus(e),
-    })) as Event[];
+      return { data: true, error: null };
+    } catch (err) {
+      console.error('Error in delete:', err);
+      return { 
+        data: false, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
+  }
+
+  // Obtener estadísticas
+  async getStats(): Promise<ServiceResponse<{
+    total: number;
+    upcoming: number;
+    past: number;
+    cancelled: number;
+    totalAttendees: number;
+  }>> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Obtener conteos
+      const [totalResult, upcomingResult, pastResult, cancelledResult] = await Promise.all([
+        supabase.from('events').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true })
+          .eq('status', 'published')
+          .gte('start_date', today),
+        supabase.from('events').select('*', { count: 'exact', head: true })
+          .eq('status', 'published')
+          .lt('start_date', today),
+        supabase.from('events').select('*', { count: 'exact', head: true })
+          .eq('status', 'cancelled')
+      ]);
+
+      // Obtener total de asistentes
+      const { data: eventsWithAttendees } = await supabase
+        .from('events')
+        .select('current_attendees')
+        .not('current_attendees', 'is', null);
+
+      const totalAttendees = eventsWithAttendees?.reduce(
+        (sum, event) => sum + (event.current_attendees || 0), 
+        0
+      ) || 0;
+
+      return {
+        data: {
+          total: totalResult.count || 0,
+          upcoming: upcomingResult.count || 0,
+          past: pastResult.count || 0,
+          cancelled: cancelledResult.count || 0,
+          totalAttendees
+        },
+        error: null
+      };
+    } catch (err) {
+      console.error('Error in getStats:', err);
+      return { 
+        data: null, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
+  }
+
+  // Registrar asistente
+  async registerAttendee(eventId: string): Promise<ServiceResponse<boolean>> {
+    try {
+      // Primero obtener el evento
+      const { data: event, error: fetchError } = await supabase
+        .from('events')
+        .select('current_attendees, capacity')
+        .eq('id', eventId)
+        .single();
+
+      if (fetchError || !event) {
+        return { data: false, error: 'Evento no encontrado' };
+      }
+
+      // Verificar capacidad
+      if (event.capacity && event.current_attendees >= event.capacity) {
+        return { data: false, error: 'Evento lleno' };
+      }
+
+      // Actualizar contador
+      const { error } = await supabase
+        .from('events')
+        .update({ 
+          current_attendees: (event.current_attendees || 0) + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+
+      if (error) {
+        console.error('Error registering attendee:', error);
+        return { data: false, error: error.message };
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      console.error('Error in registerAttendee:', err);
+      return { 
+        data: false, 
+        error: err instanceof Error ? err.message : 'Error desconocido' 
+      };
+    }
   }
 }
 
-export const eventService = new EventService();
+export const eventsService = new EventsService();
+
+// Export for backwards compatibility
+export const eventService = eventsService;

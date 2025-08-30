@@ -1,11 +1,10 @@
 // src/components/admin/AdminEvents.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { eventService } from '@/services/events.service';
-import type { Event, EventStatus, Page as PageType } from '@/services/events.service';
+import { useSearchParams } from 'react-router-dom';
+import { eventsService } from '@/services/events.service';
+import type { Event, EventStatus } from '@/services/events.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Plus, Pencil, Trash2, Search, X,
   Calendar, Clock, MapPin, Users, CheckCircle, XCircle
@@ -129,16 +128,20 @@ function AdminModal({
 
 function StatusBadge({ status }: { status: Event['status'] }) {
   const variants = {
-    upcoming: { icon: CheckCircle, cls: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
-    past: { icon: Clock, cls: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' },
+    published: { icon: CheckCircle, cls: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
+    draft: { icon: Clock, cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' },
     cancelled: { icon: XCircle, cls: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
+    completed: { icon: CheckCircle, cls: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400' },
   };
-  const v = variants[status] ?? variants.upcoming;
+  const v = variants[status] ?? variants.published;
   const Icon = v.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${v.cls}`}>
       <Icon className="w-3 h-3" />
-      {status === 'upcoming' ? 'Próximo' : status === 'past' ? 'Pasado' : 'Cancelado'}
+      {status === 'published' ? 'Publicado' : 
+       status === 'draft' ? 'Borrador' : 
+       status === 'cancelled' ? 'Cancelado' :
+       status === 'completed' ? 'Completado' : 'Desconocido'}
     </span>
   );
 }
@@ -158,7 +161,7 @@ export default function AdminEvents() {
 
   const debouncedQ = useDebouncedValue(q, 300);
 
-  const [data, setData] = useState<PageType<Event> | null>(null);
+  const [data, setData] = useState<{ items: Event[]; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,17 +172,17 @@ export default function AdminEvents() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    date: '',
-    time: '',
-    location: '',
-    location_url: '',
+    start_date: '',
+    start_time: '',
+    venue_name: '',
+    venue_address: '',
     image_url: '',
     registration_url: '',
-    max_attendees: '',
+    capacity: '',
     current_attendees: '0',
-    speakers: '',
     tags: '',
-    status: 'upcoming' as EventStatus,
+    status: 'published' as EventStatus,
+    is_featured: false,
   });
 
   const fetchToken = useRef(0);
@@ -189,12 +192,18 @@ export default function AdminEvents() {
     setError(null);
     const token = ++fetchToken.current;
     try {
-      const res = await eventService.getPage({
-        page,
-        pageSize: PAGE_SIZE,
+      const filters = {
         search: debouncedQ || undefined,
         status: status === 'all' ? undefined : status,
-      });
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
+      };
+      const result = await eventsService.getAll(filters);
+      if (result.error) throw new Error(result.error);
+      const res = {
+        items: result.data || [],
+        total: result.data?.length || 0
+      };
       if (token === fetchToken.current) setData(res);
     } catch (e) {
       if (token === fetchToken.current) setError(e instanceof Error ? e.message : 'Error al cargar eventos');
@@ -214,16 +223,15 @@ export default function AdminEvents() {
 
   const totalPages = useMemo(() => {
     if (!data) return 1;
-    const size = data.pageSize || PAGE_SIZE;
-    return Math.max(1, Math.ceil(data.total / size));
+    return Math.max(1, Math.ceil(data.total / PAGE_SIZE));
   }, [data]);
 
   const stats = useMemo(() => {
     const items = data?.items ?? [];
     return {
       total: data?.total ?? 0,
-      upcoming: items.filter(e => e.status === 'upcoming').length,
-      past: items.filter(e => e.status === 'past').length,
+      upcoming: items.filter(e => e.status === 'published').length,
+      past: items.filter(e => e.status === 'completed').length,
       attendees: items.reduce((acc, e) => acc + (e.current_attendees ?? 0), 0),
     };
   }, [data]);
@@ -234,17 +242,17 @@ export default function AdminEvents() {
     setForm({
       title: '',
       description: '',
-      date: '',
-      time: '',
-      location: '',
-      location_url: '',
+      start_date: '',
+      start_time: '',
+      venue_name: '',
+      venue_address: '',
       image_url: '',
       registration_url: '',
-      max_attendees: '',
+      capacity: '',
       current_attendees: '0',
-      speakers: '',
       tags: '',
-      status: 'upcoming',
+      status: 'published',
+      is_featured: false,
     });
     setOpen(true);
   };
@@ -254,17 +262,17 @@ export default function AdminEvents() {
     setForm({
       title: event.title || '',
       description: event.description || '',
-      date: event.date || '',
-      time: event.time || '',
-      location: event.location || '',
-      location_url: event.location_url || '',
+      start_date: event.start_date || '',
+      start_time: event.start_time || '',
+      venue_name: event.venue_name || '',
+      venue_address: event.venue_address || '',
       image_url: event.image_url || '',
       registration_url: event.registration_url || '',
-      max_attendees: String(event.max_attendees ?? ''),
+      capacity: String(event.capacity ?? ''),
       current_attendees: String(event.current_attendees ?? 0),
-      speakers: (event.speakers ?? []).join(', '),
       tags: (event.tags ?? []).join(', '),
       status: event.status,
+      is_featured: event.is_featured || false,
     });
     setOpen(true);
   };
@@ -277,6 +285,17 @@ export default function AdminEvents() {
     return `https://${trimmed}`;
   };
 
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 100);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -287,26 +306,35 @@ export default function AdminEvents() {
 
     const payload = {
       title: form.title.trim(),
+      slug: editing ? editing.slug : generateSlug(form.title.trim()),
       description: form.description.trim(),
-      date: form.date || null,
-      time: form.time || null,
-      location: form.location.trim(),
-      location_url: form.location_url ? normalizeUrl(form.location_url) : null,
+      start_date: form.start_date || null,
+      start_time: form.start_time || null,
+      venue_name: form.venue_name.trim() || null,
+      venue_address: form.venue_address.trim() || null,
       image_url: form.image_url ? normalizeUrl(form.image_url) : null,
       registration_url: form.registration_url ? normalizeUrl(form.registration_url) : null,
-      max_attendees: form.max_attendees ? Math.max(0, parseInt(form.max_attendees, 10)) : null,
+      capacity: form.capacity ? Math.max(0, parseInt(form.capacity, 10)) : null,
       current_attendees: Math.max(0, parseInt(form.current_attendees || '0', 10)),
-      speakers: form.speakers ? form.speakers.split(',').map(s => s.trim()).filter(Boolean) : [],
-      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null,
       status: form.status,
-    } as Partial<Event>;
+      event_type: 'presencial' as const,
+      timezone: 'America/Mexico_City',
+      is_free: true,
+      price: 0,
+      currency: 'MXN',
+      registration_required: !!form.registration_url,
+      is_featured: form.is_featured,
+    };
 
     setIsSubmitting(true);
     try {
       if (editing) {
-        await eventService.updateEvent(editing.id, payload);
+        const result = await eventsService.update(editing.id, payload);
+        if (result.error) throw new Error(result.error);
       } else {
-        await eventService.createEvent(payload as any);
+        const result = await eventsService.create(payload);
+        if (result.error) throw new Error(result.error);
       }
       setOpen(false);
       await load();
@@ -321,7 +349,8 @@ export default function AdminEvents() {
   const handleDelete = async (event: Event) => {
     if (!confirm(`¿Eliminar "${event.title}"?`)) return;
     try {
-      await eventService.deleteEvent(event.id);
+      const result = await eventsService.delete(event.id);
+      if (result.error) throw new Error(result.error);
       await load();
     } catch (err) {
       console.error(err);
@@ -364,9 +393,10 @@ export default function AdminEvents() {
             aria-label="Filtro de estado"
           >
             <option value="all">Todos</option>
-            <option value="upcoming">Próximos</option>
-            <option value="past">Pasados</option>
+            <option value="published">Publicados</option>
+            <option value="draft">Borradores</option>
             <option value="cancelled">Cancelados</option>
+            <option value="completed">Completados</option>
           </select>
 
           <Button type="button" onClick={openNew} className="inline-flex items-center gap-2">
@@ -432,7 +462,7 @@ export default function AdminEvents() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {(data?.items || []).map((event) => (
               <motion.div
-                key={event.id}
+                key={`event-${event.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-card rounded-lg border hover:shadow-lg transition-shadow"
@@ -457,11 +487,11 @@ export default function AdminEvents() {
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {event.date}
+                          {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Sin fecha'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {event.time}
+                          {event.start_time || 'Sin hora'}
                         </span>
                       </div>
                     </div>
@@ -474,14 +504,14 @@ export default function AdminEvents() {
 
                   <div className="flex items-center gap-1 text-sm mb-3">
                     <MapPin className="w-3 h-3" />
-                    <span className="line-clamp-1">{event.location}</span>
+                    <span className="line-clamp-1">{event.venue_name || 'Ubicación por confirmar'}</span>
                   </div>
 
-                  {typeof event.max_attendees === 'number' && (
+                  {typeof event.capacity === 'number' && (
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm text-muted-foreground">Asistentes</span>
                       <span className="text-sm font-medium">
-                        {event.current_attendees || 0} / {event.max_attendees}
+                        {event.current_attendees || 0} / {event.capacity}
                       </span>
                     </div>
                   )}
@@ -597,25 +627,33 @@ export default function AdminEvents() {
             <Field label="Fecha">
               <Input
                 type="date"
-                value={form.date}
-                onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
+                value={form.start_date}
+                onChange={(e) => setForm(f => ({ ...f, start_date: e.target.value }))}
               />
             </Field>
 
             <Field label="Hora">
               <Input
                 type="time"
-                value={form.time}
-                onChange={(e) => setForm(f => ({ ...f, time: e.target.value }))}
+                value={form.start_time}
+                onChange={(e) => setForm(f => ({ ...f, start_time: e.target.value }))}
               />
             </Field>
           </div>
 
-          <Field label="Ubicación">
+          <Field label="Lugar del evento">
             <Input
-              value={form.location}
-              onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))}
+              value={form.venue_name}
+              onChange={(e) => setForm(f => ({ ...f, venue_name: e.target.value }))}
               placeholder="Centro de Convenciones CDMX"
+            />
+          </Field>
+
+          <Field label="Dirección">
+            <Input
+              value={form.venue_address}
+              onChange={(e) => setForm(f => ({ ...f, venue_address: e.target.value }))}
+              placeholder="Av. Revolución 1234, Col. Centro"
             />
           </Field>
 
@@ -632,8 +670,8 @@ export default function AdminEvents() {
             <Field label="Capacidad máxima">
               <Input
                 type="number"
-                value={form.max_attendees}
-                onChange={(e) => setForm(f => ({ ...f, max_attendees: e.target.value }))}
+                value={form.capacity}
+                onChange={(e) => setForm(f => ({ ...f, capacity: e.target.value }))}
                 min="0"
               />
             </Field>
@@ -654,11 +692,25 @@ export default function AdminEvents() {
               onChange={(e) => setForm(f => ({ ...f, status: e.target.value as EventStatus }))}
               className="w-full rounded-md border bg-background p-2 text-sm"
             >
-              <option value="upcoming">Próximo</option>
-              <option value="past">Pasado</option>
+              <option value="published">Publicado</option>
+              <option value="draft">Borrador</option>
               <option value="cancelled">Cancelado</option>
+              <option value="completed">Completado</option>
             </select>
           </Field>
+
+          <div className="flex items-center space-x-2">
+            <input
+              id="is_featured"
+              type="checkbox"
+              checked={form.is_featured}
+              onChange={(e) => setForm(f => ({ ...f, is_featured: e.target.checked }))}
+              className="w-4 h-4 text-primary bg-background border-gray-300 rounded focus:ring-primary focus:ring-2"
+            />
+            <label htmlFor="is_featured" className="text-sm font-medium">
+              Marcar como evento destacado (aparece en HomePage)
+            </label>
+          </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button
