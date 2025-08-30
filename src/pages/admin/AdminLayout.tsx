@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Settings
+  Settings,
+  Globe // Agregado para Comunidades
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -31,6 +32,12 @@ const menuItems: MenuItem[] = [
     path: '/admin',
     icon: LayoutDashboard,
     exact: true
+  },
+  {
+    title: 'Comunidades',  // NUEVO
+    path: '/admin/comunidades',
+    icon: Globe,
+    badge: 'Nuevo'
   },
   {
     title: 'Startups',
@@ -156,7 +163,13 @@ export default function AdminLayout() {
                     <>
                       <span className="flex-1">{item.title}</span>
                       {item.badge && (
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                        <span className={`
+                          text-xs px-2 py-0.5 rounded-full
+                          ${item.badge === 'Nuevo' 
+                            ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+                            : 'bg-muted'
+                          }
+                        `}>
                           {item.badge}
                         </span>
                       )}
@@ -237,7 +250,13 @@ export default function AdminLayout() {
                         <Icon className="h-5 w-5" />
                         <span className="flex-1">{item.title}</span>
                         {item.badge && (
-                          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                          <span className={`
+                            text-xs px-2 py-0.5 rounded-full
+                            ${item.badge === 'Nuevo' 
+                              ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+                              : 'bg-muted'
+                            }
+                          `}>
                             {item.badge}
                           </span>
                         )}
@@ -294,4 +313,4 @@ export default function AdminLayout() {
       </main>
     </div>
   );
-}  
+}
