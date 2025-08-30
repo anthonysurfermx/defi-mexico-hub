@@ -37,11 +37,15 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
+const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 
 // Admin Startup Forms
 const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
+
+// Admin Community Forms
+const AdminCommunityForm = lazy(() => import('@/pages/admin/AdminCommunityForm'));
 
 // Admin Blog Forms - RUTAS DE BLOG
 const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
@@ -448,6 +452,30 @@ const router = createBrowserRouter(
               ),
             },
             {
+              path: 'comunidades',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminCommunities />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'comunidades/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminCommunityForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'comunidades/edit/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminCommunityForm />
+                </Suspense>
+              ),
+            },
+            {
               path: 'usuarios',
               element: (
                 <Suspense fallback={<PageLoader />}>
@@ -482,15 +510,6 @@ const router = createBrowserRouter(
   ],
   {
     basename: import.meta.env.VITE_BASE_PATH || '/',
-    // FUTURE FLAGS PARA REACT ROUTER V7
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-      v7_fetcherPersist: true,
-      v7_normalizeFormMethod: true,
-      v7_partialHydration: true,
-      v7_skipActionErrorRevalidation: true,
-    },
   }
 );
 

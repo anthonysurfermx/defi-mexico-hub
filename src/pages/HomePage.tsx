@@ -23,6 +23,7 @@ import {
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { blogService, type DomainPost } from '@/services/blog.service';
+import { communitiesService, type Community } from '@/services/communities.service';
 
 // Animation variants
 const fadeUp = {
@@ -69,6 +70,8 @@ export default function HomePage() {
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
   const [blogPosts, setBlogPosts] = useState<DomainPost[]>([]);
   const [loadingBlog, setLoadingBlog] = useState(true);
+  const [featuredCommunities, setFeaturedCommunities] = useState<Community[]>([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(true);
 
   // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
   const loadFeaturedBlogPosts = async () => {
@@ -89,9 +92,33 @@ export default function HomePage() {
     }
   };
 
-  // Cargar blog posts al montar el componente
+  // ✨ FUNCIÓN PARA CARGAR COMUNIDADES DESTACADAS
+  const loadFeaturedCommunities = async () => {
+    try {
+      setLoadingCommunities(true);
+      console.log('🔍 Cargando comunidades destacadas para HomePage...');
+      
+      const result = await communitiesService.getFeatured(6);
+      
+      if (result.data) {
+        setFeaturedCommunities(result.data);
+        console.log('✅ Comunidades destacadas cargadas:', result.data.length);
+      } else if (result.error) {
+        console.error('❌ Error loading featured communities:', result.error);
+        setFeaturedCommunities([]);
+      }
+    } catch (error) {
+      console.error('❌ Error in loadFeaturedCommunities:', error);
+      setFeaturedCommunities([]);
+    } finally {
+      setLoadingCommunities(false);
+    }
+  };
+
+  // Cargar blog posts y comunidades al montar el componente
   useEffect(() => {
     loadFeaturedBlogPosts();
+    loadFeaturedCommunities();
   }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -325,6 +352,136 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground mt-1">Crecimiento mensual</p>
               </div>
             </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Communities Section */}
+      <section className="py-24 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            variants={staggerContainer}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-bold mb-4">
+              Comunidades Destacadas
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+              Únete a las comunidades más activas del ecosistema DeFi en México
+            </motion.p>
+            <motion.div variants={fadeUp}>
+              <Button asChild size="lg">
+                <Link to="/comunidades" className="inline-flex items-center">
+                  Ver todas las comunidades <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </Button>
+            </motion.div>
+          </motion.div>
+
+          {/* Communities Grid */}
+          <motion.div
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {loadingCommunities ? (
+              // Loading skeletons
+              Array.from({ length: 6 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  variants={fadeUp}
+                  className="bg-card p-6 rounded-xl border border-border animate-pulse"
+                >
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-muted rounded-lg"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-muted rounded mb-2"></div>
+                      <div className="h-3 bg-muted rounded w-2/3"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <div className="h-3 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted rounded w-4/5"></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-6 bg-muted rounded w-16"></div>
+                    <div className="h-8 bg-muted rounded w-20"></div>
+                  </div>
+                </motion.div>
+              ))
+            ) : featuredCommunities.length > 0 ? (
+              featuredCommunities.map((community) => (
+                <motion.div
+                  key={community.id}
+                  variants={fadeUp}
+                  className="bg-card p-6 rounded-xl border border-border hover:border-primary/50 transition-all group hover:shadow-lg"
+                >
+                  <div className="flex items-center space-x-4 mb-4">
+                    {community.logo_url ? (
+                      <img 
+                        src={community.logo_url} 
+                        alt={community.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Users className="w-6 h-6 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {community.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {community.category || 'Comunidad'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                    {community.description}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-1" />
+                        {community.member_count?.toLocaleString() || '0'}
+                      </div>
+                      {community.location && (
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {community.location}
+                        </div>
+                      )}
+                    </div>
+                    <Button size="sm" variant="ghost" asChild>
+                      <Link 
+                        to={`/comunidades/${community.slug || community.id}`}
+                        className="text-primary hover:text-primary/80"
+                      >
+                        Ver más <ChevronRight className="w-4 h-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <motion.div 
+                variants={fadeUp}
+                className="col-span-full text-center py-12"
+              >
+                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  No hay comunidades destacadas disponibles
+                </h3>
+                <p className="text-muted-foreground">
+                  Vuelve pronto para descubrir las comunidades más activas
+                </p>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </section>

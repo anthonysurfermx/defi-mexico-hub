@@ -11,8 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { communitiesService } from "@/services/communities.service";
+import type { CommunityInsert } from "@/types";
 
 interface CommunityFormData {
   name: string;
@@ -40,9 +42,11 @@ interface CommunityFormData {
 
 const AdminCommunityForm = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isPreview, setIsPreview] = useState(false);
   const [newFounder, setNewFounder] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<CommunityFormData>({
     name: "",
@@ -72,7 +76,7 @@ const AdminCommunityForm = () => {
   const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
   const platforms = ["Discord", "Telegram", "Meetup", "WhatsApp", "Slack", "Facebook", "LinkedIn"];
   const regions = ["Nacional", "CDMX", "Guadalajara", "Monterrey", "Tijuana", "Mérida", "Puebla", "Online"];
-  const types = ["discord", "telegram", "meetup", "development", "trading", "education", "diversity", "general"];
+  const types = ["defi", "bitcoin", "ethereum", "education", "trading", "development"];
 
   const handleInputChange = (field: keyof CommunityFormData, value: string | number | boolean) => {
     setFormData(prev => ({
@@ -114,6 +118,44 @@ const AdminCommunityForm = () => {
     }));
   };
 
+  // Función para generar slug
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  // Mapear datos del formulario al formato de la BD
+  const mapFormDataToCommunity = (): CommunityInsert => {
+    const slug = generateSlug(formData.name);
+    
+    return {
+      name: formData.name,
+      description: formData.description,
+      long_description: formData.longDescription || null,
+      image_url: formData.logo || null,
+      slug: slug,
+      category: formData.type || null,
+      member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
+      is_featured: false,
+      is_verified: true,
+      tags: formData.tags.length > 0 ? formData.tags : null,
+      links: {
+        website: formData.website || null,
+        discord: formData.discord || null,
+        telegram: formData.telegram || null,
+        twitter: formData.twitter || null,
+        linkedin: formData.linkedin || null,
+        github: formData.github || null,
+        meetup: formData.meetup || null,
+        instagram: formData.instagram || null
+      }
+    };
+  };
+
   const handleSaveDraft = () => {
     toast({
       title: "Borrador guardado",
@@ -121,11 +163,79 @@ const AdminCommunityForm = () => {
     });
   };
 
-  const handlePublish = () => {
-    toast({
-      title: "Comunidad publicada",
-      description: "La comunidad ha sido publicada exitosamente.",
-    });
+  const handlePublish = async () => {
+    console.log('🚀 Iniciando publicación de comunidad...');
+    console.log('📝 Datos del formulario:', formData);
+    
+    // Validación básica
+    if (!formData.name.trim()) {
+      console.log('❌ Validación falló: nombre vacío');
+      toast({
+        title: "Error",
+        description: "El nombre de la comunidad es requerido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      console.log('❌ Validación falló: descripción vacía');
+      toast({
+        title: "Error", 
+        description: "La descripción es requerida.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.website.trim()) {
+      console.log('❌ Validación falló: website vacío');
+      toast({
+        title: "Error",
+        description: "El enlace principal es requerido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('✅ Validaciones pasadas');
+    setIsSubmitting(true);
+
+    try {
+      const communityData = mapFormDataToCommunity();
+      console.log('🔄 Datos mapeados para BD:', communityData);
+      
+      console.log('📡 Enviando a Supabase...');
+      const result = await communitiesService.create(communityData);
+      console.log('📥 Respuesta de Supabase:', result);
+
+      if (result.data) {
+        console.log('✅ Comunidad creada exitosamente:', result.data);
+        toast({
+          title: "¡Éxito!",
+          description: "La comunidad ha sido publicada exitosamente.",
+        });
+        
+        // Redirigir a la lista de comunidades
+        navigate('/admin/comunidades');
+      } else if (result.error) {
+        console.error('❌ Error de Supabase:', result.error);
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('💥 Error general publishing community:', error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al publicar la comunidad.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Preview Card Component
@@ -224,8 +334,12 @@ const AdminCommunityForm = () => {
             <Save className="w-4 h-4 mr-2" />
             Guardar Borrador
           </Button>
-          <Button onClick={handlePublish} className="bg-gradient-primary text-primary-foreground">
-            Publicar
+          <Button 
+            onClick={handlePublish} 
+            disabled={isSubmitting}
+            className="bg-gradient-primary text-primary-foreground"
+          >
+            {isSubmitting ? "Publicando..." : "Publicar"}
           </Button>
         </div>
       </div>
@@ -436,7 +550,7 @@ const AdminCommunityForm = () => {
                           value={newFounder}
                           onChange={(e) => setNewFounder(e.target.value)}
                           placeholder="Nombre del fundador"
-                          onKeyPress={(e) => e.key === "Enter" && addFounder()}
+                          onKeyDown={(e) => e.key === "Enter" && addFounder()}
                         />
                         <Button onClick={addFounder} type="button">
                           <Plus className="w-4 h-4" />

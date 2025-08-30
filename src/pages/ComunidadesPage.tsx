@@ -1,30 +1,57 @@
-import { useState } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import CommunityCard from "@/components/ui/community-card";
-import { mockCommunities } from "@/data/communities";
 import { motion } from "framer-motion";
+import { communitiesService, type Community } from "@/services/communities.service";
 
 const CommunidadesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [yearFilter, setYearFilter] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const filteredCommunities = mockCommunities.filter(community => {
-    const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         community.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesYear = yearFilter === "all" || community.foundedYear.toString() === yearFilter;
-    const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.every(tag => community.tags?.includes(tag));
+  // Cargar comunidades desde Supabase
+  useEffect(() => {
+    loadCommunities();
+  }, []);
+
+  const loadCommunities = async () => {
+    try {
+      setLoading(true);
+      const result = await communitiesService.getAll({ limit: 100 });
+      
+      if (result.data) {
+        setCommunities(result.data);
+      } else if (result.error) {
+        console.error('Error loading communities:', result.error);
+      }
+    } catch (error) {
+      console.error('Error in loadCommunities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredCommunities = communities.filter(community => {
+    const matchesSearch = searchTerm === "" || 
+      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      community.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesSearch && matchesYear && matchesTags;
+    const matchesCategory = categoryFilter === "all" || community.category === categoryFilter;
+    
+    const matchesTags = selectedTags.length === 0 || 
+                       (community.tags && selectedTags.every(tag => community.tags?.includes(tag)));
+    
+    return matchesSearch && matchesCategory && matchesTags;
   });
 
-  const foundedYears = [...new Set(mockCommunities.map(s => s.foundedYear))].sort((a, b) => b - a);
-  const allTags = [...new Set(mockCommunities.flatMap(s => s.tags || []))].sort();
+  const categories = [...new Set(communities.map(c => c.category).filter(Boolean))].sort();
+  const allTags = [...new Set(communities.flatMap(c => c.tags || []))].sort();
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -36,7 +63,7 @@ const CommunidadesPage = () => {
 
   const clearAllFilters = () => {
     setSearchTerm("");
-    setYearFilter("all");
+    setCategoryFilter("all");
     setSelectedTags([]);
   };
 
@@ -79,16 +106,16 @@ const CommunidadesPage = () => {
             </div>
             
             <div className="flex gap-2">
-              <Select value={yearFilter} onValueChange={setYearFilter}>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Año de fundación" />
+                  <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los años</SelectItem>
-                  {foundedYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -117,7 +144,7 @@ const CommunidadesPage = () => {
           </div>
 
           {/* Active Filters */}
-          {(searchTerm || yearFilter !== "all" || selectedTags.length > 0) && (
+          {(searchTerm || categoryFilter !== "all" || selectedTags.length > 0) && (
             <div className="flex items-center gap-2 pt-2 border-t border-border">
               <span className="text-sm text-muted-foreground">Filtros activos:</span>
               {searchTerm && (
@@ -125,9 +152,9 @@ const CommunidadesPage = () => {
                   Búsqueda: "{searchTerm}"
                 </Badge>
               )}
-              {yearFilter !== "all" && (
+              {categoryFilter !== "all" && (
                 <Badge variant="secondary" className="text-xs">
-                  Año: {yearFilter}
+                  Categoría: {categoryFilter}
                 </Badge>
               )}
               {selectedTags.map(tag => (
@@ -155,12 +182,41 @@ const CommunidadesPage = () => {
           className="mb-6"
         >
           <p className="text-muted-foreground">
-            Mostrando {filteredCommunities.length} de {mockCommunities.length} comunidades
+            Mostrando {filteredCommunities.length} de {communities.length} comunidades
           </p>
         </motion.div>
 
         {/* Communities Grid */}
-        {filteredCommunities.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 * i }}
+                className="bg-card p-6 rounded-xl border border-border animate-pulse"
+              >
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-16 h-16 bg-muted rounded-lg"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-4">
+                  <div className="h-3 bg-muted rounded"></div>
+                  <div className="h-3 bg-muted rounded w-4/5"></div>
+                  <div className="h-3 bg-muted rounded w-3/5"></div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="h-6 bg-muted rounded w-20"></div>
+                  <div className="h-8 bg-muted rounded w-24"></div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : filteredCommunities.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCommunities.map((community, index) => (
               <motion.div
