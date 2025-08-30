@@ -12,7 +12,7 @@ const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 // Tipos
 export type Role = 'admin' | 'editor' | 'moderator' | 'user';
 
-interface ExtendedUser extends User {
+interface ExtendedUser extends Omit<User, 'app_metadata' | 'user_metadata'> {
   app_metadata?: {
     roles?: Role[] | Role;
     [key: string]: any;

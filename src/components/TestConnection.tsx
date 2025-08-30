@@ -89,7 +89,7 @@ export function TestConnection() {
                     <span className="text-gray-600">
                       {key.replace('_count', '').replace('_', ' ')}:
                     </span>
-                    <span className="font-mono">{value}</span>
+                    <span className="font-mono">{String(value)}</span>
                   </div>
                 ))}
             </div>
@@ -101,9 +101,8 @@ export function TestConnection() {
               <h3 className="font-semibold mb-2">📈 Estadísticas de Plataforma:</h3>
               <div className="grid grid-cols-2 gap-2">
                 <div>Total Comunidades: {stats.total_communities}</div>
-                <div>Total Usuarios: {stats.total_users}</div>
-                <div>Eventos Activos: {stats.total_events}</div>
-                <div>Suscriptores Newsletter: {stats.newsletter_subscribers}</div>
+                <div>Total Eventos: {stats.total_events || 0}</div>
+                <div>Registros: {stats.recent_growth_percentage || 0}%</div>
               </div>
             </div>
           )}
