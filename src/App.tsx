@@ -23,6 +23,7 @@ const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
 const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
+const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -273,6 +274,14 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'oportunidades',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <InvestmentOpportunitiesPage />
+                </Suspense>
+              ),
+            },
           ],
         },
 
@@ -484,7 +493,6 @@ const router = createBrowserRouter(
     basename: import.meta.env.VITE_BASE_PATH || '/',
     // FUTURE FLAGS PARA REACT ROUTER V7
     future: {
-      v7_startTransition: true,
       v7_relativeSplatPath: true,
       v7_fetcherPersist: true,
       v7_normalizeFormMethod: true,
