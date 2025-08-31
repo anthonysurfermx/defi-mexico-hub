@@ -1,10 +1,54 @@
-
-// =====================================================
-// 8. src/services/auth.service.ts
-// =====================================================
 import { supabase, handleSupabaseError } from '../lib/supabase';
 import type { ServiceResponse } from '../types';
 import { platformService } from './platform.service';
+import type { User } from '@supabase/supabase-js';
+
+// Auth types
+export interface AuthState {
+  user: User | null;
+  session: any | null;
+  loading: boolean;
+  initialized: boolean;
+}
+
+export interface AuthUser extends User {
+  role?: string;
+  permissions?: string[];
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  role?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SignUpParams {
+  email: string;
+  password: string;
+  metadata?: any;
+}
+
+export interface SignInParams {
+  email: string;
+  password: string;
+}
+
+export interface ResetPasswordParams {
+  email: string;
+}
+
+export interface UpdateProfileParams {
+  full_name?: string;
+  avatar_url?: string;
+}
+
+export interface AuthSubscription {
+  unsubscribe: () => void;
+}
 
 export const authService = {
   // Registrar nuevo usuario
@@ -129,58 +173,122 @@ export const authService = {
     }
   },
 
-  // Iniciar sesión con Google
-  async signInWithGoogle(): Promise<ServiceResponse<any>> {
+  // Auth state management
+  onAuthStateChange: (callback: (event: string, session: any) => void): AuthSubscription => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+    return {
+      unsubscribe: () => subscription.unsubscribe()
+    };
+  },
+
+  // User profile management
+  async getUserProfile(userId: string): Promise<ServiceResponse<UserProfile>> {
+    try {
+      // Mock implementation
+      const profile: UserProfile = {
+        id: userId,
+        email: 'user@example.com',
+        full_name: 'User Name',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      return { data: profile, error: null };
+    } catch (error) {
+      return { data: null, error: handleSupabaseError(error) };
+    }
+  },
+
+  async updateProfile(userId: string, updates: UpdateProfileParams): Promise<ServiceResponse<UserProfile>> {
+    try {
+      // Mock implementation
+      const profile: UserProfile = {
+        id: userId,
+        email: 'user@example.com',
+        ...updates,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      return { data: profile, error: null };
+    } catch (error) {
+      return { data: null, error: handleSupabaseError(error) };
+    }
+  },
+
+  async updateEmail(newEmail: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      return { data: false, error: handleSupabaseError(error) };
+    }
+  },
+
+  // OAuth methods
+  async signInWithOAuth(provider: 'google' | 'github'): Promise<ServiceResponse<any>> {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
       if (error) throw error;
-      
-      // Log inicio de sesión con Google
-      await platformService.logEvent(
-        'user_signin_google',
-        { provider: 'google' },
-        'info'
-      );
-      
       return { data, error: null };
     } catch (error) {
       return { data: null, error: handleSupabaseError(error) };
     }
   },
 
-  // Iniciar sesión con GitHub
-  async signInWithGitHub(): Promise<ServiceResponse<any>> {
+  async signInWithMagicLink(email: string): Promise<ServiceResponse<boolean>> {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          scopes: 'read:user user:email'
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
       if (error) throw error;
-      
-      // Log inicio de sesión con GitHub
-      await platformService.logEvent(
-        'user_signin_github',
-        { provider: 'github' },
-        'info'
-      );
-      
-      return { data, error: null };
+      return { data: true, error: null };
     } catch (error) {
-      return { data: null, error: handleSupabaseError(error) };
+      return { data: false, error: handleSupabaseError(error) };
     }
+  },
+
+  // Iniciar sesión con Google
+  async signInWithGoogle(): Promise<ServiceResponse<any>> {
+    return this.signInWithOAuth('google');
+  },
+
+  // Iniciar sesión con GitHub
+  async signInWithGitHub(): Promise<ServiceResponse<any>> {
+    return this.signInWithOAuth('github');
+  },
+
+  // Permission methods
+  isAdmin: (user: AuthUser): boolean => {
+    return user.role === 'admin';
+  },
+
+  isModerator: (user: AuthUser): boolean => {
+    return user.role === 'moderator' || user.role === 'admin';
+  },
+
+  hasPermission: (user: AuthUser, permission: string): boolean => {
+    return user.permissions?.includes(permission) || user.role === 'admin';
+  },
+
+  canAccessRoute: (user: AuthUser, route: string): boolean => {
+    if (route.startsWith('/admin')) {
+      return user.role === 'admin';
+    }
+    return true;
+  },
+
+  // Utility methods
+  getDefaultAvatarUrl: (email: string): string => {
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${email}`;
   }
 };

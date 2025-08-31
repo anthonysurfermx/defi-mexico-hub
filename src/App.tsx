@@ -24,6 +24,7 @@ const EventosPage = lazy(() => import('@/pages/EventosPage'));
 const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
+const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -283,6 +284,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <InvestmentOpportunitiesPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'academia',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <DeFiAcademyPage />
                 </Suspense>
               ),
             },
