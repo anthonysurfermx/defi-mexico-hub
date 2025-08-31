@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Github, Twitter, Linkedin, Mail, Send, MessageCircle } from "lucide-react";
+import { Github, Mail, Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
@@ -14,8 +14,6 @@ const Footer = () => {
 
   const resources = [
     { name: "FAQ", path: "/faq" },
-    { name: "Política de Privacidad", path: "/privacy" },
-    { name: "Términos de Uso", path: "/terms" },
     { name: "Administración", path: "/admin" },
   ];
 
@@ -109,8 +107,8 @@ const Footer = () => {
               className="text-muted-foreground hover:text-primary"
               asChild
             >
-              <a href="https://x.com/defimexico" target="_blank" rel="noopener noreferrer">
-                <Twitter className="w-5 h-5" />
+              <a href="https://github.com/anthonysurfermx/defi-mexico-hub" target="_blank" rel="noopener noreferrer">
+                <Github className="w-5 h-5" />
               </a>
             </Button>
             <Button 
