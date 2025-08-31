@@ -127,5 +127,60 @@ export const authService = {
     } catch (error) {
       return { data: false, error: handleSupabaseError(error) };
     }
+  },
+
+  // Iniciar sesión con Google
+  async signInWithGoogle(): Promise<ServiceResponse<any>> {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Log inicio de sesión con Google
+      await platformService.logEvent(
+        'user_signin_google',
+        { provider: 'google' },
+        'info'
+      );
+      
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error: handleSupabaseError(error) };
+    }
+  },
+
+  // Iniciar sesión con GitHub
+  async signInWithGitHub(): Promise<ServiceResponse<any>> {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'read:user user:email'
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Log inicio de sesión con GitHub
+      await platformService.logEvent(
+        'user_signin_github',
+        { provider: 'github' },
+        'info'
+      );
+      
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error: handleSupabaseError(error) };
+    }
   }
 };

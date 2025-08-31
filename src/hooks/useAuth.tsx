@@ -381,36 +381,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, [user]);
 
-  // Get user roles mejorado
+  // Get user roles - SOLO usuarios autorizados tienen acceso
   const getRoles = useCallback((): Role[] => {
-    if (!user) return ['user'];
+    if (!user) return [];
     
-    const appMetadata = (user.app_metadata || {}) as any;
-    const userMetadata = (user.user_metadata || {}) as any;
+    // Lista de usuarios autorizados con sus roles
+    const authorizedUsers: Record<string, Role> = {
+      'anthochavez.ra@gmail.com': 'admin',
+      'guillermos22@gmail.com': 'editor', 
+      'fabiancepeda102@gmail.com': 'editor',
+      // Agregar más usuarios autorizados aquí cuando sea necesario
+    };
     
-    // Obtener roles de app_metadata
-    const fromApp = Array.isArray(appMetadata.roles) 
-      ? appMetadata.roles
-      : typeof appMetadata.roles === 'string' 
-        ? [appMetadata.roles]
-        : [];
+    // Verificar si el usuario está autorizado
+    const userRole = authorizedUsers[user.email || ''];
     
-    // Obtener roles de user_metadata
-    const fromUser = Array.isArray(userMetadata.roles) 
-      ? userMetadata.roles
-      : userMetadata.role 
-        ? [userMetadata.role]
-        : [];
-    
-    // Combinar y eliminar duplicados
-    const rolesSet = new Set<Role>([...fromApp, ...fromUser].filter(Boolean));
-    
-    // Si no hay roles, asignar 'user' por defecto
-    if (!rolesSet.size) {
-      rolesSet.add('user');
+    // Si está autorizado, devolver su rol
+    if (userRole) {
+      return [userRole];
     }
     
-    return Array.from(rolesSet);
+    // Si NO está autorizado, NO tiene ningún rol (no puede acceder al admin)
+    return [];
   }, [user]);
 
   // Check if user has specific role
