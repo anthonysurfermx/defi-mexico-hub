@@ -4,15 +4,100 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Shield, Database, Mail, Globe } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Settings, Bell, Shield, LogOut, User, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '@/services/auth.service';
+import { toast } from 'sonner';
 
 export default function AdminSettings() {
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (!confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      return;
+    }
+
+    try {
+      setIsLoggingOut(true);
+      const result = await authService.signOut();
+      
+      if (result.error) {
+        toast.error('Error al cerrar sesión: ' + result.error);
+      } else {
+        toast.success('Sesión cerrada correctamente');
+        navigate('/');
+      }
+    } catch (error) {
+      toast.error('Error al cerrar sesión');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Configuración</h1>
         <p className="text-muted-foreground">Administra la configuración del sistema</p>
       </div>
+
+      {/* User Session Card */}
+      <Card className="mb-6 border-l-4 border-l-primary">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Sesión de Usuario
+          </CardTitle>
+          <CardDescription>
+            Información de tu cuenta administrativa
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  A
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">Administrador</p>
+                <p className="text-sm text-muted-foreground">Sesión activa</p>
+              </div>
+            </div>
+            
+            <Button 
+              variant="destructive"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="gap-2"
+            >
+              {isLoggingOut ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Cerrando sesión...
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Cerrar Sesión
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <Alert className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Al cerrar sesión serás redirigido a la página principal del sitio.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList>

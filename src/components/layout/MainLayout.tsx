@@ -35,7 +35,7 @@ export default function MainLayout() {
     { name: 'Inicio', href: '/', icon: Home },
     { name: 'Startups', href: '/startups', icon: Building2 },
     { name: 'Academia', href: '/academia', icon: BookOpen },
-    { name: 'Oportunidades', href: '/oportunidades', icon: TrendingUp },
+    { name: 'Análisis de APY', href: '/oportunidades', icon: TrendingUp },
     { name: 'Comunidades', href: '/comunidades', icon: Users },
     { name: 'Blog', href: '/blog', icon: FileText },
     { name: 'Eventos', href: '/eventos', icon: Calendar },
@@ -198,7 +198,7 @@ export default function MainLayout() {
                 </li>
                 <li>
                   <Link to="/oportunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Oportunidades
+                    Análisis de APY
                   </Link>
                 </li>
                 <li>

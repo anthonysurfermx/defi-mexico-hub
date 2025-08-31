@@ -39,7 +39,7 @@ export default function UnauthorizedPage() {
         
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">
-            No tienes los permisos necesarios para acceder a esta página.
+            No tienes los permisos necesarios para acceder al panel de administración.
           </p>
           
           {user && (
@@ -48,16 +48,23 @@ export default function UnauthorizedPage() {
                 Sesión iniciada como:
               </p>
               <p className="font-medium">{user.email}</p>
-              <p className="text-xs text-muted-foreground">
-                Rol: {user.user_metadata?.role || 'user'}
-              </p>
+              <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 font-semibold">
+                  ⚠️ Tu cuenta no tiene permisos de administrador
+                </p>
+              </div>
             </div>
           )}
           
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Si crees que esto es un error, contacta al administrador.
+              Si necesitas acceso al panel de administración:
             </p>
+            <ol className="text-xs text-muted-foreground text-left list-decimal list-inside space-y-1">
+              <li>Contacta al administrador del sitio</li>
+              <li>Solicita que te asignen el rol de editor o admin</li>
+              <li>Espera la confirmación por email</li>
+            </ol>
           </div>
         </CardContent>
         

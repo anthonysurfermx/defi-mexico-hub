@@ -37,6 +37,7 @@ const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
+const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
@@ -370,7 +371,7 @@ const router = createBrowserRouter(
         {
           path: 'admin',
           element: (
-            <ProtectedRoute requireAllRoles={['admin']}>
+            <ProtectedRoute requireAnyRole={['admin', 'editor']}>
               <Suspense fallback={<PageLoader />}>
                 <AdminLayout />
               </Suspense>
@@ -454,6 +455,18 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <BlogEditPage />
+                </Suspense>
+              ),
+            },
+
+            // ==========================================
+            // RUTAS ADMIN - ACADEMIA
+            // ==========================================
+            {
+              path: 'academia',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminAcademia />
                 </Suspense>
               ),
             },

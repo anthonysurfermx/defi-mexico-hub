@@ -28,6 +28,7 @@ import { useState, useEffect } from 'react';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
+import { coursesService, type Course } from '@/services/courses.service';
 
 // Datos estáticos de InvestmentOpportunitiesPage para la mejor oportunidad
 const gbmFunds = [
@@ -71,20 +72,6 @@ const defiVaults = [
     description: 'Estrategia automatizada multi-protocolo'
   }
 ];
-
-// Datos del curso más popular de DeFiAcademyPage
-const featuredCourse = {
-  id: 'defi-security',
-  title: 'DeFi Security Best Practices',
-  description: 'Protege tus activos en el ecosistema DeFi',
-  duration: '3h 45m',
-  level: 'Intermedio',
-  students: 2100,
-  rating: 4.7,
-  topics: ['Smart Contract Audits', 'Wallet Security', 'Rug Pull Prevention'],
-  instructor: 'Miguel Santos',
-  circleUrl: 'https://circle.so/defi-security'
-};
 
 // Animation variants
 const fadeUp = {
@@ -138,7 +125,8 @@ export default function HomePage() {
   
   // Estado para la mejor inversión y curso destacado
   const [bestInvestment, setBestInvestment] = useState<any>(null);
-  const [featuredCourseData, setFeaturedCourseData] = useState<any>(null);
+  const [featuredCourseData, setFeaturedCourseData] = useState<Course | null>(null);
+  const [loadingFeaturedCourse, setLoadingFeaturedCourse] = useState(true);
 
   // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
   const loadFeaturedBlogPosts = async () => {
@@ -205,6 +193,29 @@ export default function HomePage() {
     }
   };
 
+  // ✨ FUNCIÓN PARA CARGAR CURSO MÁS POPULAR
+  const loadFeaturedCourse = async () => {
+    try {
+      setLoadingFeaturedCourse(true);
+      console.log('📚 Cargando curso más popular para HomePage...');
+      
+      const { data, error } = await coursesService.getMostPopularCourse();
+      
+      if (error) {
+        console.error('❌ Error loading featured course:', error);
+        setFeaturedCourseData(null);
+      } else if (data) {
+        setFeaturedCourseData(data);
+        console.log('✅ Curso más popular cargado:', data.title);
+      }
+    } catch (error) {
+      console.error('❌ Error in loadFeaturedCourse:', error);
+      setFeaturedCourseData(null);
+    } finally {
+      setLoadingFeaturedCourse(false);
+    }
+  };
+
   // Función para obtener la mejor oportunidad de inversión
   const getBestInvestment = () => {
     const allOpportunities = [...gbmFunds, ...defiVaults];
@@ -214,15 +225,15 @@ export default function HomePage() {
     return best;
   };
 
-  // Cargar blog posts, comunidades, eventos y datos estáticos
+  // Cargar blog posts, comunidades, eventos y datos de cursos
   useEffect(() => {
     loadFeaturedBlogPosts();
     loadFeaturedCommunities();
     loadFeaturedEvents();
+    loadFeaturedCourse(); // Cargar curso más popular desde Supabase
     
-    // Cargar datos estáticos
+    // Cargar datos estáticos de inversiones
     setBestInvestment(getBestInvestment());
-    setFeaturedCourseData(featuredCourse);
   }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -796,14 +807,14 @@ export default function HomePage() {
             >
               <motion.div variants={fadeUp} className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Mejor Oportunidad de Inversión</h3>
+                  <h3 className="text-2xl font-bold mb-2">Mejor APY del Mercado</h3>
                   <p className="text-muted-foreground">
                     El mayor APY disponible comparando fintech y DeFi
                   </p>
                 </div>
                 <Button variant="outline" asChild>
                   <Link to="/oportunidades" className="inline-flex items-center">
-                    Ver todas <ArrowRight className="ml-1 w-4 h-4" />
+                    Ver análisis completo <ArrowRight className="ml-1 w-4 h-4" />
                   </Link>
                 </Button>
               </motion.div>
@@ -880,10 +891,43 @@ export default function HomePage() {
                 </Button>
               </motion.div>
 
-              {featuredCourseData && (
+              {loadingFeaturedCourse ? (
+                <motion.div variants={fadeUp}>
+                  <div className="p-6 bg-card rounded-xl border border-border animate-pulse">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 bg-muted rounded-lg"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-muted rounded"></div>
+                        <div className="w-8 h-4 bg-muted rounded"></div>
+                      </div>
+                    </div>
+                    
+                    <div className="h-6 bg-muted rounded mb-2"></div>
+                    <div className="h-4 bg-muted rounded w-3/4 mb-4"></div>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="h-4 bg-muted rounded w-16"></div>
+                        <div className="h-4 bg-muted rounded w-20"></div>
+                      </div>
+                      <div className="h-6 bg-muted rounded w-16"></div>
+                    </div>
+                    
+                    <div className="flex gap-2 mb-4">
+                      <div className="h-6 bg-muted rounded w-24"></div>
+                      <div className="h-6 bg-muted rounded w-20"></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 bg-muted rounded w-24"></div>
+                      <div className="h-4 bg-muted rounded w-20"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : featuredCourseData ? (
                 <motion.div variants={fadeUp}>
                   <a
-                    href={featuredCourseData.circleUrl}
+                    href={featuredCourseData.circle_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block group"
@@ -921,18 +965,20 @@ export default function HomePage() {
                         <Badge variant="secondary">{featuredCourseData.level}</Badge>
                       </div>
                       
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {featuredCourseData.topics.slice(0, 2).map((topic: string) => (
-                          <span key={topic} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
-                            {topic}
-                          </span>
-                        ))}
-                        {featuredCourseData.topics.length > 2 && (
-                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
-                            +{featuredCourseData.topics.length - 2} más
-                          </span>
-                        )}
-                      </div>
+                      {featuredCourseData.topics && featuredCourseData.topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {featuredCourseData.topics.slice(0, 2).map((topic: string) => (
+                            <span key={topic} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                              {topic}
+                            </span>
+                          ))}
+                          {featuredCourseData.topics.length > 2 && (
+                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
+                              +{featuredCourseData.topics.length - 2} más
+                            </span>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
@@ -945,6 +991,21 @@ export default function HomePage() {
                       </div>
                     </div>
                   </a>
+                </motion.div>
+              ) : (
+                <motion.div variants={fadeUp}>
+                  <div className="p-6 bg-card rounded-xl border border-border text-center">
+                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h4 className="font-semibold mb-2">Curso no disponible</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No hay cursos destacados disponibles en este momento.
+                    </p>
+                    <Button variant="outline" asChild>
+                      <Link to="/academia">
+                        Ver todos los cursos
+                      </Link>
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </motion.div>

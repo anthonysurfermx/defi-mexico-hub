@@ -10,11 +10,13 @@ import {
   X,
   ChevronRight,
   Settings,
-  Globe // Agregado para Comunidades
+  Globe, // Agregado para Comunidades
+  BookOpen // Agregado para Academia
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
 
 type MenuItem = {
   title: string;
@@ -22,6 +24,7 @@ type MenuItem = {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   badge?: string;
+  requiredRoles?: string[]; // Roles que pueden ver este item
 };
 
 const MOBILE_NAV_ID = 'admin-mobile-sidebar';
@@ -31,44 +34,67 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     path: '/admin',
     icon: LayoutDashboard,
-    exact: true
-  },
-  {
-    title: 'Comunidades',  // NUEVO
-    path: '/admin/comunidades',
-    icon: Globe,
-    badge: 'Nuevo'
-  },
-  {
-    title: 'Startups',
-    path: '/admin/startups',
-    icon: Building2
+    exact: true,
+    requiredRoles: ['admin', 'editor'] // Solo admin y editor
   },
   {
     title: 'Blog',
     path: '/admin/blog',
-    icon: FileText
+    icon: FileText,
+    requiredRoles: ['admin', 'editor'] // Solo admin y editor
+  },
+  {
+    title: 'Academia',
+    path: '/admin/academia',
+    icon: BookOpen,
+    badge: 'Nuevo',
+    requiredRoles: ['admin', 'editor'] // Admin y editor
+  },
+  {
+    title: 'Comunidades',
+    path: '/admin/comunidades',
+    icon: Globe,
+    badge: 'Nuevo',
+    requiredRoles: ['admin', 'editor'] // Admin y editor
+  },
+  {
+    title: 'Startups',
+    path: '/admin/startups',
+    icon: Building2,
+    requiredRoles: ['admin', 'editor'] // Admin y editor
   },
   {
     title: 'Eventos',
     path: '/admin/eventos',
-    icon: Calendar
+    icon: Calendar,
+    requiredRoles: ['admin', 'editor'] // Admin y editor
   },
   {
     title: 'Usuarios',
     path: '/admin/usuarios',
     icon: Users,
-    badge: 'Próximamente'
+    requiredRoles: ['admin'] // Solo admin
   }
 ];
 
 export default function AdminLayout() {
   const location = useLocation();
+  const { getRoles } = useAuth();
+  const userRoles = getRoles?.() || [];
+  
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem('admin.sidebarOpen');
     return saved ? saved === '1' : true;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Filtrar items del menú según roles del usuario
+  const filteredMenuItems = useMemo(() => {
+    return menuItems.filter(item => {
+      if (!item.requiredRoles?.length) return true; // Si no tiene restricciones, mostrar
+      return item.requiredRoles.some(role => userRoles.includes(role));
+    });
+  }, [userRoles]);
 
   // Persist sidebar state
   useEffect(() => {
@@ -86,8 +112,8 @@ export default function AdminLayout() {
   };
 
   const currentTitle = useMemo(
-    () => menuItems.find(item => isActive(item.path, item.exact))?.title || 'Admin',
-    [location.pathname]
+    () => filteredMenuItems.find(item => isActive(item.path, item.exact))?.title || 'Admin',
+    [location.pathname, filteredMenuItems]
   );
 
   return (
@@ -140,7 +166,7 @@ export default function AdminLayout() {
 
           {/* Navigation */}
           <nav className="space-y-2 flex-1" aria-label="Navegación de administración">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path, item.exact);
               
@@ -229,7 +255,7 @@ export default function AdminLayout() {
 
                 {/* Navigation */}
                 <nav className="space-y-2" aria-label="Navegación de administración">
-                  {menuItems.map((item) => {
+                  {filteredMenuItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path, item.exact);
                     
