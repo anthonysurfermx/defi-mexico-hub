@@ -14,7 +14,9 @@ import {
   Mail,
   ChevronRight,
   Rocket,
-  Settings
+  Settings,
+  BookOpen,
+  TrendingUp
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -32,9 +34,11 @@ export default function MainLayout() {
   const navigation = [
     { name: 'Inicio', href: '/', icon: Home },
     { name: 'Startups', href: '/startups', icon: Building2 },
+    { name: 'Academia', href: '/academia', icon: BookOpen },
+    { name: 'Oportunidades', href: '/oportunidades', icon: TrendingUp },
+    { name: 'Comunidades', href: '/comunidades', icon: Users },
     { name: 'Blog', href: '/blog', icon: FileText },
     { name: 'Eventos', href: '/eventos', icon: Calendar },
-    { name: 'Comunidades', href: '/comunidades', icon: Users },
   ];
 
   const isActive = (path: string) => {
@@ -184,7 +188,22 @@ export default function MainLayout() {
               <ul className="space-y-2">
                 <li>
                   <Link to="/startups" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Directorio de Startups
+                    Startups
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/academia" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Academia
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/oportunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Oportunidades
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/comunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Comunidades
                   </Link>
                 </li>
                 <li>
@@ -194,12 +213,7 @@ export default function MainLayout() {
                 </li>
                 <li>
                   <Link to="/eventos" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Próximos Eventos
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/comunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Comunidades
+                    Eventos
                   </Link>
                 </li>
               </ul>

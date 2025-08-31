@@ -1,6 +1,7 @@
 // src/pages/HomePage.tsx - SIN SECCIÓN DE ESTADÍSTICAS
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { 
@@ -19,13 +20,71 @@ import {
   ChevronRight,
   Star,
   Globe,
-  Zap
+  Zap,
+  BookOpen
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
+
+// Datos estáticos de InvestmentOpportunitiesPage para la mejor oportunidad
+const gbmFunds = [
+  {
+    id: 'gbmcash',
+    name: 'GBMCASH - Liquidez en dólares',
+    platform: 'GBM',
+    apy: 4.70,
+    currency: 'USD',
+    risk: 'Alto',
+    type: 'Renta Fija',
+    horizon: 'Corto plazo',
+    tvl: '150M',
+    description: 'Fondo con liquidez diaria en dólares'
+  },
+  {
+    id: 'gbmglobal',
+    name: 'GBMGLOBAL - Mercados globales',
+    platform: 'GBM',
+    apy: 6.8,
+    currency: 'USD',
+    risk: 'Alto',
+    type: 'Renta Variable',
+    horizon: 'Largo plazo',
+    tvl: '340M',
+    description: 'Diversificación en mercados desarrollados y emergentes'
+  }
+];
+
+const defiVaults = [
+  {
+    id: 'yearn-usdt',
+    name: 'Yearn USDT Strategy',
+    platform: 'Yearn',
+    apy: 5.8,
+    currency: 'USDT',
+    risk: 'Medio',
+    type: 'Strategy',
+    horizon: 'Flexible',
+    tvl: '89M',
+    description: 'Estrategia automatizada multi-protocolo'
+  }
+];
+
+// Datos del curso más popular de DeFiAcademyPage
+const featuredCourse = {
+  id: 'defi-security',
+  title: 'DeFi Security Best Practices',
+  description: 'Protege tus activos en el ecosistema DeFi',
+  duration: '3h 45m',
+  level: 'Intermedio',
+  students: 2100,
+  rating: 4.7,
+  topics: ['Smart Contract Audits', 'Wallet Security', 'Rug Pull Prevention'],
+  instructor: 'Miguel Santos',
+  circleUrl: 'https://circle.so/defi-security'
+};
 
 // Animation variants
 const fadeUp = {
@@ -76,6 +135,10 @@ export default function HomePage() {
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  
+  // Estado para la mejor inversión y curso destacado
+  const [bestInvestment, setBestInvestment] = useState<any>(null);
+  const [featuredCourseData, setFeaturedCourseData] = useState<any>(null);
 
   // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
   const loadFeaturedBlogPosts = async () => {
@@ -142,11 +205,24 @@ export default function HomePage() {
     }
   };
 
-  // Cargar blog posts, comunidades y eventos al montar el componente
+  // Función para obtener la mejor oportunidad de inversión
+  const getBestInvestment = () => {
+    const allOpportunities = [...gbmFunds, ...defiVaults];
+    const best = allOpportunities.reduce((prev, current) => 
+      (prev.apy > current.apy) ? prev : current
+    );
+    return best;
+  };
+
+  // Cargar blog posts, comunidades, eventos y datos estáticos
   useEffect(() => {
     loadFeaturedBlogPosts();
     loadFeaturedCommunities();
     loadFeaturedEvents();
+    
+    // Cargar datos estáticos
+    setBestInvestment(getBestInvestment());
+    setFeaturedCourseData(featuredCourse);
   }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -219,7 +295,7 @@ export default function HomePage() {
                 </Button>
                 <Button variant="outline" size="lg" asChild>
                   <a 
-                    href="https://t.me/defimexico" 
+                    href="https://t.me/defi_mexico" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center"
@@ -702,6 +778,177 @@ export default function HomePage() {
               </div>
             </motion.div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* Investment & Academy Featured Section */}
+      <section className="py-24 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16">
+            
+            {/* Best Investment Opportunity */}
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              variants={staggerContainer}
+              viewport={{ once: true }}
+            >
+              <motion.div variants={fadeUp} className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Mejor Oportunidad de Inversión</h3>
+                  <p className="text-muted-foreground">
+                    El mayor APY disponible comparando fintech y DeFi
+                  </p>
+                </div>
+                <Button variant="outline" asChild>
+                  <Link to="/oportunidades" className="inline-flex items-center">
+                    Ver todas <ArrowRight className="ml-1 w-4 h-4" />
+                  </Link>
+                </Button>
+              </motion.div>
+
+              {bestInvestment && (
+                <motion.div variants={fadeUp}>
+                  <Link
+                    to="/oportunidades"
+                    className="block group"
+                  >
+                    <div className="p-6 bg-card rounded-xl border border-border hover:border-primary/50 transition-all hover:shadow-lg">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
+                          bestInvestment.platform === 'GBM' ? 'bg-blue-500 text-white' : 'bg-primary text-primary-foreground'
+                        }`}>
+                          {bestInvestment.platform.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-primary">
+                            {bestInvestment.apy.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-muted-foreground">APY</div>
+                        </div>
+                      </div>
+                      
+                      <h4 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
+                        {bestInvestment.name}
+                      </h4>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {bestInvestment.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-sm">
+                          <Badge variant="outline">{bestInvestment.currency}</Badge>
+                          <span className="text-muted-foreground">{bestInvestment.type}</span>
+                        </div>
+                        <div className="text-sm font-medium">
+                          TVL: {bestInvestment.tvl}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Riesgo: {bestInvestment.risk}</span>
+                          <span>Plazo: {bestInvestment.horizon}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Featured Course */}
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              variants={staggerContainer}
+              viewport={{ once: true }}
+            >
+              <motion.div variants={fadeUp} className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Curso Destacado de DeFi Academy</h3>
+                  <p className="text-muted-foreground">
+                    El curso más popular de nuestra academia DeFi
+                  </p>
+                </div>
+                <Button variant="outline" asChild>
+                  <Link to="/academia" className="inline-flex items-center">
+                    Ver todos <ArrowRight className="ml-1 w-4 h-4" />
+                  </Link>
+                </Button>
+              </motion.div>
+
+              {featuredCourseData && (
+                <motion.div variants={fadeUp}>
+                  <a
+                    href={featuredCourseData.circleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group"
+                  >
+                    <div className="p-6 bg-card rounded-xl border border-border hover:border-primary/50 transition-all hover:shadow-lg">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <BookOpen className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                          <span className="font-medium">{featuredCourseData.rating}</span>
+                        </div>
+                      </div>
+                      
+                      <h4 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
+                        {featuredCourseData.title}
+                      </h4>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {featuredCourseData.description}
+                      </p>
+                      
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {featuredCourseData.duration}
+                          </div>
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            {featuredCourseData.students.toLocaleString()}
+                          </div>
+                        </div>
+                        <Badge variant="secondary">{featuredCourseData.level}</Badge>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {featuredCourseData.topics.slice(0, 2).map((topic: string) => (
+                          <span key={topic} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                            {topic}
+                          </span>
+                        ))}
+                        {featuredCourseData.topics.length > 2 && (
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
+                            +{featuredCourseData.topics.length - 2} más
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Por {featuredCourseData.instructor}
+                        </span>
+                        <div className="flex items-center text-primary group-hover:translate-x-1 transition-transform">
+                          <span className="mr-1">Empezar curso</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                </motion.div>
+              )}
+            </motion.div>
+            
           </div>
         </div>
       </section>
