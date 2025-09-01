@@ -17,6 +17,8 @@ export interface Course {
   students: number;
   rating: number;
   topics: string[];
+  requirements: string[];
+  target_audience: string[];
   circle_url: string;
   thumbnail_url?: string;
   status: CourseStatus;
@@ -38,6 +40,8 @@ export interface CourseFormData {
   students: number;
   rating: number;
   topics: string[];
+  requirements: string[];
+  target_audience: string[];
   circle_url: string;
   thumbnail_url?: string;
   status: CourseStatus;
@@ -56,7 +60,7 @@ export interface Page<T> {
  */
 const SELECT_FIELDS = `
   id, title, description, duration, level, category, instructor, students, rating,
-  topics, circle_url, thumbnail_url, status, featured, created_at, updated_at,
+  topics, requirements, target_audience, circle_url, thumbnail_url, status, featured, created_at, updated_at,
   views_count, enrollments_count
 `.replace(/\s+/g, '');
 

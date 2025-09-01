@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from '
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react'; // ✅ PARA REACT (no Next.js)
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './hooks/useAuth';
 import Web3ContextProvider from '@/libs/components/Web3ContextProvider';
 import ProtectedRoute, { GuestRoute } from '@/components/auth/ProtectedRoute';
@@ -25,6 +26,7 @@ const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
 const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
+const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -296,6 +298,14 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'curso/:courseId',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <CourseDetailPage />
+                </Suspense>
+              ),
+            },
           ],
         },
 
@@ -550,8 +560,10 @@ const router = createBrowserRouter(
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <RouterProvider router={router} />
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
+    </HelmetProvider>
   );
 }

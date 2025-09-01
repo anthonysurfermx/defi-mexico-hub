@@ -29,6 +29,8 @@ interface Course {
   students: number;
   rating: number;
   topics: string[];
+  requirements: string[];
+  target_audience: string[];
   circle_url: string;
   thumbnail_url?: string;
   status: CourseStatus;
@@ -679,6 +681,8 @@ function CourseForm({
     students: course?.students || 0,
     rating: course?.rating || 4.0,
     topics: course?.topics || [],
+    requirements: course?.requirements || [],
+    target_audience: course?.target_audience || [],
     circle_url: course?.circle_url || '',
     thumbnail_url: course?.thumbnail_url || '',
     status: course?.status || 'draft',
@@ -686,6 +690,8 @@ function CourseForm({
   });
 
   const [topicsInput, setTopicsInput] = useState(course?.topics.join(', ') || '');
+  const [requirementsInput, setRequirementsInput] = useState(course?.requirements.join('\n') || '');
+  const [targetAudienceInput, setTargetAudienceInput] = useState(course?.target_audience.join('\n') || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -693,6 +699,8 @@ function CourseForm({
     const courseData: Course = {
       ...formData,
       topics: topicsInput.split(',').map(t => t.trim()).filter(Boolean),
+      requirements: requirementsInput.split('\n').map(r => r.trim()).filter(Boolean),
+      target_audience: targetAudienceInput.split('\n').map(ta => ta.trim()).filter(Boolean),
       // Solo incluir id, created_at, updated_at si estamos editando un curso existente
       ...(course && {
         id: course.id,
@@ -781,6 +789,32 @@ function CourseForm({
           onChange={(e) => setTopicsInput(e.target.value)}
           placeholder="Ej: Smart Contracts, Wallet Security, DeFi Protocols"
         />
+      </Field>
+
+      <Field label="Requisitos del curso (uno por línea)">
+        <textarea
+          className="w-full px-3 py-2 border rounded-lg bg-background resize-none"
+          rows={4}
+          value={requirementsInput}
+          onChange={(e) => setRequirementsInput(e.target.value)}
+          placeholder="Ej:&#10;Conocimientos básicos de blockchain&#10;Computadora con acceso a internet&#10;Ganas de aprender sobre finanzas descentralizadas"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Escribe cada requisito en una línea separada
+        </p>
+      </Field>
+
+      <Field label="Para quién es este curso (uno por línea)">
+        <textarea
+          className="w-full px-3 py-2 border rounded-lg bg-background resize-none"
+          rows={4}
+          value={targetAudienceInput}
+          onChange={(e) => setTargetAudienceInput(e.target.value)}
+          placeholder="Ej:&#10;Desarrolladores interesados en DeFi&#10;Inversores buscando entender el ecosistema&#10;Emprendedores explorando oportunidades en blockchain"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Escribe cada tipo de audiencia en una línea separada
+        </p>
       </Field>
 
       <Field label="URL de Circle (link del curso)" required>

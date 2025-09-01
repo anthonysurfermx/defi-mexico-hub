@@ -1,31 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Play, 
-  Clock, 
-  Users, 
   BookOpen, 
   Star,
-  TrendingUp,
-  Shield,
-  Coins,
-  ExternalLink,
   Search,
-  Filter,
   ChevronRight,
   Award,
-  Target,
-  Zap,
-  Globe,
-  Loader2
+  Users
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatsCard from '@/components/ui/stats-card';
 import { coursesService, type Course, type CourseCategory } from '@/services/courses.service';
+import CourseCard from '@/components/courses/CourseCard';
 
 // Mapeo de categorías para las tabs
 const categoryTabs: { label: string; value: CourseCategory | 'all' }[] = [
@@ -249,8 +237,8 @@ const DeFiAcademyPage = () => {
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} featured={true} />
+              {featuredCourses.map((course, index) => (
+                <CourseCard key={course.id} course={course} index={index} />
               ))}
             </div>
           </div>
@@ -340,8 +328,8 @@ const DeFiAcademyPage = () => {
                   </div>
                 ) : filteredCourses.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredCourses.map((course) => (
-                      <CourseCard key={course.id} course={course} />
+                    {filteredCourses.map((course, index) => (
+                      <CourseCard key={course.id} course={course} index={index} />
                     ))}
                   </div>
                 ) : (
@@ -401,111 +389,5 @@ const DeFiAcademyPage = () => {
   );
 };
 
-// Componente para cada curso (actualizado para usar Course type)
-const CourseCard = ({ course, featured = false }: { course: Course; featured?: boolean }) => {
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Principiante': 
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'Intermedio': 
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'Avanzado': 
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      default: 
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className={`bg-card p-6 rounded-xl border transition-all hover:shadow-lg hover:border-primary/50 relative ${
-        featured ? 'border-primary/20' : ''
-      }`}
-    >
-      {course.thumbnail_url && (
-        <div className="w-full h-40 bg-muted rounded-lg mb-4 overflow-hidden">
-          <img
-            src={course.thumbnail_url}
-            alt={course.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-3">
-        <Badge className={getLevelColor(course.level)}>
-          {course.level}
-        </Badge>
-        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-          <Star className="w-4 h-4 fill-current text-yellow-500" />
-          <span>{course.rating}</span>
-        </div>
-      </div>
-
-      <h3 className="text-lg font-semibold mb-2 line-clamp-2">
-        {course.title}
-      </h3>
-      
-      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-        {course.description}
-      </p>
-
-      <div className="flex items-center justify-between mb-4 text-sm text-muted-foreground">
-        <div className="flex items-center space-x-2">
-          <Clock className="w-4 h-4" />
-          <span>{course.duration}</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Users className="w-4 h-4" />
-          <span>{course.students.toLocaleString()}</span>
-        </div>
-      </div>
-
-      <p className="text-sm text-muted-foreground mb-4">
-        Por <span className="font-medium">{course.instructor}</span>
-      </p>
-
-      {course.topics && course.topics.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-4">
-          {course.topics.slice(0, 3).map((topic: string) => (
-            <Badge key={topic} variant="outline" className="text-xs">
-              {topic}
-            </Badge>
-          ))}
-          {course.topics.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{course.topics.length - 3} más
-            </Badge>
-          )}
-        </div>
-      )}
-
-      {course.featured && (
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200">
-            <Star className="w-3 h-3 mr-1 fill-current" />
-            Destacado
-          </Badge>
-        </div>
-      )}
-      
-      <Button className="w-full group" asChild>
-        <a
-          href={course.circle_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full"
-        >
-          <Play className="w-4 h-4 mr-2" />
-          Comenzar curso
-          <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-        </a>
-      </Button>
-    </motion.div>
-  );
-};
 
 export default DeFiAcademyPage;
