@@ -426,12 +426,10 @@ const CourseDetailPage = () => {
                     <Button 
                       className="w-full" 
                       size="lg"
-                      asChild
+                      onClick={() => navigate('/login')}
                     >
-                      <a href={course.circle_url} target="_blank" rel="noopener noreferrer">
-                        <PlayCircle className="w-5 h-5 mr-2" />
-                        Comenzar Curso
-                      </a>
+                      <PlayCircle className="w-5 h-5 mr-2" />
+                      Registro previo
                     </Button>
                     
                     <Button 
