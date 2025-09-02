@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { 
   BookOpen, 
   Star,
@@ -142,9 +143,39 @@ const DeFiAcademyPage = () => {
   const uniqueInstructors = new Set(allCourses.map(c => c.instructor)).size;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative py-24 bg-gradient-to-br from-primary/5 via-background to-muted/20">
+    <>
+      {/* Meta Tags para DeFi Academy */}
+      <Helmet>
+        <title>DeFi México - Ecosistema DeFi en México</title>
+        <meta name="description" content="La organización líder que promueve el ecosistema de finanzas descentralizadas en México" />
+        
+        {/* Open Graph Meta Tags (Facebook, WhatsApp, LinkedIn, Telegram) */}
+        <meta property="og:url" content="https://www.defimexico.org/academia" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="DeFi México - Ecosistema DeFi en México" />
+        <meta property="og:description" content="La organización líder que promueve el ecosistema de finanzas descentralizadas en México" />
+        <meta property="og:image" content="https://opengraph.b-cdn.net/production/images/75249fc8-95b0-44e2-b321-6ff88840af04.png?token=5M5E5scIKPws7Jpq7SuQ5b_p1Jeu1hwyqDkuU1GSi7w&height=589&width=1200&expires=33292839930" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="589" />
+        <meta property="og:site_name" content="DeFi México" />
+        <meta property="og:locale" content="es_MX" />
+        
+        {/* Twitter Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta property="twitter:domain" content="defimexico.org" />
+        <meta property="twitter:url" content="https://www.defimexico.org/academia" />
+        <meta name="twitter:title" content="DeFi México - Ecosistema DeFi en México" />
+        <meta name="twitter:description" content="La organización líder que promueve el ecosistema de finanzas descentralizadas en México" />
+        <meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/75249fc8-95b0-44e2-b321-6ff88840af04.png?token=5M5E5scIKPws7Jpq7SuQ5b_p1Jeu1hwyqDkuU1GSi7w&height=589&width=1200&expires=33292839930" />
+        
+        {/* Telegram específico - usa Open Graph pero estos tags adicionales ayudan */}
+        <meta name="telegram:card" content="summary_large_image" />
+        <meta itemProp="image" content="https://opengraph.b-cdn.net/production/images/75249fc8-95b0-44e2-b321-6ff88840af04.png?token=5M5E5scIKPws7Jpq7SuQ5b_p1Jeu1hwyqDkuU1GSi7w&height=589&width=1200&expires=33292839930" />
+      </Helmet>
+      
+      <div className="min-h-screen bg-background">
+        {/* Hero Section */}
+        <section className="relative py-24 bg-gradient-to-br from-primary/5 via-background to-muted/20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
@@ -385,7 +416,8 @@ const DeFiAcademyPage = () => {
           </motion.div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 };
 
