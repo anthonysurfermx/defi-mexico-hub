@@ -133,6 +133,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const result = await handleAuthCallback();
           if (!result.error) {
             console.log('✅ OAuth tokens processed successfully');
+            
+            // Verificar después del procesamiento si tenemos un usuario autenticado
+            const { data: session } = await authService.getSession();
+            if (session?.user) {
+              const userEmail = session.user.email;
+              
+              // Lista de usuarios autorizados
+              const authorizedUsers: Record<string, string> = {
+                'anthochavez.ra@gmail.com': 'admin',
+                'guillermos22@gmail.com': 'editor', 
+                'fabiancepeda102@gmail.com': 'editor',
+              };
+              
+              const userRole = authorizedUsers[userEmail || ''];
+              
+              if (userRole) {
+                console.log(`🎯 OAuth: Redirecting ${userRole} to admin panel`);
+                // Pequeño delay para asegurar que todo se procese
+                setTimeout(() => {
+                  window.location.href = '/admin';
+                }, 500);
+                return; // Exit early para evitar continuar con la inicialización
+              }
+            }
           }
         }
 
@@ -171,6 +195,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Manejar eventos específicos
         switch (event) {
+          case 'SIGNED_IN':
+            // Redirigir a admin si el usuario tiene permisos
+            if (currentSession?.user) {
+              const userAsExtended = currentSession.user as ExtendedUser;
+              const userEmail = userAsExtended.email;
+              
+              // Lista de usuarios autorizados (misma que en getRoles)
+              const authorizedUsers: Record<string, string> = {
+                'anthochavez.ra@gmail.com': 'admin',
+                'guillermos22@gmail.com': 'editor', 
+                'fabiancepeda102@gmail.com': 'editor',
+              };
+              
+              const userRole = authorizedUsers[userEmail || ''];
+              
+              if (userRole) {
+                console.log(`🎯 Redirecting ${userRole} to admin panel`);
+                // Usar setTimeout para asegurar que el estado se actualice primero
+                setTimeout(() => {
+                  window.location.href = '/admin';
+                }, 100);
+              }
+            }
+            break;
           case 'SIGNED_OUT':
             // Limpiar datos locales
             localStorage.removeItem('loginAttempts');
