@@ -197,6 +197,11 @@ export default function MainLayout() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/digital-art-defi" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    NFT Studio
+                  </Link>
+                </li>
+                <li>
                   <Link to="/oportunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Análisis de APY
                   </Link>

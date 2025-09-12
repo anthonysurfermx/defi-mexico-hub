@@ -28,6 +28,11 @@ const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportu
 const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 
+// Digital Art NFT Pages
+const DigitalArtDeFiPage = lazy(() => import('@/pages/DigitalArtDeFiPage'));
+const DigitalArtStudioPage = lazy(() => import('@/pages/DigitalArtStudioPage'));
+const DigitalArtGalleryPage = lazy(() => import('@/pages/DigitalArtGalleryPage'));
+
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
@@ -303,6 +308,31 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <CourseDetailPage />
+                </Suspense>
+              ),
+            },
+            // Digital Art NFT Routes
+            {
+              path: 'digital-art-defi',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <DigitalArtDeFiPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'digital-art-defi/studio',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <DigitalArtStudioPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'digital-art-defi/gallery',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <DigitalArtGalleryPage />
                 </Suspense>
               ),
             },
