@@ -34,7 +34,6 @@ export interface BlogPost {
   comment_count: number;
   created_at: string;
   updated_at: string;
-  views_count: number;
   likes_count: number;
   author: string;
   image_url?: string;
@@ -74,7 +73,7 @@ export interface Page<T> {
 const SELECT_FIELDS = `
   id,title,slug,subtitle,excerpt,content,author,category,tags,image_url,
   status,published_at,created_at,updated_at,reading_time_minutes,
-  is_featured,view_count,views_count
+  is_featured,view_count
 `.replace(/\s+/g, '');
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -106,7 +105,7 @@ const toDomain = (row: BlogPost): DomainPost => ({
   updated_at: row.updated_at,
   reading_time_minutes: row.reading_time_minutes,
   is_featured: row.is_featured,
-  view_count: row.view_count || row.views_count || 0,
+  view_count: row.view_count || 0,
 });
 
 /**
@@ -499,6 +498,7 @@ class BlogService {
       total: data?.length || 0,
       published: data?.filter(p => p.status === 'published').length || 0,
       drafts: data?.filter(p => p.status === 'draft').length || 0,
+      review: data?.filter(p => p.status === 'review').length || 0,
     };
 
     console.log(`📊 BlogService.getStats:`, stats);
@@ -509,18 +509,79 @@ class BlogService {
    * Incrementar contador de vistas
    */
   async incrementViews(id: string): Promise<void> {
-    const { error } = await supabase
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .update({ view_count: supabase.sql`view_count + 1` })
+        .eq('id', id);
+
+      if (error) {
+        console.warn('⚠️ Error incrementing views for post', id, ':', error.message);
+      }
+    } catch (err) {
+      console.warn('⚠️ Error incrementing views for post', id, ':', err);
+    }
+  }
+
+  /**
+   * Aprobar un post que está en revisión (Solo administradores)
+   */
+  async approvePost(id: string): Promise<DomainPost> {
+    console.log(`✅ BlogService.approvePost: Approving post ${id}`);
+
+    const { data, error } = await supabase
       .from('blog_posts')
       .update({ 
-        view_count: supabase.rpc('increment_view_count', { post_id: id }),
-        views_count: supabase.rpc('increment_views_count', { post_id: id })
+        status: 'published',
+        published_at: new Date().toISOString()
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'review') // Solo aprobar posts en revisión
+      .select(SELECT_FIELDS)
+      .single();
 
     if (error) {
-      // No es crítico si falla el incremento de vistas
-      console.warn('⚠️ Error incrementing views for post', id, ':', error.message);
+      console.error('❌ Error approving post:', error);
+      throw error;
     }
+
+    if (!data) {
+      throw new Error('Post no encontrado o no está en revisión');
+    }
+
+    console.log(`✅ BlogService.approvePost: Post '${data?.title}' aprobado`);
+    return toDomain(data as BlogPost);
+  }
+
+  /**
+   * Rechazar un post que está en revisión (Solo administradores)
+   */
+  async rejectPost(id: string, reason?: string): Promise<DomainPost> {
+    console.log(`❌ BlogService.rejectPost: Rejecting post ${id}`);
+
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .update({ 
+        status: 'draft',
+        // Opcionalmente podrías agregar un campo 'rejection_reason' si existe
+        ...(reason && { rejection_reason: reason })
+      })
+      .eq('id', id)
+      .eq('status', 'review') // Solo rechazar posts en revisión
+      .select(SELECT_FIELDS)
+      .single();
+
+    if (error) {
+      console.error('❌ Error rejecting post:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('Post no encontrado o no está en revisión');
+    }
+
+    console.log(`❌ BlogService.rejectPost: Post '${data?.title}' rechazado`);
+    return toDomain(data as BlogPost);
   }
 
   /**

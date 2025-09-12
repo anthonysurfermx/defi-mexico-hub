@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { blogService } from '@/services/blog.service';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +119,7 @@ function generateSlug(title: string): string {
 // AdminBlog Component
 // ──────────────────────────────────────────────────────────────────────────────
 export default function AdminBlog() {
+  const { isAdmin } = useAuth(); // Para verificar permisos de administrador
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPage = Number(searchParams.get('page') ?? '1') || 1;
   const initialQ = searchParams.get('q') ?? '';
@@ -125,7 +127,7 @@ export default function AdminBlog() {
 
   const [page, setPage] = useState(initialPage);
   const [q, setQ] = useState(initialQ);
-  const [status, setStatus] = useState<'all' | 'published' | 'draft'>(initialStatus as any);
+  const [status, setStatus] = useState<'all' | 'published' | 'draft' | 'review'>(initialStatus as any);
 
   const debouncedQ = useDebouncedValue(q, 300);
 
@@ -146,10 +148,59 @@ export default function AdminBlog() {
     category: '',
     tags: '',
     featured_image: '',
-    status: 'draft' as 'draft' | 'published',
+    status: 'draft' as 'draft' | 'review' | 'scheduled' | 'published' | 'archived',
     is_featured: false,
     allow_comments: true,
   });
+
+  // Categorías disponibles según el constraint de la DB
+  const availableCategories = [
+    { id: 'noticias', label: 'Noticias' },
+    { id: 'guias', label: 'Guías' }, 
+    { id: 'tutoriales', label: 'Tutoriales' },
+    { id: 'analisis', label: 'Análisis' },
+    { id: 'opinion', label: 'Opinión' },
+    { id: 'entrevistas', label: 'Entrevistas' },
+    { id: 'reportes', label: 'Reportes' },
+    { id: 'educacion', label: 'Educación' },
+    { id: 'regulacion', label: 'Regulación' },
+    { id: 'tecnologia', label: 'Tecnología' }
+  ];
+
+  const selectCategory = (categoryId: string) => {
+    setForm(prev => ({ ...prev, category: categoryId }));
+  };
+
+  const clearCategory = () => {
+    setForm(prev => ({ ...prev, category: '' }));
+  };
+
+  // Funciones de aprobación (solo para administradores)
+  const approvePost = async (postId: string) => {
+    if (!isAdmin()) return;
+    
+    try {
+      await blogService.updatePost(postId, { status: 'published' });
+      console.log('✅ Post approved and published');
+      await load();
+    } catch (err) {
+      console.error('💥 Error approving post:', err);
+      alert('No se pudo aprobar el post');
+    }
+  };
+
+  const rejectPost = async (postId: string) => {
+    if (!isAdmin()) return;
+    
+    try {
+      await blogService.updatePost(postId, { status: 'draft' });
+      console.log('✅ Post rejected and returned to draft');
+      await load();
+    } catch (err) {
+      console.error('💥 Error rejecting post:', err);
+      alert('No se pudo rechazar el post');
+    }
+  };
 
   const fetchToken = useRef(0);
   
@@ -292,19 +343,25 @@ export default function AdminBlog() {
       return;
     }
 
+    // Si es un editor (no admin) y quiere publicar, enviar a revisión
+    let finalStatus = form.status;
+    if (form.status === 'published' && !isAdmin()) {
+      finalStatus = 'review';
+      console.log('📝 Editor enviando a revisión en lugar de publicar directamente');
+    }
+
     const payload: any = {
       title: form.title.trim(),
       slug: form.slug.trim() || generateSlug(form.title),
       excerpt: form.excerpt.trim(),
       content: form.content.trim(),
-      category: form.category.trim() || null,
+      category: form.category && form.category.trim() !== '' ? form.category.trim() : null,
       tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       featured_image: form.featured_image.trim() || null,
-      status: form.status,
+      status: finalStatus,
       is_featured: form.is_featured,
       allow_comments: form.allow_comments,
-      // Para compatibilidad con el BlogService
-      published: form.status === 'published',
+      // No incluir 'published' ya que no existe esa columna
       image_url: form.featured_image.trim() || null,
     };
 
@@ -347,8 +404,7 @@ export default function AdminBlog() {
     try {
       const newStatus = post.status === 'published' ? 'draft' : 'published';
       await blogService.updatePost(post.id, { 
-        status: newStatus,
-        published: newStatus === 'published'
+        status: newStatus
       });
       console.log(`✅ Post status changed to: ${newStatus}`);
       await load();
@@ -358,11 +414,47 @@ export default function AdminBlog() {
     }
   };
 
+  // Funciones de aprobación (solo para administradores)
+  const handleApprove = async (post: any) => {
+    if (!isAdmin()) {
+      alert('Solo los administradores pueden aprobar posts');
+      return;
+    }
+
+    try {
+      await blogService.approvePost(post.id);
+      console.log('✅ Post aprovado');
+      await load();
+    } catch (err) {
+      console.error('💥 Approve error:', err);
+      alert('No se pudo aprobar el post');
+    }
+  };
+
+  const handleReject = async (post: any) => {
+    if (!isAdmin()) {
+      alert('Solo los administradores pueden rechazar posts');
+      return;
+    }
+
+    const reason = prompt('Razón del rechazo (opcional):');
+    
+    try {
+      await blogService.rejectPost(post.id, reason || undefined);
+      console.log('✅ Post rechazado');
+      await load();
+    } catch (err) {
+      console.error('💥 Reject error:', err);
+      alert('No se pudo rechazar el post');
+    }
+  };
+
   // Calcular estadísticas
   const stats = useMemo(() => {
     const published = data.filter(p => p.status === 'published').length;
     const drafts = data.filter(p => p.status === 'draft').length;
-    return { total: data.length, published, drafts };
+    const review = data.filter(p => p.status === 'review').length;
+    return { total: data.length, published, drafts, review };
   }, [data]);
 
   // Paginación en frontend
@@ -413,6 +505,7 @@ export default function AdminBlog() {
             <option value="all">Todos ({stats.total})</option>
             <option value="published">Publicados ({stats.published})</option>
             <option value="draft">Borradores ({stats.drafts})</option>
+            <option value="review">En Revisión ({stats.review})</option>
           </select>
 
           {/* New Post Button */}
@@ -424,7 +517,7 @@ export default function AdminBlog() {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card p-4 rounded-lg border">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="w-4 h-4 text-primary" />
@@ -447,6 +540,14 @@ export default function AdminBlog() {
             <span className="text-sm font-medium">Borradores</span>
           </div>
           <p className="text-2xl font-bold">{stats.drafts}</p>
+        </div>
+
+        <div className="bg-card p-4 rounded-lg border">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="w-4 h-4 text-orange-500" />
+            <span className="text-sm font-medium">En Revisión</span>
+          </div>
+          <p className="text-2xl font-bold">{stats.review}</p>
         </div>
       </div>
 
@@ -511,9 +612,21 @@ export default function AdminBlog() {
                       <button
                         onClick={() => togglePublished(post)}
                         className="cursor-pointer"
+                        disabled={post.status === 'review'}
                       >
-                        <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
-                          {post.status === 'published' ? 'Publicado' : 'Borrador'}
+                        <Badge 
+                          variant={
+                            post.status === 'published' ? 'default' : 
+                            post.status === 'review' ? 'outline' : 
+                            'secondary'
+                          }
+                          className={
+                            post.status === 'review' ? 'border-orange-500 text-orange-600' : ''
+                          }
+                        >
+                          {post.status === 'published' ? 'Publicado' : 
+                           post.status === 'review' ? 'En Revisión' : 
+                           'Borrador'}
                         </Badge>
                       </button>
                     </td>
@@ -543,6 +656,26 @@ export default function AdminBlog() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Botones de aprobación (solo para admins y posts en revisión) */}
+                        {post.status === 'review' && isAdmin() && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(post)}
+                              className="p-1 hover:bg-green-100 rounded transition-colors text-green-600"
+                              title="Aprobar"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => handleReject(post)}
+                              className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
+                              title="Rechazar"
+                            >
+                              ✗
+                            </button>
+                          </>
+                        )}
+                        
                         <button
                           onClick={() => openEdit(post)}
                           className="p-1 hover:bg-muted rounded transition-colors"
@@ -670,11 +803,43 @@ export default function AdminBlog() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Categoría">
-              <Input 
-                value={form.category} 
-                onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} 
-                placeholder="DeFi, Blockchain, Tutorial... (opcional)"
-              />
+              <div className="space-y-3">
+                {/* Categoría seleccionada */}
+                {form.category && (
+                  <div className="flex flex-wrap gap-2">
+                    <Badge 
+                      variant="default" 
+                      className="flex items-center gap-1 bg-primary/10 text-primary border-primary/20"
+                    >
+                      {availableCategories.find(cat => cat.id === form.category)?.label}
+                      <X 
+                        className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                        onClick={clearCategory}
+                      />
+                    </Badge>
+                  </div>
+                )}
+                
+                {/* Categorías disponibles */}
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories
+                    .filter(cat => cat.id !== form.category)
+                    .map(category => (
+                    <Badge 
+                      key={category.id} 
+                      variant="outline" 
+                      className="cursor-pointer hover:bg-primary/10 hover:border-primary/20 transition-colors"
+                      onClick={() => selectCategory(category.id)}
+                    >
+                      + {category.label}
+                    </Badge>
+                  ))}
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Haz clic en una categoría para seleccionarla. Solo puedes seleccionar una categoría.
+                </p>
+              </div>
             </Field>
             
             <Field label="Tags (separados por comas)">
