@@ -83,10 +83,6 @@ export default function StartupsPage() {
     return matchesSearch && matchesCategory && matchesStage;
   });
 
-  // Calcular estadísticas
-  const totalFunding = startups.reduce((sum, s) => sum + (s.total_users || 0), 0); // Mock con users
-  const totalEmployees = startups.length * 10; // Estimado
-  const countries = new Set(startups.map(s => s.country || 'México')).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,31 +144,11 @@ export default function StartupsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Total Startups</CardDescription>
               <CardTitle className="text-2xl">{filteredStartups.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Usuarios Totales</CardDescription>
-              <CardTitle className="text-2xl">
-                {totalFunding > 1000 ? `${(totalFunding / 1000).toFixed(0)}K+` : totalFunding}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Empleos Creados</CardDescription>
-              <CardTitle className="text-2xl">{totalEmployees}+</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Países</CardDescription>
-              <CardTitle className="text-2xl">{countries}</CardTitle>
             </CardHeader>
           </Card>
         </div>
