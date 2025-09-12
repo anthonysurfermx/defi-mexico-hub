@@ -191,8 +191,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const signInWithOAuth = async (provider: Provider, redirectTo?: string): Promise<void> => {
     try {
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
       const response = await authService.signInWithOAuth(provider, {
-        redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+        redirectTo: redirectTo || siteUrl,
       });
       
       if (response.error) {

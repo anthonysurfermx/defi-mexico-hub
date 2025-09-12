@@ -77,12 +77,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Handle Auth Callback mejorado
+  const handleAuthCallback = useCallback(async () => {
+    try {
+      const url = new URL(window.location.href);
+      const hashParams = new URLSearchParams(
+        url.hash.startsWith('#') ? url.hash.slice(1) : ''
+      );
+      
+      const code = url.searchParams.get('code') || hashParams.get('code');
+      const errorParam = url.searchParams.get('error') || hashParams.get('error');
+      
+      if (errorParam) {
+        return { error: errorParam };
+      }
+      
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          return { error: exchangeError.message };
+        }
+      }
+      
+      // Limpiar URL de parámetros sensibles
+      const paramsToRemove = [
+        'code', 'token', 'error', 'error_description',
+        'access_token', 'refresh_token', 'expires_in', 'type'
+      ];
+      
+      paramsToRemove.forEach(param => {
+        url.searchParams.delete(param);
+      });
+      
+      // También limpiar hash
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+      
+      return { error: null };
+    } catch (err: any) {
+      return { error: err?.message || 'Error al procesar callback' };
+    }
+  }, []);
+
   // Inicializar auth
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
+        // Verificar si tenemos tokens OAuth en la URL actual
+        const hasOAuthTokens = window.location.hash.includes('access_token');
+        
+        if (hasOAuthTokens) {
+          console.log('🔐 OAuth tokens detected in URL, processing...');
+          // Procesar callback OAuth automáticamente
+          const result = await handleAuthCallback();
+          if (!result.error) {
+            console.log('✅ OAuth tokens processed successfully');
+          }
+        }
+
         // Obtener sesión inicial usando authService
         const response = await authService.getSession();
         
@@ -310,45 +363,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Handle Auth Callback mejorado
-  const handleAuthCallback = useCallback(async () => {
-    try {
-      const url = new URL(window.location.href);
-      const hashParams = new URLSearchParams(
-        url.hash.startsWith('#') ? url.hash.slice(1) : ''
-      );
-      
-      const code = url.searchParams.get('code') || hashParams.get('code');
-      const errorParam = url.searchParams.get('error') || hashParams.get('error');
-      
-      if (errorParam) {
-        return { error: errorParam };
-      }
-      
-      if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          return { error: exchangeError.message };
-        }
-      }
-      
-      // Limpiar URL de parámetros sensibles
-      const paramsToRemove = [
-        'code', 'token', 'error', 'error_description',
-        'access_token', 'refresh_token', 'expires_in', 'type'
-      ];
-      
-      paramsToRemove.forEach(param => {
-        url.searchParams.delete(param);
-      });
-      
-      window.history.replaceState({}, document.title, url.pathname + url.search);
-      
-      return { error: null };
-    } catch (err: any) {
-      return { error: err?.message || 'Error al procesar callback' };
-    }
-  }, []);
 
   // Refresh User
   const refreshUser = useCallback(async () => {

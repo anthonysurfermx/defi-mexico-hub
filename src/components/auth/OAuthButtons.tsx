@@ -11,10 +11,13 @@ export default function OAuthButtons() {
     try {
       setLoading(provider);
       
+      // Determinar URL de redirección
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: siteUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

@@ -225,12 +225,17 @@ export const authService = {
   },
 
   // OAuth methods
-  async signInWithOAuth(provider: 'google' | 'github'): Promise<ServiceResponse<any>> {
+  async signInWithOAuth(provider: any, options?: { redirectTo?: string }): Promise<ServiceResponse<any>> {
     try {
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: options?.redirectTo || siteUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
       
