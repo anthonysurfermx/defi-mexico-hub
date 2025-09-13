@@ -74,7 +74,11 @@ export function QuickActionsGrid() {
               whileTap={{ scale: 0.98 }}
             >
               <Card className="bg-gradient-dark border-border hover:border-primary/30 transition-all duration-300 overflow-hidden cursor-pointer"
-                    onClick={() => navigate(action.href)}>
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigate(action.href);
+                    }}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-3 rounded-xl bg-gradient-to-r ${action.color}`}>

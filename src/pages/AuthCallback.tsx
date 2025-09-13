@@ -224,10 +224,35 @@ export default function AuthCallback() {
             setTimeout(() => navigate('/profile', { replace: true }), 1200);
             break;
 
-          default:
+          default: {
             setMessage('¡Autenticación exitosa!');
             toast.success('Bienvenido');
+            
+            // Verificar si el usuario tiene acceso al admin
+            const currentUser = await refreshUser();
+            
+            if (currentUser) {
+              const userEmail = currentUser.email?.toLowerCase().trim();
+              console.log(`📧 Checking user email for admin access: ${userEmail}`);
+              
+              // Lista de usuarios autorizados
+              const authorizedUsers: Record<string, string> = {
+                'anthochavez.ra@gmail.com': 'admin',
+                'guillermos22@gmail.com': 'editor', 
+                'fabiancepeda102@gmail.com': 'editor',
+              };
+              
+              const userRole = authorizedUsers[userEmail || ''];
+              
+              if (userRole) {
+                console.log(`🎯 Redirecting ${userRole} to admin panel`);
+                setTimeout(() => navigate('/admin', { replace: true }), 800);
+                return;
+              }
+            }
+            
             setTimeout(() => navigate(redirectTo, { replace: true }), 800);
+          }
         }
 
       } catch (error: any) {

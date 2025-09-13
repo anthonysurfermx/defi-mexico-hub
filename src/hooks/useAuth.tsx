@@ -134,10 +134,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!result.error) {
             console.log('✅ OAuth tokens processed successfully');
             
-            // Verificar después del procesamiento si tenemos un usuario autenticado
-            const { data: session } = await authService.getSession();
-            if (session?.user) {
-              const userEmail = session.user.email;
+            // Esperar un momento para que Supabase procese la sesión
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Obtener el usuario actual directamente de Supabase
+            const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+            
+            if (userError) {
+              console.error('❌ Error getting user after OAuth:', userError);
+            } else if (currentUser) {
+              console.log('📧 OAuth User email:', currentUser.email);
+              const userEmail = currentUser.email?.toLowerCase().trim();
               
               // Lista de usuarios autorizados
               const authorizedUsers: Record<string, string> = {
@@ -147,15 +154,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               };
               
               const userRole = authorizedUsers[userEmail || ''];
+              console.log(`🔍 Checking authorization for ${userEmail}: ${userRole || 'not authorized'}`);
               
-              if (userRole) {
+              // Solo redirigir si NO estamos ya en /admin para evitar loops
+              if (userRole && !window.location.pathname.startsWith('/admin')) {
                 console.log(`🎯 OAuth: Redirecting ${userRole} to admin panel`);
-                // Pequeño delay para asegurar que todo se procese
                 setTimeout(() => {
                   window.location.href = '/admin';
                 }, 500);
-                return; // Exit early para evitar continuar con la inicialización
+                return;
               }
+              
+              // Establecer el usuario en el estado
+              setUser(currentUser as ExtendedUser);
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) {
+                setSession(session);
+              }
+            } else {
+              console.warn('⚠️ No user found after OAuth processing');
             }
           }
         }
@@ -199,7 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Redirigir a admin si el usuario tiene permisos
             if (currentSession?.user) {
               const userAsExtended = currentSession.user as ExtendedUser;
-              const userEmail = userAsExtended.email;
+              const userEmail = userAsExtended.email?.toLowerCase().trim();
+              
+              console.log(`📧 SIGNED_IN event - User email: ${userEmail}`);
               
               // Lista de usuarios autorizados (misma que en getRoles)
               const authorizedUsers: Record<string, string> = {
@@ -209,13 +228,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               };
               
               const userRole = authorizedUsers[userEmail || ''];
+              console.log(`🔍 Authorization check: ${userEmail} => ${userRole || 'not authorized'}`);
               
-              if (userRole) {
-                console.log(`🎯 Redirecting ${userRole} to admin panel`);
-                // Usar setTimeout para asegurar que el estado se actualice primero
-                setTimeout(() => {
-                  window.location.href = '/admin';
-                }, 100);
+              // Solo redirigir si tiene rol Y no está ya en admin Y está en login o home
+              if (userRole && !window.location.pathname.startsWith('/admin')) {
+                const isOnLoginOrHome = window.location.pathname === '/login' || 
+                                       window.location.pathname === '/' ||
+                                       window.location.pathname === '/register';
+                
+                if (isOnLoginOrHome) {
+                  console.log(`🎯 Redirecting ${userRole} to admin panel from ${window.location.pathname}`);
+                  setTimeout(() => {
+                    window.location.href = '/admin';
+                  }, 100);
+                }
               }
             }
             break;

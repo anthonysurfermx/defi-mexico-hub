@@ -138,7 +138,7 @@ export default function AdminLayout() {
 
       {/* Sidebar Desktop */}
       <aside aria-label="Barra lateral de administración" className={`
-        hidden lg:block fixed left-0 top-0 h-full bg-card border-r transition-all duration-300
+        hidden lg:block fixed left-0 top-0 h-full bg-card border-r transition-all duration-300 z-30
         ${sidebarOpen ? 'w-64' : 'w-16'}
       `}>
         <div className="p-4 h-full flex flex-col">
@@ -175,8 +175,12 @@ export default function AdminLayout() {
                   key={item.path}
                   to={item.path}
                   aria-current={active ? 'page' : undefined}
+                  onClick={(e) => {
+                    // Forzar navegación si hay problemas
+                    e.stopPropagation();
+                  }}
                   className={`
-                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative
+                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative cursor-pointer
                     ${active 
                       ? 'bg-primary text-primary-foreground' 
                       : 'hover:bg-accent hover:text-accent-foreground'

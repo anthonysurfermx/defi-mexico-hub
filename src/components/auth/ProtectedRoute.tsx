@@ -90,11 +90,19 @@ export default function ProtectedRoute({
   if (user && ((requireAllRoles?.length) || (requireAnyRole?.length))) {
     const userRoles = new Set(getRoles?.() || []);
     
+    // Debug logs
+    console.log('🔐 ProtectedRoute - User email:', user.email);
+    console.log('🔐 ProtectedRoute - User roles:', Array.from(userRoles));
+    console.log('🔐 ProtectedRoute - Required any role:', requireAnyRole);
+    console.log('🔐 ProtectedRoute - Required all roles:', requireAllRoles);
+    
     const hasAllRequiredRoles = !requireAllRoles?.length || 
       requireAllRoles.every(role => userRoles.has(role));
     
     const hasAnyRequiredRole = !requireAnyRole?.length || 
       requireAnyRole.some(role => userRoles.has(role));
+
+    console.log('🔐 ProtectedRoute - Has required roles?', hasAllRequiredRoles && hasAnyRequiredRole);
 
     if (!hasAllRequiredRoles || !hasAnyRequiredRole) {
       return <Navigate to="/unauthorized" replace />;
