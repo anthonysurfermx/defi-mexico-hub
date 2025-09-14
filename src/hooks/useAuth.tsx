@@ -10,7 +10,7 @@ import type { User, Session } from '@supabase/supabase-js';
 const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 
 // Tipos
-export type Role = 'admin' | 'editor' | 'moderator' | 'user';
+export type Role = 'admin' | 'editor' | 'moderator' | 'user' | 'startup_owner';
 
 interface ExtendedUser extends User {
   app_metadata?: {
@@ -146,23 +146,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log('📧 OAuth User email:', currentUser.email);
               const userEmail = currentUser.email?.toLowerCase().trim();
               
-              // Lista de usuarios autorizados
-              const authorizedUsers: Record<string, string> = {
+              // Lista de usuarios con roles administrativos
+              const adminUsers: Record<string, string> = {
                 'anthochavez.ra@gmail.com': 'admin',
                 'guillermos22@gmail.com': 'editor', 
                 'fabiancepeda102@gmail.com': 'editor',
               };
               
-              const userRole = authorizedUsers[userEmail || ''];
-              console.log(`🔍 Checking authorization for ${userEmail}: ${userRole || 'not authorized'}`);
+              const adminRole = adminUsers[userEmail || ''];
+              console.log(`🔍 Checking admin authorization for ${userEmail}: ${adminRole || 'not admin'}`);
               
-              // Solo redirigir si NO estamos ya en /admin para evitar loops
-              if (userRole && !window.location.pathname.startsWith('/admin')) {
-                console.log(`🎯 OAuth: Redirecting ${userRole} to admin panel`);
-                setTimeout(() => {
-                  window.location.href = '/admin';
-                }, 500);
-                return;
+              // Solo redirigir si NO estamos ya en las páginas protegidas para evitar loops
+              if (!window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/startup-register')) {
+                if (adminRole) {
+                  console.log(`🎯 OAuth: Redirecting ${adminRole} to admin panel`);
+                  setTimeout(() => {
+                    window.location.href = '/admin';
+                  }, 500);
+                  return;
+                } else if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
+                  console.log(`🎯 OAuth: Redirecting verified user to startup dashboard`);
+                  setTimeout(() => {
+                    window.location.href = '/startup-register';
+                  }, 500);
+                  return;
+                }
               }
               
               // Establecer el usuario en el estado
@@ -220,27 +228,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               console.log(`📧 SIGNED_IN event - User email: ${userEmail}`);
               
-              // Lista de usuarios autorizados (misma que en getRoles)
-              const authorizedUsers: Record<string, string> = {
+              // Lista de usuarios con roles administrativos
+              const adminUsers: Record<string, string> = {
                 'anthochavez.ra@gmail.com': 'admin',
                 'guillermos22@gmail.com': 'editor', 
                 'fabiancepeda102@gmail.com': 'editor',
               };
               
-              const userRole = authorizedUsers[userEmail || ''];
-              console.log(`🔍 Authorization check: ${userEmail} => ${userRole || 'not authorized'}`);
+              const adminRole = adminUsers[userEmail || ''];
+              console.log(`🔍 Admin check: ${userEmail} => ${adminRole || 'not admin'}`);
               
-              // Solo redirigir si tiene rol Y no está ya en admin Y está en login o home
-              if (userRole && !window.location.pathname.startsWith('/admin')) {
-                const isOnLoginOrHome = window.location.pathname === '/login' || 
-                                       window.location.pathname === '/' ||
-                                       window.location.pathname === '/register';
+              // Redirigir según el rol del usuario SOLO desde login/register
+              if (!window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/startup-register')) {
+                const isOnLogin = window.location.pathname === '/login' || 
+                                 window.location.pathname === '/register';
                 
-                if (isOnLoginOrHome) {
-                  console.log(`🎯 Redirecting ${userRole} to admin panel from ${window.location.pathname}`);
-                  setTimeout(() => {
-                    window.location.href = '/admin';
-                  }, 100);
+                // Solo redirigir automáticamente desde páginas de login/register, NO desde home
+                if (isOnLogin) {
+                  if (adminRole) {
+                    console.log(`🎯 Redirecting ${adminRole} to admin panel from ${window.location.pathname}`);
+                    setTimeout(() => {
+                      window.location.href = '/admin';
+                    }, 100);
+                  } else if (userAsExtended.email_confirmed_at || userAsExtended.confirmed_at) {
+                    console.log(`🎯 Redirecting verified user to startup dashboard from ${window.location.pathname}`);
+                    setTimeout(() => {
+                      window.location.href = '/startup-register';
+                    }, 100);
+                  }
                 }
               }
             }
@@ -469,28 +484,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, [user]);
 
-  // Get user roles - SOLO usuarios autorizados tienen acceso
+  // Get user roles - Sistema de roles actualizado
   const getRoles = useCallback((): Role[] => {
-    if (!user) return [];
+    if (!user) {
+      console.log('🔍 getRoles - No user found');
+      return [];
+    }
     
-    // Lista de usuarios autorizados con sus roles
-    const authorizedUsers: Record<string, Role> = {
+    console.log('🔍 getRoles - User data:', {
+      email: user.email,
+      email_confirmed_at: user.email_confirmed_at,
+      confirmed_at: user.confirmed_at
+    });
+    
+    // Lista de usuarios con roles administrativos
+    const adminUsers: Record<string, Role> = {
       'anthochavez.ra@gmail.com': 'admin',
       'guillermos22@gmail.com': 'editor', 
       'fabiancepeda102@gmail.com': 'editor',
-      // Agregar más usuarios autorizados aquí cuando sea necesario
     };
     
-    // Verificar si el usuario está autorizado
-    const userRole = authorizedUsers[user.email || ''];
+    // Verificar si el usuario tiene rol administrativo
+    const adminRole = adminUsers[user.email || ''];
     
-    // Si está autorizado, devolver su rol
-    if (userRole) {
-      return [userRole];
+    if (adminRole) {
+      console.log('🔍 getRoles - Admin role found:', adminRole);
+      return [adminRole];
     }
     
-    // Si NO está autorizado, NO tiene ningún rol (no puede acceder al admin)
-    return [];
+    // Si no es admin/editor, verificar si es un usuario registrado con email verificado
+    const isEmailVerified = user.email_confirmed_at || user.confirmed_at;
+    console.log('🔍 getRoles - Email verified?', isEmailVerified);
+    
+    if (isEmailVerified) {
+      // Todos los usuarios verificados pueden registrar startups
+      console.log('🔍 getRoles - Assigning startup_owner role');
+      return ['startup_owner'];
+    }
+    
+    // Usuarios no verificados solo tienen rol básico
+    console.log('🔍 getRoles - Assigning user role (not verified)');
+    return ['user'];
   }, [user]);
 
   // Check if user has specific role

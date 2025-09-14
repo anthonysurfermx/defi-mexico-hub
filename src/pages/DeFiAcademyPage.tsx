@@ -3,16 +3,12 @@ import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { 
   BookOpen, 
-  Star,
   Search,
-  ChevronRight,
-  Award,
-  Users
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import StatsCard from '@/components/ui/stats-card';
 import { coursesService, type Course, type CourseCategory } from '@/services/courses.service';
 import CourseCard from '@/components/courses/CourseCard';
 
@@ -32,10 +28,7 @@ const DeFiAcademyPage = () => {
   
   // Estados para los datos reales
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
-  const [courseStats, setCourseStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
   
   // Cargar cursos al montar el componente
   useEffect(() => {
@@ -60,14 +53,6 @@ const DeFiAcademyPage = () => {
           console.log(`✅ ${coursesData.length} cursos cargados`);
         }
         
-        // Cargar cursos destacados
-        const { data: featuredData, error: featuredError } = await coursesService.getFeaturedCourses(6);
-        
-        if (!featuredError && featuredData) {
-          setFeaturedCourses(featuredData);
-          console.log(`✅ ${featuredData.length} cursos destacados cargados`);
-        }
-        
       } catch (error) {
         console.error('❌ Error en loadCourses:', error);
       } finally {
@@ -75,24 +60,7 @@ const DeFiAcademyPage = () => {
       }
     };
     
-    const loadStats = async () => {
-      try {
-        setLoadingStats(true);
-        const { data: statsData, error: statsError } = await coursesService.getCourseStats();
-        
-        if (!statsError && statsData) {
-          setCourseStats(statsData);
-          console.log('✅ Estadísticas de cursos cargadas');
-        }
-      } catch (error) {
-        console.error('❌ Error cargando estadísticas:', error);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-    
     loadCourses();
-    loadStats();
   }, []);
 
   // Filtrar cursos por categoría activa, búsqueda y nivel
@@ -132,15 +100,6 @@ const DeFiAcademyPage = () => {
   const getCoursesByCategory = (category: CourseCategory) => {
     return allCourses.filter(course => course.category === category);
   };
-
-  // Estadísticas calculadas
-  const totalCourses = courseStats?.totalCourses || allCourses.length;
-  const totalStudents = courseStats?.totalStudents || allCourses.reduce((acc, course) => acc + course.students, 0);
-  const avgRating = courseStats?.averageRating?.toFixed(1) || 
-    (allCourses.length > 0 ? 
-      (allCourses.reduce((acc, course) => acc + course.rating, 0) / allCourses.length).toFixed(1) : 
-      '0.0');
-  const uniqueInstructors = new Set(allCourses.map(c => c.instructor)).size;
 
   return (
     <>
@@ -190,16 +149,12 @@ const DeFiAcademyPage = () => {
                 Aprende DeFi, DeFAI y Fintech con expertos de la industria. 
                 Cursos prácticos que te llevarán de principiante a experto.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex justify-center">
                 <Button size="lg" asChild>
                   <a href="#cursos">
                     Explorar Cursos
                     <BookOpen className="ml-2 w-5 h-5" />
                   </a>
-                </Button>
-                <Button variant="outline" size="lg">
-                  Certificaciones
-                  <Award className="ml-2 w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
@@ -207,77 +162,10 @@ const DeFiAcademyPage = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {loadingStats ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-card p-6 rounded-lg border animate-pulse">
-                  <div className="w-12 h-12 bg-muted rounded mb-4"></div>
-                  <div className="h-8 bg-muted rounded mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-2/3"></div>
-                </div>
-              ))
-            ) : (
-              <>
-                <StatsCard
-                  title="Cursos Disponibles"
-                  value={totalCourses.toString()}
-                  description="Contenido actualizado"
-                  icon={BookOpen}
-                />
-                <StatsCard
-                  title="Estudiantes Activos"
-                  value={totalStudents.toLocaleString()}
-                  description="Aprendiendo juntos"
-                  icon={Users}
-                />
-                <StatsCard
-                  title="Rating Promedio"
-                  value={`${avgRating}★`}
-                  description="Satisfacción estudiantil"
-                  icon={Star}
-                />
-                <StatsCard
-                  title="Instructores Expertos"
-                  value={uniqueInstructors.toString()}
-                  description="Profesionales de la industria"
-                  icon={Award}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* Featured Courses */}
-      {featuredCourses.length > 0 && (
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl font-bold mb-4">Cursos Destacados</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Los cursos más populares y mejor valorados por nuestra comunidad
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCourses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* All Courses Section */}
-      <section id="cursos" className="py-16 bg-muted/30">
+      <section id="cursos" className="py-16">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -388,6 +276,7 @@ const DeFiAcademyPage = () => {
           </Tabs>
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-16 bg-primary/5">

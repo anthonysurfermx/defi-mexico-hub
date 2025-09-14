@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
 
-export type Role = 'admin' | 'editor' | 'moderator' | 'user';
+export type Role = 'admin' | 'editor' | 'moderator' | 'user' | 'startup_owner';
 
 export interface ProtectedRouteProps {
   children: React.ReactNode;

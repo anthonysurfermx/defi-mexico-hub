@@ -17,6 +17,7 @@ import AdminLayout from '@/pages/admin/AdminLayout';
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
+const StartupDashboard = lazy(() => import('@/pages/StartupDashboard'));
 const BlogPage = lazy(() => import('@/pages/BlogPage'));
 const BlogPostPage = lazy(() => import('@/pages/BlogPostPage')); // ✨ BLOG POST INDIVIDUAL
 const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
@@ -225,6 +226,20 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            
+            // ==========================================
+            // DASHBOARD PARA STARTUP OWNERS
+            // ==========================================
+            {
+              path: 'startup-register',
+              element: (
+                <ProtectedRoute requireAnyRole={['startup_owner', 'admin', 'editor']}>
+                  <Suspense fallback={<PageLoader />}>
+                    <StartupDashboard />
+                  </Suspense>
+                </ProtectedRoute>
+              ),
+            },
             // ==========================================
             // RUTAS DEL BLOG
             // ==========================================
@@ -336,6 +351,20 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            
+            // ==========================================
+            // RUTA ESPECIAL PARA STARTUP OWNERS CON MAIN LAYOUT
+            // ==========================================
+            {
+              path: 'admin/startups/new',
+              element: (
+                <ProtectedRoute requireAnyRole={['admin', 'editor', 'startup_owner']}>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminStartupForm />
+                  </Suspense>
+                </ProtectedRoute>
+              ),
+            },
           ],
         },
 
@@ -405,6 +434,7 @@ const router = createBrowserRouter(
           ),
         },
 
+
         // ==========================================
         // RUTAS ADMIN PROTEGIDAS
         // ==========================================
@@ -443,14 +473,6 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminStartups />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'startups/new',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <AdminStartupForm />
                 </Suspense>
               ),
             },

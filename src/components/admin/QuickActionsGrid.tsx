@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Rocket, FileText, Calendar, Users, BarChart3 } from "lucide-react";
+import { Plus, Rocket, FileText, Calendar, Users, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface QuickAction {
@@ -42,11 +42,11 @@ const quickActions: QuickAction[] = [
     color: "from-purple-500 to-purple-400"
   },
   {
-    title: "Ver Analytics",
-    description: "Revisar métricas y estadísticas",
-    icon: BarChart3,
-    href: "/admin/analytics",
-    color: "from-orange-500 to-orange-400"
+    title: "Academia",
+    description: "Gestionar cursos y contenido educativo",
+    icon: GraduationCap,
+    href: "/admin/academia",
+    color: "from-green-500 to-green-400"
   },
 ];
 

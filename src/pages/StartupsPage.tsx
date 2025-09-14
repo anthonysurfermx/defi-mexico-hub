@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowUpRight, Users, TrendingUp, Globe, Filter, Rocket, DollarSign, Loader2 } from 'lucide-react';
+import { Search, ArrowUpRight, Users, TrendingUp, Globe, Filter, Rocket, DollarSign, Loader2, Plus } from 'lucide-react';
 import { startupsService } from '@/services/startups.service';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Startup {
   id: string;
@@ -33,6 +34,8 @@ interface Startup {
 }
 
 export default function StartupsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,15 +87,35 @@ export default function StartupsPage() {
   });
 
 
+  const handleRegisterStartup = () => {
+    if (user) {
+      // Si ya está autenticado, redirigir al dashboard de registro
+      navigate('/startup-register');
+    } else {
+      // Si no está autenticado, redirigir al login con redirect
+      navigate('/login?redirectTo=/startup-register');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Directorio de Startups</h1>
-          <p className="text-muted-foreground text-lg">
-            Descubre las empresas que están liderando la revolución DeFi en México
-          </p>
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Directorio de Startups</h1>
+            <p className="text-muted-foreground text-lg">
+              Descubre las empresas que están liderando la revolución DeFi en México
+            </p>
+          </div>
+          <Button 
+            size="lg" 
+            onClick={handleRegisterStartup}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Registra tu Startup
+          </Button>
         </div>
 
         {/* Filters */}

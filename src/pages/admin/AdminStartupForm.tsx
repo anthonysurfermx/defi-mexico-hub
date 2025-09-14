@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
 interface StartupFormData {
@@ -36,6 +37,17 @@ const AdminStartupForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
+  const { hasRole, isAdmin } = useAuth();
+  
+  // Verificar permisos
+  const isStartupOwner = hasRole('startup_owner');
+  const canEdit = isAdmin() || hasRole('editor');
+  const canPublish = isAdmin() || hasRole('editor');
+  
+  // Debug logs
+  console.log('🔍 AdminStartupForm - isStartupOwner:', isStartupOwner);
+  console.log('🔍 AdminStartupForm - canEdit:', canEdit);
+  console.log('🔍 AdminStartupForm - canPublish:', canPublish);
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,12 +76,32 @@ const AdminStartupForm = () => {
   const availableTags = ["DeFi", "NFT", "DAO", "DEX", "Lending", "Staking", "Gaming", "Infrastructure"];
   const yearOptions = Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i);
 
-  // Cargar datos si es edición
+  // Verificar permisos para edición
   useEffect(() => {
+    // Solo admins y editores pueden editar startups existentes
+    if (id && isStartupOwner && !canEdit) {
+      toast({
+        title: "Acceso Denegado",
+        description: "No tienes permisos para editar startups existentes.",
+        variant: "destructive",
+      });
+      navigate('/startup-register');
+      return;
+    }
+    
+    // Cargar datos si es edición
     if (id) {
       loadStartup();
     }
-  }, [id]);
+  }, [id, isStartupOwner, canEdit]);
+  
+  // Función para determinar el botón de vuelta según el rol
+  const getBackRoute = () => {
+    if (isStartupOwner) {
+      return '/startup-register';
+    }
+    return '/admin/startups';
+  };
 
   const loadStartup = async () => {
     if (!id) return;
@@ -259,8 +291,8 @@ const AdminStartupForm = () => {
         // Números
         total_users: parseNumber(formData.users),
         // Campos requeridos por la tabla
-        is_featured: formData.is_featured,
-        status: 'draft',
+        is_featured: canEdit ? formData.is_featured : false, // Solo admins/editores pueden marcar como featured
+        status: isStartupOwner ? 'pending' : 'draft', // Startup owners envían directo a revisión
         country: 'México',
         city: 'Ciudad de México',
         created_by: user.id
@@ -279,14 +311,31 @@ const AdminStartupForm = () => {
 
       console.log('✅ Borrador guardado:', data);
 
+      const successTitle = isStartupOwner ? "✅ Startup enviada para revisión" : "✅ Borrador guardado";
+      const successMessage = isStartupOwner 
+        ? "Tu startup ha sido enviada para revisión. Te notificaremos cuando sea aprobada."
+        : "Los cambios se han guardado como borrador.";
+      
       toast({
-        title: "✅ Borrador guardado",
-        description: "Los cambios se han guardado como borrador."
+        title: successTitle,
+        description: successMessage
       });
       
-      // Si es un nuevo registro y se guardó exitosamente, actualizar el ID
-      if (!id && data && data[0]) {
+      // Redirección según el rol
+      console.log('🚀 Guardado exitoso, verificando redirección...');
+      console.log('🚀 isStartupOwner:', isStartupOwner);
+      console.log('🚀 data:', data);
+      
+      if (isStartupOwner) {
+        // Startup owners van de vuelta a su dashboard
+        console.log('🚀 Redirigiendo startup owner a dashboard...');
+        navigate('/startup-register');
+      } else if (!id && data && data[0]) {
+        // Admins/editores van a la página de edición si es nuevo
+        console.log('🚀 Redirigiendo admin a edición...');
         navigate(`/admin/startups/edit/${data[0].id}`, { replace: true });
+      } else {
+        console.log('🚀 No hay redirección específica configurada');
       }
     } catch (error: any) {
       console.error('❌ Error saving draft:', error);
@@ -504,7 +553,7 @@ Revisa la consola para más detalles.
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate('/admin/startups')}
+            onClick={() => navigate(getBackRoute())}
             disabled={isLoading || isSaving || isPublishing}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -543,28 +592,30 @@ Revisa la consola para más detalles.
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            <span className="hidden sm:inline">Guardar</span> Borrador
+{isStartupOwner ? 'Enviar para Revisión' : 'Guardar Borrador'}
           </Button>
           
-          {/* BOTÓN PUBLICAR - MÁS DESTACADO */}
-          <Button 
-            onClick={handlePublish} 
-            size="sm"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
-            disabled={isPublishing || isSaving}
-          >
-            {isPublishing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Publicando...
-              </>
-            ) : (
-              <>
-                <Rocket className="w-4 h-4 mr-2" />
-                Publicar Startup
-              </>
-            )}
-          </Button>
+          {/* BOTÓN PUBLICAR - Solo para admins y editores */}
+          {canPublish && (
+            <Button 
+              onClick={handlePublish} 
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+              disabled={isPublishing || isSaving}
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Publicar Startup
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -734,16 +785,19 @@ Revisa la consola para más detalles.
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="is_featured"
-                          checked={formData.is_featured}
-                          onChange={(e) => handleInputChange("is_featured", e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor="is_featured">Startup destacada</Label>
-                      </div>
+                      {/* Solo admins/editores pueden marcar como destacada */}
+                      {canEdit && (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="is_featured"
+                            checked={formData.is_featured}
+                            onChange={(e) => handleInputChange("is_featured", e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="is_featured">Startup destacada</Label>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

@@ -233,20 +233,28 @@ export default function AuthCallback() {
             
             if (currentUser) {
               const userEmail = currentUser.email?.toLowerCase().trim();
-              console.log(`📧 Checking user email for admin access: ${userEmail}`);
+              console.log(`📧 Checking user email for access: ${userEmail}`);
               
-              // Lista de usuarios autorizados
-              const authorizedUsers: Record<string, string> = {
+              // Lista de usuarios con roles administrativos
+              const adminUsers: Record<string, string> = {
                 'anthochavez.ra@gmail.com': 'admin',
                 'guillermos22@gmail.com': 'editor', 
                 'fabiancepeda102@gmail.com': 'editor',
               };
               
-              const userRole = authorizedUsers[userEmail || ''];
+              // Verificar si tiene rol administrativo
+              const adminRole = adminUsers[userEmail || ''];
               
-              if (userRole) {
-                console.log(`🎯 Redirecting ${userRole} to admin panel`);
+              if (adminRole) {
+                console.log(`🎯 Redirecting ${adminRole} to admin panel`);
                 setTimeout(() => navigate('/admin', { replace: true }), 800);
+                return;
+              }
+              
+              // Si no es admin/editor pero tiene email verificado, es startup_owner
+              if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
+                console.log(`🎯 Redirecting verified user to startup dashboard`);
+                setTimeout(() => navigate('/startup-register', { replace: true }), 800);
                 return;
               }
             }
