@@ -257,7 +257,7 @@ const AdminCommunities = () => {
               Administra las comunidades del ecosistema DeFi México
             </p>
           </div>
-          <Button asChild className="bg-gradient-primary text-primary-foreground">
+          <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
             <Link to="/admin/comunidades/new">
               <Plus className="w-4 h-4 mr-2" />
               Nueva Comunidad
@@ -483,7 +483,7 @@ const AdminCommunities = () => {
                     ? "Intenta ajustar los filtros"
                     : "Agrega la primera comunidad"}
                 </p>
-                <Button asChild>
+                <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
                   <Link to="/admin/comunidades/new">
                     <Plus className="w-4 h-4 mr-2" />
                     Nueva Comunidad

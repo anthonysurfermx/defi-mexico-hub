@@ -399,7 +399,7 @@ export default function AdminEvents() {
             <option value="completed">Completados</option>
           </select>
 
-          <Button type="button" onClick={openNew} className="inline-flex items-center gap-2">
+          <Button type="button" onClick={openNew} className="bg-green-600 hover:bg-green-700 text-white inline-flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Nuevo evento
           </Button>

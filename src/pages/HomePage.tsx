@@ -29,6 +29,7 @@ import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
 import { coursesService, type Course } from '@/services/courses.service';
+import { useAuth } from '@/hooks/useAuth';
 
 // Datos estáticos de InvestmentOpportunitiesPage para la mejor oportunidad
 const gbmFunds = [
@@ -114,6 +115,7 @@ const calculateReadTime = (content: string): number => {
 };
 
 export default function HomePage() {
+  const { user, isAdmin, hasRole } = useAuth();
   const [email, setEmail] = useState('');
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
   const [blogPosts, setBlogPosts] = useState<DomainPost[]>([]);
@@ -127,6 +129,24 @@ export default function HomePage() {
   const [bestInvestment, setBestInvestment] = useState<any>(null);
   const [featuredCourseData, setFeaturedCourseData] = useState<Course | null>(null);
   const [loadingFeaturedCourse, setLoadingFeaturedCourse] = useState(true);
+
+  // Función para manejar el clic en "Contribuye"
+  const handleContributeClick = () => {
+    if (!user) {
+      // Si no está autenticado, ir al login
+      return '/login';
+    }
+    
+    // Si está autenticado, redirigir según su rol
+    if (isAdmin() || hasRole('editor')) {
+      return '/admin';
+    } else if (hasRole('startup_owner')) {
+      return '/startup-register';
+    } else {
+      // Usuario normal va al dashboard de registro de startup
+      return '/startup-register';
+    }
+  };
 
   // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
   const loadFeaturedBlogPosts = async () => {
@@ -299,8 +319,8 @@ export default function HomePage() {
                 className="flex flex-col sm:flex-row gap-4 justify-center"
               >
                 <Button size="lg" className="group" asChild>
-                  <Link to="/startups" className="inline-flex items-center">
-                    Descubre Startups
+                  <Link to={handleContributeClick()} className="inline-flex items-center">
+                    Contribuye
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>

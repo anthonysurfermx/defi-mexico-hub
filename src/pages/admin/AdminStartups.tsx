@@ -197,7 +197,7 @@ const AdminStartups = () => {
             Administra el directorio de startups de DeFi México
           </p>
         </div>
-        <Button asChild className="bg-gradient-primary text-primary-foreground">
+        <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
           <Link to="/admin/startups/new" className="flex items-center">
             <Plus className="w-4 h-4 mr-2" />
             Nueva Startup

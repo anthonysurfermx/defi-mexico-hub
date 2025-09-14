@@ -9,8 +9,6 @@ import {
   Users, 
   Home,
   Github,
-  Twitter,
-  Linkedin,
   Mail,
   ChevronRight,
   Rocket,
@@ -20,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { WalletConnect } from '@/components/WalletConnect';
 
 export default function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -81,15 +78,13 @@ export default function MainLayout() {
               })}
             </div>
 
-            {/* Wallet Connect - Reemplaza el botón Admin */}
+            {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-4">
-              <WalletConnect />
+              {/* Espacio reservado para futuras funcionalidades */}
             </div>
 
             {/* Mobile menu button */}
             <div className="flex items-center gap-2 md:hidden">
-              {/* Wallet Connect para móvil */}
-              <WalletConnect />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg hover:bg-accent"
@@ -156,28 +151,12 @@ export default function MainLayout() {
               </p>
               <div className="flex space-x-3">
                 <a 
-                  href="https://twitter.com/defimexico" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a 
                   href="https://github.com/anthonysurfermx/defi-mexico-hub" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   <Github className="h-5 w-5" />
-                </a>
-                <a 
-                  href="https://linkedin.com/company/defimexico" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Linkedin className="h-5 w-5" />
                 </a>
               </div>
             </div>

@@ -150,8 +150,11 @@ const Navbar = () => {
               <Button
                 size="sm"
                 className="bg-gradient-primary text-primary-foreground hover:shadow-neon transition-all duration-300"
+                asChild
               >
-                Newsletter
+                <Link to="/login">
+                  Contribuye
+                </Link>
               </Button>
             </div>
 
@@ -296,9 +299,11 @@ const Navbar = () => {
                   </Button>
                   <Button
                     className="w-full bg-gradient-primary text-primary-foreground"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    asChild
                   >
-                    Newsletter
+                    <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                      Contribuye
+                    </Link>
                   </Button>
                 </div>
               </div>

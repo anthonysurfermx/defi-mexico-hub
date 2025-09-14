@@ -216,7 +216,7 @@ const AdminUsers = () => {
               Administra usuarios, roles y permisos del sistema
             </p>
           </div>
-          <Button className="bg-gradient-primary text-primary-foreground">
+          <Button className="bg-green-600 hover:bg-green-700 text-white">
             <Plus className="w-4 h-4 mr-2" />
             Invitar Usuario
           </Button>
