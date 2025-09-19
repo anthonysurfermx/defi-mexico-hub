@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { 
-  BookOpen, 
+import {
+  BookOpen,
   Search,
   ChevronRight
 } from 'lucide-react';
@@ -25,68 +25,68 @@ const DeFiAcademyPage = () => {
   const [activeTab, setActiveTab] = useState<CourseCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  
+
   // Estados para los datos reales
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Cargar cursos al montar el componente
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setLoading(true);
         console.log('🔄 Cargando cursos desde Supabase...');
-        
+
         // Cargar todos los cursos publicados
-        const { data: coursesData, error: coursesError } = await coursesService.getPublishedCourses({ 
-          page: 1, 
-          pageSize: 100 
+        const { data: coursesData, error: coursesError } = await coursesService.getPublishedCourses({
+          page: 1,
+          pageSize: 100
         });
-        
+
         if (coursesError) {
           console.error('❌ Error cargando cursos:', coursesError);
           return;
         }
-        
+
         if (coursesData) {
           setAllCourses(coursesData);
           console.log(`✅ ${coursesData.length} cursos cargados`);
         }
-        
+
       } catch (error) {
         console.error('❌ Error en loadCourses:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadCourses();
   }, []);
 
   // Filtrar cursos por categoría activa, búsqueda y nivel
   const filteredCourses = useMemo(() => {
     let courses = allCourses;
-    
+
     // Filtrar por categoría (tab activa)
     if (activeTab !== 'all') {
       courses = courses.filter(course => course.category === activeTab);
     }
-    
+
     // Filtrar por búsqueda
     if (searchQuery) {
-      courses = courses.filter(course => 
+      courses = courses.filter(course =>
         course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.topics.some(topic => topic.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
-    
+
     // Filtrar por nivel
     if (selectedLevel !== 'all') {
       courses = courses.filter(course => course.level === selectedLevel);
     }
-    
+
     // Ordenar por destacados primero, luego por rating y estudiantes
     return courses.sort((a, b) => {
       if (a.featured && !b.featured) return -1;
@@ -95,7 +95,7 @@ const DeFiAcademyPage = () => {
       return b.students - a.students;
     });
   }, [allCourses, activeTab, searchQuery, selectedLevel]);
-  
+
   // Obtener cursos por categoría para las tabs
   const getCoursesByCategory = (category: CourseCategory) => {
     return allCourses.filter(course => course.category === category);
@@ -107,7 +107,7 @@ const DeFiAcademyPage = () => {
       <Helmet>
         <title>DeFi México - Ecosistema DeFi en México</title>
         <meta name="description" content="La organización líder que promueve el ecosistema de finanzas descentralizadas en México" />
-        
+
         {/* Open Graph Meta Tags (Facebook, WhatsApp, LinkedIn, Telegram) */}
         <meta property="og:url" content="https://www.defimexico.org/academia" />
         <meta property="og:type" content="website" />
@@ -118,7 +118,7 @@ const DeFiAcademyPage = () => {
         <meta property="og:image:height" content="589" />
         <meta property="og:site_name" content="DeFi México" />
         <meta property="og:locale" content="es_MX" />
-        
+
         {/* Twitter Meta Tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta property="twitter:domain" content="defimexico.org" />
@@ -126,12 +126,12 @@ const DeFiAcademyPage = () => {
         <meta name="twitter:title" content="DeFi México - Ecosistema DeFi en México" />
         <meta name="twitter:description" content="La organización líder que promueve el ecosistema de finanzas descentralizadas en México" />
         <meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/75249fc8-95b0-44e2-b321-6ff88840af04.png?token=5M5E5scIKPws7Jpq7SuQ5b_p1Jeu1hwyqDkuU1GSi7w&height=589&width=1200&expires=33292839930" />
-        
+
         {/* Telegram específico - usa Open Graph pero estos tags adicionales ayudan */}
         <meta name="telegram:card" content="summary_large_image" />
         <meta itemProp="image" content="https://opengraph.b-cdn.net/production/images/75249fc8-95b0-44e2-b321-6ff88840af04.png?token=5M5E5scIKPws7Jpq7SuQ5b_p1Jeu1hwyqDkuU1GSi7w&height=589&width=1200&expires=33292839930" />
       </Helmet>
-      
+
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
         <section className="relative py-24 bg-gradient-to-br from-primary/5 via-background to-muted/20">
@@ -146,7 +146,7 @@ const DeFiAcademyPage = () => {
                 DeFi Academy
               </h1>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                Aprende DeFi, DeFAI y Fintech con expertos de la industria. 
+                Aprende DeFi, DeFAI y Fintech con expertos de la industria.
                 Cursos prácticos que te llevarán de principiante a experto.
               </p>
               <div className="flex justify-center">
@@ -191,8 +191,8 @@ const DeFiAcademyPage = () => {
                   className="pl-10"
                 />
               </div>
-              <select 
-                value={selectedLevel} 
+              <select
+                value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
                 className="px-4 py-2 border rounded-lg bg-background min-w-[150px]"
               >
@@ -229,7 +229,7 @@ const DeFiAcademyPage = () => {
                     {filteredCourses.length} curso{filteredCourses.length !== 1 ? 's' : ''} encontrado{filteredCourses.length !== 1 ? 's' : ''}
                   </div>
                 </div>
-                
+
                 {loading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Array.from({ length: 6 }).map((_, i) => (
@@ -256,13 +256,13 @@ const DeFiAcademyPage = () => {
                     <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                     <h4 className="text-lg font-semibold mb-2">No se encontraron cursos</h4>
                     <p className="text-muted-foreground">
-                      {searchQuery 
-                        ? `No hay cursos que coincidan con "${searchQuery}"` 
+                      {searchQuery
+                        ? `No hay cursos que coincidan con "${searchQuery}"`
                         : 'No hay cursos disponibles en esta categoría'}
                     </p>
                     {searchQuery && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => setSearchQuery('')}
                         className="mt-4"
                       >

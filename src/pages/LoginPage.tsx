@@ -52,8 +52,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
-    setFocus,
-    watch
+    setFocus
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -62,15 +61,10 @@ export default function LoginPage() {
     }
   });
   
-  const emailValue = watch('email');
-  
+  // Foco inicial solo al cargar la página
   useEffect(() => {
-    if (emailValue) {
-      setFocus('password');
-    } else {
-      setFocus('email');
-    }
-  }, [setFocus, emailValue]);
+    setFocus('email');
+  }, [setFocus]);
   
   useEffect(() => {
     if (user) {

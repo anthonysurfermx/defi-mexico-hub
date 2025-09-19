@@ -500,8 +500,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Lista de usuarios con roles administrativos
     const adminUsers: Record<string, Role> = {
       'anthochavez.ra@gmail.com': 'admin',
-      'guillermos22@gmail.com': 'editor', 
+      'guillermos22@gmail.com': 'editor',
       'fabiancepeda102@gmail.com': 'editor',
+      'cruzcervantesdanieladrianelias@gmail.com': 'editor',
     };
     
     // Verificar si el usuario tiene rol administrativo
