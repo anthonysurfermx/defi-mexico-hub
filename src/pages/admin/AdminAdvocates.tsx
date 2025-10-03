@@ -1,0 +1,825 @@
+// src/pages/admin/AdminAdvocates.tsx
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  Plus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Star,
+  Users,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { advocatesService, type DeFiAdvocate } from "@/services/advocates.service";
+
+const trackLabels: Record<string, string> = {
+  developer: "Programador",
+  lawyer: "Abogado",
+  financial: "Financiero",
+  designer: "Diseñador",
+  marketer: "Marketer",
+  other: "Otro",
+};
+
+const AdminAdvocates = () => {
+  const [advocates, setAdvocates] = useState<DeFiAdvocate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [trackFilter, setTrackFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [advocateToDelete, setAdvocateToDelete] = useState<DeFiAdvocate | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [advocateToEdit, setAdvocateToEdit] = useState<DeFiAdvocate | null>(null);
+  const [loadingAvatar, setLoadingAvatar] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    bio: "",
+    location: "",
+    expertise: "",
+    track: "other",
+    avatar_url: "",
+    twitter_url: "",
+    linkedin_url: "",
+    github_url: "",
+    website: "",
+    specializations: [] as string[],
+    is_featured: false,
+    is_active: true,
+  });
+
+  // Helper para obtener avatar de GitHub
+  const getGitHubAvatar = (githubUrl: string): string | null => {
+    try {
+      const username = githubUrl.split('github.com/')[1]?.split('/')[0];
+      if (username) {
+        return `https://github.com/${username}.png?size=200`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper para obtener avatar de Twitter/X
+  const getTwitterAvatar = (twitterUrl: string): string | null => {
+    try {
+      // Soporta tanto twitter.com como x.com
+      let username = twitterUrl.split('twitter.com/')[1]?.split('/')[0];
+      if (!username) {
+        username = twitterUrl.split('x.com/')[1]?.split('/')[0];
+      }
+      if (username) {
+        username = username.replace('@', '');
+        // Usar API de unavatar que obtiene avatares de varias plataformas
+        return `https://unavatar.io/twitter/${username}`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Auto-obtener avatar cuando se agrega GitHub o Twitter URL
+  const handleAutoFetchAvatar = () => {
+    setLoadingAvatar(true);
+
+    // Primero intenta GitHub (mejor calidad)
+    if (formData.github_url) {
+      const githubAvatar = getGitHubAvatar(formData.github_url);
+      if (githubAvatar) {
+        setFormData({ ...formData, avatar_url: githubAvatar });
+        toast.success("Avatar obtenido de GitHub");
+        setLoadingAvatar(false);
+        return;
+      }
+    }
+
+    // Si no hay GitHub, intenta Twitter
+    if (formData.twitter_url) {
+      const twitterAvatar = getTwitterAvatar(formData.twitter_url);
+      if (twitterAvatar) {
+        setFormData({ ...formData, avatar_url: twitterAvatar });
+        toast.success("Avatar obtenido de Twitter");
+        setLoadingAvatar(false);
+        return;
+      }
+    }
+
+    toast.error("No se pudo obtener el avatar. Verifica las URLs.");
+    setLoadingAvatar(false);
+  };
+
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    featured: 0,
+    byTrack: {} as Record<string, number>,
+  });
+
+  useEffect(() => {
+    loadAdvocates();
+  }, []);
+
+  useEffect(() => {
+    calculateStats();
+  }, [advocates]);
+
+  const loadAdvocates = async () => {
+    try {
+      setLoading(true);
+      const data = await advocatesService.getAllAdvocates();
+      setAdvocates(data || []);
+    } catch (error) {
+      console.error("Error loading advocates:", error);
+      toast.error("Error al cargar los referentes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = () => {
+    const total = advocates.length;
+    const active = advocates.filter((a) => a.is_active).length;
+    const featured = advocates.filter((a) => a.is_featured).length;
+    const byTrack: Record<string, number> = {};
+
+    advocates.forEach((adv) => {
+      const track = adv.track || "community_advocate";
+      byTrack[track] = (byTrack[track] || 0) + 1;
+    });
+
+    setStats({ total, active, featured, byTrack });
+  };
+
+  const filteredAdvocates = advocates.filter((advocate) => {
+    const matchesSearch =
+      advocate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      advocate.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTrack = trackFilter === "all" || advocate.track === trackFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && advocate.is_active) ||
+      (statusFilter === "inactive" && !advocate.is_active);
+
+    return matchesSearch && matchesTrack && matchesStatus;
+  });
+
+  const handleDelete = async () => {
+    if (!advocateToDelete) return;
+
+    try {
+      await advocatesService.deleteAdvocate(advocateToDelete.id);
+      toast.success("Referente desactivado exitosamente");
+      loadAdvocates();
+      setDeleteDialogOpen(false);
+      setAdvocateToDelete(null);
+    } catch (error) {
+      console.error("Error deleting advocate:", error);
+      toast.error("Error al desactivar el referente");
+    }
+  };
+
+  const handleToggleFeatured = async (advocate: DeFiAdvocate) => {
+    try {
+      await advocatesService.toggleFeatured(advocate.id, !advocate.is_featured);
+      toast.success(
+        advocate.is_featured ? "Referente removido de destacados" : "Referente destacado"
+      );
+      loadAdvocates();
+    } catch (error) {
+      console.error("Error toggling featured:", error);
+      toast.error("Error al actualizar el referente");
+    }
+  };
+
+  const handleToggleActive = async (advocate: DeFiAdvocate) => {
+    try {
+      await advocatesService.toggleActive(advocate.id, !advocate.is_active);
+      toast.success(advocate.is_active ? "Referente desactivado" : "Referente activado");
+      loadAdvocates();
+    } catch (error) {
+      console.error("Error toggling active:", error);
+      toast.error("Error al actualizar el referente");
+    }
+  };
+
+  const openCreateDialog = () => {
+    setAdvocateToEdit(null);
+    setFormData({
+      name: "",
+      email: "",
+      bio: "",
+      location: "",
+      expertise: "",
+      track: "other",
+      avatar_url: "",
+      twitter_url: "",
+      linkedin_url: "",
+      github_url: "",
+      website: "",
+      specializations: [],
+      is_featured: false,
+      is_active: true,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const openEditDialog = (advocate: DeFiAdvocate) => {
+    setAdvocateToEdit(advocate);
+    setFormData({
+      name: advocate.name,
+      email: advocate.email || "",
+      bio: advocate.bio || "",
+      location: advocate.location || "",
+      expertise: advocate.expertise || "",
+      track: advocate.track || "community_advocate",
+      avatar_url: advocate.avatar_url || "",
+      twitter_url: advocate.twitter_url || "",
+      linkedin_url: advocate.linkedin_url || "",
+      github_url: advocate.github_url || "",
+      website: advocate.website || "",
+      specializations: advocate.specializations || [],
+      is_featured: advocate.is_featured || false,
+      is_active: advocate.is_active !== false,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveAdvocate = async () => {
+    try {
+      const slug = advocatesService.generateSlug(formData.name);
+
+      if (advocateToEdit) {
+        // Editar
+        await advocatesService.updateAdvocate(advocateToEdit.id, {
+          ...formData,
+          slug,
+        });
+        toast.success("Referente actualizado exitosamente");
+      } else {
+        // Crear
+        await advocatesService.createAdvocate({
+          ...formData,
+          slug,
+        });
+        toast.success("Referente creado exitosamente");
+      }
+
+      loadAdvocates();
+      setEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving advocate:", error);
+      toast.error("Error al guardar el referente");
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Referentes DeFi</h1>
+          <p className="text-muted-foreground">
+            Gestiona los referentes y advocates del ecosistema
+          </p>
+        </div>
+        <Button onClick={openCreateDialog}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Referente
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Activos</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.active}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Destacados</CardTitle>
+            <Star className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.featured}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Desarrolladores</CardTitle>
+            <Filter className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.byTrack["developer"] || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar por nombre o ubicación..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <Select value={trackFilter} onValueChange={setTrackFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                {Object.entries(trackLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Activos</SelectItem>
+                <SelectItem value="inactive">Inactivos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Advocates List */}
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredAdvocates.map((advocate, index) => (
+            <motion.div
+              key={advocate.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={advocate.avatar_url || undefined} />
+                      <AvatarFallback>{getInitials(advocate.name)}</AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                            {advocate.name}
+                            {advocate.is_featured && (
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            )}
+                          </h3>
+                          {advocate.location && (
+                            <p className="text-sm text-muted-foreground">{advocate.location}</p>
+                          )}
+                          {advocate.expertise && (
+                            <p className="text-sm text-primary mt-1">{advocate.expertise}</p>
+                          )}
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(advocate)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleFeatured(advocate)}>
+                              <Star className="h-4 w-4 mr-2" />
+                              {advocate.is_featured ? "Quitar de destacados" : "Destacar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleActive(advocate)}>
+                              {advocate.is_active ? (
+                                <XCircle className="h-4 w-4 mr-2" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                              )}
+                              {advocate.is_active ? "Desactivar" : "Activar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                setAdvocateToDelete(advocate);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Badge variant={advocate.is_active ? "default" : "secondary"}>
+                          {advocate.is_active ? "Activo" : "Inactivo"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {trackLabels[advocate.track || "other"]}
+                        </Badge>
+                        {advocate.specializations?.slice(0, 3).map((spec, i) => (
+                          <Badge key={i} variant="secondary">
+                            {spec}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+
+          {filteredAdvocates.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No hay referentes</h3>
+                <p className="text-muted-foreground">
+                  No se encontraron referentes con los filtros aplicados.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción desactivará el referente. Podrás reactivarlo más tarde.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Desactivar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {advocateToEdit ? "Editar Referente" : "Nuevo Referente"}
+            </DialogTitle>
+            <DialogDescription>
+              Completa la información del referente del ecosistema DeFi
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Juan Pérez"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="juan@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Ubicación</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Ciudad de México, México"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="track">Categoría</Label>
+                <Select
+                  value={formData.track}
+                  onValueChange={(value) => setFormData({ ...formData, track: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(trackLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expertise">Experiencia/Especialidad</Label>
+              <Input
+                id="expertise"
+                value={formData.expertise}
+                onChange={(e) => setFormData({ ...formData, expertise: e.target.value })}
+                placeholder="Smart Contracts, DeFi Protocols"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Biografía</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Breve descripción..."
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avatar_url">Avatar</Label>
+              <div className="flex gap-3 items-start">
+                {/* Vista previa del avatar */}
+                <div className="flex-shrink-0">
+                  <Avatar className="w-20 h-20 ring-2 ring-border">
+                    <AvatarImage src={formData.avatar_url || undefined} />
+                    <AvatarFallback className="text-lg">
+                      {formData.name ? getInitials(formData.name) : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                {/* Input y botón */}
+                <div className="flex-1 space-y-2">
+                  <Input
+                    id="avatar_url"
+                    value={formData.avatar_url}
+                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                    placeholder="https://..."
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoFetchAvatar}
+                    disabled={loadingAvatar || (!formData.github_url && !formData.twitter_url)}
+                    className="w-full"
+                  >
+                    {loadingAvatar ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                        Obteniendo...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3 w-3 mr-2" />
+                        Obtener de GitHub/Twitter
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Agrega primero una URL de GitHub o Twitter, luego haz clic en el botón para obtener el avatar automáticamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="twitter_url">Twitter/X</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="twitter_url"
+                    value={formData.twitter_url}
+                    onChange={(e) => {
+                      const newUrl = e.target.value;
+                      setFormData({ ...formData, twitter_url: newUrl });
+
+                      // Auto-obtener avatar si no hay uno y la URL es válida
+                      if (newUrl && !formData.avatar_url && (newUrl.includes('twitter.com/') || newUrl.includes('x.com/'))) {
+                        const avatar = getTwitterAvatar(newUrl);
+                        if (avatar) {
+                          setTimeout(() => {
+                            setFormData(prev => ({ ...prev, avatar_url: avatar }));
+                            toast.success("✨ Avatar obtenido de Twitter");
+                          }, 500);
+                        }
+                      }
+                    }}
+                    placeholder="https://x.com/usuario o https://twitter.com/usuario"
+                  />
+                  {formData.twitter_url && formData.avatar_url && (
+                    <div className="flex items-center text-xs text-green-600 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="github_url">GitHub</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="github_url"
+                    value={formData.github_url}
+                    onChange={(e) => {
+                      const newUrl = e.target.value;
+                      setFormData({ ...formData, github_url: newUrl });
+
+                      // Auto-obtener avatar si no hay uno y la URL es válida
+                      if (newUrl && !formData.avatar_url && newUrl.includes('github.com/')) {
+                        const avatar = getGitHubAvatar(newUrl);
+                        if (avatar) {
+                          setTimeout(() => {
+                            setFormData(prev => ({ ...prev, avatar_url: avatar }));
+                            toast.success("✨ Avatar obtenido de GitHub");
+                          }, 500);
+                        }
+                      }
+                    }}
+                    placeholder="https://github.com/usuario"
+                  />
+                  {formData.github_url && formData.avatar_url && (
+                    <div className="flex items-center text-xs text-green-600 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="linkedin_url">LinkedIn</Label>
+                <Input
+                  id="linkedin_url"
+                  value={formData.linkedin_url}
+                  onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                  placeholder="https://linkedin.com/in/..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.is_featured}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_featured: e.target.checked })
+                  }
+                  className="rounded"
+                />
+                <span className="text-sm">Destacado</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="rounded"
+                />
+                <span className="text-sm">Activo</span>
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveAdvocate} disabled={!formData.name}>
+              {advocateToEdit ? "Actualizar" : "Crear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminAdvocates;

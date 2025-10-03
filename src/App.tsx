@@ -28,6 +28,7 @@ const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
 const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
+const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
 
 // Digital Art NFT Pages
 const DigitalArtDeFiPage = lazy(() => import('@/pages/DigitalArtDeFiPage'));
@@ -49,6 +50,7 @@ const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
+const AdminAdvocates = lazy(() => import('@/pages/admin/AdminAdvocates'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
 
@@ -326,6 +328,14 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'referentes',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ReferentesPage />
+                </Suspense>
+              ),
+            },
             // Digital Art NFT Routes
             {
               path: 'digital-art-defi',
@@ -565,6 +575,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminCommunityForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'referentes',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminAdvocates />
                 </Suspense>
               ),
             },

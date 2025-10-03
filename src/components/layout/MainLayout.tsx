@@ -1,23 +1,39 @@
 // src/components/layout/MainLayout.tsx
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { 
-  Menu, 
-  X, 
-  Building2, 
-  FileText, 
-  Calendar, 
-  Users, 
+import {
+  Menu,
+  X,
+  Building2,
+  FileText,
+  Calendar,
+  Users,
   Home,
   Github,
   Mail,
   ChevronRight,
-  Rocket,
   Settings,
   BookOpen,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  Sparkles,
+  UserCircle2,
+  Coins,
+  GraduationCap,
+  BarChart3,
+  Newspaper,
+  CalendarDays,
+  Network,
+  UserCheck,
+  Layers
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,18 +44,36 @@ export default function MainLayout() {
     setMobileMenuOpen(false);
   }, [location]);
 
-  const navigation = [
+  // Navegación principal simplificada
+  const mainNavigation = [
     { name: 'Inicio', href: '/', icon: Home },
-    { name: 'Startups', href: '/startups', icon: Building2 },
-    { name: 'Academia', href: '/academia', icon: BookOpen },
-    { name: 'Análisis de APY', href: '/oportunidades', icon: TrendingUp },
-    { name: 'Comunidades', href: '/comunidades', icon: Users },
-    { name: 'Blog', href: '/blog', icon: FileText },
-    { name: 'Eventos', href: '/eventos', icon: Calendar },
+    { name: 'Análisis APY', href: '/oportunidades', icon: BarChart3 },
+  ];
+
+  // Navegación "Aprende" (dropdown)
+  const aprendeNavigation = [
+    { name: 'Academia', href: '/academia', icon: GraduationCap, description: 'Cursos y recursos DeFi' },
+    { name: 'Blog', href: '/blog', icon: Newspaper, description: 'Artículos y noticias' },
+  ];
+
+  // Navegación del ecosistema (dropdown)
+  const ecosistemaNavigation = [
+    { name: 'Startups', href: '/startups', icon: Layers, description: 'Proyectos DeFi en México' },
+    { name: 'Comunidades', href: '/comunidades', icon: Network, description: 'Grupos y comunidades' },
+    { name: 'Referentes', href: '/referentes', icon: UserCheck, description: 'Líderes del ecosistema' },
+    { name: 'Eventos', href: '/eventos', icon: CalendarDays, description: 'Eventos y conferencias' },
   ];
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isEcosistemaActive = () => {
+    return ecosistemaNavigation.some(item => location.pathname.startsWith(item.href));
+  };
+
+  const isAprendeActive = () => {
+    return aprendeNavigation.some(item => location.pathname.startsWith(item.href));
   };
 
   return (
@@ -50,23 +84,23 @@ export default function MainLayout() {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <Rocket className="h-6 w-6 text-primary" />
+              <Coins className="h-6 w-6 text-primary" />
               <span className="font-bold text-xl">DeFi México</span>
             </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex md:items-center md:space-x-1">
-              {navigation.map((item) => {
+              {mainNavigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
                     className={`
-                      flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
+                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
-                      ${isActive(item.href) 
-                        ? 'bg-accent text-accent-foreground' 
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
                         : 'text-muted-foreground'
                       }
                     `}
@@ -76,11 +110,98 @@ export default function MainLayout() {
                   </Link>
                 );
               })}
+
+              {/* Dropdown Aprende */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`
+                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isAprendeActive()
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Aprende
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {aprendeNavigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem key={item.name} asChild>
+                        <Link
+                          to={item.href}
+                          className="flex items-start gap-3 cursor-pointer"
+                        >
+                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <div className="flex-1">
+                            <div className="font-medium">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Dropdown Ecosistema */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`
+                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isEcosistemaActive()
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <Network className="h-4 w-4" />
+                    Ecosistema
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {ecosistemaNavigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem key={item.name} asChild>
+                        <Link
+                          to={item.href}
+                          className="flex items-start gap-3 cursor-pointer"
+                        >
+                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <div className="flex-1">
+                            <div className="font-medium">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-4">
-              {/* Espacio reservado para futuras funcionalidades */}
+            <div className="hidden md:flex items-center gap-3">
+              <Button size="sm" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
+                <Link to="/startup-register">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Contribuye
+                </Link>
+              </Button>
             </div>
 
             {/* Mobile menu button */}
@@ -103,7 +224,8 @@ export default function MainLayout() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t">
             <div className="container mx-auto px-4 py-4 space-y-1">
-              {navigation.map((item) => {
+              {/* Main Navigation */}
+              {mainNavigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -112,8 +234,8 @@ export default function MainLayout() {
                     className={`
                       flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
-                      ${isActive(item.href) 
-                        ? 'bg-accent text-accent-foreground' 
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
                         : 'text-muted-foreground'
                       }
                     `}
@@ -126,6 +248,86 @@ export default function MainLayout() {
                   </Link>
                 );
               })}
+
+              {/* Aprende Section */}
+              <div className="pt-2 pb-1 px-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Aprende
+                </p>
+              </div>
+              {aprendeNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`
+                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <Icon className="h-5 w-5 mt-0.5" />
+                    <div className="flex-1">
+                      <div>{item.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.description}
+                      </div>
+                    </div>
+                    {isActive(item.href) && (
+                      <ChevronRight className="h-4 w-4 ml-auto mt-1" />
+                    )}
+                  </Link>
+                );
+              })}
+
+              {/* Ecosistema Section */}
+              <div className="pt-2 pb-1 px-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Ecosistema
+                </p>
+              </div>
+              {ecosistemaNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`
+                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <Icon className="h-5 w-5 mt-0.5" />
+                    <div className="flex-1">
+                      <div>{item.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.description}
+                      </div>
+                    </div>
+                    {isActive(item.href) && (
+                      <ChevronRight className="h-4 w-4 ml-auto mt-1" />
+                    )}
+                  </Link>
+                );
+              })}
+
+              {/* Mobile Actions */}
+              <div className="pt-4">
+                <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
+                  <Link to="/startup-register">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Contribuye
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -143,7 +345,7 @@ export default function MainLayout() {
             {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Rocket className="h-6 w-6 text-primary" />
+                <Coins className="h-6 w-6 text-primary" />
                 <span className="font-bold text-lg">DeFi México Hub</span>
               </div>
               <p className="text-sm text-muted-foreground">

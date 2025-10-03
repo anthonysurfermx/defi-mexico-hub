@@ -91,11 +91,13 @@ export type Database = {
           banner_url: string | null
           category: string
           created_at: string | null
+          created_by: string | null
           description: string
           founded_date: string | null
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          is_verified: boolean | null
           location: string | null
           logo_url: string | null
           member_count: number | null
@@ -104,17 +106,21 @@ export type Database = {
           social_links: Json | null
           tags: string[] | null
           updated_at: string | null
+          verified_at: string | null
+          verified_by: string | null
           website: string | null
         }
         Insert: {
           banner_url?: string | null
           category: string
           created_at?: string | null
+          created_by?: string | null
           description: string
           founded_date?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
           logo_url?: string | null
           member_count?: number | null
@@ -123,17 +129,21 @@ export type Database = {
           social_links?: Json | null
           tags?: string[] | null
           updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
         }
         Update: {
           banner_url?: string | null
           category?: string
           created_at?: string | null
+          created_by?: string | null
           description?: string
           founded_date?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
           logo_url?: string | null
           member_count?: number | null
@@ -141,6 +151,80 @@ export type Database = {
           slug?: string
           social_links?: Json | null
           tags?: string[] | null
+          updated_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      defi_advocates: {
+        Row: {
+          achievements: string[] | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          email: string | null
+          expertise: string | null
+          github_url: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          linkedin_url: string | null
+          location: string | null
+          name: string
+          slug: string
+          specializations: string[] | null
+          track: Database["public"]["Enums"]["advocate_track"] | null
+          twitter_url: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          achievements?: string[] | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          email?: string | null
+          expertise?: string | null
+          github_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          linkedin_url?: string | null
+          location?: string | null
+          name: string
+          slug: string
+          specializations?: string[] | null
+          track?: Database["public"]["Enums"]["advocate_track"] | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          achievements?: string[] | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          email?: string | null
+          expertise?: string | null
+          github_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          linkedin_url?: string | null
+          location?: string | null
+          name?: string
+          slug?: string
+          specializations?: string[] | null
+          track?: Database["public"]["Enums"]["advocate_track"] | null
+          twitter_url?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1267,6 +1351,12 @@ export type Database = {
       }
     }
     Enums: {
+      advocate_track:
+        | "developer_expert"
+        | "community_advocate"
+        | "researcher"
+        | "educator"
+        | "influencer"
       application_status:
         | "submitted"
         | "under_review"
@@ -1420,6 +1510,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      advocate_track: [
+        "developer_expert",
+        "community_advocate",
+        "researcher",
+        "educator",
+        "influencer",
+      ],
       application_status: [
         "submitted",
         "under_review",
