@@ -5,10 +5,18 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  define: {
+    global: 'globalThis',
+    'process.env': {},
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      buffer: 'buffer',
     },
+  },
+  optimizeDeps: {
+    include: ['buffer'],
   },
   build: {
     outDir: 'dist',

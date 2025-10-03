@@ -119,7 +119,7 @@ class BlogService {
     page?: number;
     pageSize?: number;
     q?: string;
-    status?: 'published' | 'draft' | 'all';
+    status?: 'published' | 'draft' | 'review' | 'all';
     category?: string;
     tag?: string;
     signal?: AbortSignal;
@@ -142,6 +142,8 @@ class BlogService {
       query = query.eq('status', 'published');
     } else if (params.status === 'draft') {
       query = query.eq('status', 'draft');
+    } else if (params.status === 'review') {
+      query = query.eq('status', 'review');
     }
     // Si es 'all', no filtrar por status
 
@@ -193,14 +195,14 @@ class BlogService {
     filters?: {
       search?: string;
       published?: boolean;
-      status?: 'published' | 'draft' | 'all';
+      status?: 'published' | 'draft' | 'review' | 'all';
       category?: string;
       tag?: string;
     },
     signal?: AbortSignal
   ) {
     // Convertir el filtro 'published' booleano a 'status' string
-    let status: 'published' | 'draft' | 'all' = 'all';
+    let status: 'published' | 'draft' | 'review' | 'all' = 'all';
     if (filters?.status) {
       status = filters.status;
     } else if (filters?.published !== undefined) {

@@ -1,12 +1,14 @@
 // src/pages/BlogPage.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Filter, Loader2, RotateCcw } from "lucide-react";
+import { Search, Filter, Loader2, RotateCcw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BlogCard from "@/components/ui/blog-card";
 import { blogService, type DomainPost } from "@/services/blog.service";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 // Util: formatear fechas de manera segura
 const formatDateEsMX = (iso?: string) => {
@@ -41,6 +43,8 @@ const PAGE_SIZE = 12;
 const DEBOUNCE_MS = 300;
 
 const BlogPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const initial = useRef(readQuery());
   const [posts, setPosts] = useState<DomainPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +60,14 @@ const BlogPage = () => {
 
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<number | null>(null);
+
+  const handleAddEntry = () => {
+    if (user) {
+      navigate('/admin/blog');
+    } else {
+      navigate('/login?redirectTo=/admin/blog');
+    }
+  };
 
   // Debounce de búsqueda
   useEffect(() => {
@@ -166,24 +178,34 @@ const BlogPage = () => {
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Blog <span className="text-gradient bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">DeFi México</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-4">
-            Mantente al día con las últimas tendencias, análisis técnicos y noticias del ecosistema DeFi mexicano y global.
-          </p>
-          {!loading && (
-            <p className="text-sm text-muted-foreground">
-              {totalPosts === 0 ? "No hay artículos disponibles" : totalPosts === 1 ? "1 artículo publicado" : `${totalPosts} artículos publicados`}
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex-1"
+          >
+            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Blog <span className="text-gradient bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">DeFi México</span>
+            </h1>
+            <p className="text-lg text-muted-foreground mb-2">
+              Mantente al día con las últimas tendencias, análisis técnicos y noticias del ecosistema DeFi mexicano y global.
             </p>
-          )}
-        </motion.div>
+            {!loading && (
+              <p className="text-sm text-muted-foreground">
+                {totalPosts === 0 ? "No hay artículos disponibles" : totalPosts === 1 ? "1 artículo publicado" : `${totalPosts} artículos publicados`}
+              </p>
+            )}
+          </motion.div>
+          <Button
+            size="lg"
+            onClick={handleAddEntry}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Agregar entrada
+          </Button>
+        </div>
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">

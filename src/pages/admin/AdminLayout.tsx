@@ -58,6 +58,13 @@ const menuItems: MenuItem[] = [
     requiredRoles: ['admin', 'editor'] // Admin y editor
   },
   {
+    title: 'Referentes',
+    path: '/admin/referentes',
+    icon: Users,
+    badge: 'Nuevo',
+    requiredRoles: ['admin', 'editor'] // Admin y editor
+  },
+  {
     title: 'Startups',
     path: '/admin/startups',
     icon: Building2,
@@ -92,7 +99,7 @@ export default function AdminLayout() {
   const filteredMenuItems = useMemo(() => {
     return menuItems.filter(item => {
       if (!item.requiredRoles?.length) return true; // Si no tiene restricciones, mostrar
-      return item.requiredRoles.some(role => userRoles.includes(role));
+      return item.requiredRoles.some(role => userRoles.includes(role as any));
     });
   }, [userRoles]);
 

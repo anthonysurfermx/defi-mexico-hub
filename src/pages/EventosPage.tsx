@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  ExternalLink, 
-  Globe, 
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  ExternalLink,
+  Globe,
   AlertCircle,
   Filter,
   Search,
   ChevronRight,
-  Ticket
+  Ticket,
+  Plus
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,18 +23,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { eventsService, type Event, type EventType } from "@/services/events.service";
+import { useAuth } from "@/hooks/useAuth";
 
 const EventosPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState<EventType | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Función para agregar evento
+  const handleAddEvent = () => {
+    if (user) {
+      navigate('/admin/eventos');
+    } else {
+      navigate('/login?redirectTo=/admin/eventos');
+    }
+  };
   
   // Cargar eventos desde Supabase
   useEffect(() => {
@@ -297,21 +310,31 @@ const EventosPage = () => {
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Eventos <span className="text-gradient">DeFi México</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Únete a nuestra vibrante comunidad en eventos, workshops y meetups. 
-            Aprende de expertos, conecta con otros desarrolladores y mantente 
-            al día con las últimas tendencias DeFi.
-          </p>
-        </motion.div>
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex-1"
+          >
+            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Eventos <span className="text-gradient">DeFi México</span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-3xl">
+              Únete a nuestra vibrante comunidad en eventos, workshops y meetups.
+              Aprende de expertos, conecta con otros desarrolladores y mantente
+              al día con las últimas tendencias DeFi.
+            </p>
+          </motion.div>
+          <Button
+            size="lg"
+            onClick={handleAddEvent}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Agrega tu evento
+          </Button>
+        </div>
 
         {/* Filtros */}
         {!loading && !error && (

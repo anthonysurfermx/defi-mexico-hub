@@ -6,8 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Plus, Pencil, Trash2, Search, X, FileText, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ImportJSONButton from '@/components/admin/ImportJSONButton';
+import { IMPORT_PROMPTS } from '@/constants/importPrompts';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Config
@@ -136,6 +139,7 @@ export default function AdminBlog() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalPosts, setTotalPosts] = useState(0);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   // Form state
   const [open, setOpen] = useState(false);
@@ -191,7 +195,7 @@ export default function AdminBlog() {
 
   const rejectPost = async (postId: string) => {
     if (!isAdmin()) return;
-    
+
     try {
       await blogService.updatePost(postId, { status: 'draft' });
       console.log('✅ Post rejected and returned to draft');
@@ -200,6 +204,54 @@ export default function AdminBlog() {
       console.error('💥 Error rejecting post:', err);
       alert('No se pudo rechazar el post');
     }
+  };
+
+  // Función de importación JSON
+  const handleImportBlogPosts = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      throw new Error("El JSON debe ser un array de artículos");
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const post of data) {
+      try {
+        if (!post.title) {
+          throw new Error("Falta el campo 'title'");
+        }
+
+        const slug = post.slug || generateSlug(post.title);
+
+        await blogService.createPost({
+          title: post.title,
+          slug,
+          excerpt: post.excerpt || null,
+          content: post.content || '',
+          category: post.category || 'other',
+          tags: post.tags || [],
+          featured_image: post.image_url || null,
+          status: post.is_published ? 'published' : 'draft',
+          is_featured: post.is_featured || false,
+          author_id: post.author_id || null,
+          reading_time: post.reading_time || null,
+          meta_description: post.meta_description || null,
+          meta_keywords: post.meta_keywords || null,
+        });
+
+        successCount++;
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`${post.title || "Unknown"}: ${error.message}`);
+      }
+    }
+
+    await load();
+    return { success: successCount, failed: failedCount, errors };
   };
 
   const fetchToken = useRef(0);
@@ -230,9 +282,11 @@ export default function AdminBlog() {
       
       // CLAVE: Ajustar el filtro para que coincida con el esquema real
       if (status === 'published') {
-        filters.published = true; // Para buscar status = 'published'
+        filters.status = 'published';
       } else if (status === 'draft') {
-        filters.published = false; // Para buscar status = 'draft'
+        filters.status = 'draft';
+      } else if (status === 'review') {
+        filters.status = 'review';
       }
       // Si status === 'all', no agregamos filtro (obtiene todos)
 
@@ -379,9 +433,34 @@ export default function AdminBlog() {
       }
       setOpen(false);
       await load();
-    } catch (err) {
+    } catch (err: any) {
       console.error('💥 Submit error:', err);
-      alert('No se pudo guardar. Revisa la consola para más detalles.');
+
+      // Mensaje de error más descriptivo
+      let errorMessage = 'Error al guardar el post:\n\n';
+
+      if (err?.message?.includes('Row level security')) {
+        errorMessage += '❌ No tienes permisos para realizar esta acción.\n';
+        errorMessage += 'Contacta al administrador para obtener los permisos necesarios.';
+      } else if (err?.message?.includes('duplicate key')) {
+        errorMessage += '❌ Ya existe un post con ese slug.\n';
+        errorMessage += 'Intenta con un título diferente.';
+      } else if (err?.code === 'PGRST301') {
+        errorMessage += '❌ No estás autenticado.\n';
+        errorMessage += 'Por favor, inicia sesión nuevamente.';
+      } else {
+        errorMessage += err?.message || 'Error desconocido';
+        errorMessage += '\n\nRevisa la consola para más detalles.';
+      }
+
+      alert(errorMessage);
+      console.error('Detalles del error:', {
+        error: err,
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -438,7 +517,7 @@ export default function AdminBlog() {
     }
 
     const reason = prompt('Razón del rechazo (opcional):');
-    
+
     try {
       await blogService.rejectPost(post.id, reason || undefined);
       console.log('✅ Post rechazado');
@@ -446,6 +525,39 @@ export default function AdminBlog() {
     } catch (err) {
       console.error('💥 Reject error:', err);
       alert('No se pudo rechazar el post');
+    }
+  };
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedItems(
+      selectedItems.length === paginatedData.length
+        ? []
+        : paginatedData.map(item => item.id)
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Eliminar ${selectedItems.length} items seleccionados?`)) return;
+
+    try {
+      await Promise.all(
+        selectedItems.map(id => blogService.deletePost(id))
+      );
+
+      alert(`${selectedItems.length} items eliminados`);
+      setSelectedItems([]);
+      load();
+    } catch (error) {
+      console.error("Error bulk deleting:", error);
+      alert("Error al eliminar los items");
     }
   };
 
@@ -508,11 +620,20 @@ export default function AdminBlog() {
             <option value="review">En Revisión ({stats.review})</option>
           </select>
 
-          {/* New Post Button */}
-          <Button onClick={openNew} className="inline-flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Nuevo post
-          </Button>
+          {/* Import and New Post Buttons */}
+          <div className="flex gap-2">
+            {isAdmin() && (
+              <ImportJSONButton
+                onImport={handleImportBlogPosts}
+                promptSuggestion={IMPORT_PROMPTS.blog}
+                entityName="Artículos"
+              />
+            )}
+            <Button onClick={openNew} className="inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Nuevo post
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -551,6 +672,37 @@ export default function AdminBlog() {
         </div>
       </div>
 
+      {/* Results count and bulk actions */}
+      <div className="bg-card p-4 rounded-lg border">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm text-muted-foreground">
+              {paginatedData.length} item{paginatedData.length !== 1 ? 's' : ''} encontrado{paginatedData.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {selectedItems.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedItems.length} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Debug Info */}
       {process.env.NODE_ENV === 'development' && (
         <div className="bg-muted p-3 rounded text-xs">
@@ -581,6 +733,12 @@ export default function AdminBlog() {
             <table className="min-w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
+                  <th className="text-left px-4 py-3 font-medium w-12">
+                    <Checkbox
+                      checked={selectedItems.length === paginatedData.length && paginatedData.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Título</th>
                   <th className="text-left px-4 py-3 font-medium">Estado</th>
                   <th className="text-left px-4 py-3 font-medium">Categoría</th>
@@ -590,8 +748,17 @@ export default function AdminBlog() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((post) => (
-                  <tr key={post.id} className="border-t hover:bg-muted/50 transition-colors">
+                {paginatedData.map((post) => {
+                  const isSelected = selectedItems.includes(post.id);
+
+                  return (
+                    <tr key={post.id} className={`border-t hover:bg-muted/50 transition-colors ${isSelected ? "bg-muted/50" : ""}`}>
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleItemSelection(post.id)}
+                        />
+                      </td>
                     <td className="px-4 py-3">
                       <div>
                         <Link 
@@ -693,10 +860,11 @@ export default function AdminBlog() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
                 {paginatedData.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       {q || status !== 'all' 
                         ? 'No se encontraron posts con los filtros aplicados'
                         : 'No hay posts creados aún'

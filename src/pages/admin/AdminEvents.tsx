@@ -5,11 +5,15 @@ import { eventsService } from '@/services/events.service';
 import type { Event, EventStatus } from '@/services/events.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, Plus, Pencil, Trash2, Search, X,
   Calendar, Clock, MapPin, Users, CheckCircle, XCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import ImportJSONButton from '@/components/admin/ImportJSONButton';
+import { IMPORT_PROMPTS } from '@/constants/importPrompts';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Config
@@ -150,6 +154,10 @@ function StatusBadge({ status }: { status: Event['status'] }) {
 // Main Component
 // ──────────────────────────────────────────────────────────────────────────────
 export default function AdminEvents() {
+  const { getRoles } = useAuth();
+  const userRoles = getRoles?.() || [];
+  const isAdmin = userRoles.includes('admin');
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPage = Number(searchParams.get('page') ?? '1') || 1;
   const initialQ = searchParams.get('q') ?? '';
@@ -165,6 +173,7 @@ export default function AdminEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   // Form state
   const [open, setOpen] = useState(false);
@@ -358,6 +367,106 @@ export default function AdminEvents() {
     }
   };
 
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedItems(
+      selectedItems.length === (data?.items || []).length
+        ? []
+        : (data?.items || []).map(item => item.id)
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Eliminar ${selectedItems.length} items seleccionados?`)) return;
+
+    try {
+      await Promise.all(
+        selectedItems.map(id => eventsService.delete(id))
+      );
+
+      alert(`${selectedItems.length} items eliminados`);
+      setSelectedItems([]);
+      load();
+    } catch (error) {
+      console.error("Error bulk deleting:", error);
+      alert("Error al eliminar los items");
+    }
+  };
+
+  const handleImportEvents = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      throw new Error("El JSON debe ser un array de eventos");
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const event of data) {
+      try {
+        if (!event.title) {
+          throw new Error("Falta el campo 'title'");
+        }
+
+        const slug = event.title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
+        const result = await eventsService.create({
+          title: event.title,
+          slug,
+          description: event.description || null,
+          category: event.type || "other",
+          event_type: event.format || "presencial",
+          date: event.date,
+          end_date: event.end_date || null,
+          time: event.time || null,
+          location: event.location || null,
+          address: event.address || null,
+          organizer: event.organizer || null,
+          website: event.website || null,
+          registration_url: event.registration_url || null,
+          twitter_url: event.twitter_url || null,
+          image_url: event.image_url || null,
+          price: event.price || 0,
+          currency: event.currency || "MXN",
+          capacity: event.capacity || null,
+          tags: event.tags || [],
+          is_featured: event.is_featured || false,
+          status: event.status || "upcoming",
+          timezone: 'America/Mexico_City',
+          is_free: (event.price || 0) === 0,
+          registration_required: !!event.registration_url,
+        });
+
+        if (result.error) throw new Error(result.error);
+
+        successCount++;
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`${event.title || "Unknown"}: ${error.message}`);
+      }
+    }
+
+    await load();
+    return { success: successCount, failed: failedCount, errors };
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -399,12 +508,53 @@ export default function AdminEvents() {
             <option value="completed">Completados</option>
           </select>
 
+          {isAdmin && (
+            <ImportJSONButton
+              onImport={handleImportEvents}
+              promptSuggestion={IMPORT_PROMPTS.events}
+              entityName="Eventos"
+            />
+          )}
+
           <Button type="button" onClick={openNew} className="bg-green-600 hover:bg-green-700 text-white inline-flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Nuevo evento
           </Button>
         </div>
       </header>
+
+      {/* Results count and bulk actions */}
+      {data && (
+        <div className="bg-card p-4 rounded-lg border">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={selectedItems.length === (data?.items || []).length && (data?.items || []).length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {(data?.items || []).length} item{(data?.items || []).length !== 1 ? 's' : ''} encontrado{(data?.items || []).length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {selectedItems.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedItems.length} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       {data && (
@@ -460,42 +610,52 @@ export default function AdminEvents() {
 
         {!error && !loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(data?.items || []).map((event) => (
-              <motion.div
-                key={`event-${event.id}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-card rounded-lg border hover:shadow-lg transition-shadow"
-              >
-                {event.image_url && (
-                  <img
-                    src={event.image_url}
-                    alt={event.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
+            {(data?.items || []).map((event) => {
+              const isSelected = selectedItems.includes(event.id);
 
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-lg line-clamp-1">{event.title}</h3>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Sin fecha'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {event.start_time || 'Sin hora'}
-                        </span>
+              return (
+                <motion.div
+                  key={`event-${event.id}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`bg-card rounded-lg border hover:shadow-lg transition-shadow ${isSelected ? "bg-muted/50" : ""}`}
+                >
+                  {event.image_url && (
+                    <img
+                      src={event.image_url}
+                      alt={event.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleItemSelection(event.id)}
+                          className="mt-1"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-lg line-clamp-1">{event.title}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Sin fecha'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {event.start_time || 'Sin hora'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <StatusBadge status={event.status} />
+                      <StatusBadge status={event.status} />
                   </div>
 
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
@@ -542,7 +702,8 @@ export default function AdminEvents() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+            );
+            })}
 
             {data && data.items.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground">

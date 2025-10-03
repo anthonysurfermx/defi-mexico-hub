@@ -1,33 +1,37 @@
 // src/pages/admin/AdminCommunities.tsx
 import { useState, useEffect } from "react";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
+import {
+  Search,
+  Filter,
+  Plus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
   Eye,
   Star,
   Shield,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
@@ -47,10 +51,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
+import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 const AdminCommunities = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getRoles } = useAuth();
+  const userRoles = getRoles?.() || [];
+  const isAdmin = userRoles.includes('admin');
   
   // Estados
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -61,11 +71,14 @@ const AdminCommunities = () => {
   const [featuredFilter, setFeaturedFilter] = useState<"all" | "featured" | "normal">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [communityToDelete, setCommunityToDelete] = useState<Community | null>(null);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     featured: 0,
-    totalMembers: 0
+    totalMembers: 0,
+    pending: 0,
+    verified: 0
   });
 
   // Cargar datos al montar
@@ -105,7 +118,7 @@ const AdminCommunities = () => {
 
   const loadStats = async () => {
     try {
-      const result = await communitiesService.getStats();
+      const result = await communitiesService.getStatsWithPending();
       if (result.data) {
         setStats(result.data);
       }
@@ -209,15 +222,106 @@ const AdminCommunities = () => {
       const result = await communitiesService.update(community.id, {
         is_active: !community.is_active
       });
-      
+
       if (result.data) {
         toast({
           title: "Éxito",
-          description: community.is_active 
-            ? "Comunidad desactivada" 
+          description: community.is_active
+            ? "Comunidad desactivada"
             : "Comunidad activada"
         });
         loadCommunities();
+        loadStats();
+      } else if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+          title: "Error",
+          description: "No se pudo actualizar la comunidad",
+          variant: "destructive"
+      });
+    }
+  };
+
+  const handleImportCommunities = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      throw new Error("El JSON debe ser un array de comunidades");
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const community of data) {
+      try {
+        if (!community.name) {
+          throw new Error("Falta el campo 'name'");
+        }
+
+        const slug = community.name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
+        const result = await communitiesService.createCommunity({
+          name: community.name,
+          slug,
+          description: community.description || null,
+          category: community.type || "other",
+          location: community.location || null,
+          member_count: community.member_count || 0,
+          founded_year: community.founded_year || null,
+          website: community.website || null,
+          twitter_url: community.twitter_url || null,
+          discord_url: community.discord_url || null,
+          telegram_url: community.telegram_url || null,
+          linkedin_url: community.linkedin_url || null,
+          logo_url: community.logo_url || null,
+          tags: community.tags || [],
+          meeting_frequency: community.meeting_frequency || null,
+          is_active: community.is_active !== false,
+          is_verified: community.is_verified || false,
+          is_featured: community.is_featured || false,
+        });
+
+        if (result.error) throw new Error(result.error);
+
+        successCount++;
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`${community.name || "Unknown"}: ${error.message}`);
+      }
+    }
+
+    await loadCommunities();
+    await loadStats();
+    return { success: successCount, failed: failedCount, errors };
+  };
+
+  // Aprobar comunidad
+  const approveCommunity = async (community: Community) => {
+    try {
+      const result = await communitiesService.verify(community.id);
+
+      if (result.data) {
+        toast({
+          title: "Éxito",
+          description: "Comunidad aprobada y publicada"
+        });
+        loadCommunities();
+        loadStats();
       } else if (result.error) {
         toast({
           title: "Error",
@@ -228,7 +332,75 @@ const AdminCommunities = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar la comunidad",
+        description: "No se pudo aprobar la comunidad",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Rechazar comunidad
+  const rejectCommunity = async (community: Community) => {
+    try {
+      const result = await communitiesService.reject(community.id);
+
+      if (result.data) {
+        toast({
+          title: "Éxito",
+          description: "Comunidad rechazada"
+        });
+        loadCommunities();
+        loadStats();
+      } else if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo rechazar la comunidad",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedItems(
+      selectedItems.length === filteredCommunities.length
+        ? []
+        : filteredCommunities.map(item => item.id)
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Eliminar ${selectedItems.length} items seleccionados?`)) return;
+
+    try {
+      await Promise.all(
+        selectedItems.map(id => communitiesService.delete(id))
+      );
+
+      toast({
+        title: "Éxito",
+        description: `${selectedItems.length} items eliminados`
+      });
+      setSelectedItems([]);
+      loadCommunities();
+    } catch (error) {
+      console.error("Error bulk deleting:", error);
+      toast({
+        title: "Error",
+        description: "Error al eliminar los items",
         variant: "destructive"
       });
     }
@@ -257,12 +429,21 @@ const AdminCommunities = () => {
               Administra las comunidades del ecosistema DeFi México
             </p>
           </div>
-          <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
-            <Link to="/admin/comunidades/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Comunidad
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <ImportJSONButton
+                onImport={handleImportCommunities}
+                promptSuggestion={IMPORT_PROMPTS.communities}
+                entityName="Comunidades"
+              />
+            )}
+            <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
+              <Link to="/admin/comunidades/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Comunidad
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -317,20 +498,61 @@ const AdminCommunities = () => {
                 </Select>
               </div>
             </div>
+
+            {/* Results count and bulk actions */}
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={selectedItems.length === filteredCommunities.length && filteredCommunities.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {filteredCommunities.length} item{filteredCommunities.length !== 1 ? 's' : ''} encontrado{filteredCommunities.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {selectedItems.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedItems.length} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-primary">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total Comunidades</div>
+              <div className="text-sm text-muted-foreground">Total</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-500">{stats.active}</div>
+              <div className="text-2xl font-bold text-orange-500">{stats.pending || 0}</div>
+              <div className="text-sm text-muted-foreground">Pendientes</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-500">{stats.verified || 0}</div>
+              <div className="text-sm text-muted-foreground">Verificadas</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-blue-500">{stats.active}</div>
               <div className="text-sm text-muted-foreground">Activas</div>
             </CardContent>
           </Card>
@@ -342,10 +564,10 @@ const AdminCommunities = () => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-500">
+              <div className="text-2xl font-bold text-purple-500">
                 {stats.totalMembers.toLocaleString()}
               </div>
-              <div className="text-sm text-muted-foreground">Miembros Totales</div>
+              <div className="text-sm text-muted-foreground">Miembros</div>
             </CardContent>
           </Card>
         </div>
@@ -357,15 +579,23 @@ const AdminCommunities = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredCommunities.map((community, index) => (
-                <motion.div
-                  key={community.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center space-x-4 flex-1">
+              {filteredCommunities.map((community, index) => {
+                const isSelected = selectedItems.includes(community.id);
+
+                return (
+                  <motion.div
+                    key={community.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className={`flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors ${isSelected ? "bg-muted/50" : ""}`}
+                  >
+                    <div className="flex items-center space-x-4 flex-1">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleItemSelection(community.id)}
+                        className="mt-1"
+                      />
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={community.logo_url || undefined} alt={community.name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
@@ -378,6 +608,18 @@ const AdminCommunities = () => {
                         <h3 className="font-semibold text-foreground truncate">
                           {community.name}
                         </h3>
+                        {!community.is_verified && (
+                          <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pendiente
+                          </Badge>
+                        )}
+                        {community.is_verified && (
+                          <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Verificada
+                          </Badge>
+                        )}
                         {community.is_featured && (
                           <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                         )}
@@ -447,6 +689,25 @@ const AdminCommunities = () => {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {!community.is_verified && (
+                          <>
+                            <DropdownMenuItem
+                              className="text-green-600"
+                              onClick={() => approveCommunity(community)}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Aprobar y Publicar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-orange-600"
+                              onClick={() => rejectCommunity(community)}
+                            >
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Rechazar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem onClick={() => toggleFeatured(community)}>
                           <Star className="w-4 h-4 mr-2" />
                           {community.is_featured ? "Quitar Destacada" : "Marcar Destacada"}
@@ -467,7 +728,8 @@ const AdminCommunities = () => {
                     </DropdownMenu>
                   </div>
                 </motion.div>
-              ))}
+              );
+              })}
             </div>
 
             {filteredCommunities.length === 0 && (

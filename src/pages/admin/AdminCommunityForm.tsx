@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Eye, Plus, X, Hash, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Eye, Plus, X, Hash, Trash2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { communitiesService } from "@/services/communities.service";
+import { useAuth } from "@/hooks/useAuth";
 import type { CommunityInsert } from "@/types";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CommunityFormData {
   name: string;
@@ -43,10 +45,20 @@ interface CommunityFormData {
 const AdminCommunityForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isPreview, setIsPreview] = useState(false);
   const [newFounder, setNewFounder] = useState("");
   const [newTag, setNewTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
+
+  // Obtener el rol del usuario
+  useEffect(() => {
+    if (user) {
+      const role = user.app_metadata?.role || user.role || 'user';
+      setUserRole(role);
+    }
+  }, [user]);
   
   const [formData, setFormData] = useState<CommunityFormData>({
     name: "",
@@ -135,16 +147,17 @@ const AdminCommunityForm = () => {
     return {
       name: formData.name,
       description: formData.description,
-      long_description: formData.longDescription || null,
-      image_url: formData.logo || null,
+      logo_url: formData.logo || null,
       slug: slug,
       category: formData.type || null,
       member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
       is_featured: false,
-      is_verified: true,
+      is_verified: userRole === 'admin', // Solo admins pueden publicar directamente
+      is_active: formData.isActive,
       tags: formData.tags.length > 0 ? formData.tags : null,
-      links: {
-        website: formData.website || null,
+      location: formData.region || null,
+      website: formData.website || null,
+      social_links: {
         discord: formData.discord || null,
         telegram: formData.telegram || null,
         twitter: formData.twitter || null,
@@ -152,7 +165,8 @@ const AdminCommunityForm = () => {
         github: formData.github || null,
         meetup: formData.meetup || null,
         instagram: formData.instagram || null
-      }
+      },
+      created_by: user?.id || null
     };
   };
 
@@ -211,9 +225,12 @@ const AdminCommunityForm = () => {
 
       if (result.data) {
         console.log('✅ Comunidad creada exitosamente:', result.data);
+        const isAdmin = userRole === 'admin';
         toast({
           title: "¡Éxito!",
-          description: "La comunidad ha sido publicada exitosamente.",
+          description: isAdmin
+            ? "La comunidad ha sido publicada exitosamente."
+            : "La comunidad ha sido enviada para revisión. Un administrador la aprobará pronto.",
         });
         
         // Redirigir a la lista de comunidades
@@ -304,6 +321,16 @@ const AdminCommunityForm = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* Alerta para editores */}
+      {userRole === 'editor' && (
+        <Alert className="mb-6 border-orange-200 bg-orange-50">
+          <Info className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            Como editor, las comunidades que crees quedarán pendientes de aprobación por un administrador antes de ser publicadas.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">

@@ -64,8 +64,8 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
         <div className="flex flex-col items-center text-center mb-4">
           <Avatar className="w-28 h-28 mb-4 ring-4 ring-background group-hover:ring-8 group-hover:ring-primary/20 transition-all shadow-xl">
             <AvatarImage src={advocate.avatar_url || undefined} alt={advocate.name} className="object-cover" />
-            <AvatarFallback className="bg-gradient-to-br from-primary via-purple-500 to-pink-500 text-white text-xl font-bold">
-              {getInitials(advocate.name)}
+            <AvatarFallback className="bg-gradient-to-br from-primary via-purple-500 to-pink-500 text-5xl">
+              😊
             </AvatarFallback>
           </Avatar>
 
@@ -209,8 +209,8 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
           <div className="flex items-start gap-4 mb-4">
             <Avatar className="w-20 h-20 ring-4 ring-primary/20">
               <AvatarImage src={advocate.avatar_url || undefined} alt={advocate.name} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-primary via-purple-500 to-pink-500 text-white text-xl font-bold">
-                {getInitials(advocate.name)}
+              <AvatarFallback className="bg-gradient-to-br from-primary via-purple-500 to-pink-500 text-4xl">
+                😊
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">

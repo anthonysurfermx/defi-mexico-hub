@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Eye, 
-  Edit3, 
-  Trash2, 
+import {
+  Search,
+  Filter,
+  Plus,
+  Eye,
+  Edit3,
+  Trash2,
   MoreHorizontal,
   Loader2,
   Building2
@@ -24,6 +24,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { startupsService } from "@/services/startups.service";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 interface Startup {
   id: string;
@@ -45,6 +48,10 @@ interface Startup {
 
 const AdminStartups = () => {
   const navigate = useNavigate();
+  const { getRoles } = useAuth();
+  const userRoles = getRoles?.() || [];
+  const isAdmin = userRoles.includes('admin');
+
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -169,6 +176,66 @@ const AdminStartups = () => {
     }
   };
 
+  const handleImportStartups = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      throw new Error("El JSON debe ser un array de startups");
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const startup of data) {
+      try {
+        if (!startup.name) {
+          throw new Error("Falta el campo 'name'");
+        }
+
+        const slug = startup.name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
+        const { error } = await supabase
+          .from('startups')
+          .insert({
+            name: startup.name,
+            slug,
+            description: startup.description || null,
+            website: startup.website || null,
+            logo_url: startup.logo_url || null,
+            founded_date: startup.founded_year ? `${startup.founded_year}-01-01` : null,
+            twitter_url: startup.twitter_url || null,
+            github_url: startup.github_url || null,
+            linkedin_url: startup.linkedin_url || null,
+            tags: startup.tags || [],
+            categories: startup.category ? [startup.category] : [],
+            status: startup.status || "draft",
+            city: startup.location || null,
+            country: startup.location?.includes(',') ? startup.location.split(',').pop()?.trim() : null,
+            is_featured: startup.is_featured || false,
+          });
+
+        if (error) throw error;
+
+        successCount++;
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`${startup.name || "Unknown"}: ${error.message}`);
+      }
+    }
+
+    await loadStartups();
+    return { success: successCount, failed: failedCount, errors };
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: any; label: string; className?: string }> = {
       published: { variant: "default", label: "Publicado", className: "bg-green-500/10 text-green-500 border-green-500/20" },
@@ -197,12 +264,21 @@ const AdminStartups = () => {
             Administra el directorio de startups de DeFi México
           </p>
         </div>
-        <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
-          <Link to="/admin/startups/new" className="flex items-center">
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Startup
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <ImportJSONButton
+              onImport={handleImportStartups}
+              promptSuggestion={IMPORT_PROMPTS.startups}
+              entityName="Startups"
+            />
+          )}
+          <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
+            <Link to="/admin/startups/new" className="flex items-center">
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Startup
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

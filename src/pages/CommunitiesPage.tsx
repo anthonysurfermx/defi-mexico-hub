@@ -1,6 +1,6 @@
 // src/pages/CommunitiesPage.tsx - Versión actualizada para trabajar con Supabase
 import { useState, useEffect, useMemo, useCallback, useDeferredValue } from "react";
-import { Search, Filter, Users, TrendingUp, Shield, Star, Loader2, AlertCircle } from "lucide-react";
+import { Search, Filter, Users, TrendingUp, Shield, Star, Loader2, AlertCircle, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import CommunityCard from "@/components/ui/community-card";
 import { motion } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
 
 // Skeleton para loading states
 const CommunitySkeleton = () => (
@@ -37,7 +38,9 @@ const CommunitySkeleton = () => (
 const CommunitiesPage = () => {
   // URL state para filtros compartibles
   const [searchParams, setSearchParams] = useSearchParams();
-  
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   // Estados
   const [allCommunities, setAllCommunities] = useState<Community[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -61,6 +64,15 @@ const CommunitiesPage = () => {
   // Usar useDeferredValue para mejor performance
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const useServerSearch = deferredSearchTerm.length >= 3;
+
+  // Función para agregar comunidad
+  const handleAddCommunity = () => {
+    if (user) {
+      navigate('/admin/communities');
+    } else {
+      navigate('/login?redirectTo=/admin/communities');
+    }
+  };
 
   // Sync URL con filtros
   useEffect(() => {
@@ -271,26 +283,36 @@ const CommunitiesPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-            <Users className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Comunidades Web3</span>
-          </div>
-          
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Comunidades <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">DeFi México</span>
-          </h1>
-          
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Únete a las comunidades más activas del ecosistema blockchain mexicano. 
-            Conecta con desarrolladores, inversores y entusiastas de las finanzas descentralizadas.
-          </p>
-        </motion.div>
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex-1"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+              <Users className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Comunidades Web3</span>
+            </div>
+
+            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Comunidades <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">DeFi México</span>
+            </h1>
+
+            <p className="text-lg text-muted-foreground max-w-3xl">
+              Únete a las comunidades más activas del ecosistema blockchain mexicano.
+              Conecta con desarrolladores, inversores y entusiastas de las finanzas descentralizadas.
+            </p>
+          </motion.div>
+          <Button
+            size="lg"
+            onClick={handleAddCommunity}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Agrega tu comunidad
+          </Button>
+        </div>
 
         {/* Stats Cards */}
         <motion.div

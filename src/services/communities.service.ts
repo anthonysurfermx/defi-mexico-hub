@@ -335,13 +335,135 @@ class CommunitiesService {
     }
   }
 
+  // Verificar comunidad (solo admin)
+  async verify(id: string): Promise<ServiceResponse<Community>> {
+    try {
+      const { data, error } = await supabase
+        .rpc('verify_community', { community_id: id });
+
+      if (error) {
+        console.error('Error verifying community:', error);
+        return { data: null, error: error.message };
+      }
+
+      // Obtener la comunidad actualizada
+      return this.getById(id);
+    } catch (err) {
+      console.error('Error in verify:', err);
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
+  // Rechazar comunidad (solo admin)
+  async reject(id: string): Promise<ServiceResponse<Community>> {
+    try {
+      const { data, error } = await supabase
+        .rpc('reject_community', { community_id: id });
+
+      if (error) {
+        console.error('Error rejecting community:', error);
+        return { data: null, error: error.message };
+      }
+
+      // Obtener la comunidad actualizada
+      return this.getById(id);
+    } catch (err) {
+      console.error('Error in reject:', err);
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
+  // Obtener comunidades pendientes de aprobación
+  async getPending(): Promise<ServiceResponse<Community[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('communities')
+        .select('*')
+        .eq('is_verified', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching pending communities:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getPending:', err);
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
+  // Obtener estadísticas con pendientes
+  async getStatsWithPending(): Promise<ServiceResponse<{
+    total: number;
+    verified: number;
+    pending: number;
+    active: number;
+    featured: number;
+    totalMembers: number;
+  }>> {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_community_stats_with_pending');
+
+      if (error) {
+        console.error('Error fetching stats with pending:', error);
+        return { data: null, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          data: {
+            total: 0,
+            verified: 0,
+            pending: 0,
+            active: 0,
+            featured: 0,
+            totalMembers: 0
+          },
+          error: null
+        };
+      }
+
+      const statsData = data[0];
+      return {
+        data: {
+          total: statsData.total_communities || 0,
+          verified: statsData.verified_communities || 0,
+          pending: statsData.pending_communities || 0,
+          active: statsData.active_communities || 0,
+          featured: statsData.featured_communities || 0,
+          totalMembers: statsData.total_members || 0
+        },
+        error: null
+      };
+    } catch (err) {
+      console.error('Error in getStatsWithPending:', err);
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
   // Eliminar comunidad (soft delete)
   async delete(id: string): Promise<ServiceResponse<boolean>> {
     try {
       const { error } = await supabase
         .from('communities')
-        .update({ 
+        .update({
           is_verified: false,
+          is_active: false,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -354,9 +476,9 @@ class CommunitiesService {
       return { data: true, error: null };
     } catch (err) {
       console.error('Error in delete:', err);
-      return { 
-        data: false, 
-        error: err instanceof Error ? err.message : 'Error desconocido' 
+      return {
+        data: false,
+        error: err instanceof Error ? err.message : 'Error desconocido'
       };
     }
   }

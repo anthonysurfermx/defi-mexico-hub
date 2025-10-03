@@ -1,11 +1,11 @@
 // src/services/users.service.ts
-import { createClient } from '@supabase/supabase-js';
+// NOTA: Este servicio necesita que la tabla 'profiles' exista en Supabase
+// Por ahora está deshabilitado hasta que se cree la tabla correspondiente
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
+// Reutilizar el cliente de Supabase compartido para evitar múltiples instancias
+import { supabase } from '@/lib/supabase';
 
-// Crear cliente sin tipos estrictos para acceder a 'profiles'
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// @ts-ignore - Tabla profiles no existe aún en el esquema
 
 // Tipos para el manejo de usuarios
 export interface AppUser {

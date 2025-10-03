@@ -14,6 +14,7 @@ import {
   XCircle,
   Sparkles,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { advocatesService, type DeFiAdvocate } from "@/services/advocates.service";
+import { useAuth } from "@/hooks/useAuth";
+import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 const trackLabels: Record<string, string> = {
   developer: "Programador",
@@ -67,16 +71,21 @@ const trackLabels: Record<string, string> = {
 };
 
 const AdminAdvocates = () => {
+  const { getRoles } = useAuth();
+  const userRoles = getRoles?.() || [];
+  const isAdmin = userRoles.includes('admin');
+
   const [advocates, setAdvocates] = useState<DeFiAdvocate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [trackFilter, setTrackFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [advocateToDelete, setAdvocateToDelete] = useState<DeFiAdvocate | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [advocateToEdit, setAdvocateToEdit] = useState<DeFiAdvocate | null>(null);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
+  const [selectedAdvocates, setSelectedAdvocates] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -250,6 +259,40 @@ const AdminAdvocates = () => {
     }
   };
 
+  const toggleAdvocateSelection = (advocateId: string) => {
+    setSelectedAdvocates(prev =>
+      prev.includes(advocateId)
+        ? prev.filter(id => id !== advocateId)
+        : [...prev, advocateId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedAdvocates(
+      selectedAdvocates.length === filteredAdvocates.length
+        ? []
+        : filteredAdvocates.map(a => a.id)
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Desactivar ${selectedAdvocates.length} referentes seleccionados?`)) return;
+
+    try {
+      // Eliminar cada referente seleccionado
+      await Promise.all(
+        selectedAdvocates.map(id => advocatesService.deleteAdvocate(id))
+      );
+
+      toast.success(`${selectedAdvocates.length} referentes desactivados`);
+      setSelectedAdvocates([]);
+      loadAdvocates();
+    } catch (error) {
+      console.error("Error bulk deleting:", error);
+      toast.error("Error al desactivar los referentes");
+    }
+  };
+
   const openCreateDialog = () => {
     setAdvocateToEdit(null);
     setFormData({
@@ -320,6 +363,75 @@ const AdminAdvocates = () => {
     }
   };
 
+  const handleImportAdvocates = async (file: File) => {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!Array.isArray(data)) {
+      throw new Error("El JSON debe ser un array de referentes");
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const advocate of data) {
+      try {
+        if (!advocate.name) {
+          throw new Error("Falta el campo 'name'");
+        }
+
+        const slug = advocatesService.generateSlug(advocate.name);
+
+        // Auto-obtener avatar si hay Twitter o GitHub
+        let avatar_url = advocate.avatar_url || "";
+        if (!avatar_url) {
+          if (advocate.github_url) {
+            const username = advocate.github_url.split('github.com/')[1]?.split('/')[0];
+            if (username) {
+              avatar_url = `https://github.com/${username}.png?size=200`;
+            }
+          } else if (advocate.twitter_url) {
+            let username = advocate.twitter_url.split('twitter.com/')[1]?.split('/')[0];
+            if (!username) {
+              username = advocate.twitter_url.split('x.com/')[1]?.split('/')[0];
+            }
+            if (username) {
+              avatar_url = `https://unavatar.io/twitter/${username}`;
+            }
+          }
+        }
+
+        await advocatesService.createAdvocate({
+          name: advocate.name,
+          slug,
+          email: advocate.email || null,
+          bio: advocate.bio || null,
+          location: advocate.location || null,
+          expertise: advocate.expertise || null,
+          track: advocate.track || "other",
+          avatar_url: avatar_url || null,
+          twitter_url: advocate.twitter_url || null,
+          linkedin_url: advocate.linkedin_url || null,
+          github_url: advocate.github_url || null,
+          website: advocate.website || null,
+          specializations: advocate.specializations || [],
+          achievements: advocate.achievements || [],
+          is_featured: advocate.is_featured || false,
+          is_active: advocate.is_active !== false,
+        });
+
+        successCount++;
+      } catch (error: any) {
+        failedCount++;
+        errors.push(`${advocate.name || "Unknown"}: ${error.message}`);
+      }
+    }
+
+    await loadAdvocates();
+    return { success: successCount, failed: failedCount, errors };
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -339,10 +451,19 @@ const AdminAdvocates = () => {
             Gestiona los referentes y advocates del ecosistema
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Referente
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <ImportJSONButton
+              onImport={handleImportAdvocates}
+              promptSuggestion={IMPORT_PROMPTS.advocates}
+              entityName="Referentes"
+            />
+          )}
+          <Button onClick={openCreateDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Referente
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -431,6 +552,35 @@ const AdminAdvocates = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Results count and bulk actions */}
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={selectedAdvocates.length === filteredAdvocates.length && filteredAdvocates.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {filteredAdvocates.length} referente{filteredAdvocates.length !== 1 ? 's' : ''} encontrado{filteredAdvocates.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {selectedAdvocates.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedAdvocates.length} seleccionado{selectedAdvocates.length !== 1 ? 's' : ''}
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Desactivar
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -441,19 +591,27 @@ const AdminAdvocates = () => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredAdvocates.map((advocate, index) => (
-            <motion.div
-              key={advocate.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-16 w-16">
+          {filteredAdvocates.map((advocate, index) => {
+            const isSelected = selectedAdvocates.includes(advocate.id);
+
+            return (
+              <motion.div
+                key={advocate.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className={isSelected ? "bg-muted/50" : ""}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleAdvocateSelection(advocate.id)}
+                        className="mt-1"
+                      />
+                      <Avatar className="h-16 w-16">
                       <AvatarImage src={advocate.avatar_url || undefined} />
-                      <AvatarFallback>{getInitials(advocate.name)}</AvatarFallback>
+                      <AvatarFallback className="text-3xl">😊</AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1">
@@ -529,7 +687,8 @@ const AdminAdvocates = () => {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
+          );
+          })}
 
           {filteredAdvocates.length === 0 && (
             <Card>

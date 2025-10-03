@@ -137,12 +137,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Esperar un momento para que Supabase procese la sesión
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Obtener el usuario actual directamente de Supabase
-            const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-            
-            if (userError) {
-              console.error('❌ Error getting user after OAuth:', userError);
-            } else if (currentUser) {
+            // Obtener la sesión primero para asegurar que esté establecida
+            const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+            if (sessionError) {
+              console.error('❌ Error getting session after OAuth:', sessionError);
+            } else if (currentSession?.user) {
+              const currentUser = currentSession.user;
               console.log('📧 OAuth User email:', currentUser.email);
               const userEmail = currentUser.email?.toLowerCase().trim();
               
@@ -173,12 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
               
-              // Establecer el usuario en el estado
+              // Establecer el usuario y sesión en el estado
               setUser(currentUser as ExtendedUser);
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session) {
-                setSession(session);
-              }
+              setSession(currentSession);
             } else {
               console.warn('⚠️ No user found after OAuth processing');
             }
@@ -491,11 +489,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return [];
     }
     
-    console.log('🔍 getRoles - User data:', {
-      email: user.email,
-      email_confirmed_at: user.email_confirmed_at,
-      confirmed_at: user.confirmed_at
-    });
+    // Solo mostrar logs en desarrollo si hay un problema
+    if (process.env.NODE_ENV === 'development' && !user.email) {
+      console.log('🔍 getRoles - User data:', {
+        email: user.email,
+        email_confirmed_at: user.email_confirmed_at,
+        confirmed_at: user.confirmed_at
+      });
+    }
     
     // Lista de usuarios con roles administrativos
     const adminUsers: Record<string, Role> = {
@@ -503,6 +504,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'guillermos22@gmail.com': 'editor',
       'fabiancepeda102@gmail.com': 'editor',
       'cruzcervantesdanieladrianelias@gmail.com': 'editor',
+      'anthonysurfermx@gmail.com': 'editor',
+      'danielcervantes2k4@gmail.com': 'editor',
     };
     
     // Verificar si el usuario tiene rol administrativo
