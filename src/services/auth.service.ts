@@ -104,12 +104,20 @@ export const authService = {
   // Cerrar sesión
   async signOut(): Promise<ServiceResponse<boolean>> {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
+      // Try to sign out with scope: 'local' to avoid server errors
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+
+      // Even if there's an error (session already invalid), consider it successful
+      // since we're just clearing local state anyway
+      if (error && !error.message?.includes('session')) {
+        console.warn('SignOut warning (non-critical):', error);
+      }
+
       return { data: true, error: null };
     } catch (error) {
-      return { data: false, error: handleSupabaseError(error) };
+      // Treat all errors as non-critical for signOut
+      console.warn('SignOut error (non-critical):', error);
+      return { data: true, error: null };
     }
   },
 

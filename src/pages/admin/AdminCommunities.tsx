@@ -14,7 +14,9 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  MapPin,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +54,7 @@ import { motion } from "framer-motion";
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
-import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 const AdminCommunities = () => {
@@ -159,13 +161,31 @@ const AdminCommunities = () => {
     if (!communityToDelete) return;
 
     try {
-      const result = await communitiesService.delete(communityToDelete.id);
+      let result;
+
+      // Si está inactiva, borrar permanentemente
+      if (!communityToDelete.is_active) {
+        result = await communitiesService.permanentlyDelete(communityToDelete.id);
+        if (result.data) {
+          toast({
+            title: "Éxito",
+            description: "Comunidad eliminada permanentemente"
+          });
+        }
+      } else {
+        // Si está activa, solo desactivar
+        result = await communitiesService.delete(communityToDelete.id);
+        if (result.data) {
+          toast({
+            title: "Éxito",
+            description: "Comunidad desactivada correctamente"
+          });
+        }
+      }
+
       if (result.data) {
-        toast({
-          title: "Éxito",
-          description: "Comunidad eliminada correctamente"
-        });
         loadCommunities();
+        loadStats();
       } else if (result.error) {
         toast({
           title: "Error",
@@ -176,12 +196,71 @@ const AdminCommunities = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo eliminar la comunidad",
+        description: "No se pudo procesar la solicitud",
         variant: "destructive"
       });
     } finally {
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
+    }
+  };
+
+  const handleDeleteAllInactive = async () => {
+    const inactiveCommunities = communities.filter((c) => !c.is_active);
+
+    if (inactiveCommunities.length === 0) {
+      toast({
+        title: "Info",
+        description: "No hay comunidades inactivas para eliminar"
+      });
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de eliminar permanentemente ${inactiveCommunities.length} comunidades inactivas? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const community of inactiveCommunities) {
+        try {
+          const result = await communitiesService.permanentlyDelete(community.id);
+          if (result.data) {
+            successCount++;
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(`Error deleting community ${community.id}:`, error);
+          failedCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Éxito",
+          description: `${successCount} comunidades eliminadas permanentemente`
+        });
+      }
+      if (failedCount > 0) {
+        toast({
+          title: "Error",
+          description: `${failedCount} comunidades no pudieron ser eliminadas`,
+          variant: "destructive"
+        });
+      }
+
+      loadCommunities();
+      loadStats();
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      toast({
+        title: "Error",
+        description: "Error al eliminar comunidades",
+        variant: "destructive"
+      });
     }
   };
 
@@ -248,19 +327,12 @@ const AdminCommunities = () => {
     }
   };
 
-  const handleImportCommunities = async (file: File) => {
-    const text = await file.text();
-    const data = JSON.parse(text);
-
-    if (!Array.isArray(data)) {
-      throw new Error("El JSON debe ser un array de comunidades");
-    }
-
+  const handleImportCommunities = async (communities: any[]) => {
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
-    for (const community of data) {
+    for (const community of communities) {
       try {
         if (!community.name) {
           throw new Error("Falta el campo 'name'");
@@ -431,10 +503,62 @@ const AdminCommunities = () => {
           </div>
           <div className="flex gap-2">
             {isAdmin && (
-              <ImportJSONButton
+              <ImportJSONWithPreview
                 onImport={handleImportCommunities}
                 promptSuggestion={IMPORT_PROMPTS.communities}
                 entityName="Comunidades"
+                validateItem={(item: any) => !!item.name}
+                getItemKey={(item: any, index: number) => item.name || index}
+                renderPreviewItem={(item: any) => (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      {item.logo_url && (
+                        <img
+                          src={item.logo_url}
+                          alt={item.name}
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">{item.name}</h4>
+                        {item.location && (
+                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {item.location}
+                          </p>
+                        )}
+                        {item.category && (
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {item.category}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {item.member_count && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Users className="h-3 w-3 mr-1" />
+                          {item.member_count} miembros
+                        </Badge>
+                      )}
+                      {item.website && (
+                        <Badge variant="secondary" className="text-xs">
+                          Website
+                        </Badge>
+                      )}
+                      {item.twitter_url && (
+                        <Badge variant="secondary" className="text-xs">
+                          Twitter
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
               />
             )}
             <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
@@ -511,21 +635,35 @@ const AdminCommunities = () => {
                 </span>
               </div>
 
-              {selectedItems.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {selectedItems.length} seleccionado{selectedItems.length !== 1 ? 's' : ''}
-                  </span>
+              <div className="flex items-center gap-2">
+                {selectedItems.length > 0 && (
+                  <>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedItems.length} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </>
+                )}
+
+                {isAdmin && communities.filter((c) => !c.is_active).length > 0 && (
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    onClick={handleBulkDelete}
+                    onClick={handleDeleteAllInactive}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar
+                    <Trash2 className="w-4 w-4 mr-2" />
+                    Eliminar {communities.filter((c) => !c.is_active).length} inactivas permanentemente
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -717,12 +855,12 @@ const AdminCommunities = () => {
                           {community.is_active ? "Desactivar" : "Activar"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(community)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Eliminar
+                          {community.is_active ? "Eliminar" : "Eliminar permanentemente"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -762,14 +900,20 @@ const AdminCommunities = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción eliminará permanentemente la comunidad "{communityToDelete?.name}".
-                Esta acción no se puede deshacer.
+                {communityToDelete?.is_active ? (
+                  `Esta acción desactivará la comunidad "${communityToDelete?.name}". Podrás reactivarla más tarde.`
+                ) : (
+                  `Esta acción eliminará permanentemente la comunidad "${communityToDelete?.name}" de la base de datos. Esta acción no se puede deshacer.`
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
-                Eliminar
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className={!communityToDelete?.is_active ? "bg-red-600 hover:bg-red-700" : "bg-destructive text-destructive-foreground"}
+              >
+                {communityToDelete?.is_active ? "Desactivar" : "Eliminar permanentemente"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

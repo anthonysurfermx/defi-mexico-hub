@@ -6,13 +6,14 @@ import type { Event, EventStatus } from '@/services/events.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Loader2, Plus, Pencil, Trash2, Search, X,
   Calendar, Clock, MapPin, Users, CheckCircle, XCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import ImportJSONButton from '@/components/admin/ImportJSONButton';
+import ImportJSONWithPreview from '@/components/admin/ImportJSONWithPreview';
 import { IMPORT_PROMPTS } from '@/constants/importPrompts';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -356,14 +357,29 @@ export default function AdminEvents() {
   };
 
   const handleDelete = async (event: Event) => {
-    if (!confirm(`¿Eliminar "${event.title}"?`)) return;
+    const isCancelled = event.status === 'cancelled';
+    const message = isCancelled
+      ? `¿Estás seguro de eliminar permanentemente "${event.title}"? Esta acción no se puede deshacer.`
+      : `¿Estás seguro de cancelar "${event.title}"? Se cambiará a estado cancelado.`;
+
+    if (!confirm(message)) return;
+
     try {
-      const result = await eventsService.delete(event.id);
-      if (result.error) throw new Error(result.error);
+      if (isCancelled) {
+        // Borrado permanente si ya está cancelado
+        const result = await eventsService.permanentlyDelete(event.id);
+        if (result.error) throw new Error(result.error);
+        alert('Evento eliminado permanentemente');
+      } else {
+        // Soft delete - cambiar a cancelled
+        const result = await eventsService.delete(event.id);
+        if (result.error) throw new Error(result.error);
+        alert('Evento cancelado correctamente');
+      }
       await load();
     } catch (err) {
       console.error(err);
-      alert('No se pudo eliminar el evento');
+      alert('No se pudo procesar la solicitud');
     }
   };
 
@@ -400,19 +416,52 @@ export default function AdminEvents() {
     }
   };
 
-  const handleImportEvents = async (file: File) => {
-    const text = await file.text();
-    const data = JSON.parse(text);
+  const handleDeleteAllCancelled = async () => {
+    const cancelledEvents = (data?.items || []).filter((e) => e.status === 'cancelled');
 
-    if (!Array.isArray(data)) {
-      throw new Error("El JSON debe ser un array de eventos");
+    if (cancelledEvents.length === 0) {
+      alert("No hay eventos cancelados para eliminar");
+      return;
     }
 
+    if (!confirm(`¿Estás seguro de eliminar permanentemente ${cancelledEvents.length} eventos cancelados? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const event of cancelledEvents) {
+        try {
+          const result = await eventsService.permanentlyDelete(event.id);
+          if (result.error) throw new Error(result.error);
+          successCount++;
+        } catch (error) {
+          failedCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`${successCount} eventos eliminados permanentemente`);
+      }
+      if (failedCount > 0) {
+        alert(`${failedCount} eventos no pudieron ser eliminados`);
+      }
+
+      await load();
+    } catch (error) {
+      console.error("Error deleting cancelled events:", error);
+      alert("Error al eliminar eventos");
+    }
+  };
+
+  const handleImportEvents = async (events: any[]) => {
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
-    for (const event of data) {
+    for (const event of events) {
       try {
         if (!event.title) {
           throw new Error("Falta el campo 'title'");
@@ -509,11 +558,88 @@ export default function AdminEvents() {
           </select>
 
           {isAdmin && (
-            <ImportJSONButton
-              onImport={handleImportEvents}
-              promptSuggestion={IMPORT_PROMPTS.events}
-              entityName="Eventos"
-            />
+            <>
+              <ImportJSONWithPreview
+                onImport={handleImportEvents}
+                promptSuggestion={IMPORT_PROMPTS.events}
+                entityName="Eventos"
+                validateItem={(item: any) => !!item.title && !!item.date}
+                getItemKey={(item: any, index: number) => item.title || index}
+                renderPreviewItem={(item: any) => (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-3">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">{item.title}</h4>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {item.date && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(item.date).toLocaleDateString('es-MX')}
+                            </p>
+                          )}
+                          {item.location && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {item.location}
+                            </p>
+                          )}
+                        </div>
+                        {item.category && (
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {item.category}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {item.event_type && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.event_type}
+                        </Badge>
+                      )}
+                      {item.price === 0 ? (
+                        <Badge variant="secondary" className="text-xs">
+                          Gratis
+                        </Badge>
+                      ) : item.price && (
+                        <Badge variant="secondary" className="text-xs">
+                          ${item.price} {item.currency || 'MXN'}
+                        </Badge>
+                      )}
+                      {item.organizer && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.organizer}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              />
+
+              {(data?.items || []).filter((e) => e.status === 'cancelled').length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeleteAllCancelled}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar {(data?.items || []).filter((e) => e.status === 'cancelled').length} cancelados permanentemente
+                </Button>
+              )}
+            </>
           )}
 
           <Button type="button" onClick={openNew} className="bg-green-600 hover:bg-green-700 text-white inline-flex items-center gap-2">
@@ -696,6 +822,7 @@ export default function AdminEvents() {
                       onClick={() => handleDelete(event)}
                       className="px-3"
                       disabled={isSubmitting}
+                      title={event.status === 'cancelled' ? 'Eliminar permanentemente' : 'Cancelar evento'}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>

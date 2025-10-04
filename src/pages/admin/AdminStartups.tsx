@@ -25,7 +25,7 @@ import { startupsService } from "@/services/startups.service";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 interface Startup {
@@ -84,22 +84,75 @@ const AdminStartups = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de eliminar "${name}"?`)) return;
+  const handleDelete = async (startup: any) => {
+    const isDraft = startup.status === 'draft';
+    const message = isDraft
+      ? `¿Estás seguro de eliminar permanentemente "${startup.name}"? Esta acción no se puede deshacer.`
+      : `¿Estás seguro de desactivar "${startup.name}"? Se cambiará a borrador.`;
+
+    if (!confirm(message)) return;
 
     try {
-      const { error } = await supabase
-        .from('startups')
-        .delete()
-        .eq('id', id);
+      if (isDraft) {
+        // Borrado permanente si ya está en draft
+        const result = await startupsService.permanentlyDelete(startup.id);
+        if (result.error) throw new Error(result.error);
+        toast.success('Startup eliminada permanentemente');
+      } else {
+        // Soft delete - cambiar a draft
+        const result = await startupsService.delete(startup.id);
+        if (result.error) throw new Error(result.error);
+        toast.success('Startup desactivada correctamente');
+      }
 
-      if (error) throw error;
-
-      toast.success('Startup eliminada correctamente');
-      loadStartups(); // Recargar lista
+      loadStartups();
     } catch (error) {
       console.error('Error deleting startup:', error);
-      toast.error('Error al eliminar la startup');
+      toast.error('Error al procesar la solicitud');
+    }
+  };
+
+  const handleDeleteAllDrafts = async () => {
+    const drafts = startups.filter((s) => s.status === 'draft');
+
+    if (drafts.length === 0) {
+      toast.info('No hay startups en borrador para eliminar');
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de eliminar permanentemente ${drafts.length} startups en borrador? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const startup of drafts) {
+        try {
+          const result = await startupsService.permanentlyDelete(startup.id);
+          if (result.data !== undefined && !result.error) {
+            successCount++;
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          console.error(`Error deleting startup ${startup.id}:`, error);
+          failedCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} startups eliminadas permanentemente`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} startups no pudieron ser eliminadas`);
+      }
+
+      loadStartups();
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      toast.error('Error al eliminar startups');
     }
   };
 
@@ -176,19 +229,12 @@ const AdminStartups = () => {
     }
   };
 
-  const handleImportStartups = async (file: File) => {
-    const text = await file.text();
-    const data = JSON.parse(text);
-
-    if (!Array.isArray(data)) {
-      throw new Error("El JSON debe ser un array de startups");
-    }
-
+  const handleImportStartups = async (startups: any[]) => {
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
-    for (const startup of data) {
+    for (const startup of startups) {
       try {
         if (!startup.name) {
           throw new Error("Falta el campo 'name'");
@@ -265,11 +311,77 @@ const AdminStartups = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          {isAdmin && startups.filter((s) => s.status === 'draft').length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteAllDrafts}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar {startups.filter((s) => s.status === 'draft').length} borradores
+            </Button>
+          )}
           {isAdmin && (
-            <ImportJSONButton
+            <ImportJSONWithPreview
               onImport={handleImportStartups}
               promptSuggestion={IMPORT_PROMPTS.startups}
               entityName="Startups"
+              validateItem={(item: any) => !!item.name}
+              getItemKey={(item: any, index: number) => item.name || index}
+              renderPreviewItem={(item: any) => (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    {item.logo_url && (
+                      <img
+                        src={item.logo_url}
+                        alt={item.name}
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate">{item.name}</h4>
+                      {item.location && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          📍 {item.location}
+                        </p>
+                      )}
+                      {item.category && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {item.category}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {item.description}
+                    </p>
+                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    {item.website && (
+                      <Badge variant="secondary" className="text-xs">
+                        Website
+                      </Badge>
+                    )}
+                    {item.twitter_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        Twitter
+                      </Badge>
+                    )}
+                    {item.github_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        GitHub
+                      </Badge>
+                    )}
+                    {item.founded_year && (
+                      <Badge variant="secondary" className="text-xs">
+                        {item.founded_year}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
             />
           )}
           <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
@@ -484,12 +596,12 @@ const AdminStartups = () => {
                                   Cambiar a Borrador
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleDelete(startup.id, startup.name)}
+                                onClick={() => handleDelete(startup)}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Eliminar
+                                {startup.status === 'draft' ? 'Eliminar permanentemente' : 'Eliminar'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

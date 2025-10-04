@@ -58,7 +58,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { advocatesService, type DeFiAdvocate } from "@/services/advocates.service";
 import { useAuth } from "@/hooks/useAuth";
-import ImportJSONButton from "@/components/admin/ImportJSONButton";
+import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
 
 const trackLabels: Record<string, string> = {
@@ -224,14 +224,61 @@ const AdminAdvocates = () => {
     if (!advocateToDelete) return;
 
     try {
-      await advocatesService.deleteAdvocate(advocateToDelete.id);
-      toast.success("Referente desactivado exitosamente");
+      // Si está inactivo, borrar permanentemente
+      if (!advocateToDelete.is_active) {
+        await advocatesService.permanentlyDeleteAdvocate(advocateToDelete.id);
+        toast.success("Referente eliminado permanentemente");
+      } else {
+        // Si está activo, solo desactivar
+        await advocatesService.deleteAdvocate(advocateToDelete.id);
+        toast.success("Referente desactivado exitosamente");
+      }
       loadAdvocates();
       setDeleteDialogOpen(false);
       setAdvocateToDelete(null);
     } catch (error) {
       console.error("Error deleting advocate:", error);
-      toast.error("Error al desactivar el referente");
+      toast.error("Error al procesar la solicitud");
+    }
+  };
+
+  const handleDeleteAllInactive = async () => {
+    const inactiveAdvocates = advocates.filter((a) => !a.is_active);
+
+    if (inactiveAdvocates.length === 0) {
+      toast.info("No hay referentes inactivos para eliminar");
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de eliminar permanentemente ${inactiveAdvocates.length} referentes inactivos? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const advocate of inactiveAdvocates) {
+        try {
+          await advocatesService.permanentlyDeleteAdvocate(advocate.id);
+          successCount++;
+        } catch (error) {
+          console.error(`Error deleting advocate ${advocate.id}:`, error);
+          failedCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} referentes eliminados permanentemente`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} referentes no pudieron ser eliminados`);
+      }
+
+      loadAdvocates();
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      toast.error("Error al eliminar referentes");
     }
   };
 
@@ -363,19 +410,12 @@ const AdminAdvocates = () => {
     }
   };
 
-  const handleImportAdvocates = async (file: File) => {
-    const text = await file.text();
-    const data = JSON.parse(text);
-
-    if (!Array.isArray(data)) {
-      throw new Error("El JSON debe ser un array de referentes");
-    }
-
+  const handleImportAdvocates = async (advocates: any[]) => {
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
-    for (const advocate of data) {
+    for (const advocate of advocates) {
       try {
         if (!advocate.name) {
           throw new Error("Falta el campo 'name'");
@@ -453,10 +493,57 @@ const AdminAdvocates = () => {
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <ImportJSONButton
+            <ImportJSONWithPreview
               onImport={handleImportAdvocates}
               promptSuggestion={IMPORT_PROMPTS.advocates}
               entityName="Referentes"
+              validateItem={(item: any) => !!item.name}
+              getItemKey={(item: any, index: number) => item.name || index}
+              renderPreviewItem={(item: any) => (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={item.avatar_url} alt={item.name} />
+                      <AvatarFallback>{getInitials(item.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate">{item.name}</h4>
+                      {item.expertise && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.expertise}
+                        </p>
+                      )}
+                      {item.track && (
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {trackLabels[item.track] || item.track}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {item.bio && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {item.bio}
+                    </p>
+                  )}
+                  <div className="flex gap-2 flex-wrap">
+                    {item.twitter_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        Twitter
+                      </Badge>
+                    )}
+                    {item.github_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        GitHub
+                      </Badge>
+                    )}
+                    {item.linkedin_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        LinkedIn
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
             />
           )}
           <Button onClick={openCreateDialog}>
@@ -565,21 +652,35 @@ const AdminAdvocates = () => {
               </span>
             </div>
 
-            {selectedAdvocates.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedAdvocates.length} seleccionado{selectedAdvocates.length !== 1 ? 's' : ''}
-                </span>
+            <div className="flex items-center gap-2">
+              {selectedAdvocates.length > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedAdvocates.length} seleccionado{selectedAdvocates.length !== 1 ? 's' : ''}
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Desactivar
+                  </Button>
+                </>
+              )}
+
+              {isAdmin && advocates.filter((a) => !a.is_active).length > 0 && (
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  onClick={handleBulkDelete}
+                  onClick={handleDeleteAllInactive}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Desactivar
+                  Eliminar {advocates.filter((a) => !a.is_active).length} inactivos permanentemente
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -663,7 +764,7 @@ const AdminAdvocates = () => {
                               }}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Eliminar
+                              {advocate.is_active ? "Eliminar" : "Eliminar permanentemente"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -710,12 +811,21 @@ const AdminAdvocates = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción desactivará el referente. Podrás reactivarlo más tarde.
+              {advocateToDelete?.is_active ? (
+                "Esta acción desactivará el referente. Podrás reactivarlo más tarde."
+              ) : (
+                "Esta acción eliminará permanentemente el referente de la base de datos. Esta acción no se puede deshacer."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Desactivar</AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={!advocateToDelete?.is_active ? "bg-red-600 hover:bg-red-700" : ""}
+            >
+              {advocateToDelete?.is_active ? "Desactivar" : "Eliminar permanentemente"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

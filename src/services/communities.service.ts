@@ -482,6 +482,29 @@ class CommunitiesService {
       };
     }
   }
+
+  // Eliminar comunidad permanentemente
+  async permanentlyDelete(id: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('communities')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error permanently deleting community:', error);
+        return { data: false, error: error.message };
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      console.error('Error in permanentlyDelete:', err);
+      return {
+        data: false,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
 }
 
 export const communitiesService = new CommunitiesService();

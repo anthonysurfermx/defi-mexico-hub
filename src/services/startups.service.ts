@@ -188,24 +188,45 @@ export const startupsService = {
     return result;
   },
 
-  // Eliminar startup
+  // Eliminar startup (soft delete - cambiar a draft)
   async delete(id: string): Promise<ServiceResponse<void>> {
+    const result = await queryWrapper(() =>
+      supabase
+        .from('startups')
+        .update({ status: 'draft' })
+        .eq('id', id)
+    );
+
+    if (!result.error) {
+      // Log eliminación
+      await platformService.logEvent(
+        'startup_deactivated',
+        { startup_id: id },
+        'warning'
+      );
+    }
+
+    return result;
+  },
+
+  // Eliminar startup permanentemente
+  async permanentlyDelete(id: string): Promise<ServiceResponse<void>> {
     const result = await queryWrapper(() =>
       supabase
         .from('startups')
         .delete()
         .eq('id', id)
     );
-    
+
     if (!result.error) {
-      // Log eliminación
+      // Log eliminación permanente
       await platformService.logEvent(
-        'startup_deleted',
+        'startup_permanently_deleted',
         { startup_id: id },
         'warning'
       );
     }
-    
+
     return result;
   },
 

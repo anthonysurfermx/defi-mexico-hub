@@ -156,22 +156,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               const adminRole = adminUsers[userEmail || ''];
               console.log(`🔍 Checking admin authorization for ${userEmail}: ${adminRole || 'not admin'}`);
-              
+
               // Solo redirigir si NO estamos ya en las páginas protegidas para evitar loops
-              if (!window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/startup-register')) {
+              const isOnProtectedPage = window.location.pathname.startsWith('/admin') ||
+                                       window.location.pathname.startsWith('/startup-register');
+
+              if (!isOnProtectedPage) {
                 if (adminRole) {
-                  console.log(`🎯 OAuth: Redirecting ${adminRole} to admin panel`);
+                  console.log(`🎯 OAuth initializeAuth: Redirecting ${adminRole} to admin panel from ${window.location.pathname}`);
                   setTimeout(() => {
                     window.location.href = '/admin';
                   }, 500);
                   return;
                 } else if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
-                  console.log(`🎯 OAuth: Redirecting verified user to startup dashboard`);
+                  console.log(`🎯 OAuth initializeAuth: Redirecting verified user to startup dashboard from ${window.location.pathname}`);
                   setTimeout(() => {
                     window.location.href = '/startup-register';
                   }, 500);
                   return;
                 }
+              } else {
+                console.log(`ℹ️ Already on protected page (${window.location.pathname}), skipping redirect`);
               }
               
               // Establecer el usuario y sesión en el estado
@@ -236,13 +241,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const adminRole = adminUsers[userEmail || ''];
               console.log(`🔍 Admin check: ${userEmail} => ${adminRole || 'not admin'}`);
               
-              // Redirigir según el rol del usuario SOLO desde login/register
+              // Redirigir según el rol del usuario SOLO desde login/register/OAuth
               if (!window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/startup-register')) {
-                const isOnLogin = window.location.pathname === '/login' || 
+                const isOnLogin = window.location.pathname === '/login' ||
                                  window.location.pathname === '/register';
-                
-                // Solo redirigir automáticamente desde páginas de login/register, NO desde home
-                if (isOnLogin) {
+
+                // Detectar si es un login OAuth reciente (hay tokens en el hash)
+                const isOAuthCallback = window.location.hash.includes('access_token') ||
+                                       window.location.hash.includes('refresh_token');
+
+                // Solo redirigir automáticamente desde páginas de login/register o OAuth callback
+                if (isOnLogin || isOAuthCallback) {
                   if (adminRole) {
                     console.log(`🎯 Redirecting ${adminRole} to admin panel from ${window.location.pathname}`);
                     setTimeout(() => {
@@ -338,16 +347,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       const response = await authService.signOut();
-      
-      if (!response.error) {
-        setUser(null);
-        setSession(null);
-        navigate('/');
-        toast.success('Sesión cerrada');
+
+      if (response.error) {
+        toast.error('Error al cerrar sesión');
+        throw new Error(response.error);
       }
+
+      // Limpiar estado local primero
+      setUser(null);
+      setSession(null);
+
+      // Limpiar localStorage
+      localStorage.removeItem('loginAttempts');
+      localStorage.removeItem('lockoutUntil');
+      localStorage.removeItem('rememberEmail');
+
+      // Mostrar feedback
+      toast.success('Sesión cerrada correctamente');
+
+      // Redirigir a home
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('SignOut error:', err);
       toast.error('Error al cerrar sesión');
+      throw err; // Re-throw para que AdminSettings lo maneje
     }
   }, [navigate]);
 

@@ -392,7 +392,7 @@ class EventsService {
     try {
       const { error } = await supabase
         .from('events')
-        .update({ 
+        .update({
           status: 'cancelled',
           cancellation_reason: 'Evento cancelado por el administrador',
           updated_at: new Date().toISOString()
@@ -407,9 +407,32 @@ class EventsService {
       return { data: true, error: null };
     } catch (err) {
       console.error('Error in delete:', err);
-      return { 
-        data: false, 
-        error: err instanceof Error ? err.message : 'Error desconocido' 
+      return {
+        data: false,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
+  // Eliminar evento permanentemente
+  async permanentlyDelete(id: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error permanently deleting event:', error);
+        return { data: false, error: error.message };
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      console.error('Error in permanentlyDelete:', err);
+      return {
+        data: false,
+        error: err instanceof Error ? err.message : 'Error desconocido'
       };
     }
   }

@@ -8,12 +8,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings, Bell, Shield, LogOut, User, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '@/services/auth.service';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export default function AdminSettings() {
-  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -21,20 +20,20 @@ export default function AdminSettings() {
       return;
     }
 
+    setIsLoggingOut(true);
+
     try {
-      setIsLoggingOut(true);
-      const result = await authService.signOut();
-      
-      if (result.error) {
-        toast.error('Error al cerrar sesión: ' + result.error);
-      } else {
-        toast.success('Sesión cerrada correctamente');
-        navigate('/');
-      }
+      await signOut();
+      // El signOut del hook ya maneja:
+      // - Limpieza de estado (user, session)
+      // - Limpieza de localStorage
+      // - Toast de éxito
+      // - Redirección a home
     } catch (error) {
-      toast.error('Error al cerrar sesión');
-    } finally {
+      // Si hay error, resetear el loading state
+      console.error('Error al cerrar sesión:', error);
       setIsLoggingOut(false);
+      // El toast de error ya se muestra en el hook
     }
   };
 
@@ -61,11 +60,11 @@ export default function AdminSettings() {
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
                 <AvatarFallback className="bg-primary/10 text-primary">
-                  A
+                  {user?.email?.charAt(0).toUpperCase() || 'A'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-semibold">Administrador</p>
+                <p className="font-semibold">{user?.email || 'Administrador'}</p>
                 <p className="text-sm text-muted-foreground">Sesión activa</p>
               </div>
             </div>
