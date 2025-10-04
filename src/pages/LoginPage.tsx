@@ -44,8 +44,9 @@ export default function LoginPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const from = (location.state as any)?.from?.pathname || '/';
-  const redirectTo = searchParams.get('redirectTo') || searchParams.get('redirect') || from;
+  // No usamos redirectTo aquí - dejamos que useAuth maneje la redirección basada en roles
+  // const from = (location.state as any)?.from?.pathname || '/';
+  // const redirectTo = searchParams.get('redirectTo') || searchParams.get('redirect') || from;
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState(false);
@@ -121,11 +122,13 @@ export default function LoginPage() {
     }
   }, [setFocus, isLocked]);
 
-  useEffect(() => {
-    if (user) {
-      navigate(redirectTo, { replace: true });
-    }
-  }, [user, navigate, redirectTo]);
+  // useAuth ya maneja la redirección automáticamente basada en roles
+  // No necesitamos redirigir manualmente aquí
+  // useEffect(() => {
+  //   if (user) {
+  //     navigate(redirectTo, { replace: true });
+  //   }
+  // }, [user, navigate, redirectTo]);
   
   const onSubmit = async (values: LoginFormValues) => {
     // Verificar si está bloqueado
@@ -199,12 +202,8 @@ export default function LoginPage() {
         description: `Conectado como ${values.email}`
       });
 
-      const userRole = response.data?.user?.user_metadata?.role || 'user';
-      const finalRedirect = userRole === 'admin' && redirectTo === '/' ? '/admin' : redirectTo;
-
-      setTimeout(() => {
-        navigate(finalRedirect, { replace: true });
-      }, 500);
+      // No redirigimos manualmente - useAuth se encarga de redirigir según el rol
+      // El usuario será redirigido automáticamente a /admin o /user
 
     } catch (error) {
       console.error('Login error:', error);
@@ -526,7 +525,7 @@ export default function LoginPage() {
               <p className="text-muted-foreground">
                 ¿No tienes cuenta?{' '}
                 <Link
-                  to={`/register?redirectTo=${encodeURIComponent(redirectTo)}`}
+                  to="/register"
                   className="text-primary hover:underline font-medium inline-flex items-center"
                 >
                   Crear cuenta

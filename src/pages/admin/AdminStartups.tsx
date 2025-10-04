@@ -9,7 +9,10 @@ import {
   Trash2,
   MoreHorizontal,
   Loader2,
-  Building2
+  Building2,
+  CheckCircle,
+  XCircle,
+  RefreshCw
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
+import { useProposals } from "@/hooks/useProposals";
+import type { Proposal } from "@/types/proposals";
 
 interface Startup {
   id: string;
@@ -51,6 +56,13 @@ const AdminStartups = () => {
   const { getRoles } = useAuth();
   const userRoles = getRoles?.() || [];
   const isAdmin = userRoles.includes('admin');
+
+  // Cargar TODAS las propuestas de startups para mostrar pendientes y aprobadas
+  const { proposals, loading: proposalsLoading, approveProposal, rejectProposal: rejectProposalHook, refetch: refetchProposals } = useProposals({
+    contentType: 'startup',
+  });
+
+  console.log('📋 Startup Proposals loaded:', proposals.length, proposals);
 
   const [startups, setStartups] = useState<Startup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +93,37 @@ const AdminStartups = () => {
       toast.error('Error al cargar las startups');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Aprobar propuesta de startup
+  const approveProposalItem = async (proposal: Proposal) => {
+    try {
+      const { error } = await approveProposal(proposal.id);
+
+      if (!error) {
+        toast.success('Propuesta aprobada y publicada como startup');
+        await refetchProposals();
+        loadStartups();
+      }
+    } catch (error) {
+      console.error('Error approving proposal:', error);
+    }
+  };
+
+  // Rechazar propuesta de startup
+  const rejectProposalItem = async (proposal: Proposal) => {
+    const reason = prompt("¿Por qué rechazas esta propuesta? (opcional)");
+
+    try {
+      const { error } = await rejectProposalHook(proposal.id, reason || 'Sin razón especificada');
+
+      if (!error) {
+        await refetchProposals();
+        toast.success('Propuesta rechazada');
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
     }
   };
 
@@ -173,13 +216,36 @@ const AdminStartups = () => {
     }
   };
 
+  // Combinar startups con propuestas
+  const allItems = [
+    ...proposals
+      .filter(p => p.status !== 'rejected') // Filtrar propuestas rechazadas
+      .map(p => ({
+        id: p.id,
+        name: p.content_data.name || 'Sin nombre',
+        description: p.content_data.description || '',
+        logo_url: p.content_data.logo_url,
+        categories: p.content_data.categories || [],
+        tags: p.content_data.tags || [],
+        city: p.content_data.city,
+        country: p.content_data.country,
+        status: 'pending', // Mostrar como pending en la UI
+        isProposal: true,
+        proposalData: p,
+      } as any)),
+    ...startups.map(s => ({
+      ...s,
+      isProposal: false,
+    })),
+  ];
+
   // Obtener categorías únicas
   const allCategories = Array.from(
-    new Set(startups.flatMap(s => s.categories || s.tags || []))
+    new Set(allItems.flatMap(s => s.categories || s.tags || []))
   ).filter(Boolean);
 
-  // Filtrar startups
-  const filteredStartups = startups.filter(startup => {
+  // Filtrar startups y propuestas
+  const filteredStartups = allItems.filter(startup => {
     const matchesSearch = 
       startup.name.toLowerCase().includes(search.toLowerCase()) ||
       (startup.description?.toLowerCase().includes(search.toLowerCase()) || false);
@@ -520,10 +586,43 @@ const AdminStartups = () => {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-medium text-foreground">{startup.name}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium text-foreground">{startup.name}</div>
+                                {/* Badges de estado de propuesta */}
+                                {(startup as any).isProposal && (startup as any).proposalData && (
+                                  <>
+                                    {(startup as any).proposalData.status === 'pending' && (
+                                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                                        Propuesta Pendiente
+                                      </Badge>
+                                    )}
+                                    {(startup as any).proposalData.status === 'approved' && (
+                                      <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                                        Aprobada (ERROR: No migró)
+                                      </Badge>
+                                    )}
+                                    {(startup as any).proposalData.status === 'rejected' && (
+                                      <Badge variant="outline" className="text-xs bg-red-100 text-red-700 border-red-300">
+                                        Rechazada
+                                      </Badge>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                               <div className="text-sm text-muted-foreground max-w-xs truncate">
                                 {startup.description || 'Sin descripción'}
                               </div>
+                              {/* Fecha de propuesta */}
+                              {(startup as any).isProposal && (startup as any).proposalData && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Propuesta: {new Date((startup as any).proposalData.created_at).toLocaleDateString('es-MX', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </TableCell>
@@ -566,20 +665,56 @@ const AdminStartups = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link to={`/startups/${startup.id}`}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Ver
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => navigate(`/admin/startups/edit/${startup.id}`)}
-                              >
-                                <Edit3 className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              {startup.status === 'draft' && (
-                                <DropdownMenuItem 
+                              {/* Acciones para propuestas */}
+                              {(startup as any).isProposal ? (
+                                <>
+                                  {(startup as any).proposalData.status === 'pending' && (
+                                    <>
+                                      <DropdownMenuItem
+                                        className="text-green-600"
+                                        onClick={() => approveProposalItem((startup as any).proposalData)}
+                                      >
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                        Aprobar y Publicar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-orange-600"
+                                        onClick={() => rejectProposalItem((startup as any).proposalData)}
+                                      >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Rechazar
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {(startup as any).proposalData.status === 'approved' && (
+                                    <DropdownMenuItem
+                                      className="text-green-600"
+                                      onClick={() => approveProposalItem((startup as any).proposalData)}
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-2" />
+                                      Reintentar Migración
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              ) : (
+                                /* Acciones para startups normales */
+                                <>
+                                  <DropdownMenuItem asChild>
+                                    <Link to={`/startups/${startup.id}`}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Ver
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => navigate(`/admin/startups/edit/${startup.id}`)}
+                                  >
+                                    <Edit3 className="w-4 h-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {!((startup as any).isProposal) && startup.status === 'draft' && (
+                                <DropdownMenuItem
                                   onClick={() => handleStatusChange(startup.id, 'published')}
                                   className="text-green-600"
                                 >
@@ -587,8 +722,8 @@ const AdminStartups = () => {
                                   Publicar
                                 </DropdownMenuItem>
                               )}
-                              {startup.status === 'published' && (
-                                <DropdownMenuItem 
+                              {!((startup as any).isProposal) && startup.status === 'published' && (
+                                <DropdownMenuItem
                                   onClick={() => handleStatusChange(startup.id, 'draft')}
                                   className="text-yellow-600"
                                 >
@@ -596,13 +731,15 @@ const AdminStartups = () => {
                                   Cambiar a Borrador
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleDelete(startup)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {startup.status === 'draft' ? 'Eliminar permanentemente' : 'Eliminar'}
-                              </DropdownMenuItem>
+                              {!((startup as any).isProposal) && (
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDelete(startup)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  {startup.status === 'draft' ? 'Eliminar permanentemente' : 'Eliminar'}
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

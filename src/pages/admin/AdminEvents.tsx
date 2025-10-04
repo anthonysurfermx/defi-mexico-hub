@@ -9,12 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, Plus, Pencil, Trash2, Search, X,
-  Calendar, Clock, MapPin, Users, CheckCircle, XCircle
+  Calendar, Clock, MapPin, Users, CheckCircle, XCircle, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import ImportJSONWithPreview from '@/components/admin/ImportJSONWithPreview';
 import { IMPORT_PROMPTS } from '@/constants/importPrompts';
+import { useProposals } from '@/hooks/useProposals';
+import type { Proposal } from '@/types/proposals';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Config
@@ -159,6 +161,13 @@ export default function AdminEvents() {
   const userRoles = getRoles?.() || [];
   const isAdmin = userRoles.includes('admin');
 
+  // Cargar TODAS las propuestas de eventos
+  const { proposals, loading: proposalsLoading, approveProposal, rejectProposal: rejectProposalHook, refetch: refetchProposals } = useProposals({
+    contentType: 'event',
+  });
+
+  console.log('📋 Event Proposals loaded:', proposals.length, proposals);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPage = Number(searchParams.get('page') ?? '1') || 1;
   const initialQ = searchParams.get('q') ?? '';
@@ -231,13 +240,66 @@ export default function AdminEvents() {
     load();
   }, [page, debouncedQ, status, setSearchParams, load]);
 
+  // Aprobar propuesta de evento
+  const approveProposalItem = async (proposal: Proposal) => {
+    try {
+      const { error } = await approveProposal(proposal.id);
+
+      if (!error) {
+        alert('✅ Propuesta aprobada y publicada como evento');
+        await refetchProposals();
+        load();
+      }
+    } catch (error) {
+      console.error('Error approving proposal:', error);
+    }
+  };
+
+  // Rechazar propuesta de evento
+  const rejectProposalItem = async (proposal: Proposal) => {
+    const reason = prompt("¿Por qué rechazas esta propuesta? (opcional)");
+
+    try {
+      const { error } = await rejectProposalHook(proposal.id, reason || 'Sin razón especificada');
+
+      if (!error) {
+        await refetchProposals();
+        alert('✅ Propuesta rechazada');
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
+    }
+  };
+
   const totalPages = useMemo(() => {
     if (!data) return 1;
     return Math.max(1, Math.ceil(data.total / PAGE_SIZE));
   }, [data]);
 
+  // Combinar eventos con propuestas
+  const allItems = useMemo(() => {
+    const events = data?.items ?? [];
+    const proposalItems = proposals
+      .filter(p => p.status !== 'rejected') // Filtrar propuestas rechazadas
+      .map(p => ({
+        id: p.id,
+        title: p.content_data.title || 'Sin título',
+        description: p.content_data.description || '',
+        start_date: p.content_data.start_date,
+        start_time: p.content_data.start_time || '00:00',
+        venue_city: p.content_data.city,
+        venue_country: p.content_data.country,
+        status: 'pending' as EventStatus,
+        is_featured: false,
+        current_attendees: 0,
+        isProposal: true,
+        proposalData: p,
+      } as any));
+    return [...proposalItems, ...events.map(e => ({ ...e, isProposal: false }))];
+  }, [data, proposals]);
+
   const stats = useMemo(() => {
-    const items = data?.items ?? [];
+    const items = allItems ?? [];
     return {
       total: data?.total ?? 0,
       upcoming: items.filter(e => e.status === 'published').length,
@@ -736,8 +798,9 @@ export default function AdminEvents() {
 
         {!error && !loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(data?.items || []).map((event) => {
+            {allItems.map((event) => {
               const isSelected = selectedItems.includes(event.id);
+              const isProposal = (event as any).isProposal;
 
               return (
                 <motion.div
@@ -768,7 +831,24 @@ export default function AdminEvents() {
                           className="mt-1"
                         />
                         <div>
-                          <h3 className="font-semibold text-lg line-clamp-1">{event.title}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-lg line-clamp-1">{event.title}</h3>
+                            {/* Badges de propuesta */}
+                            {isProposal && (event as any).proposalData && (
+                              <>
+                                {(event as any).proposalData.status === 'pending' && (
+                                  <Badge className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                                    Propuesta Pendiente
+                                  </Badge>
+                                )}
+                                {(event as any).proposalData.status === 'approved' && (
+                                  <Badge className="text-xs bg-green-100 text-green-700 border-green-300">
+                                    Aprobada (ERROR)
+                                  </Badge>
+                                )}
+                              </>
+                            )}
+                          </div>
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
@@ -779,6 +859,17 @@ export default function AdminEvents() {
                               {event.start_time || 'Sin hora'}
                             </span>
                           </div>
+                          {/* Fecha de creación de propuesta */}
+                          {isProposal && (event as any).proposalData && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Propuesta: {new Date((event as any).proposalData.created_at).toLocaleDateString('es-MX', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <StatusBadge status={event.status} />
@@ -803,29 +894,69 @@ export default function AdminEvents() {
                   )}
 
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => openEdit(event)}
-                      disabled={isSubmitting}
-                    >
-                      <Pencil className="w-3 h-3 mr-1" />
-                      Editar
-                    </Button>
+                    {isProposal && (event as any).proposalData?.status === 'pending' ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="default"
+                          className="flex-1"
+                          onClick={() => approveProposalItem((event as any).proposalData)}
+                          disabled={isSubmitting}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Aprobar y Publicar
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => rejectProposalItem((event as any).proposalData)}
+                          className="px-3"
+                          disabled={isSubmitting}
+                        >
+                          <XCircle className="w-3 h-3" />
+                        </Button>
+                      </>
+                    ) : isProposal && (event as any).proposalData?.status === 'approved' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => approveProposalItem((event as any).proposalData)}
+                        disabled={isSubmitting}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        Reintentar Migración
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => openEdit(event)}
+                          disabled={isSubmitting}
+                        >
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Editar
+                        </Button>
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(event)}
-                      className="px-3"
-                      disabled={isSubmitting}
-                      title={event.status === 'cancelled' ? 'Eliminar permanentemente' : 'Cancelar evento'}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(event)}
+                          className="px-3"
+                          disabled={isSubmitting}
+                          title={event.status === 'cancelled' ? 'Eliminar permanentemente' : 'Cancelar evento'}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>

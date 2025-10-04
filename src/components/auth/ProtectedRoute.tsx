@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
 
-export type Role = 'admin' | 'editor' | 'moderator' | 'user' | 'startup_owner';
+export type Role = 'admin' | 'editor' | 'moderator' | 'user';
 
 export interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -32,7 +32,7 @@ export default function ProtectedRoute({
   requireAnyRole,
   redirectTo = '/login',
 }: ProtectedRouteProps) {
-  const { user, loading, isEmailVerified, getRoles } = useAuth();
+  const { user, loading, profileLoading, isEmailVerified, getRoles } = useAuth();
   const location = useLocation();
 
   const fromPath = useMemo(() => {
@@ -40,24 +40,42 @@ export default function ProtectedRoute({
     return sanitizeRedirect(path, '/');
   }, [location.pathname, location.search]);
 
-  if (loading) {
+  // Esperar tanto a que se cargue el auth como el perfil si se requieren roles
+  const isLoadingAuth = loading || (user && profileLoading && (requireAllRoles?.length || requireAnyRole?.length));
+
+  if (isLoadingAuth) {
+    // Detectar si estamos procesando OAuth
+    const isOAuthFlow = window.location.hash.includes('access_token');
+
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center bg-background" 
+      <div
+        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5"
         aria-busy="true"
         aria-label="Verificando acceso"
       >
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-6 max-w-md px-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-xl animate-pulse" />
+            <div className="absolute inset-0 bg-primary/20 blur-2xl animate-pulse" />
             <div className="relative">
-              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+              <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto" />
             </div>
           </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Verificando acceso</p>
-            <p className="text-xs text-muted-foreground">Un momento por favor...</p>
+          <div className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground">
+              {isOAuthFlow ? 'Conectando a DeFi México Hub' : 'Verificando acceso'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isOAuthFlow ? 'Cargando tu ecosistema DeFi...' : 'Un momento por favor...'}
+            </p>
           </div>
+
+          {isOAuthFlow && (
+            <div className="flex justify-center gap-2 mt-4">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -120,12 +138,11 @@ export function GuestRoute({
   redirectTo?: string;
 }) {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center bg-background" 
+      <div
+        className="min-h-screen flex items-center justify-center bg-background"
         aria-busy="true"
         aria-label="Cargando"
       >
@@ -134,16 +151,12 @@ export function GuestRoute({
     );
   }
 
+  // Si el usuario ya está autenticado, NO redirigir manualmente
+  // useAuth ya maneja la redirección automática basada en roles
+  // Solo mostramos el children (que será la página de login pero no se verá porque useAuth redirige)
   if (user) {
-    const fromState = (location.state as any)?.from as string | undefined;
-    const fromQuery = new URLSearchParams(location.search).get('redirectTo');
-
-    const target = 
-      sanitizeRedirect(fromState) ||
-      sanitizeRedirect(fromQuery) ||
-      sanitizeRedirect(redirectTo, '/');
-
-    return <Navigate to={target} replace />;
+    // No hacer nada - useAuth ya está manejando la redirección
+    return null;
   }
 
   return <>{children}</>;
@@ -155,12 +168,14 @@ export function useRequireAuth(options?: {
   requireAnyRole?: Role[];
   redirectTo?: string;
 }) {
-  const { user, loading, isEmailVerified, getRoles } = useAuth();
+  const { user, loading, profileLoading, isEmailVerified, getRoles } = useAuth();
 
   return useMemo(() => {
-    if (loading) {
-      return { 
-        authorized: false, 
+    const isLoadingAuth = loading || (user && profileLoading && (options?.requireAllRoles?.length || options?.requireAnyRole?.length));
+
+    if (isLoadingAuth) {
+      return {
+        authorized: false,
         loading: true as const,
         reason: null
       };
@@ -209,13 +224,14 @@ export function useRequireAuth(options?: {
       reason: null
     };
   }, [
-    user, 
-    loading, 
-    isEmailVerified, 
-    getRoles, 
-    options?.requireVerified, 
-    options?.requireAllRoles, 
-    options?.requireAnyRole, 
+    user,
+    loading,
+    profileLoading,
+    isEmailVerified,
+    getRoles,
+    options?.requireVerified,
+    options?.requireAllRoles,
+    options?.requireAnyRole,
     options?.redirectTo
   ]);
 }

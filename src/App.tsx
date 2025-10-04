@@ -13,6 +13,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 // Layout components (no lazy loading para layouts)
 import MainLayout from '@/components/layout/MainLayout';
 import AdminLayout from '@/pages/admin/AdminLayout';
+import UserLayout from '@/pages/user/UserLayout';
 
 // Lazy load todas las páginas para mejor performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -54,6 +55,14 @@ const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
 const AdminAdvocates = lazy(() => import('@/pages/admin/AdminAdvocates'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+
+// User pages
+const UserDashboard = lazy(() => import('@/pages/user/UserDashboard'));
+const UserSettings = lazy(() => import('@/pages/user/UserSettings'));
+const ProposeCommunity = lazy(() => import('@/pages/user/ProposeCommunity'));
+const ProposeEvent = lazy(() => import('@/pages/user/ProposeEvent'));
+const ProposeStartup = lazy(() => import('@/pages/user/ProposeStartup'));
+const ProposeReferent = lazy(() => import('@/pages/user/ProposeReferent'));
 
 // Admin Startup Forms
 const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
@@ -238,7 +247,7 @@ const router = createBrowserRouter(
             {
               path: 'startup-register',
               element: (
-                <ProtectedRoute requireAnyRole={['startup_owner', 'admin', 'editor']}>
+                <ProtectedRoute requireAnyRole={['user', 'admin', 'editor']}>
                   <Suspense fallback={<PageLoader />}>
                     <StartupDashboard />
                   </Suspense>
@@ -371,7 +380,7 @@ const router = createBrowserRouter(
             {
               path: 'admin/startups/new',
               element: (
-                <ProtectedRoute requireAnyRole={['admin', 'editor', 'startup_owner']}>
+                <ProtectedRoute requireAnyRole={['admin', 'editor', 'user']}>
                   <Suspense fallback={<PageLoader />}>
                     <AdminStartupForm />
                   </Suspense>
@@ -447,6 +456,78 @@ const router = createBrowserRouter(
           ),
         },
 
+
+        // ==========================================
+        // RUTAS USER PROTEGIDAS (Editor y Usuario Regular)
+        // ==========================================
+        {
+          path: 'user',
+          element: (
+            <ProtectedRoute>
+              <Suspense fallback={<PageLoader />}>
+                <UserLayout />
+              </Suspense>
+            </ProtectedRoute>
+          ),
+          errorElement: (
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <NotFound />
+              </Suspense>
+            </ErrorBoundary>
+          ),
+          children: [
+            {
+              index: true,
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <UserDashboard />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'settings',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <UserSettings />
+                </Suspense>
+              ),
+            },
+            // Rutas de propuestas
+            {
+              path: 'comunidades/nueva',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ProposeCommunity />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'eventos/nuevo',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ProposeEvent />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'startups/nueva',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ProposeStartup />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'referentes/nuevo',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ProposeReferent />
+                </Suspense>
+              ),
+            },
+          ],
+        },
 
         // ==========================================
         // RUTAS ADMIN PROTEGIDAS

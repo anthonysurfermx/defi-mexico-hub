@@ -56,6 +56,8 @@ import type { Community } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
+import { useProposals } from "@/hooks/useProposals";
+import type { Proposal } from "@/types/proposals";
 
 const AdminCommunities = () => {
   const navigate = useNavigate();
@@ -64,6 +66,15 @@ const AdminCommunities = () => {
   const userRoles = getRoles?.() || [];
   const isAdmin = userRoles.includes('admin');
   
+  // Cargar TODAS las propuestas (pendientes y aprobadas) para debugging
+  const { proposals, loading: proposalsLoading, approveProposal, rejectProposal: rejectProposalHook, refetch: refetchProposals } = useProposals({
+    contentType: 'community',
+    // status: 'pending', // Comentado para ver TODAS las propuestas
+  });
+
+  // Debug: Log proposals
+  console.log('📋 Proposals loaded:', proposals.length, proposals);
+
   // Estados
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,22 +140,46 @@ const AdminCommunities = () => {
     }
   };
 
-  // Filtrar comunidades
-  const filteredCommunities = communities.filter(community => {
-    const matchesSearch = searchTerm === "" || 
+  // Combinar comunidades con propuestas pendientes
+  const allItems = [
+    ...proposals
+      .filter(p => p.status !== 'rejected') // Filtrar propuestas rechazadas
+      .map(p => ({
+        id: p.id,
+        name: p.content_data.name || 'Sin nombre',
+        description: p.content_data.description || '',
+        logo_url: p.content_data.logo_url,
+        category: p.content_data.community_type || p.content_data.focus_area,
+        location: p.content_data.city || p.content_data.country,
+        member_count: p.content_data.member_count,
+        is_verified: false,
+        is_active: false,
+        is_featured: false,
+        isProposal: true,
+        proposalData: p,
+      } as any)),
+    ...communities.map(c => ({
+      ...c,
+      isProposal: false,
+    })),
+  ];
+
+  // Filtrar comunidades y propuestas
+  const filteredCommunities = allItems.filter(community => {
+    const matchesSearch = searchTerm === "" ||
       community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       community.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesCategory = categoryFilter === "all" || community.category === categoryFilter;
-    
-    const matchesStatus = statusFilter === "all" || 
+
+    const matchesStatus = statusFilter === "all" ||
       (statusFilter === "active" && community.is_active) ||
       (statusFilter === "inactive" && !community.is_active);
-    
+
     const matchesFeatured = featuredFilter === "all" ||
       (featuredFilter === "featured" && community.is_featured) ||
       (featuredFilter === "normal" && !community.is_featured);
-    
+
     return matchesSearch && matchesCategory && matchesStatus && matchesFeatured;
   });
 
@@ -382,7 +417,7 @@ const AdminCommunities = () => {
     return { success: successCount, failed: failedCount, errors };
   };
 
-  // Aprobar comunidad
+  // Aprobar comunidad (de la tabla communities)
   const approveCommunity = async (community: Community) => {
     try {
       const result = await communitiesService.verify(community.id);
@@ -410,7 +445,7 @@ const AdminCommunities = () => {
     }
   };
 
-  // Rechazar comunidad
+  // Rechazar comunidad (de la tabla communities)
   const rejectCommunity = async (community: Community) => {
     try {
       const result = await communitiesService.reject(community.id);
@@ -435,6 +470,47 @@ const AdminCommunities = () => {
         description: "No se pudo rechazar la comunidad",
         variant: "destructive"
       });
+    }
+  };
+
+  // Aprobar propuesta (de la tabla proposals)
+  const approveProposalItem = async (proposal: Proposal) => {
+    try {
+      const { error } = await approveProposal(proposal.id);
+
+      if (!error) {
+        toast({
+          title: "Éxito",
+          description: "Propuesta aprobada y publicada como comunidad"
+        });
+        // Recargar propuestas pendientes, comunidades y stats
+        await refetchProposals();
+        loadCommunities();
+        loadStats();
+      }
+    } catch (error) {
+      console.error('Error approving proposal:', error);
+    }
+  };
+
+  // Rechazar propuesta (de la tabla proposals)
+  const rejectProposalItem = async (proposal: Proposal) => {
+    const reason = prompt("¿Por qué rechazas esta propuesta? (opcional)");
+
+    try {
+      const { error } = await rejectProposalHook(proposal.id, reason || 'Sin razón especificada');
+
+      if (!error) {
+        await refetchProposals();
+        loadStats();
+        toast({
+          title: "Éxito",
+          description: "Propuesta rechazada"
+        });
+        loadStats();
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
     }
   };
 
@@ -478,7 +554,7 @@ const AdminCommunities = () => {
     }
   };
 
-  if (loading) {
+  if (loading || proposalsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -678,7 +754,7 @@ const AdminCommunities = () => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-orange-500">{stats.pending || 0}</div>
+              <div className="text-2xl font-bold text-orange-500">{(stats.pending || 0) + proposals.length}</div>
               <div className="text-sm text-muted-foreground">Pendientes</div>
             </CardContent>
           </Card>
@@ -746,13 +822,37 @@ const AdminCommunities = () => {
                         <h3 className="font-semibold text-foreground truncate">
                           {community.name}
                         </h3>
-                        {!community.is_verified && (
+                        {/* Mostrar estado de la propuesta si es una propuesta */}
+                        {(community as any).isProposal && (community as any).proposalData && (
+                          <>
+                            {(community as any).proposalData.status === 'pending' && (
+                              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Propuesta Pendiente
+                              </Badge>
+                            )}
+                            {(community as any).proposalData.status === 'approved' && (
+                              <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Propuesta Aprobada (ERROR: No migró)
+                              </Badge>
+                            )}
+                            {(community as any).proposalData.status === 'rejected' && (
+                              <Badge variant="outline" className="text-xs bg-red-100 text-red-700 border-red-300">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Propuesta Rechazada
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                        {/* Estado de comunidades normales */}
+                        {!(community as any).isProposal && !community.is_verified && (
                           <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
                             <Clock className="w-3 h-3 mr-1" />
                             Pendiente
                           </Badge>
                         )}
-                        {community.is_verified && (
+                        {!(community as any).isProposal && community.is_verified && (
                           <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Verificada
@@ -782,13 +882,30 @@ const AdminCommunities = () => {
                   </div>
 
                   <div className="flex items-center space-x-6">
+                    {(community as any).isProposal && (community as any).proposalData && (
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-foreground">
+                          {new Date((community as any).proposalData.created_at).toLocaleDateString('es-MX', {
+                            day: '2-digit',
+                            month: 'short'
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date((community as any).proposalData.created_at).toLocaleTimeString('es-MX', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="text-right">
                       <div className="text-sm font-medium text-foreground">
                         {community.member_count?.toLocaleString() || "0"}
                       </div>
                       <div className="text-xs text-muted-foreground">Miembros</div>
                     </div>
-                    
+
                     {community.location && (
                       <div className="text-right">
                         <div className="text-sm font-medium text-foreground">
@@ -798,7 +915,7 @@ const AdminCommunities = () => {
                       </div>
                     )}
 
-                    {community.founded_date && (
+                    {!((community as any).isProposal) && community.founded_date && (
                       <div className="text-right">
                         <div className="text-sm font-medium text-foreground">
                           {new Date(community.founded_date).getFullYear()}
@@ -814,31 +931,43 @@ const AdminCommunities = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={`/comunidades/${community.slug || community.id}`}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Pública
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/admin/comunidades/edit/${community.id}`}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        {!(community as any).isProposal && (
+                          <>
+                            <DropdownMenuItem asChild>
+                              <Link to={`/comunidades/${community.slug || community.id}`}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Ver Pública
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link to={`/admin/comunidades/edit/${community.id}`}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Editar
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         {!community.is_verified && (
                           <>
                             <DropdownMenuItem
                               className="text-green-600"
-                              onClick={() => approveCommunity(community)}
+                              onClick={() =>
+                                (community as any).isProposal
+                                  ? approveProposalItem((community as any).proposalData)
+                                  : approveCommunity(community)
+                              }
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
                               Aprobar y Publicar
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-orange-600"
-                              onClick={() => rejectCommunity(community)}
+                              onClick={() =>
+                                (community as any).isProposal
+                                  ? rejectProposalItem((community as any).proposalData)
+                                  : rejectCommunity(community)
+                              }
                             >
                               <XCircle className="w-4 h-4 mr-2" />
                               Rechazar
@@ -846,22 +975,26 @@ const AdminCommunities = () => {
                             <DropdownMenuSeparator />
                           </>
                         )}
-                        <DropdownMenuItem onClick={() => toggleFeatured(community)}>
-                          <Star className="w-4 h-4 mr-2" />
-                          {community.is_featured ? "Quitar Destacada" : "Marcar Destacada"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleActive(community)}>
-                          <Shield className="w-4 h-4 mr-2" />
-                          {community.is_active ? "Desactivar" : "Activar"}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDelete(community)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          {community.is_active ? "Eliminar" : "Eliminar permanentemente"}
-                        </DropdownMenuItem>
+                        {!(community as any).isProposal && (
+                          <>
+                            <DropdownMenuItem onClick={() => toggleFeatured(community)}>
+                              <Star className="w-4 h-4 mr-2" />
+                              {community.is_featured ? "Quitar Destacada" : "Marcar Destacada"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleActive(community)}>
+                              <Shield className="w-4 h-4 mr-2" />
+                              {community.is_active ? "Desactivar" : "Activar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDelete(community)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {community.is_active ? "Eliminar" : "Eliminar permanentemente"}
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

@@ -6,11 +6,19 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import type { User, Session } from '@supabase/supabase-js';
 
+// Tipo para el perfil de Supabase
+interface UserProfile {
+  id: string;
+  email: string;
+  role: 'admin' | 'editor' | 'moderator' | 'user';
+  is_active: boolean;
+}
+
 // Configuración
 const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 
 // Tipos
-export type Role = 'admin' | 'editor' | 'moderator' | 'user' | 'startup_owner';
+export type Role = 'admin' | 'editor' | 'moderator' | 'user';
 
 interface ExtendedUser extends User {
   app_metadata?: {
@@ -31,6 +39,7 @@ interface AuthContextType {
   user: ExtendedUser | null;
   session: Session | null;
   loading: boolean;
+  profileLoading: boolean;
   error: string | null;
   isAuthenticated: boolean;
   
@@ -76,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Handle Auth Callback mejorado
   const handleAuthCallback = useCallback(async () => {
@@ -129,62 +140,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (hasOAuthTokens) {
           console.log('🔐 OAuth tokens detected in URL, processing...');
-          // Procesar callback OAuth automáticamente
-          const result = await handleAuthCallback();
-          if (!result.error) {
-            console.log('✅ OAuth tokens processed successfully');
-            
-            // Esperar un momento para que Supabase procese la sesión
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Obtener la sesión primero para asegurar que esté establecida
-            const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
 
-            if (sessionError) {
-              console.error('❌ Error getting session after OAuth:', sessionError);
-            } else if (currentSession?.user) {
-              const currentUser = currentSession.user;
-              console.log('📧 OAuth User email:', currentUser.email);
-              const userEmail = currentUser.email?.toLowerCase().trim();
-              
-              // Lista de usuarios con roles administrativos
-              const adminUsers: Record<string, string> = {
-                'anthochavez.ra@gmail.com': 'admin',
-                'guillermos22@gmail.com': 'editor', 
-                'fabiancepeda102@gmail.com': 'editor',
-              };
-              
-              const adminRole = adminUsers[userEmail || ''];
-              console.log(`🔍 Checking admin authorization for ${userEmail}: ${adminRole || 'not admin'}`);
+          // Esperar un poco para que Supabase procese completamente el OAuth
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Obtener la sesión directamente - Supabase ya procesó los tokens del hash
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError) {
+            console.error('❌ Error getting session after OAuth:', sessionError);
+          } else if (currentSession?.user) {
+            const currentUser = currentSession.user;
+            console.log('✅ OAuth session established');
+            console.log('📧 OAuth User email:', currentUser.email);
+
+            // Establecer el usuario y sesión en el estado primero
+            setUser(currentUser as ExtendedUser);
+            setSession(currentSession);
+
+            // Cargar perfil desde la base de datos
+            console.log('🔍 Loading profile from database for OAuth user:', currentUser.id);
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, email, role, is_active')
+              .eq('id', currentUser.id)
+              .single();
+
+            if (profileError) {
+              console.error('❌ Error loading profile after OAuth:', profileError);
+            } else if (profileData) {
+              console.log('✅ Profile loaded:', { email: profileData.email, role: profileData.role });
+              setProfile(profileData as UserProfile);
+
+              // Limpiar URL de tokens OAuth
+              const url = new URL(window.location.href);
+              url.hash = '';
+              window.history.replaceState({}, document.title, url.pathname + url.search);
 
               // Solo redirigir si NO estamos ya en las páginas protegidas para evitar loops
               const isOnProtectedPage = window.location.pathname.startsWith('/admin') ||
+                                       window.location.pathname.startsWith('/user') ||
                                        window.location.pathname.startsWith('/startup-register');
 
               if (!isOnProtectedPage) {
-                if (adminRole) {
-                  console.log(`🎯 OAuth initializeAuth: Redirecting ${adminRole} to admin panel from ${window.location.pathname}`);
+                // Redirigir según el rol del perfil
+                if (profileData.role === 'admin' || profileData.role === 'editor') {
+                  console.log(`🎯 OAuth: Redirecting ${profileData.role} to admin panel`);
                   setTimeout(() => {
                     window.location.href = '/admin';
-                  }, 500);
+                  }, 300);
                   return;
                 } else if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
-                  console.log(`🎯 OAuth initializeAuth: Redirecting verified user to startup dashboard from ${window.location.pathname}`);
+                  console.log(`🎯 OAuth: Redirecting verified user to user dashboard`);
                   setTimeout(() => {
-                    window.location.href = '/startup-register';
-                  }, 500);
+                    window.location.href = '/user';
+                  }, 300);
                   return;
                 }
               } else {
                 console.log(`ℹ️ Already on protected page (${window.location.pathname}), skipping redirect`);
               }
-              
-              // Establecer el usuario y sesión en el estado
-              setUser(currentUser as ExtendedUser);
-              setSession(currentSession);
-            } else {
-              console.warn('⚠️ No user found after OAuth processing');
             }
+          } else {
+            console.warn('⚠️ No user found after OAuth processing');
           }
         }
 
@@ -224,47 +242,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Manejar eventos específicos
         switch (event) {
           case 'SIGNED_IN':
-            // Redirigir a admin si el usuario tiene permisos
+            // Redirigir según el rol del usuario cargado desde la base de datos
             if (currentSession?.user) {
               const userAsExtended = currentSession.user as ExtendedUser;
-              const userEmail = userAsExtended.email?.toLowerCase().trim();
-              
-              console.log(`📧 SIGNED_IN event - User email: ${userEmail}`);
-              
-              // Lista de usuarios con roles administrativos
-              const adminUsers: Record<string, string> = {
-                'anthochavez.ra@gmail.com': 'admin',
-                'guillermos22@gmail.com': 'editor', 
-                'fabiancepeda102@gmail.com': 'editor',
-              };
-              
-              const adminRole = adminUsers[userEmail || ''];
-              console.log(`🔍 Admin check: ${userEmail} => ${adminRole || 'not admin'}`);
-              
-              // Redirigir según el rol del usuario SOLO desde login/register/OAuth
-              if (!window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/startup-register')) {
-                const isOnLogin = window.location.pathname === '/login' ||
-                                 window.location.pathname === '/register';
+              console.log(`📧 SIGNED_IN event - User email: ${userAsExtended.email}`);
 
-                // Detectar si es un login OAuth reciente (hay tokens en el hash)
-                const isOAuthCallback = window.location.hash.includes('access_token') ||
-                                       window.location.hash.includes('refresh_token');
+              // Cargar perfil desde la base de datos
+              const loadProfileAndRedirect = async () => {
+                try {
+                  const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('id, email, role, is_active')
+                    .eq('id', userAsExtended.id)
+                    .single();
 
-                // Solo redirigir automáticamente desde páginas de login/register o OAuth callback
-                if (isOnLogin || isOAuthCallback) {
-                  if (adminRole) {
-                    console.log(`🎯 Redirecting ${adminRole} to admin panel from ${window.location.pathname}`);
-                    setTimeout(() => {
-                      window.location.href = '/admin';
-                    }, 100);
-                  } else if (userAsExtended.email_confirmed_at || userAsExtended.confirmed_at) {
-                    console.log(`🎯 Redirecting verified user to startup dashboard from ${window.location.pathname}`);
-                    setTimeout(() => {
-                      window.location.href = '/startup-register';
-                    }, 100);
+                  if (profileError) {
+                    console.error('❌ Error loading profile on SIGNED_IN:', profileError);
+                    return;
                   }
+
+                  if (profileData) {
+                    console.log(`✅ Profile loaded on SIGNED_IN:`, { email: profileData.email, role: profileData.role });
+                    setProfile(profileData as UserProfile);
+
+                    // Redirigir según el rol SOLO desde login/register/OAuth
+                    const currentPath = window.location.pathname;
+                    const currentHash = window.location.hash;
+                    const isAlreadyInProtectedArea = currentPath.startsWith('/admin') ||
+                                                     currentPath.startsWith('/user') ||
+                                                     currentPath.startsWith('/startup-register');
+
+                    console.log(`🔍 SIGNED_IN - Path: ${currentPath}, Hash: ${currentHash.substring(0, 50)}...`);
+                    console.log(`🔍 SIGNED_IN - Already in protected area: ${isAlreadyInProtectedArea}`);
+
+                    if (!isAlreadyInProtectedArea) {
+                      const isOnLogin = currentPath === '/login' || currentPath === '/register';
+                      const isOAuthCallback = currentHash.includes('access_token') || currentHash.includes('refresh_token');
+
+                      console.log(`🔍 SIGNED_IN - isOnLogin: ${isOnLogin}, isOAuthCallback: ${isOAuthCallback}`);
+                      console.log(`🔍 SIGNED_IN - role: ${profileData.role}, email_confirmed: ${userAsExtended.email_confirmed_at || userAsExtended.confirmed_at}`);
+
+                      // Solo redirigir automáticamente desde páginas de login/register o OAuth callback
+                      if (isOnLogin || isOAuthCallback) {
+                        if (profileData.role === 'admin' || profileData.role === 'editor') {
+                          console.log(`🎯 Redirecting ${profileData.role} to admin panel from ${currentPath}`);
+                          setTimeout(() => {
+                            window.location.href = '/admin';
+                          }, 100);
+                        } else if (userAsExtended.email_confirmed_at || userAsExtended.confirmed_at) {
+                          console.log(`🎯 Redirecting user to user dashboard from ${currentPath}`);
+                          setTimeout(() => {
+                            window.location.href = '/user';
+                          }, 100);
+                        } else {
+                          console.log(`⚠️ User not verified yet, not redirecting`);
+                        }
+                      } else {
+                        console.log(`⚠️ Not on login/register and no OAuth callback detected, not redirecting`);
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.error('❌ Exception loading profile on SIGNED_IN:', err);
                 }
-              }
+              };
+
+              loadProfileAndRedirect();
             }
             break;
           case 'SIGNED_OUT':
@@ -505,54 +548,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, [user]);
 
-  // Get user roles - Sistema de roles actualizado
+  // Función para cargar perfil desde Supabase
+  const loadProfile = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      setProfileLoading(true);
+      console.log('🔍 Loading profile for user:', user.id);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, role, is_active')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error loading profile:', error);
+        setProfileLoading(false);
+        return;
+      }
+
+      if (data) {
+        console.log('✅ Profile loaded:', { email: data.email, role: data.role });
+        setProfile(data as UserProfile);
+      }
+    } catch (err) {
+      console.error('❌ Exception loading profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [user?.id]);
+
+  // Cargar perfil cuando cambia el usuario
+  useEffect(() => {
+    if (user?.id) {
+      loadProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user?.id, loadProfile]);
+
+  // Get user roles - Sistema de roles desde Supabase profiles
   const getRoles = useCallback((): Role[] => {
     if (!user) {
-      console.log('🔍 getRoles - No user found');
       return [];
     }
-    
-    // Solo mostrar logs en desarrollo si hay un problema
-    if (process.env.NODE_ENV === 'development' && !user.email) {
-      console.log('🔍 getRoles - User data:', {
-        email: user.email,
-        email_confirmed_at: user.email_confirmed_at,
-        confirmed_at: user.confirmed_at
-      });
+
+    // Usar rol del perfil de Supabase si está disponible
+    if (profile?.role) {
+      return [profile.role as Role];
     }
-    
-    // Lista de usuarios con roles administrativos
-    const adminUsers: Record<string, Role> = {
-      'anthochavez.ra@gmail.com': 'admin',
-      'guillermos22@gmail.com': 'editor',
-      'fabiancepeda102@gmail.com': 'editor',
-      'cruzcervantesdanieladrianelias@gmail.com': 'editor',
-      'anthonysurfermx@gmail.com': 'editor',
-      'danielcervantes2k4@gmail.com': 'editor',
-    };
-    
-    // Verificar si el usuario tiene rol administrativo
-    const adminRole = adminUsers[user.email || ''];
-    
-    if (adminRole) {
-      console.log('🔍 getRoles - Admin role found:', adminRole);
-      return [adminRole];
-    }
-    
-    // Si no es admin/editor, verificar si es un usuario registrado con email verificado
-    const isEmailVerified = user.email_confirmed_at || user.confirmed_at;
-    console.log('🔍 getRoles - Email verified?', isEmailVerified);
-    
-    if (isEmailVerified) {
-      // Todos los usuarios verificados pueden registrar startups
-      console.log('🔍 getRoles - Assigning startup_owner role');
-      return ['startup_owner'];
-    }
-    
-    // Usuarios no verificados solo tienen rol básico
-    console.log('🔍 getRoles - Assigning user role (not verified)');
+
+    // Fallback: si no hay perfil cargado aún, retornar rol user por defecto
     return ['user'];
-  }, [user]);
+  }, [user, profile]);
 
   // Check if user has specific role
   const hasRole = useCallback((role: Role): boolean => {
@@ -572,6 +621,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       loading,
+      profileLoading,
       error,
       isAuthenticated: !!user,
       
@@ -595,6 +645,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       loading,
+      profileLoading,
       error,
       signIn,
       signUp,

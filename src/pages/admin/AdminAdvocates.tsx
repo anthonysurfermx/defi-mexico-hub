@@ -13,6 +13,7 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,8 @@ import { advocatesService, type DeFiAdvocate } from "@/services/advocates.servic
 import { useAuth } from "@/hooks/useAuth";
 import ImportJSONWithPreview from "@/components/admin/ImportJSONWithPreview";
 import { IMPORT_PROMPTS } from "@/constants/importPrompts";
+import { useProposals } from "@/hooks/useProposals";
+import type { Proposal } from "@/types/proposals";
 
 const trackLabels: Record<string, string> = {
   developer: "Programador",
@@ -74,6 +77,13 @@ const AdminAdvocates = () => {
   const { getRoles } = useAuth();
   const userRoles = getRoles?.() || [];
   const isAdmin = userRoles.includes('admin');
+
+  // Propuestas de referentes
+  const { proposals, loading: proposalsLoading, approveProposal, rejectProposal: rejectProposalHook, refetch: refetchProposals } = useProposals({
+    contentType: 'referent',
+  });
+
+  console.log('📋 Referent Proposals loaded:', proposals.length, proposals);
 
   const [advocates, setAdvocates] = useState<DeFiAdvocate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,6 +203,37 @@ const AdminAdvocates = () => {
     }
   };
 
+  // Aprobar propuesta de referente
+  const approveProposalItem = async (proposal: Proposal) => {
+    try {
+      const { error } = await approveProposal(proposal.id);
+
+      if (!error) {
+        toast.success('Propuesta aprobada y publicada como referente');
+        await refetchProposals();
+        loadAdvocates();
+      }
+    } catch (error) {
+      console.error('Error approving proposal:', error);
+    }
+  };
+
+  // Rechazar propuesta de referente
+  const rejectProposalItem = async (proposal: Proposal) => {
+    const reason = prompt("¿Por qué rechazas esta propuesta? (opcional)");
+
+    try {
+      const { error } = await rejectProposalHook(proposal.id, reason || 'Sin razón especificada');
+
+      if (!error) {
+        await refetchProposals();
+        toast.success('Propuesta rechazada');
+      }
+    } catch (error) {
+      console.error('Error rejecting proposal:', error);
+    }
+  };
+
   const calculateStats = () => {
     const total = advocates.length;
     const active = advocates.filter((a) => a.is_active).length;
@@ -207,12 +248,38 @@ const AdminAdvocates = () => {
     setStats({ total, active, featured, byTrack });
   };
 
-  const filteredAdvocates = advocates.filter((advocate) => {
+  // Combinar advocates con propuestas
+  const allItems = [
+    ...proposals
+      .filter(p => p.status !== 'rejected') // Filtrar propuestas rechazadas
+      .map(p => ({
+        id: p.id,
+        name: p.content_data.name || 'Sin nombre',
+        bio: p.content_data.description || '',
+        avatar_url: p.content_data.avatar_url,
+        track: p.content_data.category || 'other',
+        location: p.content_data.location,
+        is_active: false,
+        is_featured: false,
+        isProposal: true,
+        proposalData: p,
+      } as any)),
+    ...advocates.map(a => ({
+      ...a,
+      isProposal: false,
+    })),
+  ];
+
+  const filteredAdvocates = allItems.filter((advocate) => {
     const matchesSearch =
       advocate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       advocate.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTrack = trackFilter === "all" || advocate.track === trackFilter;
+
+    // Las propuestas siempre se muestran, independientemente del filtro de estado
+    const isProposal = (advocate as any).isProposal;
     const matchesStatus =
+      isProposal ||
       statusFilter === "all" ||
       (statusFilter === "active" && advocate.is_active) ||
       (statusFilter === "inactive" && !advocate.is_active);
@@ -718,12 +785,40 @@ const AdminAdvocates = () => {
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-semibold text-lg flex items-center gap-2">
-                            {advocate.name}
-                            {advocate.is_featured && (
-                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                              {advocate.name}
+                              {advocate.is_featured && (
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                              )}
+                            </h3>
+                            {/* Badges de estado de propuesta */}
+                            {(advocate as any).isProposal && (advocate as any).proposalData && (
+                              <>
+                                {(advocate as any).proposalData.status === 'pending' && (
+                                  <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                                    Propuesta Pendiente
+                                  </Badge>
+                                )}
+                                {(advocate as any).proposalData.status === 'approved' && (
+                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                                    Aprobada (ERROR: No migró)
+                                  </Badge>
+                                )}
+                              </>
                             )}
-                          </h3>
+                          </div>
+                          {/* Fecha de creación de propuesta */}
+                          {(advocate as any).isProposal && (advocate as any).proposalData && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Propuesta: {new Date((advocate as any).proposalData.created_at).toLocaleDateString('es-MX', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          )}
                           {advocate.location && (
                             <p className="text-sm text-muted-foreground">{advocate.location}</p>
                           )}
@@ -739,33 +834,56 @@ const AdminAdvocates = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(advocate)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleFeatured(advocate)}>
-                              <Star className="h-4 w-4 mr-2" />
-                              {advocate.is_featured ? "Quitar de destacados" : "Destacar"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleActive(advocate)}>
-                              {advocate.is_active ? (
-                                <XCircle className="h-4 w-4 mr-2" />
-                              ) : (
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                              )}
-                              {advocate.is_active ? "Desactivar" : "Activar"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => {
-                                setAdvocateToDelete(advocate);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              {advocate.is_active ? "Eliminar" : "Eliminar permanentemente"}
-                            </DropdownMenuItem>
+                            {(advocate as any).isProposal && (advocate as any).proposalData?.status === 'pending' ? (
+                              <>
+                                <DropdownMenuItem onClick={() => approveProposalItem((advocate as any).proposalData)}>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Aprobar y Publicar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => rejectProposalItem((advocate as any).proposalData)}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Rechazar
+                                </DropdownMenuItem>
+                              </>
+                            ) : (advocate as any).isProposal && (advocate as any).proposalData?.status === 'approved' ? (
+                              <DropdownMenuItem onClick={() => approveProposalItem((advocate as any).proposalData)}>
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Reintentar Migración
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => openEditDialog(advocate)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleFeatured(advocate)}>
+                                  <Star className="h-4 w-4 mr-2" />
+                                  {advocate.is_featured ? "Quitar de destacados" : "Destacar"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleActive(advocate)}>
+                                  {advocate.is_active ? (
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                  )}
+                                  {advocate.is_active ? "Desactivar" : "Activar"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    setAdvocateToDelete(advocate);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  {advocate.is_active ? "Eliminar" : "Eliminar permanentemente"}
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
