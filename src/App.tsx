@@ -8,6 +8,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './hooks/useAuth';
 import Web3ContextProvider from '@/libs/components/Web3ContextProvider';
 import ProtectedRoute, { GuestRoute } from '@/components/auth/ProtectedRoute';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 // Layout components (no lazy loading para layouts)
 import MainLayout from '@/components/layout/MainLayout';
@@ -95,27 +96,29 @@ function PageLoader() {
 // Root layout que envuelve todo con AuthProvider y Web3ContextProvider
 function RootLayout() {
   return (
-    <Web3ContextProvider>
-      <AuthProvider>
-        <Outlet />
-        <ScrollRestoration />
-        <Toaster 
-          position="top-right" 
-          richColors 
-          closeButton
-          duration={4000}
-          toastOptions={{
-            style: {
-              background: 'hsl(var(--background))',
-              color: 'hsl(var(--foreground))',
-              border: '1px solid hsl(var(--border))',
-            },
-          }}
-        />
-        {/* ✨ VERCEL ANALYTICS COMPONENT */}
-        <Analytics />
-      </AuthProvider>
-    </Web3ContextProvider>
+    <ThemeProvider defaultTheme="system" storageKey="defi-mexico-theme">
+      <Web3ContextProvider>
+        <AuthProvider>
+          <Outlet />
+          <ScrollRestoration />
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            duration={4000}
+            toastOptions={{
+              style: {
+                background: 'hsl(var(--background))',
+                color: 'hsl(var(--foreground))',
+                border: '1px solid hsl(var(--border))',
+              },
+            }}
+          />
+          {/* ✨ VERCEL ANALYTICS COMPONENT */}
+          <Analytics />
+        </AuthProvider>
+      </Web3ContextProvider>
+    </ThemeProvider>
   );
 }
 

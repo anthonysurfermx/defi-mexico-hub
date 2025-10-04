@@ -1,5 +1,6 @@
 // src/pages/ReferentesPage.tsx
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Users, Sparkles, Filter } from 'lucide-react';
 import { advocatesService, type DeFiAdvocate } from '@/services/advocates.service';
@@ -8,22 +9,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-const trackFilters = [
-  { value: 'all', label: 'Todos' },
-  { value: 'developer', label: 'Programadores' },
-  { value: 'lawyer', label: 'Abogados' },
-  { value: 'financial', label: 'Financieros' },
-  { value: 'designer', label: 'Diseñadores' },
-  { value: 'marketer', label: 'Marketers' },
-  { value: 'other', label: 'Otros' },
-];
-
 export default function ReferentesPage() {
+  const { t } = useTranslation();
   const [advocates, setAdvocates] = useState<DeFiAdvocate[]>([]);
   const [filteredAdvocates, setFilteredAdvocates] = useState<DeFiAdvocate[]>([]);
   const [selectedTrack, setSelectedTrack] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const trackFilters = [
+    { value: 'all', label: t('advocates.categories.all') },
+    { value: 'developer', label: t('advocates.categories.developer') },
+    { value: 'founder', label: t('advocates.categories.founder') },
+    { value: 'investor', label: t('advocates.categories.investor') },
+    { value: 'educator', label: t('advocates.categories.educator') },
+    { value: 'researcher', label: t('advocates.categories.researcher') },
+    { value: 'community', label: t('advocates.categories.community') },
+    { value: 'other', label: t('advocates.categories.other') },
+  ];
 
   useEffect(() => {
     loadAdvocates();
@@ -56,10 +59,10 @@ export default function ReferentesPage() {
   return (
     <>
       <Helmet>
-        <title>Referentes DeFi México | DeFi Hub México</title>
+        <title>{t('advocates.title')} | DeFi Hub México</title>
         <meta
           name="description"
-          content="Conoce a los referentes y líderes del ecosistema DeFi en México. Desarrolladores, educadores, investigadores y advocates que están construyendo el futuro de las finanzas descentralizadas."
+          content={t('advocates.description')}
         />
       </Helmet>
 
@@ -68,17 +71,15 @@ export default function ReferentesPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4">
             <Users className="w-5 h-5 text-primary" />
-            <span className="text-sm font-medium text-primary">Referentes del Ecosistema</span>
+            <span className="text-sm font-medium text-primary">{t('nav.advocates')}</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-            Referentes DeFi México
+            {t('advocates.title')}
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Cuando piensas en DeFi en México, estos son los expertos, educadores y líderes que
-            están impulsando la innovación y el crecimiento del ecosistema de finanzas
-            descentralizadas en el país.
+            {t('advocates.description')}
           </p>
         </div>
 
@@ -102,7 +103,7 @@ export default function ReferentesPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Filter className="w-5 h-5 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Filtrar por categoría</h3>
+            <h3 className="text-lg font-semibold">{t('common.filter')}</h3>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -136,7 +137,7 @@ export default function ReferentesPage() {
           <div className="text-center py-12">
             <p className="text-red-500">{error}</p>
             <Button onClick={loadAdvocates} className="mt-4">
-              Reintentar
+              {t('common.error')}
             </Button>
           </div>
         )}
@@ -147,7 +148,7 @@ export default function ReferentesPage() {
             {filteredAdvocates.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No hay referentes en esta categoría</h3>
+                <h3 className="text-xl font-semibold mb-2">{t('advocates.noResults')}</h3>
                 <p className="text-muted-foreground">
                   Intenta seleccionar otra categoría o revisa más tarde.
                 </p>

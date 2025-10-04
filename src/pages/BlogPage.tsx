@@ -1,5 +1,6 @@
 // src/pages/BlogPage.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Filter, Loader2, RotateCcw, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ const PAGE_SIZE = 12;
 const DEBOUNCE_MS = 300;
 
 const BlogPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const initial = useRef(readQuery());

@@ -24,9 +24,11 @@ import {
   CalendarDays,
   Network,
   UserCheck,
-  Layers
+  Layers,
+  Search
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -34,10 +36,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 export default function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -46,22 +52,22 @@ export default function MainLayout() {
 
   // Navegación principal simplificada
   const mainNavigation = [
-    { name: 'Inicio', href: '/', icon: Home },
-    { name: 'Análisis APY', href: '/oportunidades', icon: BarChart3 },
+    { name: t('nav.home'), href: '/', icon: Home },
+    { name: 'APY Analysis', href: '/oportunidades', icon: BarChart3 },
   ];
 
   // Navegación "Aprende" (dropdown)
   const aprendeNavigation = [
-    { name: 'Academia', href: '/academia', icon: GraduationCap, description: 'Cursos y recursos DeFi' },
-    { name: 'Blog', href: '/blog', icon: Newspaper, description: 'Artículos y noticias' },
+    { name: 'Academy', href: '/academia', icon: GraduationCap, description: t('nav.academyDesc') || 'DeFi courses and resources' },
+    { name: t('nav.blog'), href: '/blog', icon: Newspaper, description: t('nav.blogDesc') || 'Articles and news' },
   ];
 
   // Navegación del ecosistema (dropdown)
   const ecosistemaNavigation = [
-    { name: 'Startups', href: '/startups', icon: Layers, description: 'Proyectos DeFi en México' },
-    { name: 'Comunidades', href: '/comunidades', icon: Network, description: 'Grupos y comunidades' },
-    { name: 'Referentes', href: '/referentes', icon: UserCheck, description: 'Líderes del ecosistema' },
-    { name: 'Eventos', href: '/eventos', icon: CalendarDays, description: 'Eventos y conferencias' },
+    { name: t('nav.startups'), href: '/startups', icon: Layers, description: 'DeFi projects in Mexico' },
+    { name: t('nav.communities'), href: '/comunidades', icon: Network, description: 'Groups and communities' },
+    { name: t('nav.advocates'), href: '/referentes', icon: UserCheck, description: 'Ecosystem leaders' },
+    { name: t('nav.events'), href: '/eventos', icon: CalendarDays, description: 'Events and conferences' },
   ];
 
   const isActive = (path: string) => {
@@ -78,6 +84,9 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Global Search */}
+      <GlobalSearch />
+
       {/* Navbar */}
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
@@ -125,7 +134,7 @@ export default function MainLayout() {
                     `}
                   >
                     <BookOpen className="h-4 w-4" />
-                    Aprende
+                    Learn
                     <ChevronDown className="h-3 w-3 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
@@ -166,7 +175,7 @@ export default function MainLayout() {
                     `}
                   >
                     <Network className="h-4 w-4" />
-                    Ecosistema
+                    {t('nav.ecosystem')}
                     <ChevronDown className="h-3 w-3 opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
@@ -195,17 +204,40 @@ export default function MainLayout() {
             </div>
 
             {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={() => {
+                  const event = new KeyboardEvent('keydown', {
+                    key: 'k',
+                    metaKey: true,
+                    ctrlKey: true,
+                  });
+                  document.dispatchEvent(event);
+                }}
+              >
+                <Search className="h-4 w-4" />
+                <span className="hidden lg:inline">{t('search.search')}</span>
+                <kbd className="hidden lg:inline pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
+              <ThemeToggle />
+              <LanguageSwitcher />
               <Button size="sm" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
                 <Link to="/startup-register">
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Contribuye
+                  {t('nav.contribute')}
                 </Link>
               </Button>
             </div>
 
             {/* Mobile menu button */}
-            <div className="flex items-center gap-2 md:hidden">
+            <div className="flex items-center gap-1 md:hidden">
+              <ThemeToggle />
+              <LanguageSwitcher />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg hover:bg-accent"
@@ -252,7 +284,7 @@ export default function MainLayout() {
               {/* Aprende Section */}
               <div className="pt-2 pb-1 px-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Aprende
+                  Learn
                 </p>
               </div>
               {aprendeNavigation.map((item) => {
@@ -287,7 +319,7 @@ export default function MainLayout() {
               {/* Ecosistema Section */}
               <div className="pt-2 pb-1 px-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Ecosistema
+                  {t('nav.ecosystem')}
                 </p>
               </div>
               {ecosistemaNavigation.map((item) => {
@@ -324,7 +356,7 @@ export default function MainLayout() {
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
                   <Link to="/startup-register">
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Contribuye
+                    {t('nav.contribute')}
                   </Link>
                 </Button>
               </div>

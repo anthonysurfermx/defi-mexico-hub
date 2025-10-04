@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ interface Startup {
 }
 
 export default function StartupsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [startups, setStartups] = useState<Startup[]>([]);
@@ -103,18 +105,18 @@ export default function StartupsPage() {
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Directorio de Startups</h1>
+            <h1 className="text-4xl font-bold mb-2">{t('startups.title')}</h1>
             <p className="text-muted-foreground text-lg">
-              Descubre las empresas que están liderando la revolución DeFi en México
+              {t('startups.description')}
             </p>
           </div>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={handleRegisterStartup}
             className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           >
             <Plus className="mr-2 h-5 w-5" />
-            Registra tu Startup
+            {t('nav.contribute')}
           </Button>
         </div>
 
@@ -123,19 +125,19 @@ export default function StartupsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar startups..."
+              placeholder={t('common.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-          
+
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Categoría" />
+              <SelectValue placeholder={t('common.filter')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="all">{t('startups.all')}</SelectItem>
               {allCategories.map(category => (
                 <SelectItem key={category} value={category}>
                   {category}

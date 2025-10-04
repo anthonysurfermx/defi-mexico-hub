@@ -1,0 +1,198 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "ecosystem": "Ecosistema",
+    "startups": "Startups",
+    "communities": "Comunidades",
+    "events": "Eventos",
+    "blog": "Blog",
+    "advocates": "Referentes",
+    "contribute": "Contribuye",
+    "admin": "Admin"
+  },
+  "home": {
+    "badge": "El Hub DeFi de México 🇲🇽",
+    "hero": {
+      "title": "Conecta con el ecosistema",
+      "titleGradient": "DeFi de México",
+      "description": "La plataforma que reúne startups, comunidades, eventos y oportunidades del ecosistema DeFi mexicano en un solo lugar",
+      "exploreButton": "Explorar Ecosistema",
+      "contributeButton": "Contribuir"
+    },
+    "features": {
+      "title": "Todo el ecosistema DeFi mexicano en un solo lugar",
+      "startups": {
+        "title": "Startups DeFi",
+        "description": "Descubre los proyectos más innovadores"
+      },
+      "communities": {
+        "title": "Comunidades",
+        "description": "Únete a grupos locales de builders"
+      },
+      "events": {
+        "title": "Eventos",
+        "description": "Mantente al día con hackathons y meetups"
+      },
+      "advocates": {
+        "title": "Referentes",
+        "description": "Conecta con expertos del ecosistema"
+      }
+    },
+    "startups": {
+      "title": "Startups destacadas",
+      "viewAll": "Ver todas las startups"
+    },
+    "communities": {
+      "title": "Comunidades activas",
+      "members": "miembros",
+      "viewAll": "Ver todas las comunidades"
+    },
+    "events": {
+      "title": "Próximos eventos",
+      "viewAll": "Ver todos los eventos"
+    },
+    "newsletter": {
+      "badge": "Newsletter",
+      "title": "Mantente actualizado",
+      "description": "Recibe las últimas noticias del ecosistema DeFi mexicano",
+      "placeholder": "tu@email.com",
+      "button": "Suscribirse",
+      "success": "¡Gracias por suscribirte!",
+      "error": "Error al suscribirse"
+    }
+  },
+  "startups": {
+    "title": "Startups DeFi",
+    "description": "Descubre los proyectos más innovadores del ecosistema DeFi mexicano",
+    "all": "Todas",
+    "noResults": "No se encontraron startups",
+    "categories": {
+      "all": "Todas",
+      "defi": "DeFi",
+      "wallet": "Wallets",
+      "infrastructure": "Infraestructura",
+      "nft": "NFT",
+      "dao": "DAO",
+      "other": "Otros"
+    }
+  },
+  "communities": {
+    "title": "Comunidades",
+    "description": "Únete a las comunidades más activas del ecosistema DeFi mexicano",
+    "members": "miembros",
+    "noResults": "No se encontraron comunidades",
+    "filters": {
+      "all": "Todas",
+      "verified": "Verificadas",
+      "location": "Por ubicación"
+    }
+  },
+  "events": {
+    "title": "Eventos",
+    "description": "Descubre los próximos eventos del ecosistema DeFi mexicano",
+    "noResults": "No se encontraron eventos",
+    "tabs": {
+      "upcoming": "Próximos",
+      "past": "Pasados"
+    },
+    "types": {
+      "all": "Todos",
+      "hackathon": "Hackathon",
+      "meetup": "Meetup",
+      "conference": "Conferencia",
+      "workshop": "Workshop",
+      "online": "Online"
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Artículos sobre DeFi, Web3 y blockchain en México",
+    "readMore": "Leer más",
+    "minRead": "min de lectura",
+    "noResults": "No se encontraron artículos",
+    "categories": {
+      "all": "Todos",
+      "defi": "DeFi",
+      "web3": "Web3",
+      "nft": "NFT",
+      "blockchain": "Blockchain",
+      "tutorial": "Tutorial",
+      "news": "Noticias",
+      "analysis": "Análisis",
+      "other": "Otros"
+    }
+  },
+  "advocates": {
+    "title": "Referentes DeFi",
+    "description": "Conecta con los expertos y líderes del ecosistema DeFi mexicano",
+    "noResults": "No se encontraron referentes",
+    "categories": {
+      "all": "Todos",
+      "developer": "Desarrollador",
+      "founder": "Fundador",
+      "investor": "Inversionista",
+      "educator": "Educador",
+      "researcher": "Investigador",
+      "community": "Community Manager",
+      "other": "Otros"
+    }
+  },
+  "admin": {
+    "title": "Panel de Administración",
+    "logout": "Cerrar sesión",
+    "sections": {
+      "startups": "Startups",
+      "communities": "Comunidades",
+      "events": "Eventos",
+      "blog": "Blog",
+      "advocates": "Referentes"
+    },
+    "actions": {
+      "add": "Agregar",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "import": "Importar JSON",
+      "export": "Exportar",
+      "selectAll": "Seleccionar todo",
+      "bulkDelete": "Eliminar seleccionados"
+    },
+    "filters": {
+      "all": "Todos",
+      "active": "Activos",
+      "inactive": "Inactivos",
+      "published": "Publicados",
+      "draft": "Borradores"
+    },
+    "messages": {
+      "success": "Operación exitosa",
+      "error": "Error en la operación",
+      "confirmDelete": "¿Estás seguro de eliminar este elemento?",
+      "confirmBulkDelete": "¿Estás seguro de eliminar los elementos seleccionados?"
+    }
+  },
+  "common": {
+    "loading": "Cargando...",
+    "search": "Buscar...",
+    "filter": "Filtrar",
+    "noResults": "No se encontraron resultados",
+    "error": "Error",
+    "success": "Éxito",
+    "viewMore": "Ver más",
+    "learnMore": "Saber más",
+    "website": "Sitio web",
+    "twitter": "Twitter",
+    "github": "GitHub",
+    "linkedin": "LinkedIn",
+    "telegram": "Telegram",
+    "discord": "Discord"
+  },
+  "search": {
+    "search": "Buscar",
+    "placeholder": "Buscar startups, comunidades, eventos, blog...",
+    "searching": "Buscando...",
+    "noResults": "No se encontraron resultados",
+    "recentSearches": "Búsquedas recientes"
+  }
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -26,6 +27,7 @@ import { eventsService, type Event, type EventType } from "@/services/events.ser
 import { useAuth } from "@/hooks/useAuth";
 
 const EventosPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -81,7 +83,7 @@ const EventosPage = () => {
 
     } catch (err) {
       console.error('Error loading events:', err);
-      setError('Error al cargar los eventos. Por favor, intenta de nuevo más tarde.');
+      setError(t('events.noResults'));
     } finally {
       setLoading(false);
     }

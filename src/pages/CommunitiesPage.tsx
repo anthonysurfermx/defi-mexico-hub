@@ -1,5 +1,6 @@
 // src/pages/CommunitiesPage.tsx - Versión actualizada para trabajar con Supabase
 import { useState, useEffect, useMemo, useCallback, useDeferredValue } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, Filter, Users, TrendingUp, Shield, Star, Loader2, AlertCircle, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const CommunitySkeleton = () => (
 );
 
 const CommunitiesPage = () => {
+  const { t } = useTranslation();
   // URL state para filtros compartibles
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -267,10 +269,10 @@ const CommunitiesPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-20">
             <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
-            <h3 className="text-lg font-semibold mb-2">Error al cargar comunidades</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('communities.noResults')}</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={handleRetry}>
-              Intentar de nuevo
+              {t('common.error')}
             </Button>
           </div>
         </div>
@@ -292,7 +294,7 @@ const CommunitiesPage = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Comunidades Web3</span>
+              <span className="text-sm font-medium">{t('nav.communities')}</span>
             </div>
 
             <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">

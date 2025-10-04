@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
@@ -30,6 +31,7 @@ const formatDate = (dateString: string): string => {
 
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { user, isAdmin, hasRole } = useAuth();
   const [email, setEmail] = useState('');
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
@@ -134,20 +136,20 @@ export default function HomePage() {
     e.preventDefault();
     
     if (!email.trim()) {
-      toast.error('Por favor ingresa tu email');
+      toast.error(t('home.newsletter.error'));
       return;
     }
 
     setLoadingNewsletter(true);
-    
+
     try {
       // Simular envío (implementar con tu servicio de email)
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('¡Te has suscrito exitosamente al newsletter!');
+
+      toast.success(t('home.newsletter.success'));
       setEmail('');
     } catch (error) {
-      toast.error('Error al suscribirse. Inténtalo de nuevo.');
+      toast.error(t('home.newsletter.error'));
     } finally {
       setLoadingNewsletter(false);
     }
@@ -160,30 +162,30 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto text-center space-y-8">
           {/* Badge sutil */}
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-            <span className="text-xs md:text-sm text-primary font-medium">El Hub DeFi de México</span>
+            <span className="text-xs md:text-sm text-primary font-medium">{t('home.badge')}</span>
             <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-primary" />
           </div>
 
           {/* Título grande y limpio */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-            Conecta con el ecosistema
+            {t('home.hero.title')}
             <span className="block bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              DeFi de México
+              {t('home.hero.titleGradient')}
             </span>
           </h1>
 
           {/* Subtítulo conciso */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            La plataforma que reúne startups, comunidades, eventos y oportunidades del ecosistema DeFi mexicano en un solo lugar
+            {t('home.hero.description')}
           </p>
 
           {/* CTAs modernos */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Button size="lg" className="rounded-full px-8" asChild>
-              <Link to="/ecosistema">Explorar Ecosistema</Link>
+              <Link to="/startups">{t('home.hero.exploreButton')}</Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-full px-8" asChild>
-              <Link to={handleContributeClick()}>Contribuir</Link>
+              <Link to={handleContributeClick()}>{t('home.hero.contributeButton')}</Link>
             </Button>
           </div>
         </div>
@@ -199,13 +201,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-bold">Startups DeFi</h3>
+                <h3 className="text-2xl font-bold">{t('home.features.startups.title')}</h3>
                 <p className="text-muted-foreground">
-                  Descubre las startups más innovadoras construyendo el futuro de las finanzas descentralizadas en México
+                  {t('home.features.startups.description')}
                 </p>
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/startups">
-                    Explorar startups
+                    {t('home.startups.viewAll')}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
@@ -218,13 +220,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Users className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Comunidades</h3>
+                <h3 className="text-xl font-bold">{t('home.features.communities.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
-                  Únete a comunidades activas de builders, inversores y entusiastas
+                  {t('home.features.communities.description')}
                 </p>
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/comunidades">
-                    Ver comunidades
+                    {t('home.communities.viewAll')}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
@@ -237,13 +239,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Calendar className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">Eventos</h3>
+                <h3 className="text-xl font-bold">{t('home.features.events.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
-                  Participa en meetups, conferencias y talleres presenciales
+                  {t('home.features.events.description')}
                 </p>
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/eventos">
-                    Próximos eventos
+                    {t('home.events.viewAll')}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
@@ -278,10 +280,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Comunidades Destacadas
+              {t('home.communities.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Únete a las comunidades más activas del ecosistema DeFi en México
+              {t('communities.description')}
             </p>
           </div>
 
@@ -326,7 +328,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Users className="w-4 h-4 mr-1" />
-                      {community.member_count?.toLocaleString() || '0'} miembros
+                      {community.member_count?.toLocaleString() || '0'} {t('home.communities.members')}
                     </div>
                   </div>
                 </Link>
@@ -350,10 +352,10 @@ export default function HomePage() {
             {/* Blog Section */}
             <div>
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl md:text-3xl font-bold">Últimas Publicaciones</h3>
+                <h3 className="text-2xl md:text-3xl font-bold">{t('blog.title')}</h3>
                 <Button variant="outline" className="rounded-full" asChild>
                   <Link to="/blog">
-                    Ver todo
+                    {t('common.viewMore')}
                   </Link>
                 </Button>
               </div>
@@ -409,10 +411,10 @@ export default function HomePage() {
             {/* Events Section */}
             <div>
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl md:text-3xl font-bold">Próximos Eventos</h3>
+                <h3 className="text-2xl md:text-3xl font-bold">{t('home.events.title')}</h3>
                 <Button variant="outline" className="rounded-full" asChild>
                   <Link to="/eventos">
-                    Ver todo
+                    {t('common.viewMore')}
                   </Link>
                 </Button>
               </div>
@@ -474,15 +476,15 @@ export default function HomePage() {
       <section className="py-24 px-4">
         <div className="max-w-4xl mx-auto bg-gradient-to-br from-primary/10 to-purple-500/10 border rounded-3xl p-12 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Mantente al día con DeFi México
+            {t('home.newsletter.title')}
           </h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Recibe las últimas noticias, eventos y oportunidades del ecosistema
+            {t('home.newsletter.description')}
           </p>
           <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <Input
               type="email"
-              placeholder="tu@email.com"
+              placeholder={t('home.newsletter.placeholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="rounded-full"
@@ -492,12 +494,12 @@ export default function HomePage() {
               {loadingNewsletter ? (
                 <>
                   <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                  Suscribiendo...
+                  {t('common.loading')}
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4 mr-2" />
-                  Suscribirse
+                  {t('home.newsletter.button')}
                 </>
               )}
             </Button>
