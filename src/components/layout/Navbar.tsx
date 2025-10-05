@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
+import { WalletConnect } from "@/components/WalletConnect";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -45,6 +46,7 @@ const Navbar = () => {
     { label: "Oportunidades", href: "/oportunidades" },
     { label: "Comunidades", href: "/comunidades" },
     { label: "Blog", href: "/blog" },
+    { label: "TikTok", href: "/tiktok" },
     { label: "Eventos", href: "/eventos" }
   ];
 
@@ -147,6 +149,7 @@ const Navbar = () => {
               >
                 <Search className="w-4 h-4" />
               </Button>
+              <WalletConnect />
               <Button
                 size="sm"
                 className="bg-gradient-primary text-primary-foreground hover:shadow-neon transition-all duration-300"
@@ -297,6 +300,9 @@ const Navbar = () => {
                     <Search className="w-4 h-4 mr-2" />
                     Buscar
                   </Button>
+                  <div className="w-full">
+                    <WalletConnect />
+                  </div>
                   <Button
                     className="w-full bg-gradient-primary text-primary-foreground"
                     asChild

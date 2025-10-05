@@ -74,6 +74,9 @@ const AdminCommunityForm = lazy(() => import('@/pages/admin/AdminCommunityForm')
 const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
 const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
 
+// TikTok Feed Page
+const TikTokFeedPage = lazy(() => import('@/pages/TikTokFeedPage'));
+
 // Error pages
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
@@ -270,6 +273,17 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <BlogPostPage />
+                </Suspense>
+              ),
+            },
+            // ==========================================
+            // TIKTOK FEED
+            // ==========================================
+            {
+              path: 'tiktok',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <TikTokFeedPage />
                 </Suspense>
               ),
             },

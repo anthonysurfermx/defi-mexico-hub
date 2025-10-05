@@ -1,0 +1,3 @@
+[submodule "mi-proyecto/lib/forge-std"]
+	path = mi-proyecto/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
