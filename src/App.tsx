@@ -32,6 +32,9 @@ const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
 
+// Mercado LP Game
+const MercadoLPGamePage = lazy(() => import('@/pages/MercadoLPGamePage'));
+
 // Digital Art NFT Pages
 const DigitalArtDeFiPage = lazy(() => import('@/pages/DigitalArtDeFiPage'));
 const DigitalArtStudioPage = lazy(() => import('@/pages/DigitalArtStudioPage'));
@@ -343,6 +346,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <DeFiAcademyPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'academia/juego/mercado-lp',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <MercadoLPGamePage />
                 </Suspense>
               ),
             },
