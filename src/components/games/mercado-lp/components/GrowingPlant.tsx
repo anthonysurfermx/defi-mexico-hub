@@ -79,10 +79,7 @@ export const GrowingPlant = ({
   const isMature = currentStage === 'mature';
 
   return (
-    <div className={cn('pixel-card bg-gradient-to-b from-green-50 to-yellow-50 p-6 relative overflow-hidden', className)}>
-      {/* Fondo de tierra */}
-      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-amber-900/20 to-transparent" />
-
+    <div className={cn('p-6 relative overflow-hidden bg-transparent border-none shadow-none', className)}>
       {/* Sol decorativo */}
       <div className="absolute top-2 right-2 text-2xl opacity-40">☀️</div>
 
@@ -113,7 +110,7 @@ export const GrowingPlant = ({
 
         {/* Info */}
         <div className="text-center space-y-2">
-          <div className="pixel-card bg-card/80 px-4 py-2 inline-block">
+          <div className="inline-block rounded-lg border border-primary/30 bg-primary/5 px-4 py-2">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               {visual.label}
             </p>

@@ -134,19 +134,6 @@ const GameContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Back button to Home */}
-      <div className="container mx-auto px-4 pt-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/')}
-          className="pixel-button mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver al Inicio
-        </Button>
-      </div>
-
       {showMap && (
         <MarketPlazaMap
           open={showMap}
@@ -159,9 +146,9 @@ const GameContent = () => {
         />
       )}
       <GameHeader
-          onOpenMap={openMap}
-          onLoginPrompt={!user ? (reason) => setLoginPromptReason(reason) : undefined}
-        />
+        onOpenMap={openMap}
+        onLoginPrompt={!user ? (reason) => setLoginPromptReason(reason) : undefined}
+      />
 
       <div className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

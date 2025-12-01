@@ -167,7 +167,7 @@ export const TokenCreatorView = () => {
 
       <MissionsCard />
 
-      <Card className="pixel-card p-4 sm:p-6">
+      <Card className="p-4 sm:p-6 bg-transparent border-none shadow-none">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
@@ -336,14 +336,14 @@ export const TokenCreatorView = () => {
 
       {/* Galería de tus cultivos */}
       {tokens.filter(t => !t.isBaseToken).length > 0 && (
-        <Card className="pixel-card p-4">
+        <Card className="p-4 sm:p-5 bg-transparent border-none shadow-none">
           <h3 className="font-bold mb-3 flex items-center gap-2">
             <FarmerIcon size={18} className="text-emerald-600" />
             Tus cultivos activos
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {tokens.filter(t => !t.isBaseToken).map(token => (
-              <div key={token.id} className="pixel-card bg-gradient-to-b from-green-50 to-yellow-50 p-3 text-center">
+              <div key={token.id} className="pixel-card bg-card/70 p-3 text-center">
                 <div className="text-4xl mb-2">{token.emoji}</div>
                 <p className="text-xs font-bold">{token.name}</p>
                 <p className="text-xs text-muted-foreground">{token.symbol}</p>
