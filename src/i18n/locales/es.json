@@ -194,5 +194,203 @@
     "searching": "Buscando...",
     "noResults": "No se encontraron resultados",
     "recentSearches": "Búsquedas recientes"
+  },
+  "mercadoLP": {
+    "header": {
+      "title": "MERCADO LP",
+      "map": "Mapa",
+      "leaderboard": "Ranking",
+      "education": "Tutorial",
+      "xpTotal": "XP Total",
+      "progress": "Progreso",
+      "level": "Lvl {{level}}",
+      "range": "{{min}} / {{max}}",
+      "xpToNext": "{{xp}} XP para {{next}}",
+      "streak": "🔥 Racha de {{days}} día{{s}}",
+      "bestStreak": "Mejor: {{best}}",
+      "levels": {
+        "n1": "Marchante",
+        "n2": "Puestero",
+        "n3": "Agricultor",
+        "n4": "Subastero"
+      },
+      "toastXp": "+{{gained}} XP"
+    },
+    "start": {
+      "title": "MERCADO LP",
+      "subtitle": "Aprende DeFi jugando en un mercado mexicano",
+      "hintChange": "Puedes cambiar de nivel cuando quieras desde el menú superior",
+      "hintXP": "Completa retos para ganar XP, badges y desbloquear nuevos tokens",
+      "select": "Seleccionar Jugador",
+      "roles": {
+        "swapper": {
+          "name": "Don Vitalik “El Truequero”",
+          "description": "Observa en silencio, hace cuentas en la cabeza y truequea sin nervios. Prueba chiquito, mide y luego se avienta. Explica lo complejo de forma simple."
+        },
+        "provider": {
+          "name": "Don Hayden “El Puestero”",
+          "description": "Llega temprano, arma el puesto derechito y deja la balanza lista. Ajusta y reacomoda para que no se vacíe una canasta más que la otra. Trabaja fino y sin alarde."
+        },
+        "creator": {
+          "name": "Doña Esmeralda “La Semillera”",
+          "description": "Creativa y metódica. Inventa nombres, etiquetas e historias, y lanza con plan: cuánta fruta, cómo repartirla y cómo arrancar fuerte."
+        },
+        "auctioneer": {
+          "name": "Doña Lupe “La Martillera”",
+          "description": "Aparece cuando el tianguis está a reventar. Habla poco, se mueve rápido y juega con el tiempo y la urgencia. Se adelanta y cierra antes de que otros reaccionen."
+        }
+      }
+    },
+    "onboarding": {
+      "header": {
+        "title": "Tutorial rápido",
+        "subtitle": "Mercado LP"
+      },
+      "note": "Nota",
+      "mission": "Tu misión:",
+      "progress": "Paso {{current}} de {{total}}",
+      "buttons": {
+        "previous": "Anterior",
+        "skip": "Saltar tutorial",
+        "next": "Siguiente",
+        "start": "¡Empezar!"
+      },
+      "steps": {
+        "welcome": {
+          "title": "Bienvenido al Mercado LP",
+          "description": "Piensa en un puesto automático: siempre hay precio y no hay intermediarios. Aquí lo ves con frutas, fácil y sin complicarte.",
+          "tip": "En un CEX le compras a un creador de mercado, no a tu amigo. Aquí ves precios abiertos sin intermediarios."
+        },
+        "inventory": {
+          "title": "Tus frutas (tokens)",
+          "description": "Tienes pesos como moneda base y frutas como tokens. Cambiarás entre ellos y verás cómo varían los precios.",
+          "tip": "Cada fruta es liquidez disponible. Si compras mucho de una sola, la canasta se vacía y el precio sube."
+        },
+        "pools": {
+          "title": "Puestos (pools) automáticos",
+          "description": "Cada pool tiene dos frutas. El precio cambia según cuánta hay de cada una. Si queda poca fruta, sube el precio.",
+          "tip": "El pool sustituye al libro de órdenes: la fórmula del AMM siempre te da precio aunque no haya otro comprador enfrente."
+        },
+        "swap": {
+          "title": "Haz tu primer swap",
+          "description": "Elige una fruta, pon un monto y mira cuánto recibes. Verás el impacto en precio si el monto es grande.",
+          "action": "Prueba con un monto pequeño para ver el cambio.",
+          "tip": "Si compras mucho de golpe vacías la canasta y sube el precio. Empieza chico para ver el impacto real."
+        },
+        "fees": {
+          "title": "Propinas (fees)",
+          "description": "Cada swap paga una pequeña comisión que va a quienes pusieron frutas en el pool.",
+          "tip": "La propina incentiva a que alguien mantenga el puesto surtido. Sin fee, nadie dejaría sus frutas ahí."
+        },
+        "mission": {
+          "title": "Tu primera misión",
+          "description": "Completa tu primer swap. Cambia algunos pesos por fruta y gana XP.",
+          "action": "Haz un swap de pesos por cualquier fruta.",
+          "tip": "Un swap te muestra precio, fee y cambio en vivo. Aquí practicas sin riesgo y ganas XP."
+        }
+      }
+    },
+    "missions": {
+      "current": "Misión actual",
+      "progress": "Tu progreso",
+      "totalProgress": "Progreso total",
+      "levelsDone": "{{done}}/4 niveles",
+      "status": {
+        "completed": "Misión lista",
+        "inProgress": "En curso"
+      },
+      "levelLabel": "Nivel {{level}}",
+      "help": "💡 {{text}}",
+      "items": {
+        "swap": {
+          "title": "N1: Marchante",
+          "description": "Haz tu primer intercambio (swap) en el mercado.",
+          "help": "Elige dos frutas, pon un monto pequeño y confirma el swap."
+        },
+        "lp": {
+          "title": "N2: Puestero",
+          "description": "Abre un puesto y provee liquidez a un pool.",
+          "help": "Selecciona un par, aporta cantidades similares y confirma la liquidez."
+        },
+        "token": {
+          "title": "N3: Agricultor",
+          "description": "Crea tu propio token y abre su huerto.",
+          "help": "Define nombre, símbolo y el par con PESO; aporta liquidez inicial y lanza."
+        },
+        "auction": {
+          "title": "N4: Subastero",
+          "description": "Participa en una subasta continua (CCA).",
+          "help": "Elige un bloque, define precio tope y gasto máximo, y coloca tu oferta."
+        }
+      }
+    },
+    "player": {
+      "xpTotal": "XP Total",
+      "level": "Nivel {{level}}",
+      "progress": "Progreso",
+      "xpRange": "{{current}} / {{max}}",
+      "xpToNext": "{{remaining}} XP para {{next}}",
+      "streak": "🔥 Racha de {{days}} día{{s}}",
+      "bestStreak": "Mejor: {{best}}",
+      "inventory": "Bolsa de mercado"
+    },
+    "activity": {
+      "title": "Actividad del Mercado",
+      "loading": "Cargando actividad...",
+      "quiet": "El mercado está tranquilo...",
+      "beFirst": "¡Sé el primero en jugar!",
+      "time": {
+        "now": "Ahora",
+        "minutes": "Hace {{m}}m",
+        "hours": "Hace {{h}}h",
+        "days": "Hace {{d}}d"
+      },
+      "description": {
+        "swaps": "Alcanzó {{count}} swaps como {{level}}",
+        "levelUp": "Subió a {{level}} con {{xp}} XP",
+        "playing": "Jugando como {{level}}"
+      }
+    },
+    "swap": {
+      "title": "Mercado LP - Swaps",
+      "spot": "Hoy: 1 {{base}} ≈ {{quote}} {{quoteSym}}",
+      "errors": {
+        "missing": "Elige un puesto, una fruta y escribe una cantidad mayor que 0.",
+        "amount": "Pon un número mayor que 0.",
+        "balance": "No tienes suficiente en tu bolsa para este cambio."
+      },
+      "toasts": {
+        "first": "¡Primer swap exitoso! 🎉 Usaste un AMM automático sin intermediarios.",
+        "impact": "{{amount}} {{symbol}} → ~{{out}} {{outSymbol}}. La fórmula x·y=k ajustó el precio!",
+        "done": "Listo: {{amount}} {{symbol}} por ~{{out}} {{outSymbol}}."
+      },
+      "priceMood": {
+        "empty": "Pon una cantidad para ver el precio",
+        "good": "Buen precio 👍",
+        "ok": "Precio regular 😐",
+        "meh": "Está saliendo caro 😬",
+        "bad": "Muy caro, compra menos 🛑"
+      },
+      "depth": {
+        "none": "Sin puesto",
+        "big": "Puesto grande (precio se mueve poco)",
+        "mid": "Puesto mediano",
+        "small": "Puesto chico (pedido grande sube precio)"
+      },
+      "tips": [
+        "Entre más sacas del puesto, más caro sale lo siguiente.",
+        "Una pequeña propina va para quien puso frutas en el puesto.",
+        "Divide órdenes grandes para mejorar el precio."
+      ],
+      "labels": {
+        "priceImpact": "Impacto de precio",
+        "depth": "Profundidad",
+        "preview": "Vista previa de reservas",
+        "slippage": "Impacto",
+        "swap": "Hacer swap",
+        "help": "¿Cómo funciona?"
+      }
+    }
   }
+}
 }

@@ -3,61 +3,20 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TutorialStep {
   id: string;
-  title: string;
-  description: string;
   position: 'center' | 'top' | 'bottom' | 'left' | 'right';
-  action?: string;
-  tip?: string;
 }
 
 const tutorialSteps: TutorialStep[] = [
-  {
-    id: 'welcome',
-    title: 'Bienvenido al Mercado LP',
-    description: 'Piensa en un puesto automático: siempre hay precio y no hay intermediarios. Aquí lo ves con frutas, fácil y sin complicarte.',
-    position: 'center',
-    tip: 'En un CEX le compras a un creador de mercado, no a tu amigo. Aquí ves precios abiertos sin intermediarios.',
-  },
-  {
-    id: 'inventory',
-    title: 'Tus frutas (tokens)',
-    description: 'Tienes pesos como moneda base y frutas como tokens. Cambiarás entre ellos y verás cómo varían los precios.',
-    position: 'right',
-    tip: 'Cada fruta es liquidez disponible. Si compras mucho de una sola, la canasta se vacía y el precio sube.',
-  },
-  {
-    id: 'pools',
-    title: 'Puestos (pools) automáticos',
-    description: 'Cada pool tiene dos frutas. El precio cambia según cuánta hay de cada una. Si queda poca fruta, sube el precio.',
-    position: 'left',
-    tip: 'El pool sustituye al libro de órdenes: la fórmula del AMM siempre te da precio aunque no haya otro comprador enfrente.',
-  },
-  {
-    id: 'swap',
-    title: 'Haz tu primer swap',
-    description: 'Elige una fruta, pon un monto y mira cuánto recibes. Verás el impacto en precio si el monto es grande.',
-    position: 'top',
-    action: 'Prueba con un monto pequeño para ver el cambio.',
-    tip: 'Si compras mucho de golpe vacías la canasta y sube el precio. Empieza chico para ver el impacto real.',
-  },
-  {
-    id: 'fees',
-    title: 'Propinas (fees)',
-    description: 'Cada swap paga una pequeña comisión que va a quienes pusieron frutas en el pool.',
-    position: 'center',
-    tip: 'La propina incentiva a que alguien mantenga el puesto surtido. Sin fee, nadie dejaría sus frutas ahí.',
-  },
-  {
-    id: 'mission',
-    title: 'Tu primera misión',
-    description: 'Completa tu primer swap. Cambia algunos pesos por fruta y gana XP.',
-    position: 'center',
-    action: 'Haz un swap de pesos por cualquier fruta.',
-    tip: 'Un swap te muestra precio, fee y cambio en vivo. Aquí practicas sin riesgo y ganas XP.',
-  },
+  { id: 'welcome', position: 'center' },
+  { id: 'inventory', position: 'right' },
+  { id: 'pools', position: 'left' },
+  { id: 'swap', position: 'top' },
+  { id: 'fees', position: 'center' },
+  { id: 'mission', position: 'center' },
 ];
 
 interface OnboardingTutorialProps {
@@ -66,6 +25,7 @@ interface OnboardingTutorialProps {
 }
 
 export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialProps) => {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -119,8 +79,8 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
         {/* Header simple */}
         <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-4 border-b border-border flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">Tutorial rápido</p>
-            <p className="font-bold">Mercado LP</p>
+            <p className="text-xs text-muted-foreground">{t('mercadoLP.onboarding.header.title')}</p>
+            <p className="font-bold">{t('mercadoLP.onboarding.header.subtitle')}</p>
           </div>
           <Button
             variant="ghost"
@@ -135,30 +95,36 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
         {/* Content */}
         <div className="p-4 space-y-4">
           <div>
-            <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+            <h3 className="text-lg font-bold mb-2">
+              {t(`mercadoLP.onboarding.steps.${step.id}.title`)}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t(`mercadoLP.onboarding.steps.${step.id}.description`)}
+            </p>
           </div>
 
           {/* Action callout */}
-          {step.action && (
+          {t(`mercadoLP.onboarding.steps.${step.id}.action`, { defaultValue: '' }) && (
             <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
-              <p className="text-xs font-semibold text-primary">Tu misión:</p>
-              <p className="text-sm">{step.action}</p>
+              <p className="text-xs font-semibold text-primary">{t('mercadoLP.onboarding.mission')}</p>
+              <p className="text-sm">
+                {t(`mercadoLP.onboarding.steps.${step.id}.action`)}
+              </p>
             </div>
           )}
 
           {/* Nota */}
-          {step.tip && (
+          {t(`mercadoLP.onboarding.steps.${step.id}.tip`, { defaultValue: '' }) && (
             <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Nota</p>
-              <p>{step.tip}</p>
+              <p className="font-semibold text-foreground">{t('mercadoLP.onboarding.note')}</p>
+              <p>{t(`mercadoLP.onboarding.steps.${step.id}.tip`)}</p>
             </div>
           )}
 
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Paso {currentStep + 1} de {tutorialSteps.length}</span>
+              <span>{t('mercadoLP.onboarding.progress', { current: currentStep + 1, total: tutorialSteps.length })}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -174,7 +140,7 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
               className="gap-1"
             >
               <ChevronLeft className="h-4 w-4" />
-              Anterior
+              {t('mercadoLP.onboarding.buttons.previous')}
             </Button>
 
             <Button
@@ -183,7 +149,7 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
               onClick={handleSkip}
               className="text-muted-foreground"
             >
-              Saltar tutorial
+              {t('mercadoLP.onboarding.buttons.skip')}
             </Button>
 
             <Button
@@ -193,12 +159,12 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
             >
               {currentStep === tutorialSteps.length - 1 ? (
                 <>
-                  ¡Empezar!
+                  {t('mercadoLP.onboarding.buttons.start')}
                   <Sparkles className="h-4 w-4" />
                 </>
               ) : (
                 <>
-                  Siguiente
+                  {t('mercadoLP.onboarding.buttons.next')}
                   <ChevronRight className="h-4 w-4" />
                 </>
               )}

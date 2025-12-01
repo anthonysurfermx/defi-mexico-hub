@@ -3,9 +3,11 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { getPlayerLevel, getXPProgress } from '@/components/games/mercado-lp/data/playerLevels';
+import { useTranslation } from 'react-i18next';
 
 export const PlayerStatsPanel = () => {
   const { player, tokens } = useGame();
+  const { t } = useTranslation();
 
   const currentLevel = getPlayerLevel(player.xp);
   const xpProgress = getXPProgress(player.xp);
@@ -19,25 +21,32 @@ export const PlayerStatsPanel = () => {
             <span className="text-2xl">{currentLevel.icon}</span>
             <div>
               <h3 className="text-sm font-bold">{currentLevel.name}</h3>
-              <p className="text-xs text-muted-foreground">Nivel {currentLevel.level}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('mercadoLP.player.level', { level: currentLevel.level })}
+              </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">XP Total</p>
+            <p className="text-xs text-muted-foreground">{t('mercadoLP.player.xpTotal')}</p>
             <p className="text-sm font-bold">{player.xp}</p>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-muted-foreground">Progreso</span>
-            <span className="font-mono">{xpProgress.current} / {xpProgress.max}</span>
+            <span className="text-muted-foreground">{t('mercadoLP.player.progress')}</span>
+            <span className="font-mono">
+              {t('mercadoLP.player.xpRange', { current: xpProgress.current, max: xpProgress.max })}
+            </span>
           </div>
           <Progress value={xpProgress.percentage} className="h-2" />
 
           {currentLevel.level < 6 && (
             <p className="text-xs text-muted-foreground text-center mt-2">
-              {(xpProgress.max - xpProgress.current).toFixed(0)} XP para {getPlayerLevel(currentLevel.maxXP + 1).name}
+              {t('mercadoLP.player.xpToNext', {
+                remaining: (xpProgress.max - xpProgress.current).toFixed(0),
+                next: getPlayerLevel(currentLevel.maxXP + 1).name,
+              })}
             </p>
           )}
         </div>
@@ -47,11 +56,14 @@ export const PlayerStatsPanel = () => {
           <div className="mt-3 pt-3 border-t border-orange-200">
             <div className="flex items-center justify-between">
               <span className="text-xs flex items-center gap-1">
-                🔥 Racha de {player.currentStreak} día{player.currentStreak !== 1 ? 's' : ''}
+                {t('mercadoLP.player.streak', {
+                  days: player.currentStreak,
+                  s: player.currentStreak !== 1 ? 's' : '',
+                })}
               </span>
               {player.bestStreak > player.currentStreak && (
                 <span className="text-xs text-muted-foreground">
-                  Mejor: {player.bestStreak}
+                  {t('mercadoLP.player.bestStreak', { best: player.bestStreak })}
                 </span>
               )}
             </div>
@@ -61,7 +73,7 @@ export const PlayerStatsPanel = () => {
 
       <Card className="pixel-card p-4" data-tutorial="inventory">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-          <span>🧺</span> Bolsa de mercado
+          <span>🧺</span> {t('mercadoLP.player.inventory')}
         </h3>
 
         <ScrollArea className="h-[200px]">

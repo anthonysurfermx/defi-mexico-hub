@@ -15,6 +15,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { getPlayerLevel } from '@/components/games/mercado-lp/data/playerLevels';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface GameHeaderProps {
   onOpenMap: () => void;
@@ -27,12 +28,13 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [xpPulse, setXpPulse] = useState(false);
   const prevXP = useRef(player.xp);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (player.xp > prevXP.current) {
       const gained = player.xp - prevXP.current;
       setXpPulse(true);
-      toast.success(`+${gained} XP`, { duration: 1800 });
+      toast.success(t('mercadoLP.header.toastXp', { gained }), { duration: 1800 });
       const timer = setTimeout(() => setXpPulse(false), 1200);
       prevXP.current = player.xp;
       return () => clearTimeout(timer);
@@ -64,7 +66,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
         <div className="container mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-bold tracking-wider">MERCADO LP</h1>
+              <h1 className="text-xl md:text-2xl font-bold tracking-wider">{t('mercadoLP.header.title')}</h1>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -82,7 +84,9 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                     <span className="text-amber-500">⭐</span>
                     <span className="font-semibold">{player.xp} XP</span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground">Lvl {levelInfo.level}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {t('mercadoLP.header.level', { level: levelInfo.level })}
+                  </span>
                 </div>
                 <div className="relative">
                   <Progress value={progress} className="h-2" />
@@ -103,7 +107,9 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                   className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
                 >
                   <span className="font-bold tracking-tight">N1</span>
-                  <span className="hidden xs:inline sm:inline uppercase">Marchante</span>
+                  <span className="hidden xs:inline sm:inline uppercase">
+                    {t('mercadoLP.header.levels.n1')}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(2)}
@@ -112,7 +118,9 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                   className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
                 >
                   <span className="font-bold tracking-tight">N2</span>
-                  <span className="hidden xs:inline sm:inline uppercase">Puestero</span>
+                  <span className="hidden xs:inline sm:inline uppercase">
+                    {t('mercadoLP.header.levels.n2')}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(3)}
@@ -121,7 +129,9 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                   className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
                 >
                   <span className="font-bold tracking-tight">N3</span>
-                  <span className="hidden xs:inline sm:inline uppercase">Agricultor</span>
+                  <span className="hidden xs:inline sm:inline uppercase">
+                    {t('mercadoLP.header.levels.n3')}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(4)}
@@ -130,7 +140,9 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                   className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
                 >
                   <span className="font-bold tracking-tight">N4</span>
-                  <span className="hidden xs:inline sm:inline uppercase">Subastero</span>
+                  <span className="hidden xs:inline sm:inline uppercase">
+                    {t('mercadoLP.header.levels.n4')}
+                  </span>
                 </Button>
               </div>
               <Button
@@ -140,14 +152,14 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 className="rounded-full px-2 sm:px-3 h-9"
               >
                 <Map className="w-4 h-4" />
-                <span className="hidden sm:inline ml-1">Mapa</span>
+                <span className="hidden sm:inline ml-1">{t('mercadoLP.header.map')}</span>
               </Button>
               <Button
                 onClick={handleLeaderboardClick}
                 variant="outline"
                 size="sm"
                 className="rounded-full px-2 h-9"
-                title="Leaderboard"
+                title={t('mercadoLP.header.leaderboard')}
               >
                 <Trophy className="w-4 h-4" />
               </Button>
@@ -158,6 +170,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 className="rounded-full px-2 h-9"
               >
                 <BookOpen className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">{t('mercadoLP.header.education')}</span>
               </Button>
             </div>
           </div>
@@ -172,7 +185,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-yellow-500" />
-              Ranking de Jugadores
+              {t('mercadoLP.header.leaderboard')}
             </DialogTitle>
           </DialogHeader>
           <div className="p-4 pt-2">

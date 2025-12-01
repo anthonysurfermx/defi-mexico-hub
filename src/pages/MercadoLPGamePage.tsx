@@ -70,9 +70,9 @@ const GameContent = () => {
     setPlayerAvatar(avatar);
     closeStartScreen();
 
-    // Show onboarding tutorial for first-time players on level 1
+    // Mostrar onboarding en la primera visita, sin importar el personaje/level
     const hasSeenOnboarding = localStorage.getItem('mercado_lp_onboarding_complete');
-    if (level === 1 && !hasSeenOnboarding) {
+    if (!hasSeenOnboarding) {
       setTimeout(() => setShowOnboarding(true), 500);
     }
   };

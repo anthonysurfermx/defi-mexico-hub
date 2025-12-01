@@ -3,6 +3,7 @@ import { GameLevel } from '@/components/games/mercado-lp/types/game';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface StartScreenProps {
   onSelectRole: (level: GameLevel, avatar: string) => void;
@@ -32,52 +33,49 @@ const CharacterCard = ({ imageSrc, label }: CharacterCardProps) => {
 
 const roleCards: Array<{
   level: GameLevel;
-  title: string;
+  titleKey: string;
   gradient: string;
-  description: string;
+  descriptionKey: string;
   characterImage: string;
-  characterLabel: string;
+  characterLabelKey: string;
 }> = [
   {
     level: 1,
-    title: 'Swapper',
+    titleKey: 'mercadoLP.start.roles.swapper.name',
     gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
-    description:
-      'Observa en silencio, hace cuentas en la cabeza y truequea sin nervios. Prueba chiquito, mide y luego se avienta. Explica lo complejo de forma simple.',
+    descriptionKey: 'mercadoLP.start.roles.swapper.description',
     characterImage: '/player.png',
-    characterLabel: 'Don Vitalik “El Truequero”',
+    characterLabelKey: 'mercadoLP.start.roles.swapper.name',
   },
   {
     level: 2,
-    title: 'Provider',
+    titleKey: 'mercadoLP.start.roles.provider.name',
     gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
-    description:
-      'Llega temprano, arma el puesto derechito y deja la balanza lista. Ajusta y reacomoda para que no se vacíe una canasta más que la otra. Trabaja fino y sin alarde.',
+    descriptionKey: 'mercadoLP.start.roles.provider.description',
     characterImage: '/player1.3.png',
-    characterLabel: 'Don Hayden “El Puestero”',
+    characterLabelKey: 'mercadoLP.start.roles.provider.name',
   },
   {
     level: 3,
-    title: 'Token Creator',
+    titleKey: 'mercadoLP.start.roles.creator.name',
     gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
-    description:
-      'Creativa y metódica. Inventa nombres, etiquetas e historias, y lanza con plan: cuánta fruta, cómo repartirla y cómo arrancar fuerte.',
+    descriptionKey: 'mercadoLP.start.roles.creator.description',
     characterImage: '/player1.2.png',
-    characterLabel: 'Doña Esmeralda “La Semillera”',
+    characterLabelKey: 'mercadoLP.start.roles.creator.name',
   },
   {
     level: 4,
-    title: 'Auctioneer',
+    titleKey: 'mercadoLP.start.roles.auctioneer.name',
     gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
-    description:
-      'Aparece cuando el tianguis está a reventar. Habla poco, se mueve rápido y juega con el tiempo y la urgencia. Se adelanta y cierra antes de que otros reaccionen.',
+    descriptionKey: 'mercadoLP.start.roles.auctioneer.description',
     characterImage: '/player1.1.png',
-    characterLabel: 'Doña Lupe “La Martillera”',
+    characterLabelKey: 'mercadoLP.start.roles.auctioneer.name',
   },
 ];
 
 export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
   const [selectedLevel, setSelectedLevel] = useState<GameLevel>(1);
+  const { t } = useTranslation();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
@@ -99,13 +97,15 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
           <div className="text-center space-y-3 mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="text-4xl">🏪</span>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">MERCADO LP</h1>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{t('mercadoLP.start.title')}</h1>
             </div>
-            <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Aprende DeFi jugando en un mercado mexicano</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+              {t('mercadoLP.start.subtitle')}
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {roleCards.map(({ level, title, gradient, description, characterImage, characterLabel }) => (
+            {roleCards.map(({ level, titleKey, gradient, descriptionKey, characterImage, characterLabelKey }) => (
               <div
                 key={level}
                 onClick={() => setSelectedLevel(level)}
@@ -117,17 +117,17 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
                 <div className="absolute inset-0 bg-card/80" aria-hidden />
 
                 <div className="relative flex justify-center">
-                  <CharacterCard imageSrc={characterImage} label={characterLabel} />
+                  <CharacterCard imageSrc={characterImage} label={t(characterLabelKey)} />
                 </div>
 
-                <p className="relative text-sm text-foreground/90 leading-relaxed">{description}</p>
+                <p className="relative text-sm text-foreground/90 leading-relaxed">{t(descriptionKey)}</p>
 
                 <Button
                   onClick={() => onSelectRole(level, characterImage)}
                   className="relative pixel-button mt-auto"
                   variant="default"
                 >
-                  Seleccionar Jugador
+                  {t('mercadoLP.start.select')}
                 </Button>
               </div>
             ))}
@@ -135,10 +135,10 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
 
           <div className="relative mt-6 text-center space-y-2">
             <p className="text-xs text-muted-foreground">
-              💡 Puedes cambiar de nivel cuando quieras desde el menú superior
+              💡 {t('mercadoLP.start.hintChange')}
             </p>
             <p className="text-xs text-muted-foreground">
-              Completa retos para ganar XP, badges y desbloquear nuevos tokens
+              {t('mercadoLP.start.hintXP')}
             </p>
           </div>
         </div>

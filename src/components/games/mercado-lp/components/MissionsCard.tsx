@@ -9,6 +9,7 @@ import {
   FarmerIcon,
   AuctioneerIcon,
 } from './icons/GameIcons';
+import { useTranslation } from 'react-i18next';
 
 interface Mission {
   id: string;
@@ -22,33 +23,34 @@ interface Mission {
 
 export const MissionsCard = () => {
   const { player, tokens, auction } = useGame();
+  const { t } = useTranslation();
 
   // Define all missions across levels
   const missions: Mission[] = [
     {
       id: 'swap',
       level: 1,
-      title: 'N1: Marchante',
-      description: 'Haz tu primer intercambio (swap) en el mercado.',
-      help: 'Elige dos frutas, pon un monto pequeño y confirma el swap.',
+      title: t('mercadoLP.missions.items.swap.title'),
+      description: t('mercadoLP.missions.items.swap.description'),
+      help: t('mercadoLP.missions.items.swap.help'),
       isCompleted: player.swapCount > 0,
       isCurrent: player.swapCount === 0,
     },
     {
       id: 'lp',
       level: 2,
-      title: 'N2: Puestero',
-      description: 'Abre un puesto y provee liquidez a un pool.',
-      help: 'Selecciona un par, aporta cantidades similares y confirma la liquidez.',
+      title: t('mercadoLP.missions.items.lp.title'),
+      description: t('mercadoLP.missions.items.lp.description'),
+      help: t('mercadoLP.missions.items.lp.help'),
       isCompleted: player.lpPositions.length > 0 || player.totalFeesEarned > 0,
       isCurrent: player.swapCount > 0 && player.lpPositions.length === 0,
     },
     {
       id: 'token',
       level: 3,
-      title: 'N3: Agricultor',
-      description: 'Crea tu propio token y abre su huerto.',
-      help: 'Define nombre, símbolo y el par con PESO; aporta liquidez inicial y lanza.',
+      title: t('mercadoLP.missions.items.token.title'),
+      description: t('mercadoLP.missions.items.token.description'),
+      help: t('mercadoLP.missions.items.token.help'),
       isCompleted: tokens.filter(t => !t.isBaseToken && !['mango', 'limon', 'sandia', 'platano'].includes(t.id)).length > 0,
       isCurrent: (player.lpPositions.length > 0 || player.totalFeesEarned > 0) &&
                  tokens.filter(t => !t.isBaseToken && !['mango', 'limon', 'sandia', 'platano'].includes(t.id)).length === 0,
@@ -56,9 +58,9 @@ export const MissionsCard = () => {
     {
       id: 'auction',
       level: 4,
-      title: 'N4: Subastero',
-      description: 'Participa en una subasta continua (CCA).',
-      help: 'Elige un bloque, define precio tope y gasto máximo, y coloca tu oferta.',
+      title: t('mercadoLP.missions.items.auction.title'),
+      description: t('mercadoLP.missions.items.auction.description'),
+      help: t('mercadoLP.missions.items.auction.help'),
       isCompleted: player.stats.auctionBidsPlaced > 0,
       isCurrent: tokens.filter(t => !t.isBaseToken && !['mango', 'limon', 'sandia', 'platano'].includes(t.id)).length > 0 &&
                  player.stats.auctionBidsPlaced === 0,
@@ -97,7 +99,7 @@ export const MissionsCard = () => {
     <Card className="pixel-card p-4 bg-card space-y-4">
       <div className="flex items-center gap-2">
         <TargetIcon size={18} className="text-primary" />
-        <h3 className="font-bold text-sm">Misión actual</h3>
+        <h3 className="font-bold text-sm">{t('mercadoLP.missions.current')}</h3>
       </div>
 
       {currentMission && (
@@ -112,29 +114,28 @@ export const MissionsCard = () => {
             <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
               {getLevelIcon(currentMission.level, currentMission.isCompleted, currentMission.isCurrent)}
             </div>
-            <div className="space-y-1">
+              <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Nivel {currentMission.level}
+                {t('mercadoLP.missions.levelLabel', { level: currentMission.level })}
               </p>
               <p className="font-semibold text-sm">{currentMission.title}</p>
               <p className="text-xs text-muted-foreground">{currentMission.description}</p>
               <p className="text-[11px] text-amber-600 flex items-center gap-1">
-                <span>💡</span>
-                {currentMission.help}
+                {t('mercadoLP.missions.help', { text: currentMission.help })}
               </p>
             </div>
           </div>
           {currentMission.isCompleted ? (
-            <div className="text-emerald-600 text-xs font-semibold">Misión lista</div>
+            <div className="text-emerald-600 text-xs font-semibold">{t('mercadoLP.missions.status.completed')}</div>
           ) : (
-            <div className="text-primary text-xs font-semibold animate-pulse">En curso</div>
+            <div className="text-primary text-xs font-semibold animate-pulse">{t('mercadoLP.missions.status.inProgress')}</div>
           )}
         </div>
       )}
 
       <div className="flex items-center gap-2">
         <TargetIcon size={18} className="text-primary" />
-        <h3 className="font-bold text-sm">Tu progreso</h3>
+        <h3 className="font-bold text-sm">{t('mercadoLP.missions.progress')}</h3>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -184,8 +185,10 @@ export const MissionsCard = () => {
       {/* Progress bar */}
       <div className="mt-3 pt-3 border-t border-border">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-          <span>Progreso total</span>
-          <span className="font-semibold">{missions.filter(m => m.isCompleted).length}/4 niveles</span>
+          <span>{t('mercadoLP.missions.totalProgress')}</span>
+          <span className="font-semibold">
+            {t('mercadoLP.missions.levelsDone', { done: missions.filter(m => m.isCompleted).length })}
+          </span>
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div

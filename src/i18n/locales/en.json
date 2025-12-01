@@ -194,5 +194,203 @@
     "searching": "Searching...",
     "noResults": "No results found",
     "recentSearches": "Recent searches"
+  },
+  "mercadoLP": {
+    "header": {
+      "title": "MERCADO LP",
+      "map": "Map",
+      "leaderboard": "Leaderboard",
+      "education": "Tutorial",
+      "xpTotal": "Total XP",
+      "progress": "Progress",
+      "level": "Lvl {{level}}",
+      "range": "{{min}} / {{max}}",
+      "xpToNext": "{{xp}} XP to {{next}}",
+      "streak": "🔥 Streak: {{days}} day{{s}}",
+      "bestStreak": "Best: {{best}}",
+      "levels": {
+        "n1": "Swapper",
+        "n2": "Provider",
+        "n3": "Farmer",
+        "n4": "Auctioneer"
+      },
+      "toastXp": "+{{gained}} XP"
+    },
+    "start": {
+      "title": "MERCADO LP",
+      "subtitle": "Learn DeFi by playing in a Mexican market",
+      "hintChange": "You can switch levels anytime from the top menu",
+      "hintXP": "Complete challenges to earn XP, badges and unlock new tokens",
+      "select": "Select Player",
+      "roles": {
+        "swapper": {
+          "name": "Don Vitalik “El Truequero”",
+          "description": "Quiet observer, does mental math and swaps without nerves. Tests small, measures, then scales. Explains complex stuff simply."
+        },
+        "provider": {
+          "name": "Don Hayden “El Puestero”",
+          "description": "Arrives early, sets the stand neatly and keeps the scale ready. Adjusts and rebalances so baskets don’t empty unevenly. Works finely without showing off."
+        },
+        "creator": {
+          "name": "Doña Esmeralda “La Semillera”",
+          "description": "Creative and methodical. Invents names, labels and stories, and launches with a plan: how much fruit, how to split it, and how to start strong."
+        },
+        "auctioneer": {
+          "name": "Doña Lupe “La Martillera”",
+          "description": "Shows up when the market is packed. Speaks little, moves fast and plays with time and urgency. Gets ahead and closes before others react."
+        }
+      }
+    },
+    "onboarding": {
+      "header": {
+        "title": "Quick tutorial",
+        "subtitle": "Mercado LP"
+      },
+      "note": "Note",
+      "mission": "Your mission:",
+      "progress": "Step {{current}} of {{total}}",
+      "buttons": {
+        "previous": "Previous",
+        "skip": "Skip tutorial",
+        "next": "Next",
+        "start": "Start!"
+      },
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Mercado LP",
+          "description": "Think of an automatic stand: there’s always a price and no intermediaries. Here you see it with fruit—simple and not intimidating.",
+          "tip": "In a CEX you buy from a market maker, not your friend. Here you see open prices without middlemen."
+        },
+        "inventory": {
+          "title": "Your fruit (tokens)",
+          "description": "You have pesos as base money and fruit as tokens. You’ll swap between them and see how prices move.",
+          "tip": "Each fruit is available liquidity. If you buy too much of one, the basket empties and price goes up."
+        },
+        "pools": {
+          "title": "Automatic stands (pools)",
+          "description": "Each pool has two fruits. The price changes based on how much there is of each. If one gets scarce, price rises.",
+          "tip": "The pool replaces the order book: the AMM formula always gives you a price even if no buyer is in front."
+        },
+        "swap": {
+          "title": "Do your first swap",
+          "description": "Pick a fruit, set an amount, and see what you get. You’ll notice price impact if the order is big.",
+          "action": "Try with a small amount to see the change.",
+          "tip": "If you buy a lot at once, you empty the basket and price climbs. Start small to see real impact."
+        },
+        "fees": {
+          "title": "Fees (tips)",
+          "description": "Every swap pays a small fee to whoever supplied fruit to the pool.",
+          "tip": "The tip incentivizes someone to keep the stand stocked. Without it, nobody would leave fruit there."
+        },
+        "mission": {
+          "title": "Your first mission",
+          "description": "Complete your first swap. Trade some pesos for fruit and earn XP.",
+          "action": "Make a swap from pesos to any fruit.",
+          "tip": "A swap shows price, fee, and change live. Here you practice risk-free and earn XP."
+        }
+      }
+    },
+    "missions": {
+      "current": "Current mission",
+      "progress": "Your progress",
+      "totalProgress": "Total progress",
+      "levelsDone": "{{done}}/4 levels",
+      "status": {
+        "completed": "Done",
+        "inProgress": "In progress"
+      },
+      "levelLabel": "Level {{level}}",
+      "help": "💡 {{text}}",
+      "items": {
+        "swap": {
+          "title": "N1: Swapper",
+          "description": "Make your first swap in the market.",
+          "help": "Pick two fruits, use a small amount, and confirm the swap."
+        },
+        "lp": {
+          "title": "N2: Provider",
+          "description": "Open a stand and supply liquidity to a pool.",
+          "help": "Select a pair, add similar amounts, and confirm liquidity."
+        },
+        "token": {
+          "title": "N3: Token Creator",
+          "description": "Create your own token and open its garden.",
+          "help": "Set name, symbol, and the PESO pair; add initial liquidity and launch."
+        },
+        "auction": {
+          "title": "N4: Auctioneer",
+          "description": "Join a continuous auction (CCA).",
+          "help": "Pick a block, set max price and max spend, and place your bid."
+        }
+      }
+    },
+    "player": {
+      "xpTotal": "Total XP",
+      "level": "Level {{level}}",
+      "progress": "Progress",
+      "xpRange": "{{current}} / {{max}}",
+      "xpToNext": "{{remaining}} XP to {{next}}",
+      "streak": "🔥 Streak: {{days}} day{{s}}",
+      "bestStreak": "Best: {{best}}",
+      "inventory": "Market bag"
+    },
+    "activity": {
+      "title": "Market Activity",
+      "loading": "Loading activity...",
+      "quiet": "The market is quiet...",
+      "beFirst": "Be the first to play!",
+      "time": {
+        "now": "Now",
+        "minutes": "{{m}}m ago",
+        "hours": "{{h}}h ago",
+        "days": "{{d}}d ago"
+      },
+      "description": {
+        "swaps": "Reached {{count}} swaps as {{level}}",
+        "levelUp": "Leveled up to {{level}} with {{xp}} XP",
+        "playing": "Playing as {{level}}"
+      }
+    },
+    "swap": {
+      "title": "Mercado LP - Swaps",
+      "spot": "Today: 1 {{base}} ≈ {{quote}} {{quoteSym}}",
+      "errors": {
+        "missing": "Pick a stand, a fruit, and enter an amount greater than 0.",
+        "amount": "Enter a number greater than 0.",
+        "balance": "You don't have enough in your bag for this swap."
+      },
+      "toasts": {
+        "first": "First swap done! 🎉 You used an automatic AMM without intermediaries.",
+        "impact": "{{amount}} {{symbol}} → ~{{out}} {{outSymbol}}. The x·y=k formula adjusted the price!",
+        "done": "Done: {{amount}} {{symbol}} for ~{{out}} {{outSymbol}}."
+      },
+      "priceMood": {
+        "empty": "Enter an amount to see the price",
+        "good": "Good price 👍",
+        "ok": "Regular price 😐",
+        "meh": "Getting pricey 😬",
+        "bad": "Very expensive, buy less 🛑"
+      },
+      "depth": {
+        "none": "No stand",
+        "big": "Big stand (price moves little)",
+        "mid": "Medium stand",
+        "small": "Small stand (big order moves price)"
+      },
+      "tips": [
+        "The more you take from the stand, the pricier the next one.",
+        "A small tip goes to whoever stocked the stand.",
+        "Split big orders to improve price."
+      ],
+      "labels": {
+        "priceImpact": "Price impact",
+        "depth": "Depth",
+        "preview": "Reserve preview",
+        "slippage": "Impact",
+        "swap": "Swap",
+        "help": "How it works?"
+      }
+    }
   }
+}
 }

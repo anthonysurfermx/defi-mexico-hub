@@ -3,11 +3,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useRef, useState } from 'react';
 import { getRecentMarketActivity, MarketActivity } from '@/components/games/mercado-lp/lib/supabase';
 import { getPlayerLevel } from '@/components/games/mercado-lp/data/playerLevels';
+import { useTranslation } from 'react-i18next';
 
 export const NPCActivityFeed = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activities, setActivities] = useState<MarketActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const loadActivity = async () => {
@@ -38,34 +40,40 @@ export const NPCActivityFeed = () => {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins}m`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    return `Hace ${diffDays}d`;
+    if (diffMins < 1) return t('mercadoLP.activity.time.now');
+    if (diffMins < 60) return t('mercadoLP.activity.time.minutes', { m: diffMins });
+    if (diffHours < 24) return t('mercadoLP.activity.time.hours', { h: diffHours });
+    return t('mercadoLP.activity.time.days', { d: diffDays });
   };
 
   const getActivityDescription = (activity: MarketActivity) => {
     const level = getPlayerLevel(activity.xp);
     if (activity.swap_count > 10) {
-      return `Alcanzó ${activity.swap_count} swaps como ${level.name}`;
+      return t('mercadoLP.activity.description.swaps', {
+        count: activity.swap_count,
+        level: level.name,
+      });
     }
     if (activity.xp > 1000) {
-      return `Subió a ${level.name} con ${activity.xp} XP`;
+      return t('mercadoLP.activity.description.levelUp', {
+        level: level.name,
+        xp: activity.xp,
+      });
     }
-    return `Jugando como ${level.name}`;
+    return t('mercadoLP.activity.description.playing', { level: level.name });
   };
 
   return (
     <Card className="pixel-card p-4">
       <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-        <span>📢</span> Actividad del Mercado
+        <span>📢</span> {t('mercadoLP.activity.title')}
       </h3>
 
       <ScrollArea className="h-[200px]" ref={scrollRef}>
         <div className="space-y-2">
           {isLoading ? (
             <div className="text-center text-muted-foreground text-xs py-8">
-              <p>Cargando actividad...</p>
+              <p>{t('mercadoLP.activity.loading')}</p>
             </div>
           ) : activities.length > 0 ? (
             activities.map(activity => {
@@ -97,8 +105,8 @@ export const NPCActivityFeed = () => {
             })
           ) : (
             <div className="text-center text-muted-foreground text-xs py-8">
-              <p>El mercado está tranquilo...</p>
-              <p className="text-[10px] mt-1">¡Sé el primero en jugar!</p>
+              <p>{t('mercadoLP.activity.quiet')}</p>
+              <p className="text-[10px] mt-1">{t('mercadoLP.activity.beFirst')}</p>
             </div>
           )}
         </div>
