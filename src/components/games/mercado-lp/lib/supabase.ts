@@ -142,6 +142,50 @@ export async function getLeaderboard(limit = 10) {
 }
 
 /**
+ * Gets recent market activity from real users
+ */
+export interface MarketActivity {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string;
+  xp: number;
+  level: number;
+  swap_count: number;
+  updated_at: string;
+}
+
+export async function getRecentMarketActivity(limit = 10): Promise<MarketActivity[]> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from('game_leaderboard')
+      .select('user_id, full_name, avatar_url, xp, level, swap_count, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data || []).map((item: any, index: number) => ({
+      id: `activity-${item.user_id}-${index}`,
+      user_id: item.user_id,
+      user_name: item.full_name || 'Jugador anónimo',
+      user_avatar: item.avatar_url || '',
+      xp: item.xp || 0,
+      level: item.level || 1,
+      swap_count: item.swap_count || 0,
+      updated_at: item.updated_at,
+    }));
+  } catch (error) {
+    console.error('Error fetching market activity:', error);
+    return [];
+  }
+}
+
+/**
  * Deletes game progress for the current user (reset game)
  */
 export async function resetGameProgress(): Promise<boolean> {

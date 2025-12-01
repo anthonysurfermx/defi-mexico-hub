@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { getPlayerLevel, getXPProgress } from '@/components/games/mercado-lp/data/playerLevels';
 
 export const PlayerStatsPanel = () => {
-  const { player, tokens, challenges } = useGame();
+  const { player, tokens } = useGame();
 
   const currentLevel = getPlayerLevel(player.xp);
   const xpProgress = getXPProgress(player.xp);
@@ -80,42 +80,6 @@ export const PlayerStatsPanel = () => {
                 </div>
               );
             })}
-          </div>
-        </ScrollArea>
-      </Card>
-
-      <Card className="pixel-card p-4">
-        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-          <span>🎯</span> Challenges
-        </h3>
-
-        <ScrollArea className="h-[150px]">
-          <div className="space-y-2">
-            {challenges
-              .filter(c => c.level <= 3)
-              .map(challenge => (
-                <div
-                  key={challenge.id}
-                  className={`pixel-card p-2 text-xs ${
-                    challenge.completed ? 'bg-muted' : 'bg-muted'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span>{challenge.completed ? '✅' : '⭕'}</span>
-                    <div className="flex-1">
-                      <p className="font-bold">{challenge.title}</p>
-                      <p className="text-muted-foreground text-[10px]">
-                        {challenge.description}
-                      </p>
-                      {!challenge.completed && (
-                        <p className="text-primary text-[10px] mt-1">
-                          +{challenge.xpReward} XP
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
           </div>
         </ScrollArea>
       </Card>
