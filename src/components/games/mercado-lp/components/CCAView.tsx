@@ -165,10 +165,10 @@ export const CCAView = () => {
     return (
       <div className="space-y-4">
         {/* Banner educativo del nivel */}
-        <Card className="pixel-card p-4 bg-gradient-to-r from-violet-100 to-purple-100 border-violet-300">
+        <Card className="pixel-card p-4 bg-gradient-to-r from-primary/10 to-emerald-500/5 border-primary/30">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-200 flex items-center justify-center">
-              <GraduationCapIcon size={24} className="text-violet-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Nivel 4: Subastero - Continuous Clearing Auctions</h3>

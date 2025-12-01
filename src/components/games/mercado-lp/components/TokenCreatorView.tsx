@@ -145,16 +145,16 @@ export const TokenCreatorView = () => {
 
       {/* Banner educativo del nivel */}
       {isFirstToken && (
-        <Card className="pixel-card p-4 bg-gradient-to-r from-pink-100 to-purple-100 border-pink-300">
+        <Card className="pixel-card p-4 bg-gradient-to-r from-primary/10 to-emerald-500/5 border-primary/30">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-pink-200 flex items-center justify-center">
-              <GraduationCapIcon size={24} className="text-pink-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Nivel 3: Agricultor - Crear Token</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
-                <strong>Recuerdas la liquidez del N2?</strong> Ahora la usarás para <strong>lanzar tu propio token</strong>.
-                Define el ratio inicial (cuántas frutas por cuántos pesos) = precio inicial del token.
+                Usa la liquidez para lanzar tu propio token. Define el ratio inicial (cuántas frutas por cuántos pesos)
+                y habilita que el mercado descubra su precio.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />

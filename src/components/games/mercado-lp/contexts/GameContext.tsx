@@ -38,6 +38,7 @@ interface GameContextType {
   newBadge: Badge | null;
   levelUpNotification: PlayerLevel | null;
   auction: Auction | null;
+  setPlayerAvatar: (avatar: string) => void;
   openMap: () => void;
   closeMap: () => void;
   closeStartScreen: () => void;
@@ -184,6 +185,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     lpPositions: [],
     xp: 0,
     level: 1,
+    avatar: '/player.png',
     reputation: 10,
     completedChallenges: [],
     badges: [],
@@ -233,6 +235,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           lastPlayedDate: supabaseData.last_played_date,
           currentStreak: supabaseData.current_streak || 0,
           bestStreak: supabaseData.best_streak || 0,
+          avatar: supabaseData.avatar || '/player.png',
         });
         if (supabaseData.pools?.length > 0) setPools(supabaseData.pools);
         if (supabaseData.tokens?.length > 0) setTokens(supabaseData.tokens);
@@ -243,7 +246,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         // Fallback to localStorage
         const savedState = loadGameState();
         if (savedState) {
-          setPlayer(savedState.player);
+          setPlayer({
+            ...savedState.player,
+            avatar: savedState.player?.avatar || '/player.png',
+          });
           setPools(savedState.pools);
           setTokens(savedState.tokens);
           setCurrentLevel(savedState.currentLevel as GameLevel);
@@ -263,6 +269,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setPlayer(prev => ({
       ...prev,
       reputation: Math.min(100, prev.reputation + amount),
+    }));
+  };
+
+  const setPlayerAvatar = (avatar: string) => {
+    setPlayer(prev => ({
+      ...prev,
+      avatar,
     }));
   };
 
@@ -948,6 +961,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         newBadge,
         levelUpNotification,
         auction,
+        setPlayerAvatar,
         openMap,
         closeMap,
         closeStartScreen,

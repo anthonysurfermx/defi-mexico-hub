@@ -1,44 +1,31 @@
 import { Button } from '@/components/ui/button';
 import { GameLevel } from '@/components/games/mercado-lp/types/game';
-import { Sparkles, Coins, FlaskConical, Gavel, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface StartScreenProps {
-  onSelectRole: (level: GameLevel) => void;
+  onSelectRole: (level: GameLevel, avatar: string) => void;
 }
 
-type PixelPalette = Record<string, string>;
-
-interface PixelAvatarProps {
-  pattern: string[];
-  palette: PixelPalette;
+interface CharacterCardProps {
+  imageSrc: string;
   label: string;
 }
 
-const PixelAvatar = ({ pattern, palette, label }: PixelAvatarProps) => {
+const CharacterCard = ({ imageSrc, label }: CharacterCardProps) => {
   return (
-    <div className="relative flex flex-col items-center gap-2">
-      <div className="pixel-card bg-card/70 p-2 shadow-md">
-        <div className="grid grid-cols-[repeat(12,14px)] gap-[2px] bg-foreground/5 p-2">
-          {pattern.map((row, rowIdx) =>
-            row.split('').map((cell, colIdx) => {
-              if (cell === '.') {
-                return <span key={`${rowIdx}-${colIdx}`} className="w-[14px] h-[14px]" />;
-              }
-              const fill = palette[cell] || '#111827';
-              return (
-                <span
-                  key={`${rowIdx}-${colIdx}`}
-                  className="w-[14px] h-[14px] rounded-[2px]"
-                  style={{ backgroundColor: fill }}
-                />
-              );
-            })
-          )}
-        </div>
+    <div className="relative flex flex-col items-center gap-5">
+      <div className="pixel-card bg-card/70 p-4 shadow-md">
+        <img
+          src={imageSrc}
+          alt={label}
+          className="w-48 h-48 object-contain"
+        />
       </div>
-      <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{label}</span>
+      <h3 className="text-lg font-semibold text-center leading-tight">
+        {label}
+      </h3>
     </div>
   );
 };
@@ -46,154 +33,46 @@ const PixelAvatar = ({ pattern, palette, label }: PixelAvatarProps) => {
 const roleCards: Array<{
   level: GameLevel;
   title: string;
-  label: string;
-  icon: string;
-  AccentIcon: typeof Sparkles;
   gradient: string;
   description: string;
-  bullets: string[];
-  avatarPattern: string[];
-  avatarPalette: PixelPalette;
-  avatarLabel: string;
+  characterImage: string;
+  characterLabel: string;
 }> = [
   {
     level: 1,
     title: 'Swapper',
-    label: 'Nivel 1 · Marchante',
-    icon: '🔄',
-    AccentIcon: Sparkles,
-    gradient: 'from-amber-500/20 via-orange-500/10 to-yellow-500/5',
-    description: 'Empieza como comprador/vendedor rápido. Aprende cómo el precio se mueve con cada trueque.',
-    bullets: [
-      'Cambia frutas sin fricción con pools ya abiertos',
-      'Observa el impacto de precio y el deslizamiento',
-      'Cumple retos rápidos para ganar reputación',
-    ],
-    avatarPattern: [
-      '............',
-      '.....YY.....',
-      '....YYYY....',
-      '....YBBY....',
-      '...YBBBBY...',
-      '...YWWWWY...',
-      '..YWWYYWWY..',
-      '..YWWYYWWY..',
-      '..YBBBBBBY..',
-      '...YBYYBY...',
-      '...YBYYBY...',
-      '..YB....BY..',
-    ],
-    avatarPalette: {
-      Y: '#fbbf24',
-      B: '#0ea5e9',
-      W: '#f3f4f6',
-    },
-    avatarLabel: 'Runner',
+    gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
+    description:
+      'Observa en silencio, hace cuentas en la cabeza y truequea sin nervios. Prueba chiquito, mide y luego se avienta. Explica lo complejo de forma simple.',
+    characterImage: '/player.png',
+    characterLabel: 'Don Vitalik “El Truequero”',
   },
   {
     level: 2,
     title: 'Provider',
-    label: 'Nivel 2 · Puestero',
-    icon: '🏪',
-    AccentIcon: Coins,
     gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
-    description: 'Coloca tu propio puesto en el mercado y cobra comisiones cada vez que alguien intercambia.',
-    bullets: [
-      'Aporta liquidez y equilibra dos frutas a la vez',
-      'Ve cómo las fees se suman a tus ganancias',
-      'Protege tu reputación manteniendo precios sanos',
-    ],
-    avatarPattern: [
-      '............',
-      '....GGGG....',
-      '...GPPPPG...',
-      '...GPPPPG...',
-      '..GPPWWPPG..',
-      '..GPPWWPPG..',
-      '..GPPPPPPG..',
-      '..GPPYYPPG..',
-      '..GPPPYYPG..',
-      '..GPPPYYPG..',
-      '..GPP....G..',
-      '...G......G.',
-    ],
-    avatarPalette: {
-      G: '#22c55e',
-      P: '#ec4899',
-      W: '#f8fafc',
-      Y: '#f59e0b',
-    },
-    avatarLabel: 'Tender',
+    description:
+      'Llega temprano, arma el puesto derechito y deja la balanza lista. Ajusta y reacomoda para que no se vacíe una canasta más que la otra. Trabaja fino y sin alarde.',
+    characterImage: '/player1.3.png',
+    characterLabel: 'Don Hayden “El Puestero”',
   },
   {
     level: 3,
     title: 'Token Creator',
-    label: 'Nivel 3 · Agricultor',
-    icon: '🚜',
-    AccentIcon: FlaskConical,
-    gradient: 'from-pink-500/20 via-rose-500/10 to-purple-500/5',
-    description: 'Diseña tu propia fruta/token y lánzala con liquidez inicial para que otros puedan comprarla.',
-    bullets: [
-      'Define la oferta y el branding de tu token',
-      'Abre su primer pool con la mezcla correcta',
-      'Genera hype con eventos y atrae marchantes',
-    ],
-    avatarPattern: [
-      '............',
-      '.....PP.....',
-      '....PPPP....',
-      '...PPYYPP...',
-      '...PPYYPP...',
-      '..PPPPPPPP..',
-      '..PPWWWWPP..',
-      '..PPWWWWPP..',
-      '..PPPPPPPP..',
-      '..PPG..GPP..',
-      '..PPG..GPP..',
-      '...P....P...',
-    ],
-    avatarPalette: {
-      P: '#a855f7',
-      Y: '#fbbf24',
-      W: '#e5e7eb',
-      G: '#22c55e',
-    },
-    avatarLabel: 'Farmer',
+    gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
+    description:
+      'Creativa y metódica. Inventa nombres, etiquetas e historias, y lanza con plan: cuánta fruta, cómo repartirla y cómo arrancar fuerte.',
+    characterImage: '/player1.2.png',
+    characterLabel: 'Doña Esmeralda “La Semillera”',
   },
   {
     level: 4,
     title: 'Auctioneer',
-    label: 'Nivel 4 · Subastero',
-    icon: '🔨',
-    AccentIcon: Gavel,
-    gradient: 'from-violet-500/20 via-purple-500/10 to-fuchsia-500/5',
-    description: 'Participa en subastas continuas donde el precio se ajusta bloque a bloque según la demanda.',
-    bullets: [
-      'Coloca ofertas en múltiples bloques futuros',
-      'Aprende cómo el precio de clearing equilibra oferta/demanda',
-      'Estrategiza cuándo ofertar temprano vs tarde',
-    ],
-    avatarPattern: [
-      '............',
-      '.....VV.....',
-      '....VVVV....',
-      '...VVWWVV...',
-      '...VVWWVV...',
-      '..VVVVVVVV..',
-      '..VVYYYYVV..',
-      '..VVYYYYVV..',
-      '..VVVVVVVV..',
-      '..VVO..OVV..',
-      '..VVO..OVV..',
-      '...V....V...',
-    ],
-    avatarPalette: {
-      V: '#8b5cf6',
-      W: '#f3f4f6',
-      Y: '#fbbf24',
-      O: '#f97316',
-    },
-    avatarLabel: 'Bidder',
+    gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
+    description:
+      'Aparece cuando el tianguis está a reventar. Habla poco, se mueve rápido y juega con el tiempo y la urgencia. Se adelanta y cierra antes de que otros reaccionen.',
+    characterImage: '/player1.1.png',
+    characterLabel: 'Doña Lupe “La Martillera”',
   },
 ];
 
@@ -223,14 +102,10 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">MERCADO LP</h1>
             </div>
             <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Aprende DeFi jugando en un mercado mexicano</p>
-            <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Desde hacer trueques simples hasta crear tokens y participar en subastas.
-              Cada nivel te enseña un concepto clave de los DEX modernos.
-            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {roleCards.map(({ level, title, label, icon, AccentIcon, gradient, description, bullets, avatarPattern, avatarPalette, avatarLabel }) => (
+            {roleCards.map(({ level, title, gradient, description, characterImage, characterLabel }) => (
               <div
                 key={level}
                 onClick={() => setSelectedLevel(level)}
@@ -241,40 +116,18 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
                 <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} aria-hidden />
                 <div className="absolute inset-0 bg-card/80" aria-hidden />
 
-                <div className="relative flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{icon}</span>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-                      <h3 className="text-lg font-bold">{title}</h3>
-                    </div>
-                  </div>
-                  <div className="pixel-card bg-card/80 px-3 py-2 text-[10px] font-semibold tracking-wide">
-                    Lvl {level}
-                  </div>
-                </div>
-
                 <div className="relative flex justify-center">
-                  <PixelAvatar pattern={avatarPattern} palette={avatarPalette} label={avatarLabel} />
+                  <CharacterCard imageSrc={characterImage} label={characterLabel} />
                 </div>
 
                 <p className="relative text-sm text-foreground/90 leading-relaxed">{description}</p>
 
-                <div className="relative space-y-2 text-xs text-foreground/90">
-                  {bullets.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
-                      <AccentIcon className="w-3.5 h-3.5 mt-0.5 text-foreground/90" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-
                 <Button
-                  onClick={() => onSelectRole(level)}
+                  onClick={() => onSelectRole(level, characterImage)}
                   className="relative pixel-button mt-auto"
                   variant="default"
                 >
-                  Jugar como {title}
+                  Seleccionar Jugador
                 </Button>
               </div>
             ))}

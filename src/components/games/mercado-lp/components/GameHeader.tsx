@@ -78,6 +78,13 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
 
             <div className="flex items-center gap-2">
               <LanguageFlags />
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-primary/40 bg-card shadow-sm flex items-center justify-center">
+                <img
+                  src={player.avatar || '/player.png'}
+                  alt="Tu personaje"
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <ReputationDisplay />
               <div className="pixel-card bg-card px-2 py-1.5 text-xs text-foreground/90 hidden sm:block">
                 <span className="text-amber-500">⭐</span> XP: {player.xp}

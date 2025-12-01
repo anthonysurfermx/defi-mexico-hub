@@ -85,6 +85,7 @@ export async function saveGameProgress(
       user_id: user.id,
       xp: player.xp,
       level: player.level,
+       avatar: (player as any).avatar || '/player.png',
       reputation: player.reputation,
       swap_count: player.swapCount,
       total_fees_earned: player.totalFeesEarned,

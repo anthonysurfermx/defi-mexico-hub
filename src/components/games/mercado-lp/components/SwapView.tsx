@@ -226,16 +226,16 @@ export const SwapView = () => {
 
       {/* Banner educativo del nivel */}
       {player.swapCount === 0 && (
-        <Card className="pixel-card p-4 bg-gradient-to-r from-orange-100 to-amber-100 border-orange-300">
+        <Card className="pixel-card p-4 bg-gradient-to-r from-primary/10 to-emerald-500/5 border-primary/30">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-200 flex items-center justify-center">
-              <GraduationCapIcon size={24} className="text-orange-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-bold text-base">Bienvenido al Nivel 1: Marchante</h3>
+              <h3 className="font-bold text-base">Nivel 1: Marchante - Swaps</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
-                Aquí aprenderás <strong>cómo funciona un intercambio automático (AMM)</strong>.
-                No hay vendedor ni comprador, solo una "olla mágica" que mantiene balance usando la fórmula <code className="px-1.5 py-0.5 bg-card/60 rounded text-xs">x·y=k</code>.
+                Empieza con el intercambio automático (AMM). Sin vendedor: el pool mantiene el precio con la fórmula&nbsp;
+                <code className="px-1.5 py-0.5 bg-card/60 rounded text-xs">x·y = k</code> y te deja cambiar al instante.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />

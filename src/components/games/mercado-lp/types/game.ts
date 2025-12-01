@@ -107,6 +107,7 @@ export interface PlayerState {
   lpPositions: LPPosition[];
   xp: number;
   level: number;
+  avatar: string;
   reputation: number;
   completedChallenges: string[];
   badges: Badge[];

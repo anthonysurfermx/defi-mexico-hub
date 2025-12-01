@@ -26,7 +26,7 @@ type LoginPromptReason = 'level_up' | 'xp_milestone' | 'leaderboard' | 'nft_clai
 const GameContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player } = useGame();
+  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar } = useGame();
   const [showNFTModal, setShowNFTModal] = useState(false);
   const [hasShownNFTModal, setHasShownNFTModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -65,8 +65,9 @@ const GameContent = () => {
     navigate('/auth');
   };
 
-  const handleSelectRole = (level: GameLevel) => {
+  const handleSelectRole = (level: GameLevel, avatar: string) => {
     setCurrentLevel(level);
+    setPlayerAvatar(avatar);
     closeStartScreen();
 
     // Show onboarding tutorial for first-time players on level 1
@@ -154,6 +155,7 @@ const GameContent = () => {
             setCurrentLevel(level);
             closeMap();
           }}
+          playerAvatar={player.avatar}
         />
       )}
       <GameHeader

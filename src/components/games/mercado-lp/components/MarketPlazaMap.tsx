@@ -71,11 +71,11 @@ const LanguageFlags = () => {
 
 // Preload de imagen para carga suave
 const MAP_IMAGE_URL = '/market-plaza.png';
-const PLAYER_IMAGE_URL = '/player.png';
+const DEFAULT_PLAYER_IMAGE_URL = '/player.png';
 
 // Cache global para evitar recargas
 let mapImageCache: HTMLImageElement | null = null;
-let playerImageCache: HTMLImageElement | null = null;
+let playerImageCache: Record<string, HTMLImageElement> = {};
 
 const preloadImage = (src: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
@@ -92,6 +92,7 @@ interface MarketPlazaMapProps {
   onEnterLevel: (level: GameLevel) => void;
   autoOpenLevel?: GameLevel | null;
   onAutoOpenConsumed?: () => void;
+  playerAvatar?: string;
 }
 
 type StallZone = {
@@ -159,6 +160,7 @@ export const MarketPlazaMap = ({
   onEnterLevel,
   autoOpenLevel = null,
   onAutoOpenConsumed,
+  playerAvatar = DEFAULT_PLAYER_IMAGE_URL,
 }: MarketPlazaMapProps) => {
   const [selected, setSelected] = useState<GameLevel | null>(null);
   const [dogPos, setDogPos] = useState<{ x: number; y: number }>({ x: 50, y: 70 });
@@ -173,8 +175,10 @@ export const MarketPlazaMap = ({
   useEffect(() => {
     if (!open) return;
 
+    const avatarSrc = playerAvatar || DEFAULT_PLAYER_IMAGE_URL;
+
     // Si ya están en cache, mostrar inmediatamente
-    if (mapImageCache && playerImageCache) {
+    if (mapImageCache && playerImageCache[avatarSrc]) {
       setImagesLoaded(true);
       setLoadingProgress(100);
       return;
@@ -189,14 +193,14 @@ export const MarketPlazaMap = ({
         // Cargar ambas imágenes en paralelo
         const [mapImg, playerImg] = await Promise.all([
           mapImageCache || preloadImage(MAP_IMAGE_URL),
-          playerImageCache || preloadImage(PLAYER_IMAGE_URL)
+          playerImageCache[avatarSrc] || preloadImage(avatarSrc)
         ]);
 
         if (cancelled) return;
 
         // Guardar en cache
         mapImageCache = mapImg;
-        playerImageCache = playerImg;
+        playerImageCache[avatarSrc] = playerImg;
 
         setLoadingProgress(100);
 
@@ -216,7 +220,7 @@ export const MarketPlazaMap = ({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, playerAvatar]);
 
   useEffect(() => {
     if (!open) return;
@@ -437,7 +441,7 @@ export const MarketPlazaMap = ({
           })}
 
           <img
-            src={PLAYER_IMAGE_URL}
+            src={playerImageCache[playerAvatar]?.src || playerAvatar || DEFAULT_PLAYER_IMAGE_URL}
             alt="Jugador con perrito"
             className="absolute w-16 h-auto animate-bob-slow pointer-events-none select-none drop-shadow-[0_4px_2px_rgba(0,0,0,0.35)]"
             style={{
