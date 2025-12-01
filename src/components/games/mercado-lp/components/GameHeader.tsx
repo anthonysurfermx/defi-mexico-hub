@@ -6,6 +6,7 @@ import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
 import { GameEventBanner } from './GameEventBanner';
 import { Leaderboard } from './Leaderboard';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -78,23 +79,23 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 />
               </div>
               <ReputationDisplay />
-              <div className="pixel-card bg-card px-2 py-1.5 text-xs text-foreground/90 hidden sm:flex flex-col gap-1 w-[160px]">
+              <div className="hidden sm:flex flex-col gap-1 w-[170px] rounded-xl bg-white/8 border border-white/15 px-3 py-2 text-xs text-white shadow-lg backdrop-blur">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <span className="text-amber-500">⭐</span>
+                    <span className="text-amber-400">⭐</span>
                     <span className="font-semibold">{player.xp} XP</span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-white/80">
                     {t('mercadoLP.header.level', { level: levelInfo.level })}
                   </span>
                 </div>
                 <div className="relative">
-                  <Progress value={progress} className="h-2" />
+                  <Progress value={progress} className="h-2 bg-white/10" />
                   {xpPulse && (
-                    <div className="absolute inset-0 border border-amber-400/60 rounded-full animate-pulse" />
+                    <div className="absolute inset-0 border border-amber-300/60 rounded-full animate-pulse" />
                   )}
                 </div>
-                <div className="flex justify-between text-[10px] text-muted-foreground">
+                <div className="flex justify-between text-[10px] text-white/70">
                   <span>{levelInfo.minXP}</span>
                   <span>{nextXp} XP</span>
                 </div>
@@ -102,9 +103,14 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   onClick={() => setCurrentLevel(1)}
-                  variant={currentLevel === 1 ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
+                  className={cn(
+                    "rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1",
+                    currentLevel === 1
+                      ? "bg-white/15 border-white/30 text-white shadow-lg"
+                      : "bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
+                  )}
                 >
                   <span className="font-bold tracking-tight">N1</span>
                   <span className="hidden xs:inline sm:inline uppercase">
@@ -113,9 +119,14 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(2)}
-                  variant={currentLevel === 2 ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
+                  className={cn(
+                    "rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1",
+                    currentLevel === 2
+                      ? "bg-white/15 border-white/30 text-white shadow-lg"
+                      : "bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
+                  )}
                 >
                   <span className="font-bold tracking-tight">N2</span>
                   <span className="hidden xs:inline sm:inline uppercase">
@@ -124,9 +135,14 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(3)}
-                  variant={currentLevel === 3 ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
+                  className={cn(
+                    "rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1",
+                    currentLevel === 3
+                      ? "bg-white/15 border-white/30 text-white shadow-lg"
+                      : "bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
+                  )}
                 >
                   <span className="font-bold tracking-tight">N3</span>
                   <span className="hidden xs:inline sm:inline uppercase">
@@ -135,9 +151,14 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 </Button>
                 <Button
                   onClick={() => setCurrentLevel(4)}
-                  variant={currentLevel === 4 ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  className="rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1"
+                  className={cn(
+                    "rounded-full h-9 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold leading-tight gap-1",
+                    currentLevel === 4
+                      ? "bg-white/15 border-white/30 text-white shadow-lg"
+                      : "bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
+                  )}
                 >
                   <span className="font-bold tracking-tight">N4</span>
                   <span className="hidden xs:inline sm:inline uppercase">
@@ -149,7 +170,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 onClick={onOpenMap}
                 variant="outline"
                 size="sm"
-                className="rounded-full px-2 sm:px-3 h-9"
+                className="rounded-full px-2 sm:px-3 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
               >
                 <Map className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.map')}</span>
@@ -158,7 +179,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 onClick={handleLeaderboardClick}
                 variant="outline"
                 size="sm"
-                className="rounded-full px-2 h-9"
+                className="rounded-full px-2 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
                 title={t('mercadoLP.header.leaderboard')}
               >
                 <Trophy className="w-4 h-4" />
@@ -167,7 +188,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 onClick={() => setShowEducation(true)}
                 variant="outline"
                 size="sm"
-                className="rounded-full px-2 h-9"
+                className="rounded-full px-2 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
               >
                 <BookOpen className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.education')}</span>

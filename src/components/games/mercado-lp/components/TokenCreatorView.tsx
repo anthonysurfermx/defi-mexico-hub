@@ -32,6 +32,7 @@ import {
   QuestionIcon,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
+import { useTranslation } from 'react-i18next';
 
 const FRUIT_EMOJIS = ['🍎', '🍊', '🍇', '🥥', '🍓', '🥝', '🍑', '🍍', '🫐', '🍒', '🥭', '🍌', '🍉', '🍋'];
 
@@ -48,6 +49,7 @@ export const TokenCreatorView = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [plantStage, setPlantStage] = useState<'seed' | 'sprout' | 'growing' | 'mature'>('seed');
   const [showPlantAnimation, setShowPlantAnimation] = useState(false);
+  const { t } = useTranslation();
 
   // Sound effects
   const { play: playCreateTokenSound } = useMercadoSound('create-token');
@@ -70,7 +72,7 @@ export const TokenCreatorView = () => {
 
   const handleCreateToken = () => {
     if (!name || !symbol || !pairToken || !amountNew || !amountPair) {
-      toast.error('Completa todos los campos para sembrar tu cultivo.');
+      toast.error(t('mercadoLP.token.errors.missing'));
       return;
     }
 
@@ -78,7 +80,7 @@ export const TokenCreatorView = () => {
     const pairTokenAmount = parseFloat(amountPair);
 
     if (isNaN(newTokenAmount) || isNaN(pairTokenAmount) || newTokenAmount <= 0 || pairTokenAmount <= 0) {
-      toast.error('Pon números mayores que 0.');
+      toast.error(t('mercadoLP.token.errors.amount'));
       return;
     }
 
@@ -86,7 +88,7 @@ export const TokenCreatorView = () => {
     if (!pairedToken) return;
 
     if ((player.inventory[pairToken] || 0) < pairTokenAmount) {
-      toast.error(`No tienes suficiente ${pairedToken.symbol} para regar tu cultivo.`);
+      toast.error(t('mercadoLP.token.errors.balance', { symbol: pairedToken.symbol }));
       return;
     }
 
@@ -108,9 +110,9 @@ export const TokenCreatorView = () => {
 
     // Feedback educativo mejorado
     if (wasFirstToken) {
-      toast.success(`¡Primer token creado! 🎉 Ahora tiene liquidez inicial y precio de ${estimatedPrice} ${pairedToken.symbol}.`, { duration: 4500 });
+      toast.success(t('mercadoLP.token.toasts.first', { price: estimatedPrice, symbol: pairedToken.symbol }), { duration: 4500 });
     } else {
-      toast.success(`¡${name} sembrado exitosamente! 🌱 Tu huerto está abierto.`);
+      toast.success(t('mercadoLP.token.toasts.created', { name }));
     }
 
     setConfettiKey(prev => prev + 1);
@@ -151,14 +153,13 @@ export const TokenCreatorView = () => {
               <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-bold text-base">Nivel 3: Agricultor - Crear Token</h3>
+              <h3 className="font-bold text-base">{t('mercadoLP.token.banner.title')}</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
-                Usa la liquidez para lanzar tu propio token. Define el ratio inicial (cuántas frutas por cuántos pesos)
-                y habilita que el mercado descubra su precio.
+                {t('mercadoLP.token.banner.body')}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
-                <span>Concepto DeFi: <strong>Token Deployment + Initial Liquidity + Price Discovery</strong></span>
+                <span>{t('mercadoLP.token.banner.concept')}</span>
               </div>
             </div>
           </div>
@@ -170,18 +171,18 @@ export const TokenCreatorView = () => {
       <Card className="p-4 sm:p-6 bg-transparent border-none shadow-none">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.token.labels.title')}</p>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <FarmerIcon size={24} className="text-primary" />
-              Sembrar cultivo
+              {t('mercadoLP.token.labels.subtitle')}
             </h1>
-            <p className="text-xs text-muted-foreground">Crea tu fruta y abre tu huerto.</p>
+            <p className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.subtitleHint')}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="pixel-button"
-            title="Ayuda rápida"
+            title={t('mercadoLP.token.labels.modal.title')}
             onClick={() => setShowHelpModal(true)}
           >
             <HelpCircle className="w-4 h-4" />
@@ -203,13 +204,13 @@ export const TokenCreatorView = () => {
             <Card className="pixel-card p-4 space-y-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <SproutIcon size={18} className="text-emerald-500" />
-                Paso 1: Elige tu fruta
+                {t('mercadoLP.token.labels.step1')}
               </h3>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Nombre de la fruta</Label>
+                <Label className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.name')}</Label>
                 <Input
-                  placeholder="Ej: Manzana Dorada"
+                  placeholder={t('mercadoLP.token.labels.namePh')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="pixel-border"
@@ -217,9 +218,9 @@ export const TokenCreatorView = () => {
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Símbolo (3-5 letras)</Label>
+                <Label className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.symbol')}</Label>
                 <Input
-                  placeholder="Ej: GOLD"
+                  placeholder={t('mercadoLP.token.labels.symbolPh')}
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   maxLength={5}
@@ -228,7 +229,7 @@ export const TokenCreatorView = () => {
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Emoji de la fruta</Label>
+                <Label className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.emoji')}</Label>
                 <Select value={emoji} onValueChange={setEmoji}>
                   <SelectTrigger className="pixel-border">
                     <SelectValue />
@@ -248,14 +249,14 @@ export const TokenCreatorView = () => {
             <Card className="pixel-card p-4 space-y-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <DropIcon size={18} className="text-blue-500" />
-                Paso 2: Riega tu cultivo
+                {t('mercadoLP.token.labels.step2')}
               </h3>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Emparejar con</Label>
+                <Label className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.pair')}</Label>
                 <Select value={pairToken} onValueChange={setPairToken}>
                   <SelectTrigger className="pixel-border">
-                    <SelectValue placeholder="Elige moneda base" />
+                    <SelectValue placeholder={t('mercadoLP.token.labels.pairPh')} />
                   </SelectTrigger>
                   <SelectContent>
                     {tokens.filter(t => t.isBaseToken).map(token => (
@@ -269,7 +270,7 @@ export const TokenCreatorView = () => {
 
               <div>
                 <Label className="text-xs text-muted-foreground">
-                  Cuántas {emoji} {symbol || 'nuevas'} aportas
+                  {t('mercadoLP.token.labels.amountNew', { emoji, symbol: symbol || 'token' })}
                 </Label>
                 <Input
                   type="number"
@@ -279,13 +280,15 @@ export const TokenCreatorView = () => {
                   className="pixel-border"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Recibirás 1000 {symbol || 'tokens'} al crear
+                  {t('mercadoLP.token.labels.mintHint', { symbol: symbol || 'tokens' })}
                 </p>
               </div>
 
               <div>
                 <Label className="text-xs text-muted-foreground">
-                  Cuántos {pairToken ? tokens.find(t => t.id === pairToken)?.emoji : '💵'} aportas
+                  {t('mercadoLP.token.labels.amountPair', {
+                    emoji: pairToken ? tokens.find(t => t.id === pairToken)?.emoji : '💵',
+                  })}
                 </Label>
                 <Input
                   type="number"
@@ -296,14 +299,14 @@ export const TokenCreatorView = () => {
                 />
                 {pairToken && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Tienes: {(player.inventory[pairToken] || 0).toFixed(2)}
+                    {t('mercadoLP.token.labels.have', { amount: (player.inventory[pairToken] || 0).toFixed(2) })}
                   </p>
                 )}
               </div>
 
               {amountNew && amountPair && pairToken && (
                 <div className="pixel-card bg-muted p-2 text-xs">
-                  <p className="font-semibold">Precio inicial:</p>
+                  <p className="font-semibold">{t('mercadoLP.token.labels.price')}</p>
                   <p>
                     1 {symbol} = {estimatedPrice} {tokens.find(t => t.id === pairToken)?.symbol}
                   </p>
@@ -318,7 +321,7 @@ export const TokenCreatorView = () => {
             size="lg"
             disabled={!canPlant}
           >
-            {canPlant ? '¡Sembrar y abrir huerto! 🌱' : 'Completa todos los campos'}
+            {canPlant ? t('mercadoLP.token.labels.action.go') : t('mercadoLP.token.labels.action.fill')}
           </Button>
         </div>
       </Card>
@@ -326,11 +329,10 @@ export const TokenCreatorView = () => {
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
           <LightbulbIcon size={18} className="text-amber-500" />
-          Consejo del agricultor
+          {t('mercadoLP.token.labels.tipTitle')}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Al sembrar tu cultivo, defines el precio inicial. Elige bien cuánto aportas de cada lado:
-          si pones más pesos que frutas, tu fruta será más cara al inicio.
+          {t('mercadoLP.token.labels.tipBody')}
         </p>
       </Card>
 
@@ -339,7 +341,7 @@ export const TokenCreatorView = () => {
         <Card className="p-4 sm:p-5 bg-transparent border-none shadow-none">
           <h3 className="font-bold mb-3 flex items-center gap-2">
             <FarmerIcon size={18} className="text-emerald-600" />
-            Tus cultivos activos
+            {t('mercadoLP.token.labels.gallery')}
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {tokens.filter(t => !t.isBaseToken).map(token => (
@@ -363,26 +365,23 @@ export const TokenCreatorView = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QuestionIcon size={20} className="text-blue-500" />
-              ¿Cómo sembrar un cultivo?
+              {t('mercadoLP.token.labels.modal.title')}
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
-              <p>
-                Como agricultor, puedes crear tus propias frutas (tokens) y abrir un huerto (pool) para que otros las compren.
-              </p>
+              <p>{t('mercadoLP.token.labels.modal.body1')}</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Dale nombre y símbolo a tu fruta</li>
-                <li>Elige con qué moneda emparejarla (ej: PESO)</li>
-                <li>Define cuánto aportas de cada lado = precio inicial</li>
-                <li>¡Listo! Tu huerto está abierto y ganas fees</li>
+                {(t('mercadoLP.token.labels.modal.list', { returnObjects: true }) as string[]).map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
               </ul>
               <p className="text-xs text-muted-foreground mt-2">
-                Nota: La proporción inicial define el precio. Si pones 100 GOLD y 50 PESO, entonces 1 GOLD = 0.5 PESO.
+                {t('mercadoLP.token.labels.modal.note')}
               </p>
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
             <Button className="pixel-button" onClick={() => setShowHelpModal(false)}>
-              Entendido
+              {t('mercadoLP.token.labels.modal.ok')}
             </Button>
           </div>
         </DialogContent>

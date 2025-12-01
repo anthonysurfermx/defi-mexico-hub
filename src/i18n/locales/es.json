@@ -448,6 +448,143 @@
           "ok": "Entendido"
         }
       }
+    },
+    "token": {
+      "banner": {
+        "title": "Nivel 3: Agricultor - Crear Token",
+        "body": "Usa la liquidez para lanzar tu propio token. Define el ratio inicial (cuántas frutas por cuántos pesos) y habilita que el mercado descubra su precio.",
+        "concept": "Concepto DeFi: Token Deployment + Initial Liquidity + Price Discovery"
+      },
+      "errors": {
+        "missing": "Completa todos los campos para sembrar tu cultivo.",
+        "amount": "Pon números mayores que 0.",
+        "balance": "No tienes suficiente {{symbol}} para regar tu cultivo."
+      },
+      "toasts": {
+        "first": "¡Primer token creado! 🎉 Ahora tiene liquidez inicial y precio de {{price}} {{symbol}}.",
+        "created": "¡{{name}} sembrado exitosamente! 🌱 Tu huerto está abierto."
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "Sembrar cultivo",
+        "subtitleHint": "Crea tu fruta y abre tu huerto.",
+        "step1": "Paso 1: Elige tu fruta",
+        "name": "Nombre de la fruta",
+        "namePh": "Ej: Manzana Dorada",
+        "symbol": "Símbolo (3-5 letras)",
+        "symbolPh": "Ej: GOLD",
+        "emoji": "Emoji de la fruta",
+        "step2": "Paso 2: Riega tu cultivo",
+        "pair": "Emparejar con",
+        "pairPh": "Elige moneda base",
+        "amountNew": "Cuántas {{emoji}} {{symbol}} aportas",
+        "mintHint": "Recibirás 1000 {{symbol}} al crear",
+        "amountPair": "Cuántos {{emoji}} aportas",
+        "have": "Tienes: {{amount}}",
+        "price": "Precio inicial:",
+        "action": {
+          "go": "¡Sembrar y abrir huerto! 🌱",
+          "fill": "Completa todos los campos"
+        },
+        "tipTitle": "Consejo del agricultor",
+        "tipBody": "Al sembrar defines el precio inicial. Si pones más pesos que frutas, tu fruta será más cara al inicio.",
+        "gallery": "Tus cultivos activos",
+        "modal": {
+          "title": "¿Cómo sembrar un cultivo?",
+          "body1": "Como agricultor, creas tus frutas (tokens) y abres un huerto (pool) para que otros las compren.",
+          "list": [
+            "Dale nombre y símbolo a tu fruta",
+            "Elige con qué moneda emparejarla (ej: PESO)",
+            "Define cuánto aportas de cada lado = precio inicial",
+            "Listo, tu huerto está abierto y ganas fees"
+          ],
+          "note": "La proporción inicial define el precio. Si pones 100 GOLD y 50 PESO, entonces 1 GOLD = 0.5 PESO.",
+          "ok": "Entendido"
+        }
+      }
+    },
+    "cca": {
+      "banner": {
+        "title": "Nivel 4: Subastero - Continuous Clearing Auctions",
+        "body": "¿Recuerdas crear tokens en N3? Aquí aprendes otra forma de distribuirlos: subastas por bloques donde el precio se ajusta según demanda real.",
+        "concept": "Concepto DeFi: Continuous Clearing Auctions + Fair Price Discovery"
+      },
+      "noAuction": {
+        "title": "No hay subasta activa",
+        "body": "Inicia una nueva subasta para participar en el descubrimiento de precios.",
+        "start": "Iniciar Subasta",
+        "note": "Nota: Necesitas haber creado al menos un token en el Nivel 3"
+      },
+      "errors": {
+        "missing": "Completa precio máximo y gasto total.",
+        "amount": "Pon números mayores que 0.",
+        "balance": "No tienes suficiente PESO.",
+        "minPrice": "El precio debe ser al menos ${{price}}"
+      },
+      "toasts": {
+        "firstBid": "¡Primera oferta colocada! 🎉 El precio de clearing se ajustará según todas las ofertas.",
+        "bidPlaced": "¡Oferta colocada en Bloque {{block}}! 🔨",
+        "started": "¡Subasta iniciada! Coloca tus ofertas. 🔨",
+        "ended": "La subasta ya terminó.",
+        "blockRun": "Bloque {{block}} ejecutado!",
+        "reset": "Subasta reiniciada. Puedes iniciar una nueva."
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "El Subastero",
+        "token": "Subasta: {{emoji}} {{symbol}}",
+        "budget": "Presupuesto: {{amount}} PESO",
+        "selectBlock": "Elige bloque",
+        "maxPrice": "Precio máximo por token",
+        "totalSpend": "Gasto total",
+        "have": "Tienes: {{amount}} PESO",
+        "estReceive": "Tokens estimados: {{amount}}",
+        "ctaBid": "Colocar oferta",
+        "ctaAdvance": "Ejecutar siguiente bloque",
+        "ctaResults": "Ver resultados",
+        "ctaReset": "Reiniciar subasta",
+        "helpTitle": "¿Cómo funciona la CCA?",
+        "helpBody": [
+          "Ofertas por bloque: defines precio máximo y gasto total.",
+          "El precio de clearing se calcula al final del bloque según demanda.",
+          "Recibes tokens al mejor precio disponible bajo tu tope."
+        ],
+        "modalResults": {
+          "title": "Resultados de la subasta",
+          "won": "Tokens ganados:",
+          "avg": "Precio promedio:",
+          "new": "🔄 Nueva Subasta",
+          "ok": "¡Genial!"
+        }
+      }
+    }
+    ,
+    "map": {
+      "dialog": {
+        "1": {
+          "title": "Doña Jose",
+          "subtitle": "Desafío 1/4: Intercambiar (swaps)",
+          "message": "Hola, soy Doña Jose. Vamos directo al primer reto: tu primer swap, paso a paso y sin enredos."
+        },
+        "2": {
+          "title": "Don Fede",
+          "subtitle": "Desafío 2/4: Liquidez",
+          "message": "Hola, soy Don Fede. Aquí aprenderás rápido cómo aportar liquidez y cobrar comisiones."
+        },
+        "3": {
+          "title": "Doña Mari",
+          "subtitle": "Desafío 3/4: Crear",
+          "message": "Hola, soy Doña Mari. Te enseño a crear mezclas y estrategias nuevas para el AMM, en pocos pasos."
+        },
+        "4": {
+          "title": "Don Luis",
+          "subtitle": "Desafío 4/4: Subastas Continuas (CCA)",
+          "message": "¡Órale! Soy Don Luis. Te voy a enseñar las subastas continuas - distribución justa de tokens en bloques. ¡Ofertar temprano da mejor precio!"
+        }
+      },
+      "loading": "Cargando mapa...",
+      "enter": "Entrar",
+      "close": "Cerrar"
     }
   }
 }

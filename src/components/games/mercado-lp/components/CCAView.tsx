@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { HelpCircle, TrendingUp, Award } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { ConfettiBurst } from './ConfettiBurst';
 import { AuctionBlockTimeline } from './AuctionBlockTimeline';
 import {
@@ -29,6 +30,7 @@ import {
 import { MissionsCard } from './MissionsCard';
 
 export const CCAView = () => {
+  const { t } = useTranslation();
   const { player, auction, placeBid, advanceAuctionBlock, startAuction, resetAuction } = useGame();
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
   const [maxPrice, setMaxPrice] = useState('');
@@ -73,7 +75,7 @@ export const CCAView = () => {
 
   const handlePlaceBid = () => {
     if (!auction || !maxPrice || !totalSpend) {
-      toast.error('Completa precio máximo y gasto total.');
+      toast.error(t('mercadoLP.cca.errors.missing'));
       return;
     }
 
@@ -81,13 +83,13 @@ export const CCAView = () => {
     const spend = parseFloat(totalSpend);
 
     if (isNaN(max) || isNaN(spend) || max <= 0 || spend <= 0) {
-      toast.error('Pon números mayores que 0.');
+      toast.error(t('mercadoLP.cca.errors.amount'));
       return;
     }
 
     const pesoBalance = player.inventory['peso'] || 0;
     if (spend > pesoBalance) {
-      toast.error('No tienes suficiente PESO.');
+      toast.error(t('mercadoLP.cca.errors.balance'));
       return;
     }
 
@@ -96,7 +98,7 @@ export const CCAView = () => {
 
     // Validar que el precio máximo sea razonable
     if (max < currentBlock.minPrice) {
-      toast.error(`El precio debe ser al menos $${currentBlock.minPrice.toFixed(2)}`);
+      toast.error(t('mercadoLP.cca.errors.minPrice', { price: currentBlock.minPrice.toFixed(2) }));
       return;
     }
 
@@ -120,9 +122,9 @@ export const CCAView = () => {
 
     // Feedback educativo mejorado
     if (playerPreviousBids === 0) {
-      toast.success(`¡Primera oferta colocada! 🎉 El precio de clearing se ajustará según todas las ofertas.`, { duration: 4000 });
+      toast.success(t('mercadoLP.cca.toasts.firstBid'), { duration: 4000 });
     } else {
-      toast.success(`¡Oferta colocada en Bloque ${selectedBlock}! 🔨`);
+      toast.success(t('mercadoLP.cca.toasts.bidPlaced', { block: selectedBlock }));
     }
 
     setConfettiKey(prev => prev + 1);
@@ -134,7 +136,7 @@ export const CCAView = () => {
 
   const handleStartAuction = () => {
     startAuction();
-    toast.success('¡Subasta iniciada! Coloca tus ofertas. 🔨');
+    toast.success(t('mercadoLP.cca.toasts.started'));
     setConfettiKey(prev => prev + 1);
   };
 
@@ -142,12 +144,12 @@ export const CCAView = () => {
     if (!auction || !auction.active) return;
 
     if (auction.currentBlock >= auction.blocksCount) {
-      toast.info('La subasta ya terminó.');
+      toast.info(t('mercadoLP.cca.toasts.ended'));
       return;
     }
 
     advanceAuctionBlock();
-    toast.success(`Bloque ${auction.currentBlock} ejecutado!`);
+    toast.success(t('mercadoLP.cca.toasts.blockRun', { block: auction.currentBlock }));
 
     // Si era el último bloque, mostrar resultados
     if (auction.currentBlock >= auction.blocksCount) {
@@ -158,7 +160,7 @@ export const CCAView = () => {
   const handleResetAuction = () => {
     resetAuction();
     setShowResultsModal(false);
-    toast.success('Subasta reiniciada. Puedes iniciar una nueva.');
+    toast.success(t('mercadoLP.cca.toasts.reset'));
   };
 
   if (!auction) {
@@ -171,14 +173,13 @@ export const CCAView = () => {
               <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-bold text-base">Nivel 4: Subastero - Continuous Clearing Auctions</h3>
+              <h3 className="font-bold text-base">{t('mercadoLP.cca.banner.title')}</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
-                <strong>Recuerdas crear tokens en N3?</strong> Aquí aprenderás <strong>otra forma de distribuirlos</strong>:
-                subastas por bloques donde el precio se ajusta según demanda real. Más justo que venta directa.
+                {t('mercadoLP.cca.banner.body')}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
-                <span>Concepto DeFi: <strong>Continuous Clearing Auctions + Fair Price Discovery</strong></span>
+                <span>{t('mercadoLP.cca.banner.concept')}</span>
               </div>
             </div>
           </div>
@@ -191,9 +192,9 @@ export const CCAView = () => {
             <AuctioneerIcon size={48} className="text-violet-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold mb-2">No hay subasta activa</h2>
+            <h2 className="text-xl font-bold mb-2">{t('mercadoLP.cca.noAuction.title')}</h2>
             <p className="text-muted-foreground text-sm mb-4">
-              Inicia una nueva subasta para participar en el descubrimiento de precios.
+              {t('mercadoLP.cca.noAuction.body')}
             </p>
           </div>
           <Button
@@ -202,10 +203,10 @@ export const CCAView = () => {
             size="lg"
           >
             <BoltIcon size={20} className="mr-2" />
-            Iniciar Subasta
+            {t('mercadoLP.cca.noAuction.start')}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
-            Nota: Necesitas haber creado al menos un token en el Nivel 3
+            {t('mercadoLP.cca.noAuction.note')}
           </p>
         </Card>
       </div>
@@ -227,20 +228,20 @@ export const CCAView = () => {
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.cca.labels.title')}</p>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <AuctioneerIcon size={24} className="text-primary" />
-              El Subastero
+              {t('mercadoLP.cca.labels.subtitle')}
             </h1>
             <p className="text-xs text-muted-foreground">
-              Subasta: {auction.tokenOffered.emoji} {auction.tokenOffered.symbol}
+              {t('mercadoLP.cca.labels.token', { emoji: auction.tokenOffered.emoji, symbol: auction.tokenOffered.symbol })}
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="pixel-button"
-            title="Ayuda rápida"
+            title={t('mercadoLP.cca.labels.helpTitle')}
             onClick={() => setShowHelpModal(true)}
           >
             <HelpCircle className="w-4 h-4" />
@@ -264,10 +265,12 @@ export const CCAView = () => {
                 <BoltIcon size={24} className="text-primary" />
                 <div>
                   <p className="text-sm font-bold">
-                    {auction.active ? 'Subasta en progreso' : 'Subasta terminada'}
+                    {auction.active
+                      ? t('mercadoLP.cca.labels.progress', { defaultValue: 'Subasta en progreso' })
+                      : t('mercadoLP.cca.labels.ended', { defaultValue: 'Subasta terminada' })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Bloque {auction.currentBlock} de {auction.blocksCount}
+                    {t('mercadoLP.cca.labels.blockProgress', { current: auction.currentBlock, total: auction.blocksCount, defaultValue: `Bloque ${auction.currentBlock} de ${auction.blocksCount}` })}
                   </p>
                 </div>
               </div>
@@ -278,7 +281,7 @@ export const CCAView = () => {
                     className="pixel-button"
                     variant="default"
                   >
-                    ▶️ Avanzar al siguiente bloque
+                    ▶️ {t('mercadoLP.cca.labels.ctaAdvance')}
                   </Button>
                 )}
                 <Button
@@ -286,7 +289,7 @@ export const CCAView = () => {
                   className="pixel-button"
                   variant="secondary"
                 >
-                  🔄 Reiniciar Subasta
+                  🔄 {t('mercadoLP.cca.labels.ctaReset')}
                 </Button>
               </div>
             </div>
@@ -297,18 +300,18 @@ export const CCAView = () => {
             <Card className="pixel-card p-4 bg-gradient-to-b from-primary/10 to-purple-500/5">
               <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
                 <BoxIcon size={18} className="text-primary" />
-                Bloque {selectedBlock} - Detalles
+                {t('mercadoLP.cca.labels.blockDetails', { block: selectedBlock, defaultValue: `Bloque ${selectedBlock} - Detalles` })}
               </h3>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="pixel-card bg-card/80 p-3 text-center">
-                  <div className="text-xs text-muted-foreground">Tokens disponibles</div>
+                  <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.tokensAvailable', { defaultValue: 'Tokens disponibles' })}</div>
                   <div className="text-2xl">{auction.tokenOffered.emoji}</div>
                   <div className="text-lg font-bold">{currentBlock.tokensAvailable}</div>
                 </div>
 
                 <div className="pixel-card bg-card/80 p-3 text-center">
-                  <div className="text-xs text-muted-foreground">Precio actual</div>
+                  <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.currentPrice', { defaultValue: 'Precio actual' })}</div>
                   <div className="text-2xl">💵</div>
                   <div className="text-lg font-bold">${currentBlock.currentPrice.toFixed(2)}</div>
                 </div>

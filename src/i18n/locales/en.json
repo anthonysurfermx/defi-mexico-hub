@@ -448,6 +448,143 @@
           "ok": "Got it"
         }
       }
+    },
+    "token": {
+      "banner": {
+        "title": "Level 3: Token Creator - Launch a Token",
+        "body": "Use liquidity to launch your own token. Set the initial ratio (how many fruits per pesos) and let the market discover its price.",
+        "concept": "DeFi concept: Token Deployment + Initial Liquidity + Price Discovery"
+      },
+      "errors": {
+        "missing": "Fill all fields to plant your crop.",
+        "amount": "Enter numbers greater than 0.",
+        "balance": "You don't have enough {{symbol}} to water your crop."
+      },
+      "toasts": {
+        "first": "First token created! 🎉 It now has initial liquidity and a price of {{price}} {{symbol}}.",
+        "created": "{{name}} planted successfully! 🌱 Your garden is open."
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "Plant a crop",
+        "subtitleHint": "Create your fruit and open your garden.",
+        "step1": "Step 1: Pick your fruit",
+        "name": "Fruit name",
+        "namePh": "E.g. Golden Apple",
+        "symbol": "Symbol (3-5 letters)",
+        "symbolPh": "E.g. GOLD",
+        "emoji": "Fruit emoji",
+        "step2": "Step 2: Water your crop",
+        "pair": "Pair with",
+        "pairPh": "Choose base coin",
+        "amountNew": "How many {{emoji}} {{symbol}} you add",
+        "mintHint": "You will mint 1000 {{symbol}} when creating",
+        "amountPair": "How many {{emoji}} you add",
+        "have": "You have: {{amount}}",
+        "price": "Initial price:",
+        "action": {
+          "go": "Plant and open garden 🌱",
+          "fill": "Complete all fields"
+        },
+        "tipTitle": "Farmer tip",
+        "tipBody": "When planting you set the initial price. If you add more pesos than fruit, your token starts pricier.",
+        "gallery": "Your active crops",
+        "modal": {
+          "title": "How to plant a crop?",
+          "body1": "As a farmer you create fruits (tokens) and open a garden (pool) so others can buy them.",
+          "list": [
+            "Give your fruit a name and symbol",
+            "Choose which coin to pair it with (e.g. PESO)",
+            "Set how much you add on each side = initial price",
+            "Done, your garden is open and you earn fees"
+          ],
+          "note": "The initial ratio defines price. If you add 100 GOLD and 50 PESO, then 1 GOLD = 0.5 PESO.",
+          "ok": "Got it"
+        }
+      }
+    },
+    "cca": {
+      "banner": {
+        "title": "Level 4: Auctioneer - Continuous Clearing Auctions",
+        "body": "Remember creating tokens in N3? Here’s another way to distribute them: block-based auctions where price adjusts to real demand.",
+        "concept": "DeFi concept: Continuous Clearing Auctions + Fair Price Discovery"
+      },
+      "noAuction": {
+        "title": "No active auction",
+        "body": "Start a new auction to join price discovery.",
+        "start": "Start Auction",
+        "note": "Note: You need at least one token created in Level 3"
+      },
+      "errors": {
+        "missing": "Fill max price and total spend.",
+        "amount": "Enter numbers greater than 0.",
+        "balance": "You don't have enough PESO.",
+        "minPrice": "Price must be at least ${{price}}"
+      },
+      "toasts": {
+        "firstBid": "First bid placed! 🎉 Clearing price will adjust with all bids.",
+        "bidPlaced": "Bid placed on Block {{block}}! 🔨",
+        "started": "Auction started! Place your bids. 🔨",
+        "ended": "Auction already ended.",
+        "blockRun": "Block {{block}} executed!",
+        "reset": "Auction reset. You can start a new one."
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "The Auctioneer",
+        "token": "Auction: {{emoji}} {{symbol}}",
+        "budget": "Budget: {{amount}} PESO",
+        "selectBlock": "Pick block",
+        "maxPrice": "Max price per token",
+        "totalSpend": "Total spend",
+        "have": "You have: {{amount}} PESO",
+        "estReceive": "Estimated tokens: {{amount}}",
+        "ctaBid": "Place bid",
+        "ctaAdvance": "Run next block",
+        "ctaResults": "See results",
+        "ctaReset": "Reset auction",
+        "helpTitle": "How does CCA work?",
+        "helpBody": [
+          "Bids by block: set max price and total spend.",
+          "Clearing price is set at block end based on demand.",
+          "You get tokens at the best price within your cap."
+        ],
+        "modalResults": {
+          "title": "Auction results",
+          "won": "Tokens won:",
+          "avg": "Average price:",
+          "new": "🔄 New Auction",
+          "ok": "Great!"
+        }
+      }
+    }
+    ,
+    "map": {
+      "dialog": {
+        "1": {
+          "title": "Doña Jose",
+          "subtitle": "Challenge 1/4: Swaps",
+          "message": "Hi, I’m Doña Jose. Let’s go straight to your first swap, step by step and without fuss."
+        },
+        "2": {
+          "title": "Don Fede",
+          "subtitle": "Challenge 2/4: Liquidity",
+          "message": "Hi, I’m Don Fede. You’ll quickly learn how to add liquidity and earn fees."
+        },
+        "3": {
+          "title": "Doña Mari",
+          "subtitle": "Challenge 3/4: Create",
+          "message": "Hi, I’m Doña Mari. I’ll show you how to create mixes and new AMM strategies in a few steps."
+        },
+        "4": {
+          "title": "Don Luis",
+          "subtitle": "Challenge 4/4: Continuous Auctions (CCA)",
+          "message": "¡Órale! I’m Don Luis. I’ll teach you CCAs—fair token distribution by blocks. Bidding early gets better prices!"
+        }
+      },
+      "loading": "Loading map...",
+      "enter": "Enter",
+      "close": "Close"
     }
   }
 }

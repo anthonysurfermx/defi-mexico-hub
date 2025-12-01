@@ -4,8 +4,8 @@ import { GameLevel } from '@/components/games/mercado-lp/types/game';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Volume2, VolumeX, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useMarketPlazaAmbient, useSoundMute } from '@/hooks/useMercadoSound';
+import { useTranslation } from 'react-i18next';
 
 // Componente de efecto typewriter para texto
 const TypewriterText = ({ text, speed = 30, onComplete }: { text: string; speed?: number; onComplete?: () => void }) => {
@@ -36,36 +36,6 @@ const TypewriterText = ({ text, speed = 30, onComplete }: { text: string; speed?
       {displayedText}
       {!isComplete && <span className="animate-pulse">▌</span>}
     </span>
-  );
-};
-
-// Componente de banderas para cambio de idioma
-const LanguageFlags = () => {
-  const { i18n } = useTranslation();
-
-  return (
-    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/70 backdrop-blur-sm border border-amber-700/30 shadow-sm">
-      <button
-        onClick={() => i18n.changeLanguage('es')}
-        className={`text-xl transition-all duration-200 hover:scale-110 ${
-          i18n.language === 'es' ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-80'
-        }`}
-        title="Español"
-        aria-label="Cambiar a Español"
-      >
-        🇲🇽
-      </button>
-      <button
-        onClick={() => i18n.changeLanguage('en')}
-        className={`text-xl transition-all duration-200 hover:scale-110 ${
-          i18n.language === 'en' ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-80'
-        }`}
-        title="English"
-        aria-label="Switch to English"
-      >
-        🇺🇸
-      </button>
-    </div>
   );
 };
 
@@ -137,34 +107,11 @@ const stallZones: StallZone[] = [
   },
 ];
 
-const stallDialog: Record<
-  GameLevel,
-  {
-    title: string;
-    message: string;
-    subtitle: string;
-  }
-> = {
-  1: {
-    title: 'Doña Jose',
-    subtitle: 'Desafío 1/4: Intercambiar (swaps)',
-    message: 'Hola, soy Doña Jose. Vamos directo al primer reto: tu primer swap, paso a paso y sin enredos.',
-  },
-  2: {
-    title: 'Don Fede',
-    subtitle: 'Desafío 2/4: Liquidez',
-    message: 'Hola, soy Don Fede. Aquí aprenderás rápido cómo aportar liquidez y cobrar comisiones.',
-  },
-  3: {
-    title: 'Doña Mari',
-    subtitle: 'Desafío 3/4: Crear',
-    message: 'Hola, soy Doña Mari. Te enseño a crear mezclas y estrategias nuevas para el AMM, en pocos pasos.',
-  },
-  4: {
-    title: 'Don Luis',
-    subtitle: 'Desafío 4/4: Subastas Continuas (CCA)',
-    message: '¡Órale! Soy Don Luis. Te voy a enseñar las subastas continuas - distribución justa de tokens en bloques. ¡Ofertar temprano da mejor precio!',
-  },
+const stallDialog: Record<GameLevel, { title: string; message: string; subtitle: string }> = {
+  1: { title: 'mercadoLP.map.dialog.1.title', subtitle: 'mercadoLP.map.dialog.1.subtitle', message: 'mercadoLP.map.dialog.1.message' },
+  2: { title: 'mercadoLP.map.dialog.2.title', subtitle: 'mercadoLP.map.dialog.2.subtitle', message: 'mercadoLP.map.dialog.2.message' },
+  3: { title: 'mercadoLP.map.dialog.3.title', subtitle: 'mercadoLP.map.dialog.3.subtitle', message: 'mercadoLP.map.dialog.3.message' },
+  4: { title: 'mercadoLP.map.dialog.4.title', subtitle: 'mercadoLP.map.dialog.4.subtitle', message: 'mercadoLP.map.dialog.4.message' },
 };
 
 export const MarketPlazaMap = ({
@@ -175,6 +122,7 @@ export const MarketPlazaMap = ({
   onAutoOpenConsumed,
   playerAvatar = DEFAULT_PLAYER_IMAGE_URL,
 }: MarketPlazaMapProps) => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<GameLevel | null>(null);
   const [dogPos, setDogPos] = useState<{ x: number; y: number }>({ x: 50, y: 70 });
   const [dialogZone, setDialogZone] = useState<StallZone | null>(null);
@@ -333,7 +281,7 @@ export const MarketPlazaMap = ({
           <span className="font-medium">DeFi México Hub</span>
         </Link>
 
-        {/* Banderas de idioma y control de audio */}
+        {/* Control de audio */}
         <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
           <button
             type="button"
@@ -346,12 +294,11 @@ export const MarketPlazaMap = ({
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <LanguageFlags />
         </div>
 
         <div className="text-center space-y-6">
           <div className="text-6xl animate-bounce">🏪</div>
-          <h2 className="text-2xl font-bold text-amber-900">Cargando el mercado...</h2>
+          <h2 className="text-2xl font-bold text-amber-900">{t('mercadoLP.map.loading')}</h2>
 
           {/* Barra de progreso */}
           <div className="w-48 mx-auto">
@@ -405,14 +352,13 @@ export const MarketPlazaMap = ({
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
-          <LanguageFlags />
           <Button variant="secondary" size="sm" className="pixel-button" onClick={onClose}>
-            Entrar al juego
+            {t('mercadoLP.map.enter')}
           </Button>
         </div>
 
         <div className="absolute top-3 left-1/2 -translate-x-1/2 pixel-card bg-card/60 backdrop-blur-sm px-4 py-2 text-sm font-bold tracking-wide">
-          AMM de frutas
+          {t('mercadoLP.header.title')}
         </div>
 
         <div className="absolute inset-0">
@@ -447,7 +393,7 @@ export const MarketPlazaMap = ({
                   "text-xs mt-1 px-3 py-1 bg-amber-100 text-amber-900 border-2 border-amber-700/50 rounded-sm shadow-md font-semibold",
                   floatClass
                 )}>
-                  <span className="text-green-700 font-bold">N{zone.id}</span> - {zone.label}
+                  <span className="text-green-700 font-bold">N{zone.id}</span> - {t(stallDialog[zone.id].title)}
                 </div>
               </div>
             );
@@ -468,8 +414,8 @@ export const MarketPlazaMap = ({
             <div className="absolute left-1/2 bottom-4 -translate-x-1/2 pixel-card bg-amber-50 border-2 border-amber-700/50 px-4 py-3 text-sm flex items-center gap-3 shadow-lg">
               <span className="text-lg">❗</span>
               <div>
-                <p className="font-semibold text-amber-900">{nearStall.label}</p>
-                <p className="text-xs text-amber-700">Presiona el botón para entrar.</p>
+                <p className="font-semibold text-amber-900">{t(stallDialog[nearStall.id].title)}</p>
+                <p className="text-xs text-amber-700">{t('mercadoLP.map.enter')}</p>
               </div>
               <Button
                 className="pixel-button"
@@ -479,7 +425,7 @@ export const MarketPlazaMap = ({
                   }
                 }}
               >
-                Hablar
+                {t('mercadoLP.map.enter')}
               </Button>
             </div>
           )}
@@ -496,26 +442,26 @@ export const MarketPlazaMap = ({
               </button>
 
               <div className="px-4 py-3 border-b-2 border-green-700/30 bg-gradient-to-r from-green-100 to-amber-100 space-y-1">
-                <p className="text-sm font-bold tracking-wide text-green-800">{stallDialog[dialogZone.id].title}</p>
+                <p className="text-sm font-bold tracking-wide text-green-800">{t(stallDialog[dialogZone.id].title)}</p>
                 <p className="text-xs text-amber-700 font-medium">
-                  {stallDialog[dialogZone.id].subtitle}
+                  {t(stallDialog[dialogZone.id].subtitle)}
                 </p>
               </div>
               <div className="px-4 py-3 text-sm leading-relaxed text-amber-900 min-h-[60px]">
                 <p>
                   <TypewriterText
                     key={dialogZone.id}
-                    text={stallDialog[dialogZone.id].message}
+                    text={t(stallDialog[dialogZone.id].message)}
                     speed={25}
                   />
                 </p>
               </div>
               <div className="px-4 py-3 flex justify-end gap-2 border-t border-amber-200">
                 <Button variant="outline" className="pixel-button" onClick={() => setDialogZone(null)}>
-                  Cerrar
+                  {t('mercadoLP.map.close')}
                 </Button>
                 <Button className="pixel-button" onClick={handleContinue}>
-                  Continuar
+                  {t('mercadoLP.map.enter')}
                 </Button>
               </div>
             </div>
