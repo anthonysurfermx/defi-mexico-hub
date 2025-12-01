@@ -224,19 +224,19 @@
       "select": "Select Player",
       "roles": {
         "swapper": {
-          "name": "Don Vitalik “El Truequero”",
+          "name": "Don Vitalik «El Truequero»",
           "description": "Quiet observer, does mental math and swaps without nerves. Tests small, measures, then scales. Explains complex stuff simply."
         },
         "provider": {
-          "name": "Don Hayden “El Puestero”",
-          "description": "Arrives early, sets the stand neatly and keeps the scale ready. Adjusts and rebalances so baskets don’t empty unevenly. Works finely without showing off."
+          "name": "Don Hayden «El Puestero»",
+          "description": "Arrives early, sets the stand neatly and keeps the scale ready. Adjusts and rebalances so baskets don't empty unevenly. Works finely without showing off."
         },
         "creator": {
-          "name": "Doña Esmeralda “La Semillera”",
+          "name": "Doña Fabiana «La Semillera»",
           "description": "Creative and methodical. Invents names, labels and stories, and launches with a plan: how much fruit, how to split it, and how to start strong."
         },
         "auctioneer": {
-          "name": "Doña Lupe “La Martillera”",
+          "name": "Doña Lupe «La Martillera»",
           "description": "Shows up when the market is packed. Speaks little, moves fast and plays with time and urgency. Gets ahead and closes before others react."
         }
       }
@@ -564,22 +564,22 @@
         "1": {
           "title": "Doña Jose",
           "subtitle": "Challenge 1/4: Swaps",
-          "message": "Hi, I’m Doña Jose. Let’s go straight to your first swap, step by step and without fuss."
+          "message": "Hey there! I'm Doña Jose. Let's jump right into your first swap—step by step, no drama."
         },
         "2": {
           "title": "Don Fede",
           "subtitle": "Challenge 2/4: Liquidity",
-          "message": "Hi, I’m Don Fede. You’ll quickly learn how to add liquidity and earn fees."
+          "message": "Welcome! I'm Don Fede. You'll quickly learn how to provide liquidity and start earning fees."
         },
         "3": {
           "title": "Doña Mari",
           "subtitle": "Challenge 3/4: Create",
-          "message": "Hi, I’m Doña Mari. I’ll show you how to create mixes and new AMM strategies in a few steps."
+          "message": "Hi! I'm Doña Mari. I'll teach you how to create your own token and launch a pool in just a few steps."
         },
         "4": {
           "title": "Don Luis",
           "subtitle": "Challenge 4/4: Continuous Auctions (CCA)",
-          "message": "¡Órale! I’m Don Luis. I’ll teach you CCAs—fair token distribution by blocks. Bidding early gets better prices!"
+          "message": "Alright! I'm Don Luis. I'll teach you about continuous clearing auctions—fair token distribution by blocks. Bid early for better prices!"
         }
       },
       "loading": "Loading map...",

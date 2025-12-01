@@ -108,6 +108,7 @@ export interface PlayerState {
   xp: number;
   level: number;
   avatar: string;
+  characterName?: string;
   reputation: number;
   completedChallenges: string[];
   badges: Badge[];

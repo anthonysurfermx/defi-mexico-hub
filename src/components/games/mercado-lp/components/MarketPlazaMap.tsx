@@ -6,6 +6,7 @@ import { ArrowLeft, Volume2, VolumeX, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMarketPlazaAmbient, useSoundMute } from '@/hooks/useMercadoSound';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 // Componente de efecto typewriter para texto
 const TypewriterText = ({ text, speed = 30, onComplete }: { text: string; speed?: number; onComplete?: () => void }) => {
@@ -281,8 +282,9 @@ export const MarketPlazaMap = ({
           <span className="font-medium">DeFi México Hub</span>
         </Link>
 
-        {/* Control de audio */}
+        {/* Control de audio y selector de idioma */}
         <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+          <LanguageSwitcher />
           <button
             type="button"
             onClick={(e) => {
@@ -340,7 +342,9 @@ export const MarketPlazaMap = ({
           <span className="font-medium">DeFi México Hub</span>
         </Link>
 
+        {/* Control de audio y selector de idioma */}
         <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+          <LanguageSwitcher />
           <button
             type="button"
             onClick={(e) => {

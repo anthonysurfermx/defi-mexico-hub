@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ChevronRight, ChevronLeft, X, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface TutorialStep {
   id: string;
@@ -82,14 +83,17 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
             <p className="text-xs text-muted-foreground">{t('mercadoLP.onboarding.header.title')}</p>
             <p className="font-bold">{t('mercadoLP.onboarding.header.subtitle')}</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSkip}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSkip}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}

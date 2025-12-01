@@ -224,19 +224,19 @@
       "select": "Seleccionar Jugador",
       "roles": {
         "swapper": {
-          "name": "Don Vitalik “El Truequero”",
+          "name": "Don Vitalik «El Truequero»",
           "description": "Observa en silencio, hace cuentas en la cabeza y truequea sin nervios. Prueba chiquito, mide y luego se avienta. Explica lo complejo de forma simple."
         },
         "provider": {
-          "name": "Don Hayden “El Puestero”",
+          "name": "Don Hayden «El Puestero»",
           "description": "Llega temprano, arma el puesto derechito y deja la balanza lista. Ajusta y reacomoda para que no se vacíe una canasta más que la otra. Trabaja fino y sin alarde."
         },
         "creator": {
-          "name": "Doña Esmeralda “La Semillera”",
+          "name": "Doña Fabiana «La Semillera»",
           "description": "Creativa y metódica. Inventa nombres, etiquetas e historias, y lanza con plan: cuánta fruta, cómo repartirla y cómo arrancar fuerte."
         },
         "auctioneer": {
-          "name": "Doña Lupe “La Martillera”",
+          "name": "Doña Lupe «La Martillera»",
           "description": "Aparece cuando el tianguis está a reventar. Habla poco, se mueve rápido y juega con el tiempo y la urgencia. Se adelanta y cierra antes de que otros reaccionen."
         }
       }

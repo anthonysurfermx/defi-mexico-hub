@@ -39,6 +39,7 @@ interface GameContextType {
   levelUpNotification: PlayerLevel | null;
   auction: Auction | null;
   setPlayerAvatar: (avatar: string) => void;
+  setPlayerCharacterName: (name: string) => void;
   openMap: () => void;
   closeMap: () => void;
   closeStartScreen: () => void;
@@ -276,6 +277,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setPlayer(prev => ({
       ...prev,
       avatar,
+    }));
+  };
+
+  const setPlayerCharacterName = (name: string) => {
+    setPlayer(prev => ({
+      ...prev,
+      characterName: name,
     }));
   };
 
@@ -962,6 +970,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         levelUpNotification,
         auction,
         setPlayerAvatar,
+        setPlayerCharacterName,
         openMap,
         closeMap,
         closeStartScreen,

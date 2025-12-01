@@ -16,8 +16,6 @@ import { GameHeader } from '@/components/games/mercado-lp/components/GameHeader'
 import { OnboardingTutorial } from '@/components/games/mercado-lp/components/OnboardingTutorial';
 import { LoginPromptModal } from '@/components/games/mercado-lp/components/LoginPromptModal';
 import { GameLevel } from '@/components/games/mercado-lp/types/game';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -26,7 +24,7 @@ type LoginPromptReason = 'level_up' | 'xp_milestone' | 'leaderboard' | 'nft_clai
 const GameContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar } = useGame();
+  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar, setPlayerCharacterName } = useGame();
   const [showNFTModal, setShowNFTModal] = useState(false);
   const [hasShownNFTModal, setHasShownNFTModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -65,9 +63,10 @@ const GameContent = () => {
     navigate('/auth');
   };
 
-  const handleSelectRole = (level: GameLevel, avatar: string) => {
+  const handleSelectRole = (level: GameLevel, avatar: string, characterName: string) => {
     setCurrentLevel(level);
     setPlayerAvatar(avatar);
+    setPlayerCharacterName(characterName);
     closeStartScreen();
 
     // Mostrar onboarding en la primera visita, sin importar el personaje/level

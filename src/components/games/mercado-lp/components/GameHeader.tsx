@@ -71,12 +71,19 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-primary/40 bg-card shadow-sm flex items-center justify-center">
-                <img
-                  src={player.avatar || '/player.png'}
-                  alt="Tu personaje"
-                  className="w-full h-full object-contain"
-                />
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-primary/40 bg-card shadow-sm flex items-center justify-center">
+                  <img
+                    src={player.avatar || '/player.png'}
+                    alt="Tu personaje"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                {player.characterName && (
+                  <span className="hidden sm:block text-xs font-medium text-white/90 max-w-[120px] truncate">
+                    {player.characterName}
+                  </span>
+                )}
               </div>
               <ReputationDisplay />
               <div className="hidden sm:flex flex-col gap-1 w-[170px] rounded-xl bg-white/8 border border-white/15 px-3 py-2 text-xs text-white shadow-lg backdrop-blur">

@@ -4,9 +4,10 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface StartScreenProps {
-  onSelectRole: (level: GameLevel, avatar: string) => void;
+  onSelectRole: (level: GameLevel, avatar: string, characterName: string) => void;
 }
 
 interface CharacterCardProps {
@@ -88,6 +89,11 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
         <span className="font-medium">DeFi México Hub</span>
       </Link>
 
+      {/* Selector de idioma */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher />
+      </div>
+
       <div className="absolute inset-0 pointer-events-none opacity-30" aria-hidden>
         <div className="w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(0,255,136,0.1)_0,rgba(0,0,0,0)_30%),radial-gradient(circle_at_80%_0%,rgba(0,212,255,0.1)_0,rgba(0,0,0,0)_25%),radial-gradient(circle_at_30%_80%,rgba(139,92,246,0.1)_0,rgba(0,0,0,0)_30%)]" />
       </div>
@@ -123,7 +129,7 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
                 <p className="relative text-sm text-foreground/90 leading-relaxed">{t(descriptionKey)}</p>
 
                 <Button
-                  onClick={() => onSelectRole(level, characterImage)}
+                  onClick={() => onSelectRole(level, characterImage, t(characterLabelKey))}
                   className="relative pixel-button mt-auto"
                   variant="default"
                 >
