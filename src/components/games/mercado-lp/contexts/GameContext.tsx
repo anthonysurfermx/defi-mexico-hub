@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Token, Pool, PlayerState, GameLevel, Challenge, NPCTrader, GameEvent, NPCActivity, TutorialTip, Badge, Auction, AuctionBid, PlayerLevel } from '@/components/games/mercado-lp/types/game';
 import { initialNPCs } from '@/components/games/mercado-lp/data/npcs';
 import { tutorialTips } from '@/components/games/mercado-lp/data/tutorialTips';
@@ -7,7 +7,6 @@ import { loadGameProgress, saveGameProgress } from '@/components/games/mercado-l
 import { achievements } from '@/components/games/mercado-lp/data/achievements';
 import { getPlayerLevel } from '@/components/games/mercado-lp/data/playerLevels';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 
 interface GameContextType {
   tokens: Token[];
@@ -22,6 +21,7 @@ interface GameContextType {
   activeTip: TutorialTip | null;
   showMap: boolean;
   showStartScreen: boolean;
+  isLoaded: boolean;
   newBadge: Badge | null;
   levelUpNotification: PlayerLevel | null;
   auction: Auction | null;
@@ -192,16 +192,58 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   // Load saved game state on mount
   useEffect(() => {
-    const savedState = loadGameState();
-    if (savedState) {
-      setPlayer(savedState.player);
-      setPools(savedState.pools);
-      setTokens(savedState.tokens);
-      setCurrentLevel(savedState.currentLevel as GameLevel);
-      setShowMap(savedState.showMap);
-      setShowStartScreen(false); // Hide start screen if returning player
-    }
-    setIsLoaded(true);
+    const loadSavedState = async () => {
+      // First try to load from Supabase (if user is authenticated)
+      const supabaseData = await loadGameProgress();
+
+      if (supabaseData) {
+        // User is logged in and has saved progress in Supabase
+        setPlayer({
+          inventory: supabaseData.inventory || initialInventory,
+          lpPositions: supabaseData.lp_positions || [],
+          xp: supabaseData.xp || 0,
+          level: supabaseData.level || 1,
+          reputation: supabaseData.reputation || 10,
+          completedChallenges: supabaseData.completed_challenges || [],
+          badges: supabaseData.badges || [],
+          tutorialProgress: supabaseData.tutorial_progress || {},
+          swapCount: supabaseData.swap_count || 0,
+          totalFeesEarned: supabaseData.total_fees_earned || 0,
+          stats: supabaseData.stats || {
+            totalSwapVolume: 0,
+            profitableSwaps: 0,
+            totalLPProvided: 0,
+            tokensCreated: 0,
+            auctionBidsPlaced: 0,
+            auctionTokensWon: 0,
+          },
+          lastPlayedDate: supabaseData.last_played_date,
+          currentStreak: supabaseData.current_streak || 0,
+          bestStreak: supabaseData.best_streak || 0,
+        });
+        if (supabaseData.pools?.length > 0) setPools(supabaseData.pools);
+        if (supabaseData.tokens?.length > 0) setTokens(supabaseData.tokens);
+        setCurrentLevel((supabaseData.current_level || 1) as GameLevel);
+        setShowStartScreen(false);
+        console.log('✅ Game loaded from Supabase');
+      } else {
+        // Fallback to localStorage
+        const savedState = loadGameState();
+        if (savedState) {
+          setPlayer(savedState.player);
+          setPools(savedState.pools);
+          setTokens(savedState.tokens);
+          setCurrentLevel(savedState.currentLevel as GameLevel);
+          setShowMap(savedState.showMap);
+          setShowStartScreen(false);
+          console.log('✅ Game loaded from localStorage');
+        }
+      }
+
+      setIsLoaded(true);
+    };
+
+    loadSavedState();
   }, []);
 
   const addReputation = (amount: number) => {
@@ -304,7 +346,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoaded) return; // Don't save during initial load
 
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(async () => {
+      // Save to localStorage (always)
       saveGameState({
         player,
         pools,
@@ -312,7 +355,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         currentLevel,
         showMap,
       });
-    }, 500); // Debounce saves by 500ms
+
+      // Also save to Supabase if user is authenticated
+      try {
+        await saveGameProgress(player, pools, tokens, currentLevel);
+      } catch (error) {
+        console.log('Supabase save skipped (user not logged in or error)');
+      }
+    }, 1000); // Debounce saves by 1 second
 
     return () => clearTimeout(timeoutId);
   }, [player, pools, tokens, currentLevel, showMap, isLoaded]);
@@ -871,6 +921,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         activeTip,
         showMap,
         showStartScreen,
+        isLoaded,
         newBadge,
         levelUpNotification,
         auction,

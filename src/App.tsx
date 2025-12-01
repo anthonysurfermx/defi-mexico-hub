@@ -30,6 +30,7 @@ const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
 const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
+const VideoTutorialsPage = lazy(() => import('@/pages/VideoTutorialsPage'));
 const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
 
 // Mercado LP Game
@@ -52,6 +53,7 @@ const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
+const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
@@ -366,6 +368,14 @@ const router = createBrowserRouter(
               ),
             },
             {
+              path: 'academia/videos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <VideoTutorialsPage />
+                </Suspense>
+              ),
+            },
+            {
               path: 'referentes',
               element: (
                 <Suspense fallback={<PageLoader />}>
@@ -648,6 +658,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminAcademia />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'academia/videos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminVideoTutorials />
                 </Suspense>
               ),
             },

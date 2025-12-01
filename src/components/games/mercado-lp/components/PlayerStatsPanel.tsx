@@ -59,7 +59,7 @@ export const PlayerStatsPanel = () => {
         )}
       </Card>
 
-      <Card className="pixel-card p-4">
+      <Card className="pixel-card p-4" data-tutorial="inventory">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
           <span>🧺</span> Bolsa de mercado
         </h3>

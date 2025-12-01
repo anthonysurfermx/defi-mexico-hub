@@ -25,7 +25,9 @@ import {
   Network,
   UserCheck,
   Layers,
-  Search
+  Search,
+  Gamepad2,
+  Youtube
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +61,8 @@ export default function MainLayout() {
   // Navegación "Aprende" (dropdown)
   const aprendeNavigation = [
     { name: 'Academy', href: '/academia', icon: GraduationCap, description: t('nav.academyDesc') || 'DeFi courses and resources' },
+    { name: 'Video Tutoriales', href: '/academia/videos', icon: Youtube, description: 'Videos educativos de DeFi' },
+    { name: 'Mercado LP', href: '/academia/juego/mercado-lp', icon: Gamepad2, description: 'Mini game educativo DeFi' },
     { name: t('nav.blog'), href: '/blog', icon: Newspaper, description: t('nav.blogDesc') || 'Articles and news' },
   ];
 

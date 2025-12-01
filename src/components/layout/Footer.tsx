@@ -9,6 +9,7 @@ const Footer = () => {
     { name: "Inicio", path: "/" },
     { name: "Startups", path: "/startups" },
     { name: "Academia", path: "/academia" },
+    { name: "Mercado LP", path: "/academia/juego/mercado-lp" },
     { name: "NFT Studio", path: "/digital-art-defi" },
     { name: "Oportunidades", path: "/oportunidades" },
     { name: "Comunidades", path: "/comunidades" },

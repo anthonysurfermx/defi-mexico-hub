@@ -69,8 +69,9 @@ CREATE INDEX IF NOT EXISTS idx_game_progress_level ON public.game_progress(level
 CREATE OR REPLACE VIEW public.game_leaderboard AS
 SELECT
   gp.user_id,
-  p.username,
   p.full_name,
+  p.email,
+  p.avatar_url,
   gp.xp,
   gp.level,
   gp.reputation,

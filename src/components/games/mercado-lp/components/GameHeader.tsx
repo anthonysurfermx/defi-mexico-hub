@@ -1,18 +1,36 @@
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
-import { BookOpen, Map } from 'lucide-react';
+import { BookOpen, Map, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
 import { GameEventBanner } from './GameEventBanner';
+import { Leaderboard } from './Leaderboard';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface GameHeaderProps {
   onOpenMap: () => void;
+  onLoginPrompt?: (reason: 'leaderboard') => void;
 }
 
-export const GameHeader = ({ onOpenMap }: GameHeaderProps) => {
+export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
   const { currentLevel, setCurrentLevel, player, currentEvent, eventTimeRemaining } = useGame();
   const [showEducation, setShowEducation] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  const handleLeaderboardClick = () => {
+    setShowLeaderboard(true);
+    // Trigger login prompt for leaderboard view (only if not hidden)
+    const hidden = localStorage.getItem('mercado_lp_hide_login_prompt_leaderboard');
+    if (onLoginPrompt && !hidden) {
+      setTimeout(() => onLoginPrompt('leaderboard'), 2000);
+    }
+  };
 
   return (
     <>
@@ -74,6 +92,15 @@ export const GameHeader = ({ onOpenMap }: GameHeaderProps) => {
               <Map className="w-4 h-4 mr-1" /> Mapa
             </Button>
             <Button
+              onClick={handleLeaderboardClick}
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              title="Leaderboard"
+            >
+              <Trophy className="w-4 h-4" />
+            </Button>
+            <Button
               onClick={() => setShowEducation(true)}
               variant="outline"
               size="sm"
@@ -86,6 +113,21 @@ export const GameHeader = ({ onOpenMap }: GameHeaderProps) => {
       </header>
 
       <EducationModal open={showEducation} onClose={() => setShowEducation(false)} />
+
+      {/* Leaderboard Modal */}
+      <Dialog open={showLeaderboard} onOpenChange={setShowLeaderboard}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              Ranking de Jugadores
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 pt-2">
+            <Leaderboard />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

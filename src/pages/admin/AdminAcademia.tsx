@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Pencil, Trash2, Search, X, BookOpen, Eye, EyeOff, ExternalLink, Star, Clock, Users } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Search, X, BookOpen, Eye, EyeOff, ExternalLink, Star, Clock, Users, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { coursesService, type Course, type CourseFormData } from '@/services/courses.service';
 
@@ -403,10 +403,18 @@ export default function AdminAcademia() {
             Gestiona los cursos de la academia DeFi
           </p>
         </div>
-        <Button onClick={() => openModal()} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nuevo Curso
-        </Button>
+        <div className="flex gap-2">
+          <Link to="/admin/academia/videos">
+            <Button variant="outline" className="gap-2">
+              <Play className="w-4 h-4" />
+              Video Tutoriales
+            </Button>
+          </Link>
+          <Button onClick={() => openModal()} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nuevo Curso
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

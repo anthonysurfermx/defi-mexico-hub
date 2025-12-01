@@ -1,17 +1,18 @@
 // src/pages/admin/AdminLayout.tsx
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  FileText, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  Building2,
+  FileText,
+  Calendar,
   Users,
   Menu,
   X,
   ChevronRight,
   Settings,
   Globe, // Agregado para Comunidades
-  BookOpen // Agregado para Academia
+  BookOpen, // Agregado para Academia
+  Video // Agregado para Video Tutoriales
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -48,6 +49,12 @@ const menuItems: MenuItem[] = [
     path: '/admin/academia',
     icon: BookOpen,
     badge: 'Nuevo',
+    requiredRoles: ['admin', 'editor'] // Admin y editor
+  },
+  {
+    title: 'Video Tutoriales',
+    path: '/admin/academia/videos',
+    icon: Video,
     requiredRoles: ['admin', 'editor'] // Admin y editor
   },
   {

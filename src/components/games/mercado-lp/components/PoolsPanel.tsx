@@ -6,7 +6,7 @@ export const PoolsPanel = () => {
   const { pools } = useGame();
 
   return (
-    <Card className="pixel-card p-4 h-full">
+    <Card className="pixel-card p-4 h-full" data-tutorial="pools">
       <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
         <span>🏪</span> Active Pools
       </h3>
