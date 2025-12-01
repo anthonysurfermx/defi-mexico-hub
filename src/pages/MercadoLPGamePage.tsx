@@ -26,6 +26,7 @@ const GameContent = () => {
   const { user } = useAuth();
   const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar, setPlayerCharacterName } = useGame();
   const [showNFTModal, setShowNFTModal] = useState(false);
+  const [autoShowMintWidget, setAutoShowMintWidget] = useState(false);
   const [hasShownNFTModal, setHasShownNFTModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [loginPromptReason, setLoginPromptReason] = useState<LoginPromptReason | null>(null);
@@ -60,7 +61,7 @@ const GameContent = () => {
   }, [player.xp, previousXP, isLoaded, shouldShowPrompt]);
 
   const handleLoginPromptLogin = () => {
-    navigate('/auth');
+    navigate('/login');
   };
 
   const handleSelectRole = (level: GameLevel, avatar: string, characterName: string) => {
@@ -88,6 +89,24 @@ const GameContent = () => {
     openMap();
     localStorage.setItem('mercado_lp_onboarding_complete', 'true');
   };
+
+  // Detectar si el usuario regresa del login con pending NFT claim
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    const pendingNFTClaim = localStorage.getItem('mercado_lp_pending_nft_claim');
+    if (pendingNFTClaim === 'true') {
+      // Limpiar el flag
+      localStorage.removeItem('mercado_lp_pending_nft_claim');
+      localStorage.removeItem('mercado_lp_return_url');
+
+      // Abrir el modal de NFT directamente en modo minting
+      setTimeout(() => {
+        setAutoShowMintWidget(true);
+        setShowNFTModal(true);
+      }, 500);
+    }
+  }, [isLoaded, user]);
 
   // Detectar cuando el jugador completa el Nivel 4
   useEffect(() => {
@@ -150,6 +169,7 @@ const GameContent = () => {
       <GameHeader
         onOpenMap={openMap}
         onLoginPrompt={!user ? (reason) => setLoginPromptReason(reason) : undefined}
+        onOpenNFTModal={() => setShowNFTModal(true)}
       />
 
       <div className="container mx-auto px-4 pb-8">
@@ -179,10 +199,14 @@ const GameContent = () => {
       {/* NFT Claim Modal */}
       <NFTClaimModal
         open={showNFTModal}
-        onClose={() => setShowNFTModal(false)}
+        onClose={() => {
+          setShowNFTModal(false);
+          setAutoShowMintWidget(false);
+        }}
         isAuthenticated={!!user}
         playerLevel={player.level}
         playerXP={player.xp}
+        autoShowMintWidget={autoShowMintWidget}
       />
 
       {/* Contextual tutorial tips */}

@@ -5,7 +5,7 @@ import { tutorialTips } from '@/components/games/mercado-lp/data/tutorialTips';
 import { saveGameState, loadGameState } from '@/components/games/mercado-lp/lib/storage';
 import { loadGameProgress, saveGameProgress } from '@/components/games/mercado-lp/lib/supabase';
 import { achievements } from '@/components/games/mercado-lp/data/achievements';
-import { getPlayerLevel } from '@/components/games/mercado-lp/data/playerLevels';
+import { getPlayerLevel, getXPMultiplier, getFeeDiscount } from '@/components/games/mercado-lp/data/playerLevels';
 import { toast } from 'sonner';
 
 // Sound utilities
@@ -237,6 +237,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           currentStreak: supabaseData.current_streak || 0,
           bestStreak: supabaseData.best_streak || 0,
           avatar: supabaseData.avatar || '/player.png',
+          // Daily XP tracking
+          dailyXP: supabaseData.daily_xp || 0,
+          dailyXPDate: supabaseData.daily_xp_date,
         });
         if (supabaseData.pools?.length > 0) setPools(supabaseData.pools);
         if (supabaseData.tokens?.length > 0) setTokens(supabaseData.tokens);
@@ -315,6 +318,93 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return false;
   }, []);
 
+  /**
+   * Obtiene la fecha actual en UTC como string ISO (YYYY-MM-DD)
+   * Esto evita problemas con cambios de zona horaria
+   */
+  const getUTCDateString = (): string => {
+    const now = new Date();
+    return now.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+
+  /**
+   * Cap diario de XP escalado por nivel del jugador
+   * N1-N2: 400 XP, N3-N4: 600 XP, N5-N6: 800 XP
+   */
+  const getDailyXPCap = (playerLevel: number): number => {
+    if (playerLevel >= 5) return 800;
+    if (playerLevel >= 3) return 600;
+    return 400;
+  };
+
+  // Source labels for XP toasts
+  const XP_SOURCE_LABELS: Record<string, string> = {
+    swap: 'Swap',
+    liquidity: 'LP',
+    createPool: 'Pool',
+    challenge: 'Misión',
+    auctionBid: 'Puja',
+    auctionWin: 'Subasta',
+    achievement: 'Logro',
+  };
+
+  /**
+   * Función centralizada para agregar XP con multiplicador de nivel
+   * Aplica bonus según el nivel actual del jugador y respeta el cap diario (UTC-based)
+   */
+  const addXP = useCallback((baseXP: number, source: string) => {
+    setPlayer(prev => {
+      const todayUTC = getUTCDateString();
+      const isNewDay = prev.dailyXPDate !== todayUTC;
+      const currentDailyXP = isNewDay ? 0 : (prev.dailyXP || 0);
+      const dailyCap = getDailyXPCap(prev.level);
+
+      // Check if already at daily cap
+      if (currentDailyXP >= dailyCap) {
+        toast.info(`Cap diario alcanzado (${dailyCap} XP). ¡Vuelve mañana!`, { duration: 2500 });
+        return prev;
+      }
+
+      const multiplier = getXPMultiplier(prev.level);
+      const finalXP = Math.round(baseXP * multiplier);
+
+      // Apply daily cap - limit XP to remaining daily allowance
+      const remainingDaily = dailyCap - currentDailyXP;
+      const cappedXP = Math.min(finalXP, remainingDaily);
+      const wasCapped = cappedXP < finalXP;
+
+      const newXP = prev.xp + cappedXP;
+      const newDailyXP = currentDailyXP + cappedXP;
+
+      // Check for level up after state update
+      setTimeout(() => updatePlayerLevel(newXP, prev.xp), 100);
+
+      // Show detailed XP toast with source and bonus
+      const sourceLabel = XP_SOURCE_LABELS[source] || source;
+      const bonusText = multiplier > 1 ? `, ×${multiplier}` : '';
+      const capText = wasCapped ? ' [cap]' : '';
+      toast.success(`+${cappedXP} XP (${sourceLabel}${bonusText})${capText}`, { duration: 2000 });
+
+      // Play XP gain sound
+      playSound('XPGain.wav', 0.3);
+
+      return {
+        ...prev,
+        xp: newXP,
+        dailyXP: newDailyXP,
+        dailyXPDate: todayUTC,
+      };
+    });
+  }, [updatePlayerLevel]);
+
+  /**
+   * Calcula el fee efectivo aplicando descuento por nivel del jugador
+   */
+  const getEffectiveFeeWithDiscount = useCallback((baseFeePercent: number, playerLevel: number): number => {
+    const discount = getFeeDiscount(playerLevel);
+    return baseFeePercent * (1 - discount);
+  }, []);
+
   // Check and update daily streak
   useEffect(() => {
     if (!isLoaded) return;
@@ -359,19 +449,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           unlockedAt: new Date(),
         };
 
-        setPlayer(prev => {
-          const newXP = prev.xp + achievement.xpReward;
-          const prevXP = prev.xp;
+        // Add badge to player (without XP - that goes through addXP)
+        setPlayer(prev => ({
+          ...prev,
+          badges: [...prev.badges, newBadgeData],
+        }));
 
-          // Check for level up after state update
-          setTimeout(() => updatePlayerLevel(newXP, prevXP), 1000);
-
-          return {
-            ...prev,
-            badges: [...prev.badges, newBadgeData],
-            xp: newXP,
-          };
-        });
+        // Add XP through centralized function (respects cap and multipliers)
+        addXP(achievement.xpReward, 'achievement');
 
         setNewBadge(newBadgeData);
 
@@ -381,7 +466,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         break; // Only show one badge at a time
       }
     }
-  }, [player, pools, tokens, updatePlayerLevel]);
+  }, [player, pools, tokens, addXP]);
 
   // Auto-save game state when key values change
   useEffect(() => {
@@ -561,7 +646,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const feePercent = getEffectiveFeePercent(pool, amountIn, tokenIn.id);
+    // Aplicar descuento de fees según nivel del jugador
+    const baseFeePercent = getEffectiveFeePercent(pool, amountIn, tokenIn.id);
+    const feePercent = getEffectiveFeeWithDiscount(baseFeePercent, player.level);
     const amountInWithFee = amountIn * (1 - feePercent / 100);
     const amountOut = (reserveOut * amountInWithFee) / (reserveIn + amountInWithFee);
     const priceImpact = (amountOut / reserveOut) * 100;
@@ -591,6 +678,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       return p;
     }));
 
+    // Actualizar inventario, reputación y stats (sin XP, se agrega por separado)
     setPlayer(prev => ({
       ...prev,
       inventory: {
@@ -598,17 +686,18 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         [tokenIn.id]: (prev.inventory[tokenIn.id] || 0) - amountIn,
         [tokenOut.id]: (prev.inventory[tokenOut.id] || 0) + amountOut,
       },
-      xp: prev.xp + 10,
       reputation: Math.min(100, prev.reputation + 1),
       swapCount: prev.swapCount + 1,
       stats: {
         ...prev.stats,
         totalSwapVolume: prev.stats.totalSwapVolume + amountIn,
+        // Contar swap rentable si el price impact es bajo
+        profitableSwaps: priceImpact < 5 ? prev.stats.profitableSwaps + 1 : prev.stats.profitableSwaps,
       },
     }));
 
-    // Play XP gain sound (subtle)
-    playSound('XPGain.wav', 0.3);
+    // Agregar XP con multiplicador de nivel
+    addXP(10, 'swap');
 
     if (!player.completedChallenges.includes('first-swap')) {
       completeChallenge('first-swap');
@@ -664,13 +753,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           feesEarned: { tokenA: 0, tokenB: 0 },
         },
       ],
-      xp: prev.xp + 50,
       reputation: Math.min(100, prev.reputation + 3),
       stats: {
         ...prev.stats,
         totalLPProvided: prev.stats.totalLPProvided + amountA + amountB,
       },
     }));
+
+    // Agregar XP con multiplicador de nivel
+    addXP(50, 'liquidity');
   };
 
   const removeLiquidity = (poolId: string, sharePercent: number) => {
@@ -760,9 +851,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         [tokenA.id]: (prev.inventory[tokenA.id] || 0) - amountA,
         [tokenB.id]: (prev.inventory[tokenB.id] || 0) - amountB,
       },
-      xp: prev.xp + 200,
       reputation: Math.min(100, prev.reputation + 5),
     }));
+
+    // Agregar XP con multiplicador de nivel
+    addXP(200, 'createPool');
 
     addNPCActivity('system', `¡Nueva fruta en el mercado! ${tokenA.emoji} ${tokenA.symbol}`);
 
@@ -780,8 +873,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setPlayer(prev => ({
       ...prev,
       completedChallenges: [...prev.completedChallenges, challengeId],
-      xp: prev.xp + challenge.xpReward,
     }));
+
+    // Agregar XP con multiplicador de nivel
+    addXP(challenge.xpReward, 'challenge');
   };
 
   // Auction functions
@@ -821,6 +916,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         auctionBidsPlaced: prev.stats.auctionBidsPlaced + 1,
       },
     }));
+
+    // Agregar XP por participar en subasta (5 XP base)
+    addXP(5, 'auctionBid');
   };
 
   const advanceAuctionBlock = () => {
@@ -895,6 +993,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             auctionTokensWon: prevPlayer.stats.auctionTokensWon + tokensWon,
           },
         }));
+
+        // Agregar XP por ganar tokens en subasta (30 XP base)
+        addXP(30, 'auctionWin');
       }
 
       return {

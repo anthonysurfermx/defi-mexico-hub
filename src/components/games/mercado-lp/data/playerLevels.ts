@@ -72,3 +72,43 @@ export const getXPProgress = (xp: number): { current: number; max: number; perce
 
   return { current, max, percentage };
 };
+
+/**
+ * Calcula el multiplicador de XP según el nivel del jugador
+ * N1-N2: 1x (sin bonus)
+ * N3: 1.2x (+20%)
+ * N4: 1.2x (+20%)
+ * N5: 1.5x (+50%)
+ * N6: 2x (+100%)
+ */
+export const getXPMultiplier = (playerLevel: number): number => {
+  if (playerLevel >= 6) return 2.0;   // +100%
+  if (playerLevel >= 5) return 1.5;   // +50%
+  if (playerLevel >= 3) return 1.2;   // +20%
+  return 1.0;                          // Sin bonus
+};
+
+/**
+ * Calcula el descuento de fees según el nivel del jugador
+ * N1: 0% descuento
+ * N2-N4: 5% descuento
+ * N5-N6: 15% descuento
+ */
+export const getFeeDiscount = (playerLevel: number): number => {
+  if (playerLevel >= 5) return 0.15;  // 15% descuento
+  if (playerLevel >= 2) return 0.05;  // 5% descuento
+  return 0;                            // Sin descuento
+};
+
+/**
+ * Obtiene los perks activos formateados para mostrar en UI
+ */
+export const getActivePerks = (playerLevel: number): { xpBonus: string; feeDiscount: string } => {
+  const xpMult = getXPMultiplier(playerLevel);
+  const feeDisc = getFeeDiscount(playerLevel);
+
+  return {
+    xpBonus: xpMult > 1 ? `+${Math.round((xpMult - 1) * 100)}% XP` : '',
+    feeDiscount: feeDisc > 0 ? `-${Math.round(feeDisc * 100)}% fees` : '',
+  };
+};

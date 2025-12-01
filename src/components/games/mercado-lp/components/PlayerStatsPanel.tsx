@@ -2,8 +2,27 @@ import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { getPlayerLevel, getXPProgress } from '@/components/games/mercado-lp/data/playerLevels';
+import { getPlayerLevel, getXPProgress, getXPMultiplier, getFeeDiscount } from '@/components/games/mercado-lp/data/playerLevels';
 import { useTranslation } from 'react-i18next';
+import { Sparkles, Percent, Clock } from 'lucide-react';
+
+/**
+ * Cap diario de XP escalado por nivel del jugador
+ * N1-N2: 400 XP, N3-N4: 600 XP, N5-N6: 800 XP
+ */
+const getDailyXPCap = (playerLevel: number): number => {
+  if (playerLevel >= 5) return 800;
+  if (playerLevel >= 3) return 600;
+  return 400;
+};
+
+/**
+ * Obtiene la fecha actual en UTC como string ISO (YYYY-MM-DD)
+ */
+const getUTCDateString = (): string => {
+  const now = new Date();
+  return now.toISOString().split('T')[0];
+};
 
 export const PlayerStatsPanel = () => {
   const { player, tokens } = useGame();
@@ -11,6 +30,13 @@ export const PlayerStatsPanel = () => {
 
   const currentLevel = getPlayerLevel(player.xp);
   const xpProgress = getXPProgress(player.xp);
+
+  // Calculate daily XP progress (UTC-based, with dynamic cap)
+  const todayUTC = getUTCDateString();
+  const dailyXPCap = getDailyXPCap(currentLevel.level);
+  const dailyXP = player.dailyXPDate === todayUTC ? (player.dailyXP || 0) : 0;
+  const dailyXPPercent = Math.min((dailyXP / dailyXPCap) * 100, 100);
+  const dailyXPRemaining = Math.max(0, dailyXPCap - dailyXP);
 
   return (
     <div className="space-y-4">
@@ -69,6 +95,71 @@ export const PlayerStatsPanel = () => {
             </div>
           </div>
         )}
+
+        {/* Active Perks */}
+        <div className="mt-3 pt-3 border-t border-primary/20">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            {t('mercadoLP.player.perks.title')}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {(() => {
+              const xpMult = getXPMultiplier(currentLevel.level);
+              const feeDisc = getFeeDiscount(currentLevel.level);
+              const hasPerks = xpMult > 1 || feeDisc > 0;
+
+              if (!hasPerks) {
+                return (
+                  <div className="text-xs text-muted-foreground/70 italic">
+                    {t('mercadoLP.player.perks.none')} —{' '}
+                    {t('mercadoLP.player.perks.unlockAt', { level: 2 })}
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {xpMult > 1 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/15 text-amber-600 text-xs font-medium">
+                      <Sparkles className="w-3 h-3" />
+                      {t('mercadoLP.player.perks.xpBonus', { percent: Math.round((xpMult - 1) * 100) })}
+                    </span>
+                  )}
+                  {feeDisc > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-600 text-xs font-medium">
+                      <Percent className="w-3 h-3" />
+                      {t('mercadoLP.player.perks.feeDiscount', { percent: Math.round(feeDisc * 100) })}
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Daily XP Progress */}
+        <div className="mt-3 pt-3 border-t border-primary/20">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {t('mercadoLP.player.dailyXP.title')}
+          </h4>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">
+                {t('mercadoLP.player.dailyXP.progress', { current: dailyXP, max: dailyXPCap })}
+              </span>
+              <span className={dailyXPRemaining > 0 ? 'text-primary' : 'text-amber-600'}>
+                {dailyXPRemaining > 0
+                  ? t('mercadoLP.player.dailyXP.remaining', { remaining: dailyXPRemaining })
+                  : t('mercadoLP.player.dailyXP.complete')}
+              </span>
+            </div>
+            <Progress
+              value={dailyXPPercent}
+              className={`h-1.5 ${dailyXPPercent >= 100 ? 'bg-amber-200' : ''}`}
+            />
+          </div>
+        </div>
       </Card>
 
       <Card className="pixel-card p-4" data-tutorial="inventory">

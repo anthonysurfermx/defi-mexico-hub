@@ -471,7 +471,7 @@ export const useRequireRole = (
   useEffect(() => {
     if (auth.initialized) {
       if (!auth.user) {
-        navigate('/auth/login');
+        navigate('/login');
         return;
       }
 

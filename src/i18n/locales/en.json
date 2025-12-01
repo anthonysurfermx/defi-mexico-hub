@@ -332,7 +332,21 @@
       "xpToNext": "{{remaining}} XP to {{next}}",
       "streak": "🔥 Streak: {{days}} day{{s}}",
       "bestStreak": "Best: {{best}}",
-      "inventory": "Market bag"
+      "inventory": "Market bag",
+      "perks": {
+        "title": "Active perks",
+        "xpBonus": "+{{percent}}% XP",
+        "feeDiscount": "-{{percent}}% fees",
+        "none": "No bonus yet",
+        "unlockAt": "Unlock at level {{level}}"
+      },
+      "dailyXP": {
+        "title": "Daily XP",
+        "progress": "{{current}} / {{max}}",
+        "remaining": "{{remaining}} remaining today",
+        "complete": "Cap reached! Come back tomorrow",
+        "capReached": "Daily cap reached ({{cap}} XP). Come back tomorrow!"
+      }
     },
     "activity": {
       "title": "Market Activity",

@@ -332,7 +332,21 @@
       "xpToNext": "{{remaining}} XP para {{next}}",
       "streak": "🔥 Racha de {{days}} día{{s}}",
       "bestStreak": "Mejor: {{best}}",
-      "inventory": "Bolsa de mercado"
+      "inventory": "Bolsa de mercado",
+      "perks": {
+        "title": "Perks activos",
+        "xpBonus": "+{{percent}}% XP",
+        "feeDiscount": "-{{percent}}% fees",
+        "none": "Sin bonus aún",
+        "unlockAt": "Desbloquea en nivel {{level}}"
+      },
+      "dailyXP": {
+        "title": "XP diario",
+        "progress": "{{current}} / {{max}}",
+        "remaining": "{{remaining}} restantes hoy",
+        "complete": "¡Cap alcanzado! Vuelve mañana",
+        "capReached": "Cap diario alcanzado ({{cap}} XP). ¡Vuelve mañana!"
+      }
     },
     "activity": {
       "title": "Actividad del Mercado",

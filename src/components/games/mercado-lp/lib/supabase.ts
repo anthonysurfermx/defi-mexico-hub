@@ -27,6 +27,10 @@ export interface GameProgressData {
   pools: Pool[];
   tokens: Token[];
   current_level: number;
+  // Daily XP tracking (UTC-based)
+  daily_xp?: number;
+  daily_xp_date?: string; // ISO date string in UTC (YYYY-MM-DD)
+  avatar?: string;
 }
 
 /**
@@ -85,7 +89,7 @@ export async function saveGameProgress(
       user_id: user.id,
       xp: player.xp,
       level: player.level,
-       avatar: (player as any).avatar || '/player.png',
+      avatar: player.avatar || '/player.png',
       reputation: player.reputation,
       swap_count: player.swapCount,
       total_fees_earned: player.totalFeesEarned,
@@ -101,6 +105,9 @@ export async function saveGameProgress(
       pools,
       tokens,
       current_level: currentLevel,
+      // Daily XP tracking (UTC-based)
+      daily_xp: player.dailyXP,
+      daily_xp_date: player.dailyXPDate,
     };
 
     const { error } = await supabase

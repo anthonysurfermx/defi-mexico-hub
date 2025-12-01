@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
-import { BookOpen, Map, Trophy } from 'lucide-react';
+import { BookOpen, Map, Trophy, Award } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
@@ -21,10 +21,14 @@ import { useTranslation } from 'react-i18next';
 interface GameHeaderProps {
   onOpenMap: () => void;
   onLoginPrompt?: (reason: 'leaderboard') => void;
+  onOpenNFTModal?: () => void;
 }
 
-export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
+export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHeaderProps) => {
   const { currentLevel, setCurrentLevel, player, currentEvent, eventTimeRemaining } = useGame();
+
+  // NFT eligibility: Level 4+ and 1000+ XP
+  const canClaimNFT = player.level >= 4 && player.xp >= 1000;
   const [showEducation, setShowEducation] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [xpPulse, setXpPulse] = useState(false);
@@ -200,6 +204,18 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
                 <BookOpen className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.education')}</span>
               </Button>
+              {/* Mintear NFT button - visible when eligible */}
+              {canClaimNFT && onOpenNFTModal && (
+                <Button
+                  onClick={onOpenNFTModal}
+                  size="sm"
+                  className="rounded-full px-3 h-9 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg animate-pulse"
+                  title="¡Reclama tu NFT!"
+                >
+                  <Award className="w-4 h-4" />
+                  <span className="ml-1 font-semibold">Mintear NFT</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

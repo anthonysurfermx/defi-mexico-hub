@@ -119,6 +119,8 @@ export interface PlayerState {
   lastPlayedDate?: string;
   currentStreak: number;
   bestStreak: number;
+  dailyXP?: number;
+  dailyXPDate?: string;
 }
 
 export interface NPCActivity {

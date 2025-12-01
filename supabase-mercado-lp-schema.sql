@@ -52,6 +52,13 @@ CREATE TABLE IF NOT EXISTS public.game_progress (
   -- Current Level
   current_level INTEGER DEFAULT 1,
 
+  -- Daily XP Tracking (UTC-based)
+  daily_xp INTEGER DEFAULT 0,
+  daily_xp_date TEXT, -- ISO date string in UTC (YYYY-MM-DD)
+
+  -- Player Avatar
+  avatar TEXT DEFAULT '/player.png',
+
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -69,9 +76,9 @@ CREATE INDEX IF NOT EXISTS idx_game_progress_level ON public.game_progress(level
 CREATE OR REPLACE VIEW public.game_leaderboard AS
 SELECT
   gp.user_id,
-  p.full_name,
+  COALESCE(p.full_name, 'Jugador Anónimo') as full_name,
   p.email,
-  p.avatar_url,
+  COALESCE(gp.avatar, '/player.png') as avatar_url,
   gp.xp,
   gp.level,
   gp.reputation,
@@ -79,6 +86,8 @@ SELECT
   gp.total_fees_earned,
   gp.current_streak,
   gp.best_streak,
+  gp.daily_xp,
+  gp.daily_xp_date,
   jsonb_array_length(gp.badges) as badge_count,
   gp.updated_at
 FROM public.game_progress gp
@@ -189,3 +198,6 @@ COMMENT ON COLUMN public.game_progress.badges IS 'Unlocked achievements/badges s
 COMMENT ON COLUMN public.game_progress.stats IS 'Detailed player statistics for gamification';
 COMMENT ON COLUMN public.game_progress.pools IS 'Current game pools state stored as JSONB';
 COMMENT ON COLUMN public.game_progress.tokens IS 'Current game tokens state stored as JSONB';
+COMMENT ON COLUMN public.game_progress.daily_xp IS 'XP earned today (UTC-based), resets daily';
+COMMENT ON COLUMN public.game_progress.daily_xp_date IS 'Date string (YYYY-MM-DD) in UTC for daily XP tracking';
+COMMENT ON COLUMN public.game_progress.avatar IS 'Player avatar URL for the game';

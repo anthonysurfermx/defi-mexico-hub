@@ -210,7 +210,15 @@ export default function LoginPage() {
         description: `Conectado como ${values.email}`
       });
 
-      // No redirigimos manualmente - useAuth se encarga de redirigir según el rol
+      // Verificar si hay una URL de retorno del juego Mercado LP
+      const mercadoReturnUrl = localStorage.getItem('mercado_lp_return_url');
+      if (mercadoReturnUrl) {
+        // Redirigir al juego con el pending NFT claim activo
+        navigate(mercadoReturnUrl, { replace: true });
+        return;
+      }
+
+      // Si no hay URL de retorno, useAuth se encarga de redirigir según el rol
       // El usuario será redirigido automáticamente a /admin o /user
 
     } catch (error) {
@@ -327,6 +335,14 @@ export default function LoginPage() {
       toast.success('¡Autenticación exitosa!', {
         description: `Conectado con ${address.substring(0, 6)}...${address.substring(address.length - 4)}`
       });
+
+      // Verificar si hay una URL de retorno del juego Mercado LP
+      const mercadoReturnUrl = localStorage.getItem('mercado_lp_return_url');
+      if (mercadoReturnUrl) {
+        navigate(mercadoReturnUrl, { replace: true });
+        setIsWalletLoading(false);
+        return;
+      }
 
       // useAuth will handle the redirect automatically based on user role
       setIsWalletLoading(false);
