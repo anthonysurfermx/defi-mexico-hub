@@ -8,7 +8,6 @@ interface TutorialStep {
   id: string;
   title: string;
   description: string;
-  highlightSelector?: string;
   position: 'center' | 'top' | 'bottom' | 'left' | 'right';
   action?: string;
   tip?: string;
@@ -20,39 +19,36 @@ const tutorialSteps: TutorialStep[] = [
     title: 'Bienvenido al Mercado LP',
     description: 'Piensa en un puesto automático: siempre hay precio y no hay intermediarios. Aquí lo ves con frutas, fácil y sin complicarte.',
     position: 'center',
-    tip: 'Es pura práctica. No es dinero real y puedes probar sin miedo.',
+    tip: 'En un CEX le compras a un creador de mercado, no a tu amigo. Aquí ves precios abiertos sin intermediarios.',
   },
   {
     id: 'inventory',
     title: 'Tus frutas (tokens)',
     description: 'Tienes pesos como moneda base y frutas como tokens. Cambiarás entre ellos y verás cómo varían los precios.',
-    highlightSelector: '[data-tutorial="inventory"]',
     position: 'right',
-    tip: 'Cada fruta = un token. Practica con montos pequeños para ver cómo funciona.',
+    tip: 'Cada fruta es liquidez disponible. Si compras mucho de una sola, la canasta se vacía y el precio sube.',
   },
   {
     id: 'pools',
     title: 'Puestos (pools) automáticos',
     description: 'Cada pool tiene dos frutas. El precio cambia según cuánta hay de cada una. Si queda poca fruta, sube el precio.',
-    highlightSelector: '[data-tutorial="pools"]',
     position: 'left',
-    tip: 'Esto es un AMM: la fórmula mantiene balance y siempre te da un precio.',
+    tip: 'El pool sustituye al libro de órdenes: la fórmula del AMM siempre te da precio aunque no haya otro comprador enfrente.',
   },
   {
     id: 'swap',
     title: 'Haz tu primer swap',
     description: 'Elige una fruta, pon un monto y mira cuánto recibes. Verás el impacto en precio si el monto es grande.',
-    highlightSelector: '[data-tutorial="swap-form"]',
     position: 'top',
     action: 'Prueba con un monto pequeño para ver el cambio.',
-    tip: 'Montos pequeños mueven menos el precio; es la mejor forma de aprender.',
+    tip: 'Si compras mucho de golpe vacías la canasta y sube el precio. Empieza chico para ver el impacto real.',
   },
   {
     id: 'fees',
     title: 'Propinas (fees)',
     description: 'Cada swap paga una pequeña comisión que va a quienes pusieron frutas en el pool.',
     position: 'center',
-    tip: 'Así se incentiva a que siempre haya frutas disponibles.',
+    tip: 'La propina incentiva a que alguien mantenga el puesto surtido. Sin fee, nadie dejaría sus frutas ahí.',
   },
   {
     id: 'mission',
@@ -60,7 +56,7 @@ const tutorialSteps: TutorialStep[] = [
     description: 'Completa tu primer swap. Cambia algunos pesos por fruta y gana XP.',
     position: 'center',
     action: 'Haz un swap de pesos por cualquier fruta.',
-    tip: 'Cada misión completada te da XP y te lleva al siguiente nivel.',
+    tip: 'Un swap te muestra precio, fee y cambio en vivo. Aquí practicas sin riesgo y ganas XP.',
   },
 ];
 
@@ -72,7 +68,6 @@ interface OnboardingTutorialProps {
 export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
 
   const step = tutorialSteps[currentStep];
   const progress = ((currentStep + 1) / tutorialSteps.length) * 100;
@@ -81,20 +76,6 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
     // Animate in
     setTimeout(() => setIsVisible(true), 100);
   }, []);
-
-  useEffect(() => {
-    // Highlight element if selector provided
-    if (step.highlightSelector) {
-      const element = document.querySelector(step.highlightSelector);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        setHighlightRect(rect);
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    } else {
-      setHighlightRect(null);
-    }
-  }, [currentStep, step.highlightSelector]);
 
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
@@ -127,19 +108,6 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
     <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-      {/* Spotlight cutout for highlighted element */}
-      {highlightRect && (
-        <div
-          className="absolute border-4 border-primary rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] pointer-events-none z-10 animate-pulse"
-          style={{
-            top: highlightRect.top - 8,
-            left: highlightRect.left - 8,
-            width: highlightRect.width + 16,
-            height: highlightRect.height + 16,
-          }}
-        />
-      )}
 
       {/* Tutorial Card */}
       <Card
@@ -179,10 +147,10 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
             </div>
           )}
 
-          {/* Tip */}
+          {/* Nota */}
           {step.tip && (
             <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Tip rápido</p>
+              <p className="font-semibold text-foreground">Nota</p>
               <p>{step.tip}</p>
             </div>
           )}
