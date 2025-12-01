@@ -20,16 +20,18 @@ const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
 const StartupDashboard = lazy(() => import('@/pages/StartupDashboard'));
-const BlogPage = lazy(() => import('@/pages/BlogPage'));
-const BlogPostPage = lazy(() => import('@/pages/BlogPostPage')); // ✨ BLOG POST INDIVIDUAL
+// Blog removido temporalmente
+// const BlogPage = lazy(() => import('@/pages/BlogPage'));
+// const BlogPostPage = lazy(() => import('@/pages/BlogPostPage'));
 const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
 const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
 const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
-const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
-const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
-const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
+// APY Analysis y Academia removidos temporalmente
+// const InvestmentOpportunitiesPage = lazy(() => import('@/pages/InvestmentOpportunitiesPage'));
+// const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
+// const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 const VideoTutorialsPage = lazy(() => import('@/pages/VideoTutorialsPage'));
 const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
 
@@ -51,9 +53,10 @@ const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
-const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
-const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
-const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
+// Admin Blog y Academia removidos temporalmente
+// const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
+// const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
+// const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
@@ -75,9 +78,9 @@ const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
 // Admin Community Forms
 const AdminCommunityForm = lazy(() => import('@/pages/admin/AdminCommunityForm'));
 
-// Admin Blog Forms - RUTAS DE BLOG
-const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
-const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
+// Admin Blog Forms - REMOVIDOS TEMPORALMENTE
+// const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
+// const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
 
 // TikTok Feed Page
 const TikTokFeedPage = lazy(() => import('@/pages/TikTokFeedPage'));
@@ -263,24 +266,24 @@ const router = createBrowserRouter(
               ),
             },
             // ==========================================
-            // RUTAS DEL BLOG
+            // RUTAS DEL BLOG - REMOVIDO TEMPORALMENTE
             // ==========================================
-            {
-              path: 'blog',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BlogPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'blog/:slug', // ✅ RUTA PARA POSTS INDIVIDUALES
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BlogPostPage />
-                </Suspense>
-              ),
-            },
+            // {
+            //   path: 'blog',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <BlogPage />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'blog/:slug',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <BlogPostPage />
+            //     </Suspense>
+            //   ),
+            // },
             // ==========================================
             // TIKTOK FEED
             // ==========================================
@@ -335,43 +338,47 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
-            {
-              path: 'oportunidades',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <InvestmentOpportunitiesPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'academia',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <DeFiAcademyPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'academia/juego/mercado-lp',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <MercadoLPGamePage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'curso/:courseId',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <CourseDetailPage />
-                </Suspense>
-              ),
-            },
+            // ==========================================
+            // APY ANALYSIS Y ACADEMIA - REMOVIDO TEMPORALMENTE
+            // ==========================================
+            // {
+            //   path: 'oportunidades',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <InvestmentOpportunitiesPage />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'academia',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <DeFiAcademyPage />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'curso/:courseId',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <CourseDetailPage />
+            //     </Suspense>
+            //   ),
+            // },
             {
               path: 'academia/videos',
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <VideoTutorialsPage />
+                </Suspense>
+              ),
+            },
+            // Mercado LP Game
+            {
+              path: 'academia/juego/mercado-lp',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <MercadoLPGamePage />
                 </Suspense>
               ),
             },
@@ -623,52 +630,52 @@ const router = createBrowserRouter(
             },
 
             // ==========================================
-            // RUTAS ADMIN - BLOG
+            // RUTAS ADMIN - BLOG - REMOVIDO TEMPORALMENTE
             // ==========================================
-            {
-              path: 'blog',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <AdminBlog />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'blog/new',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BlogNew />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'blog/edit/:id',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BlogEditPage />
-                </Suspense>
-              ),
-            },
+            // {
+            //   path: 'blog',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <AdminBlog />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'blog/new',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <BlogNew />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'blog/edit/:id',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <BlogEditPage />
+            //     </Suspense>
+            //   ),
+            // },
 
             // ==========================================
-            // RUTAS ADMIN - ACADEMIA
+            // RUTAS ADMIN - ACADEMIA - REMOVIDO TEMPORALMENTE
             // ==========================================
-            {
-              path: 'academia',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <AdminAcademia />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'academia/videos',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <AdminVideoTutorials />
-                </Suspense>
-              ),
-            },
+            // {
+            //   path: 'academia',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <AdminAcademia />
+            //     </Suspense>
+            //   ),
+            // },
+            // {
+            //   path: 'academia/videos',
+            //   element: (
+            //     <Suspense fallback={<PageLoader />}>
+            //       <AdminVideoTutorials />
+            //     </Suspense>
+            //   ),
+            // },
 
             // ==========================================
             // OTRAS RUTAS ADMIN

@@ -22,6 +22,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useMercadoSound } from '@/hooks/useMercadoSound';
+import {
+  GraduationCapIcon,
+  LightbulbIcon,
+  ProviderIcon,
+  ChartIcon,
+  QuestionIcon,
+} from './icons/GameIcons';
+import { MissionsCard } from './MissionsCard';
 
 export const LiquidityView = () => {
   const { pools, player, addLiquidity, removeLiquidity } = useGame();
@@ -30,6 +39,10 @@ export const LiquidityView = () => {
   const [confettiKey, setConfettiKey] = useState(0);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [lpSuccess, setLpSuccess] = useState(false);
+
+  // Sound effects
+  const { play: playAddLiquiditySound } = useMercadoSound('add-liquidity');
+  const { play: playRemoveLiquiditySound } = useMercadoSound('remove-liquidity');
 
   const currentPool = pools.find(p => p.id === selectedPool);
   const currentPosition = player.lpPositions.find(p => p.poolId === selectedPool);
@@ -69,6 +82,9 @@ export const LiquidityView = () => {
     const isFirstLP = player.lpPositions.length === 0;
     addLiquidity(selectedPool, a, b);
 
+    // Play sound
+    playAddLiquiditySound();
+
     // Feedback educativo mejorado
     if (isFirstLP) {
       toast.success(`¡Primera liquidez aportada! 🎉 Ahora ganas fees de cada swap en este pool.`, { duration: 4000 });
@@ -91,6 +107,9 @@ export const LiquidityView = () => {
     const feesEarned = currentPosition.feesEarned.tokenA + currentPosition.feesEarned.tokenB;
     removeLiquidity(selectedPool, currentPosition.sharePercent);
 
+    // Play sound
+    playRemoveLiquiditySound();
+
     if (feesEarned > 0) {
       toast.success(`¡Puesto cerrado! Ganaste ${feesEarned.toFixed(2)} en propinas. 💰`);
     } else {
@@ -111,7 +130,9 @@ export const LiquidityView = () => {
       {player.lpPositions.length === 0 && (
         <Card className="pixel-card p-4 bg-gradient-to-r from-primary/10 to-emerald-500/5 border-primary/30">
           <div className="flex items-start gap-3">
-            <span className="text-3xl">🎓</span>
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-primary" />
+            </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Nivel 2: Puestero - Proveer Liquidez</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
@@ -119,7 +140,7 @@ export const LiquidityView = () => {
                 Tú las aportas al pool y ganas comisión (fee) cada vez que alguien intercambia.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
-                <span>💡</span>
+                <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>Concepto DeFi: <strong>Liquidity Providing + Fee Earnings + Impermanent Loss</strong></span>
               </div>
             </div>
@@ -127,24 +148,16 @@ export const LiquidityView = () => {
         </Card>
       )}
 
-      <Card className="pixel-card p-4 bg-card">
-        <div className="flex items-center gap-2 mb-2">
-          <span>🎯</span>
-          <h3 className="font-bold text-sm">Tu misión</h3>
-        </div>
-        <div className="pixel-card p-3 text-sm bg-white">
-          <p className="font-semibold mb-1">Abre un puesto (LP)</p>
-          <p className="text-xs text-muted-foreground">
-            Aporta dos frutas al pool. Cada vez que alguien haga un cambio ahí, ganas una propina automática.
-          </p>
-        </div>
-      </Card>
+      <MissionsCard />
 
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">🏪 Abrir puesto</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <ProviderIcon size={24} className="text-primary" />
+              Abrir puesto
+            </h1>
             <p className="text-xs text-muted-foreground">Aporta frutas y gana propinas.</p>
           </div>
           <Button
@@ -250,7 +263,8 @@ export const LiquidityView = () => {
                 <>
                   <div className="border-t border-border pt-4 mt-4">
                     <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                      <span>📊</span> Tu puesto en este pool
+                      <ChartIcon size={18} className="text-primary" />
+                      Tu puesto en este pool
                     </h3>
                     <div className="pixel-card bg-muted/50 p-3 space-y-2 text-xs">
                       <div className="flex justify-between">
@@ -289,7 +303,8 @@ export const LiquidityView = () => {
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
-          <span>💡</span> Tip rápido
+          <LightbulbIcon size={18} className="text-amber-500" />
+          Tip rápido
         </h3>
         <p className="text-sm text-muted-foreground">
           Mientras más swaps haya en tu pool, más propinas ganas. Los pools grandes y activos suelen dar más fees.
@@ -300,7 +315,8 @@ export const LiquidityView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>❓</span> ¿Qué es ser LP?
+              <QuestionIcon size={20} className="text-blue-500" />
+              ¿Qué es ser LP?
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>

@@ -93,7 +93,7 @@ class CommunitiesService {
         .from('communities')
         .select('*')
         .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
-        .eq('is_active', true)
+        .eq('is_verified', true)
         .order('member_count', { ascending: false })
         .limit(limit);
 
@@ -310,10 +310,30 @@ class CommunitiesService {
   // Actualizar comunidad
   async update(id: string, updates: CommunityUpdate): Promise<ServiceResponse<Community>> {
     try {
+      // Mapear campos del frontend a campos reales de la BD
+      // La BD usa: image_url (no logo_url), links (no social_links)
+      // No existen: website, location, founded_date, is_active, verified_at, verified_by
+      const dbUpdates: Record<string, unknown> = {};
+
+      // Campos que coinciden directamente
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.banner_url !== undefined) dbUpdates.banner_url = updates.banner_url;
+      if (updates.member_count !== undefined) dbUpdates.member_count = updates.member_count;
+      if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+      if (updates.is_featured !== undefined) dbUpdates.is_featured = updates.is_featured;
+      if (updates.is_verified !== undefined) dbUpdates.is_verified = updates.is_verified;
+
+      // Campos que necesitan mapeo
+      if ((updates as any).logo_url !== undefined) dbUpdates.image_url = (updates as any).logo_url;
+      if ((updates as any).social_links !== undefined) dbUpdates.links = (updates as any).social_links;
+
       const { data, error } = await supabase
         .from('communities')
         .update({
-          ...updates,
+          ...dbUpdates,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -328,9 +348,9 @@ class CommunitiesService {
       return { data, error: null };
     } catch (err) {
       console.error('Error in update:', err);
-      return { 
-        data: null, 
-        error: err instanceof Error ? err.message : 'Error desconocido' 
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
       };
     }
   }
@@ -338,16 +358,23 @@ class CommunitiesService {
   // Verificar comunidad (solo admin)
   async verify(id: string): Promise<ServiceResponse<Community>> {
     try {
+      // Actualización directa en lugar de RPC
       const { data, error } = await supabase
-        .rpc('verify_community', { community_id: id });
+        .from('communities')
+        .update({
+          is_verified: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error verifying community:', error);
         return { data: null, error: error.message };
       }
 
-      // Obtener la comunidad actualizada
-      return this.getById(id);
+      return { data, error: null };
     } catch (err) {
       console.error('Error in verify:', err);
       return {
@@ -357,19 +384,26 @@ class CommunitiesService {
     }
   }
 
-  // Rechazar comunidad (solo admin)
+  // Rechazar comunidad (solo admin) - marca como no verificada
   async reject(id: string): Promise<ServiceResponse<Community>> {
     try {
+      // Actualización directa en lugar de RPC
       const { data, error } = await supabase
-        .rpc('reject_community', { community_id: id });
+        .from('communities')
+        .update({
+          is_verified: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error rejecting community:', error);
         return { data: null, error: error.message };
       }
 
-      // Obtener la comunidad actualizada
-      return this.getById(id);
+      return { data, error: null };
     } catch (err) {
       console.error('Error in reject:', err);
       return {
@@ -403,7 +437,7 @@ class CommunitiesService {
     }
   }
 
-  // Obtener estadísticas con pendientes
+  // Obtener estadísticas con pendientes (sin RPC, cálculo directo)
   async getStatsWithPending(): Promise<ServiceResponse<{
     total: number;
     verified: number;
@@ -413,15 +447,17 @@ class CommunitiesService {
     totalMembers: number;
   }>> {
     try {
-      const { data, error } = await supabase
-        .rpc('get_community_stats_with_pending');
+      // Obtener todas las comunidades para calcular stats localmente
+      const { data: communities, error } = await supabase
+        .from('communities')
+        .select('is_verified, is_featured, member_count');
 
       if (error) {
         console.error('Error fetching stats with pending:', error);
         return { data: null, error: error.message };
       }
 
-      if (!data || data.length === 0) {
+      if (!communities || communities.length === 0) {
         return {
           data: {
             total: 0,
@@ -435,15 +471,20 @@ class CommunitiesService {
         };
       }
 
-      const statsData = data[0];
+      // Calcular estadísticas localmente
+      const verified = communities.filter(c => c.is_verified).length;
+      const pending = communities.filter(c => !c.is_verified).length;
+      const featured = communities.filter(c => c.is_featured).length;
+      const totalMembers = communities.reduce((sum, c) => sum + (c.member_count || 0), 0);
+
       return {
         data: {
-          total: statsData.total_communities || 0,
-          verified: statsData.verified_communities || 0,
-          pending: statsData.pending_communities || 0,
-          active: statsData.active_communities || 0,
-          featured: statsData.featured_communities || 0,
-          totalMembers: statsData.total_members || 0
+          total: communities.length,
+          verified,
+          pending,
+          active: verified, // active = verified en este esquema
+          featured,
+          totalMembers
         },
         error: null
       };
@@ -463,7 +504,6 @@ class CommunitiesService {
         .from('communities')
         .update({
           is_verified: false,
-          is_active: false,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);

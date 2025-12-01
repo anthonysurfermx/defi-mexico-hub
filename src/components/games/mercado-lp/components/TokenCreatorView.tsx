@@ -22,6 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useMercadoSound } from '@/hooks/useMercadoSound';
+import {
+  GraduationCapIcon,
+  LightbulbIcon,
+  FarmerIcon,
+  SproutIcon,
+  DropIcon,
+  QuestionIcon,
+} from './icons/GameIcons';
+import { MissionsCard } from './MissionsCard';
 
 const FRUIT_EMOJIS = ['🍎', '🍊', '🍇', '🥥', '🍓', '🥝', '🍑', '🍍', '🫐', '🍒', '🥭', '🍌', '🍉', '🍋'];
 
@@ -38,6 +48,9 @@ export const TokenCreatorView = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [plantStage, setPlantStage] = useState<'seed' | 'sprout' | 'growing' | 'mature'>('seed');
   const [showPlantAnimation, setShowPlantAnimation] = useState(false);
+
+  // Sound effects
+  const { play: playCreateTokenSound } = useMercadoSound('create-token');
 
   // Calcular progreso del formulario
   const getPlantStage = (): typeof plantStage => {
@@ -90,6 +103,9 @@ export const TokenCreatorView = () => {
     const wasFirstToken = isFirstToken;
     createPool(newToken, pairedToken, newTokenAmount, pairTokenAmount);
 
+    // Play sound
+    playCreateTokenSound();
+
     // Feedback educativo mejorado
     if (wasFirstToken) {
       toast.success(`¡Primer token creado! 🎉 Ahora tiene liquidez inicial y precio de ${estimatedPrice} ${pairedToken.symbol}.`, { duration: 4500 });
@@ -131,7 +147,9 @@ export const TokenCreatorView = () => {
       {isFirstToken && (
         <Card className="pixel-card p-4 bg-gradient-to-r from-pink-100 to-purple-100 border-pink-300">
           <div className="flex items-start gap-3">
-            <span className="text-3xl">🎓</span>
+            <div className="w-10 h-10 rounded-xl bg-pink-200 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-pink-600" />
+            </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Nivel 3: Agricultor - Crear Token</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
@@ -139,7 +157,7 @@ export const TokenCreatorView = () => {
                 Define el ratio inicial (cuántas frutas por cuántos pesos) = precio inicial del token.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
-                <span>💡</span>
+                <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>Concepto DeFi: <strong>Token Deployment + Initial Liquidity + Price Discovery</strong></span>
               </div>
             </div>
@@ -147,24 +165,16 @@ export const TokenCreatorView = () => {
         </Card>
       )}
 
-      <Card className="pixel-card p-4 bg-card">
-        <div className="flex items-center gap-2 mb-2">
-          <span>🎯</span>
-          <h3 className="font-bold text-sm">Tu misión</h3>
-        </div>
-        <div className="pixel-card p-3 text-sm bg-white">
-          <p className="font-semibold mb-1">Siembra un nuevo cultivo</p>
-          <p className="text-xs text-muted-foreground">
-            Crea tu propia fruta y establece su precio inicial. Otros podrán comprarla en tu huerto.
-          </p>
-        </div>
-      </Card>
+      <MissionsCard />
 
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">🚜 Sembrar cultivo</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <FarmerIcon size={24} className="text-primary" />
+              Sembrar cultivo
+            </h1>
             <p className="text-xs text-muted-foreground">Crea tu fruta y abre tu huerto.</p>
           </div>
           <Button
@@ -192,7 +202,8 @@ export const TokenCreatorView = () => {
             {/* Paso 1: Información básica */}
             <Card className="pixel-card p-4 space-y-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
-                <span>🌱</span> Paso 1: Elige tu fruta
+                <SproutIcon size={18} className="text-emerald-500" />
+                Paso 1: Elige tu fruta
               </h3>
 
               <div>
@@ -236,7 +247,8 @@ export const TokenCreatorView = () => {
             {/* Paso 2: Precio inicial */}
             <Card className="pixel-card p-4 space-y-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
-                <span>💧</span> Paso 2: Riega tu cultivo
+                <DropIcon size={18} className="text-blue-500" />
+                Paso 2: Riega tu cultivo
               </h3>
 
               <div>
@@ -313,7 +325,8 @@ export const TokenCreatorView = () => {
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
-          <span>💡</span> Consejo del agricultor
+          <LightbulbIcon size={18} className="text-amber-500" />
+          Consejo del agricultor
         </h3>
         <p className="text-sm text-muted-foreground">
           Al sembrar tu cultivo, defines el precio inicial. Elige bien cuánto aportas de cada lado:
@@ -325,7 +338,8 @@ export const TokenCreatorView = () => {
       {tokens.filter(t => !t.isBaseToken).length > 0 && (
         <Card className="pixel-card p-4">
           <h3 className="font-bold mb-3 flex items-center gap-2">
-            <span>🧑‍🌾</span> Tus cultivos activos
+            <FarmerIcon size={18} className="text-emerald-600" />
+            Tus cultivos activos
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {tokens.filter(t => !t.isBaseToken).map(token => (
@@ -348,7 +362,8 @@ export const TokenCreatorView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>❓</span> ¿Cómo sembrar un cultivo?
+              <QuestionIcon size={20} className="text-blue-500" />
+              ¿Cómo sembrar un cultivo?
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>

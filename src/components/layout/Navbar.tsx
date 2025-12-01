@@ -42,10 +42,7 @@ const Navbar = () => {
   const navItems = [
     { label: "Inicio", href: "/" },
     { label: "Startups", href: "/startups" },
-    { label: "Academia", href: "/academia" },
-    { label: "Oportunidades", href: "/oportunidades" },
     { label: "Comunidades", href: "/comunidades" },
-    { label: "Blog", href: "/blog" },
     { label: "TikTok", href: "/tiktok" },
     { label: "Eventos", href: "/eventos" }
   ];

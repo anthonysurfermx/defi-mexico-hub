@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { blogService, type DomainPost } from '@/services/blog.service';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,8 +34,6 @@ export default function HomePage() {
   const { user, isAdmin, hasRole } = useAuth();
   const [email, setEmail] = useState('');
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
-  const [blogPosts, setBlogPosts] = useState<DomainPost[]>([]);
-  const [loadingBlog, setLoadingBlog] = useState(true);
   const [featuredCommunities, setFeaturedCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
@@ -57,25 +54,6 @@ export default function HomePage() {
     } else {
       // Usuario normal va al dashboard de registro de startup
       return '/startup-register';
-    }
-  };
-
-  // ✨ FUNCIÓN PARA CARGAR POSTS DEL BLOG
-  const loadFeaturedBlogPosts = async () => {
-    try {
-      setLoadingBlog(true);
-      console.log('🔍 Cargando posts del blog para HomePage...');
-      
-      // Usar getRecent() - Método específico para posts recientes publicados
-      const posts = await blogService.getRecent(3);
-      setBlogPosts(posts);
-      console.log('✅ Posts del blog cargados:', posts.length);
-      
-    } catch (error) {
-      console.error('❌ Error cargando posts del blog:', error);
-      setBlogPosts([]);
-    } finally {
-      setLoadingBlog(false);
     }
   };
 
@@ -125,9 +103,8 @@ export default function HomePage() {
     }
   };
 
-  // Cargar blog posts, comunidades y eventos
+  // Cargar comunidades y eventos
   useEffect(() => {
-    loadFeaturedBlogPosts();
     loadFeaturedCommunities();
     loadFeaturedEvents();
   }, []);
@@ -252,24 +229,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Card normal - Blog */}
-            <div className="md:col-span-2 bg-gradient-to-br from-primary/5 to-purple-500/5 border rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold">Recursos y Aprendizaje</h3>
-                <p className="text-muted-foreground">
-                  Accede a artículos, tutoriales y análisis sobre DeFi, blockchain y finanzas descentralizadas
-                </p>
-                <Button variant="ghost" className="group" asChild>
-                  <Link to="/blog">
-                    Explorar recursos
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -345,128 +304,65 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Blog & Events Section - Minimal Cards */}
+      {/* Events Section */}
       <section className="py-24 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Blog Section */}
-            <div>
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl md:text-3xl font-bold">{t('blog.title')}</h3>
-                <Button variant="outline" className="rounded-full" asChild>
-                  <Link to="/blog">
-                    {t('common.viewMore')}
-                  </Link>
-                </Button>
-              </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold">{t('home.events.title')}</h3>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link to="/eventos">
+                {t('common.viewMore')}
+              </Link>
+            </Button>
+          </div>
 
-              <div className="space-y-4">
-                {loadingBlog ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="bg-card border rounded-2xl p-6 animate-pulse">
-                      <div className="h-4 bg-muted rounded w-20 mb-3"></div>
-                      <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
-                      <div className="h-4 bg-muted rounded w-full"></div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {loadingEvents ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card border rounded-2xl p-6 animate-pulse">
+                  <div className="h-4 bg-muted rounded w-20 mb-3"></div>
+                  <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                </div>
+              ))
+            ) : featuredEvents.length > 0 ? (
+              featuredEvents.slice(0, 4).map((event) => (
+                <Link
+                  key={event.id}
+                  to={`/eventos/${event.id}`}
+                  className="block bg-card border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
+                >
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="rounded-full">
+                        {event.event_type === 'presencial' ? 'Presencial' :
+                         event.event_type === 'online' ? 'Online' : 'Híbrido'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {event.start_date ? formatDate(event.start_date) : 'Fecha TBD'}
+                      </span>
                     </div>
-                  ))
-                ) : blogPosts.length > 0 ? (
-                  blogPosts.slice(0, 3).map((post) => (
-                    <Link
-                      key={post.id}
-                      to={`/blog/${post.slug}`}
-                      className="block bg-card border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
-                    >
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-full">
-                            {(post.categories && post.categories.length > 0) ? post.categories[0] : 'General'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(post.published_at || post.created_at)}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
-                          {post.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {post.excerpt}
-                        </p>
-                        <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
-                          Leer más <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <h4 className="font-semibold mb-2">Próximamente contenido educativo</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Estamos preparando artículos increíbles sobre DeFi
+                    <h3 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                      {event.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {event.description || 'Evento del ecosistema DeFi mexicano'}
                     </p>
+                    <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
+                      Ver detalles <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
                   </div>
-                )}
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h4 className="font-semibold mb-2">Próximos eventos en camino</h4>
+                <p className="text-sm text-muted-foreground">
+                  Estamos preparando increíbles eventos para la comunidad
+                </p>
               </div>
-            </div>
-
-            {/* Events Section */}
-            <div>
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl md:text-3xl font-bold">{t('home.events.title')}</h3>
-                <Button variant="outline" className="rounded-full" asChild>
-                  <Link to="/eventos">
-                    {t('common.viewMore')}
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {loadingEvents ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="bg-card border rounded-2xl p-6 animate-pulse">
-                      <div className="h-4 bg-muted rounded w-20 mb-3"></div>
-                      <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
-                      <div className="h-4 bg-muted rounded w-full"></div>
-                    </div>
-                  ))
-                ) : featuredEvents.length > 0 ? (
-                  featuredEvents.slice(0, 3).map((event) => (
-                    <Link
-                      key={event.id}
-                      to={`/eventos/${event.id}`}
-                      className="block bg-card border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
-                    >
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-full">
-                            {event.event_type === 'presencial' ? 'Presencial' :
-                             event.event_type === 'online' ? 'Online' : 'Híbrido'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {event.start_date ? formatDate(event.start_date) : 'Fecha TBD'}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
-                          {event.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {event.description || 'Evento del ecosistema DeFi mexicano'}
-                        </p>
-                        <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
-                          Ver detalles <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <h4 className="font-semibold mb-2">Próximos eventos en camino</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Estamos preparando increíbles eventos para la comunidad
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

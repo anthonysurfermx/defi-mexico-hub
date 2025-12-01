@@ -3,24 +3,15 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   Menu,
   X,
-  Building2,
-  FileText,
-  Calendar,
-  Users,
   Home,
   Github,
   Mail,
   ChevronRight,
   Settings,
   BookOpen,
-  TrendingUp,
   ChevronDown,
   Sparkles,
-  UserCircle2,
   Coins,
-  GraduationCap,
-  BarChart3,
-  Newspaper,
   CalendarDays,
   Network,
   UserCheck,
@@ -55,15 +46,12 @@ export default function MainLayout() {
   // Navegación principal simplificada
   const mainNavigation = [
     { name: t('nav.home'), href: '/', icon: Home },
-    { name: 'APY Analysis', href: '/oportunidades', icon: BarChart3 },
   ];
 
   // Navegación "Aprende" (dropdown)
   const aprendeNavigation = [
-    { name: 'Academy', href: '/academia', icon: GraduationCap, description: t('nav.academyDesc') || 'DeFi courses and resources' },
     { name: 'Video Tutoriales', href: '/academia/videos', icon: Youtube, description: 'Videos educativos de DeFi' },
     { name: 'Mercado LP', href: '/academia/juego/mercado-lp', icon: Gamepad2, description: 'Mini game educativo DeFi' },
-    { name: t('nav.blog'), href: '/blog', icon: Newspaper, description: t('nav.blogDesc') || 'Articles and news' },
   ];
 
   // Navegación del ecosistema (dropdown)
@@ -409,8 +397,18 @@ export default function MainLayout() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/academia" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Academia
+                  <Link to="/comunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Comunidades
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/referentes" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Referentes
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/eventos" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Eventos
                   </Link>
                 </li>
                 <li>
@@ -419,56 +417,14 @@ export default function MainLayout() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/oportunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Análisis de APY
+                  <Link to="/academia/videos" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Video Tutoriales
                   </Link>
                 </li>
                 <li>
-                  <Link to="/comunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Comunidades
+                  <Link to="/academia/juego/mercado-lp" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Mercado LP Game
                   </Link>
-                </li>
-                <li>
-                  <Link to="/blog" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/eventos" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Eventos
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <h3 className="font-semibold mb-4">Recursos</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a 
-                    href="https://defillama.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    DefiLlama
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Guía DeFi
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Glosario
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Whitepapers
-                  </a>
                 </li>
               </ul>
             </div>

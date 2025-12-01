@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Eye, Plus, X, Hash, Trash2, Info } from "lucide-react";
+import { ArrowLeft, Save, Eye, Plus, X, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { communitiesService } from "@/services/communities.service";
 import { useAuth } from "@/hooks/useAuth";
-import type { CommunityInsert } from "@/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CommunityFormData {
@@ -45,12 +43,15 @@ interface CommunityFormData {
 const AdminCommunityForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [isPreview, setIsPreview] = useState(false);
   const [newFounder, setNewFounder] = useState("");
-  const [newTag, setNewTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>('user');
+
+  const isEditMode = !!id;
 
   // Obtener el rol del usuario
   useEffect(() => {
@@ -59,7 +60,7 @@ const AdminCommunityForm = () => {
       setUserRole(role);
     }
   }, [user]);
-  
+
   const [formData, setFormData] = useState<CommunityFormData>({
     name: "",
     description: "",
@@ -85,7 +86,69 @@ const AdminCommunityForm = () => {
   });
 
   const availableTags = ["Discord", "Telegram", "Meetup", "Desarrollo", "Trading", "Educación", "Mujeres", "DeFi", "NFT", "DAO", "Web3"];
-  const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+  const yearOptions = Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i);
+
+  // Cargar datos de la comunidad en modo edición
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadCommunity(id);
+    }
+  }, [id, isEditMode]);
+
+  const loadCommunity = async (communityId: string) => {
+    setIsLoading(true);
+    try {
+      const result = await communitiesService.getById(communityId);
+      if (result.data) {
+        const community = result.data as any; // Cast para acceder a campos reales de BD
+
+        // La BD usa 'links' (no social_links) y 'image_url' (no logo_url)
+        const links = (typeof community.links === 'object' && community.links !== null)
+          ? community.links as Record<string, string>
+          : {};
+
+        setFormData({
+          name: community.name || "",
+          description: community.description || "",
+          website: links.website || "",
+          logo: community.image_url || "", // BD usa image_url
+          foundedYear: new Date().getFullYear(),
+          founders: [],
+          tags: community.tags || [],
+          members: community.member_count?.toString() || "",
+          monthlyMessages: "",
+          platform: "",
+          region: "", // No existe en BD actual
+          type: community.category || "",
+          twitter: links.twitter || "",
+          linkedin: links.linkedin || "",
+          discord: links.discord || "",
+          telegram: links.telegram || "",
+          github: links.github || "",
+          meetup: links.meetup || "",
+          instagram: links.instagram || "",
+          longDescription: community.long_description || "",
+          isActive: true
+        });
+      } else if (result.error) {
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la comunidad",
+          variant: "destructive"
+        });
+        navigate('/admin/comunidades');
+      }
+    } catch (error) {
+      console.error('Error loading community:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar la comunidad",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const platforms = ["Discord", "Telegram", "Meetup", "WhatsApp", "Slack", "Facebook", "LinkedIn"];
   const regions = ["Nacional", "CDMX", "Guadalajara", "Monterrey", "Tijuana", "Mérida", "Puebla", "Online"];
   const types = ["defi", "bitcoin", "ethereum", "education", "trading", "development"];
@@ -140,24 +203,23 @@ const AdminCommunityForm = () => {
       .replace(/^-+|-+$/g, '');
   };
 
-  // Mapear datos del formulario al formato de la BD
-  const mapFormDataToCommunity = (): CommunityInsert => {
+  // Mapear datos del formulario al formato REAL de la BD
+  // La BD usa: image_url (no logo_url), links (no social_links)
+  // No existen: website, location, founded_date, is_active
+  const mapFormDataToCommunity = (): any => {
     const slug = generateSlug(formData.name);
-    
-    return {
+
+    const baseData = {
       name: formData.name,
       description: formData.description,
-      logo_url: formData.logo || null,
+      long_description: formData.longDescription || null,
+      image_url: formData.logo || null, // BD usa image_url
       slug: slug,
-      category: formData.type || null,
+      category: formData.type || 'general',
       member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
-      is_featured: false,
-      is_verified: userRole === 'admin', // Solo admins pueden publicar directamente
-      is_active: formData.isActive,
       tags: formData.tags.length > 0 ? formData.tags : null,
-      location: formData.region || null,
-      website: formData.website || null,
-      social_links: {
+      links: { // BD usa links (no social_links)
+        website: formData.website || null,
         discord: formData.discord || null,
         telegram: formData.telegram || null,
         twitter: formData.twitter || null,
@@ -166,8 +228,19 @@ const AdminCommunityForm = () => {
         meetup: formData.meetup || null,
         instagram: formData.instagram || null
       },
-      created_by: user?.id || null
     };
+
+    // Solo agregar estos campos en modo creación
+    if (!isEditMode) {
+      return {
+        ...baseData,
+        is_featured: false,
+        is_verified: userRole === 'admin',
+        created_by: user?.id || null
+      };
+    }
+
+    return baseData;
   };
 
   const handleSaveDraft = () => {
@@ -180,7 +253,7 @@ const AdminCommunityForm = () => {
   const handlePublish = async () => {
     console.log('🚀 Iniciando publicación de comunidad...');
     console.log('📝 Datos del formulario:', formData);
-    
+
     // Validación básica
     if (!formData.name.trim()) {
       console.log('❌ Validación falló: nombre vacío');
@@ -195,14 +268,15 @@ const AdminCommunityForm = () => {
     if (!formData.description.trim()) {
       console.log('❌ Validación falló: descripción vacía');
       toast({
-        title: "Error", 
+        title: "Error",
         description: "La descripción es requerida.",
         variant: "destructive"
       });
       return;
     }
 
-    if (!formData.website.trim()) {
+    // Website es requerido solo en modo creación
+    if (!isEditMode && !formData.website.trim()) {
       console.log('❌ Validación falló: website vacío');
       toast({
         title: "Error",
@@ -218,21 +292,33 @@ const AdminCommunityForm = () => {
     try {
       const communityData = mapFormDataToCommunity();
       console.log('🔄 Datos mapeados para BD:', communityData);
-      
-      console.log('📡 Enviando a Supabase...');
-      const result = await communitiesService.create(communityData);
+
+      let result;
+
+      if (isEditMode && id) {
+        // Modo edición: actualizar comunidad existente
+        console.log('📡 Actualizando comunidad en Supabase...');
+        result = await communitiesService.update(id, communityData);
+      } else {
+        // Modo creación: crear nueva comunidad
+        console.log('📡 Creando comunidad en Supabase...');
+        result = await communitiesService.create(communityData);
+      }
+
       console.log('📥 Respuesta de Supabase:', result);
 
       if (result.data) {
-        console.log('✅ Comunidad creada exitosamente:', result.data);
+        console.log('✅ Comunidad guardada exitosamente:', result.data);
         const isAdmin = userRole === 'admin';
         toast({
           title: "¡Éxito!",
-          description: isAdmin
-            ? "La comunidad ha sido publicada exitosamente."
-            : "La comunidad ha sido enviada para revisión. Un administrador la aprobará pronto.",
+          description: isEditMode
+            ? "La comunidad ha sido actualizada exitosamente."
+            : isAdmin
+              ? "La comunidad ha sido publicada exitosamente."
+              : "La comunidad ha sido enviada para revisión. Un administrador la aprobará pronto.",
         });
-        
+
         // Redirigir a la lista de comunidades
         navigate('/admin/comunidades');
       } else if (result.error) {
@@ -247,7 +333,7 @@ const AdminCommunityForm = () => {
       console.error('💥 Error general publishing community:', error);
       toast({
         title: "Error",
-        description: "Ocurrió un error al publicar la comunidad.",
+        description: "Ocurrió un error al guardar la comunidad.",
         variant: "destructive"
       });
     } finally {
@@ -319,10 +405,22 @@ const AdminCommunityForm = () => {
     </Card>
   );
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando comunidad...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Alerta para editores */}
-      {userRole === 'editor' && (
+      {userRole === 'editor' && !isEditMode && (
         <Alert className="mb-6 border-orange-200 bg-orange-50">
           <Info className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
@@ -341,32 +439,40 @@ const AdminCommunityForm = () => {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Nueva Comunidad</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isEditMode ? "Editar Comunidad" : "Nueva Comunidad"}
+            </h1>
             <p className="text-muted-foreground">
-              Agrega una nueva comunidad al directorio
+              {isEditMode
+                ? `Editando: ${formData.name}`
+                : "Agrega una nueva comunidad al directorio"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setIsPreview(!isPreview)}
             className="flex items-center"
           >
             <Eye className="w-4 h-4 mr-2" />
             {isPreview ? "Editar" : "Preview"}
           </Button>
-          <Button variant="outline" onClick={handleSaveDraft}>
-            <Save className="w-4 h-4 mr-2" />
-            Guardar Borrador
-          </Button>
-          <Button 
-            onClick={handlePublish} 
+          {!isEditMode && (
+            <Button variant="outline" onClick={handleSaveDraft}>
+              <Save className="w-4 h-4 mr-2" />
+              Guardar Borrador
+            </Button>
+          )}
+          <Button
+            onClick={handlePublish}
             disabled={isSubmitting}
             className="bg-gradient-primary text-primary-foreground"
           >
-            {isSubmitting ? "Publicando..." : "Publicar"}
+            {isSubmitting
+              ? (isEditMode ? "Guardando..." : "Publicando...")
+              : (isEditMode ? "Guardar Cambios" : "Publicar")}
           </Button>
         </div>
       </div>
@@ -554,14 +660,6 @@ const AdminCommunityForm = () => {
                         </Select>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="isActive">Comunidad Activa</Label>
-                        <Switch
-                          id="isActive"
-                          checked={formData.isActive}
-                          onCheckedChange={(checked) => handleInputChange("isActive", checked)}
-                        />
-                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

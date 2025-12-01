@@ -22,6 +22,15 @@ import {
 import { ArrowDownUp, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Bascula } from './Bascula';
+import { useMercadoSound } from '@/hooks/useMercadoSound';
+import {
+  GraduationCapIcon,
+  LightbulbIcon,
+  BookIcon,
+  SwapperIcon,
+  QuestionIcon,
+} from './icons/GameIcons';
+import { MissionsCard } from './MissionsCard';
 
 export const SwapView = () => {
   const { tokens, pools, player, swap, getEffectiveFeePercent, openMap } = useGame();
@@ -31,8 +40,11 @@ export const SwapView = () => {
   const [confettiKey, setConfettiKey] = useState(0);
   const [showSlippageModal, setShowSlippageModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showTour, setShowTour] = useState(true);
+  const [showTour, setShowTour] = useState(false);
   const [swapSuccess, setSwapSuccess] = useState(false);
+
+  // Sound effects
+  const { play: playSwapSound } = useMercadoSound('swap');
 
   const currentPool = pools.find(p => p.id === selectedPool);
 
@@ -126,6 +138,9 @@ export const SwapView = () => {
     const tokenOut = isTokenA ? currentPool.tokenB : currentPool.tokenA;
     const amountOut = calculateOutput();
 
+    // Play swap sound
+    playSwapSound();
+
     // Feedback educativo mejorado
     if (isFirstSwap) {
       toast.success(`¡Primer swap exitoso! 🎉 Usaste un AMM automático sin intermediarios.`, { duration: 4000 });
@@ -198,29 +213,6 @@ export const SwapView = () => {
 
   const isSwapReady = !!(currentPool && tokenIn && amountIn && parseFloat(amountIn) > 0 && (player.inventory[tokenIn] || 0) >= parseFloat(amountIn));
 
-  const challenges = [
-    {
-      id: 'swap',
-      title: 'Primer cambio',
-      desc: 'Cambia 1 fruta y mira cómo se mueve el precio.',
-      done: player.swapCount > 0,
-    },
-    {
-      id: 'lp',
-      title: 'Siguiente: Puestero',
-      desc: 'Aprende de dónde vienen las frutas del puesto.',
-      done: player.lpPositions.length > 0 || player.totalFeesEarned > 0,
-      next: true,
-    },
-    {
-      id: 'token',
-      title: 'Siguiente: Agricultor',
-      desc: 'Crea tu propia fruta desde cero.',
-      done: tokens.length > 5,
-      next: true,
-    },
-  ];
-
   const glossary = [
     { term: 'AMM', desc: 'Un puesto automático: siempre hay precio sin depender de un vendedor.' },
     { term: 'Liquidez', desc: 'Frutas que alguien dejó en el puesto; de ahí salen tus compras.' },
@@ -236,7 +228,9 @@ export const SwapView = () => {
       {player.swapCount === 0 && (
         <Card className="pixel-card p-4 bg-gradient-to-r from-orange-100 to-amber-100 border-orange-300">
           <div className="flex items-start gap-3">
-            <span className="text-3xl">🎓</span>
+            <div className="w-10 h-10 rounded-xl bg-orange-200 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-orange-600" />
+            </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Bienvenido al Nivel 1: Marchante</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
@@ -244,7 +238,7 @@ export const SwapView = () => {
                 No hay vendedor ni comprador, solo una "olla mágica" que mantiene balance usando la fórmula <code className="px-1.5 py-0.5 bg-card/60 rounded text-xs">x·y=k</code>.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
-                <span>💡</span>
+                <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>Concepto DeFi: <strong>Automated Market Maker (AMM) + Constant Product</strong></span>
               </div>
             </div>
@@ -252,32 +246,16 @@ export const SwapView = () => {
         </Card>
       )}
 
-      <Card className="pixel-card p-4 bg-card">
-        <div className="flex items-center gap-2 mb-2">
-          <span>🎯</span>
-          <h3 className="font-bold text-sm">Misiones rápidas</h3>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {challenges.map(ch => (
-            <div
-              key={ch.id}
-              className={`pixel-card p-3 text-sm ${ch.done ? 'bg-muted border-secondary' : 'bg-white'}`}
-            >
-              <div className="flex items-center justify-between">
-                <p className="font-semibold">{ch.title}</p>
-                <span className="text-lg">{ch.done ? '✅' : '⏳'}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">{ch.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <MissionsCard />
 
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">🔄 Cambiar frutas</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <SwapperIcon size={24} className="text-primary" />
+              Cambiar frutas
+            </h1>
             <p className="text-xs text-muted-foreground">Misión: haz tu primer cambio en 2 pasos.</p>
           </div>
           <Button variant="ghost" size="icon" className="pixel-button" title="Ayuda rápida" onClick={() => setShowHelpModal(true)}>
@@ -430,14 +408,16 @@ export const SwapView = () => {
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
-          <span>💡</span> Tip rápido
+          <LightbulbIcon size={18} className="text-amber-500" />
+          Tip rápido
         </h3>
         <p className="text-sm text-muted-foreground">{tip}</p>
       </Card>
 
       <Card className="pixel-card p-4">
         <h3 className="font-bold mb-2 flex items-center gap-2">
-          <span>📘</span> Glosario rápido AMM
+          <BookIcon size={18} className="text-blue-500" />
+          Glosario rápido AMM
         </h3>
         <div className="grid gap-2 sm:grid-cols-2 text-xs text-muted-foreground">
           {glossary.map(item => (
@@ -453,7 +433,8 @@ export const SwapView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>👵</span> Marchanta te cuenta algo rápido
+              <LightbulbIcon size={20} className="text-amber-500" />
+              Marchanta te cuenta algo rápido
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>
@@ -478,7 +459,8 @@ export const SwapView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>❓</span> ¿Cómo funciona este puesto?
+              <QuestionIcon size={20} className="text-blue-500" />
+              ¿Cómo funciona este puesto?
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>Imagina una balanza mágica: sacas mangos, entran limones. Si pides mucho de golpe, el precio sube.</p>

@@ -27,7 +27,8 @@ export function useCommunities(initialFilters?: CommunityFilters) {
       setCommunities([]);
     } else {
       setCommunities(response.data || []);
-      setTotal(response.metadata?.total || 0);
+      // ServiceResponse no tiene metadata, usar longitud del array
+      setTotal(response.data?.length || 0);
     }
     
     setLoading(false);
@@ -69,14 +70,15 @@ export function useCommunities(initialFilters?: CommunityFilters) {
 
   const searchCommunities = async (query: string) => {
     setLoading(true);
-    const response = await communitiesService.search(query);
-    
+    // Usar searchSimple en lugar de search (método correcto del servicio)
+    const response = await communitiesService.searchSimple(query);
+
     if (response.error) {
       setError(response.error);
     } else {
       setCommunities(response.data || []);
     }
-    
+
     setLoading(false);
     return response;
   };

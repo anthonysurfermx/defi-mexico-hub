@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   Plus,
   MoreHorizontal,
   Edit,
@@ -11,7 +10,6 @@ import {
   Star,
   Shield,
   Loader2,
-  AlertCircle,
   CheckCircle,
   XCircle,
   Clock,
@@ -49,7 +47,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
@@ -60,7 +58,6 @@ import { useProposals } from "@/hooks/useProposals";
 import type { Proposal } from "@/types/proposals";
 
 const AdminCommunities = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { getRoles } = useAuth();
   const userRoles = getRoles?.() || [];
@@ -141,6 +138,7 @@ const AdminCommunities = () => {
   };
 
   // Combinar comunidades con propuestas pendientes
+  // NOTA: La BD usa image_url (no logo_url), is_verified (no is_active)
   const allItems = [
     ...proposals
       .filter(p => p.status !== 'rejected') // Filtrar propuestas rechazadas
@@ -148,12 +146,11 @@ const AdminCommunities = () => {
         id: p.id,
         name: p.content_data.name || 'Sin nombre',
         description: p.content_data.description || '',
-        logo_url: p.content_data.logo_url,
+        image_url: p.content_data.logo_url || p.content_data.image_url,
         category: p.content_data.community_type || p.content_data.focus_area,
         location: p.content_data.city || p.content_data.country,
         member_count: p.content_data.member_count,
         is_verified: false,
-        is_active: false,
         is_featured: false,
         isProposal: true,
         proposalData: p,
@@ -172,9 +169,10 @@ const AdminCommunities = () => {
 
     const matchesCategory = categoryFilter === "all" || community.category === categoryFilter;
 
+    // Usar is_verified en lugar de is_active (no existe en BD)
     const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "active" && community.is_active) ||
-      (statusFilter === "inactive" && !community.is_active);
+      (statusFilter === "active" && community.is_verified) ||
+      (statusFilter === "inactive" && !community.is_verified);
 
     const matchesFeatured = featuredFilter === "all" ||
       (featuredFilter === "featured" && community.is_featured) ||
@@ -198,8 +196,8 @@ const AdminCommunities = () => {
     try {
       let result;
 
-      // Si está inactiva, borrar permanentemente
-      if (!communityToDelete.is_active) {
+      // Si no está verificada, borrar permanentemente
+      if (!communityToDelete.is_verified) {
         result = await communitiesService.permanentlyDelete(communityToDelete.id);
         if (result.data) {
           toast({
@@ -241,7 +239,7 @@ const AdminCommunities = () => {
   };
 
   const handleDeleteAllInactive = async () => {
-    const inactiveCommunities = communities.filter((c) => !c.is_active);
+    const inactiveCommunities = communities.filter((c) => !c.is_verified);
 
     if (inactiveCommunities.length === 0) {
       toast({
@@ -330,19 +328,19 @@ const AdminCommunities = () => {
     }
   };
 
-  // Toggle active
+  // Toggle verified (usando is_verified en lugar de is_active)
   const toggleActive = async (community: Community) => {
     try {
       const result = await communitiesService.update(community.id, {
-        is_active: !community.is_active
+        is_verified: !community.is_verified
       });
 
       if (result.data) {
         toast({
           title: "Éxito",
-          description: community.is_active
-            ? "Comunidad desactivada"
-            : "Comunidad activada"
+          description: community.is_verified
+            ? "Comunidad desverificada"
+            : "Comunidad verificada"
         });
         loadCommunities();
         loadStats();
@@ -382,23 +380,15 @@ const AdminCommunities = () => {
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-');
 
-        const result = await communitiesService.createCommunity({
+        // Usar método create (no createCommunity) y campos correctos de BD
+        // BD usa: image_url (no logo_url), links (no social_links), no tiene is_active
+        const result = await communitiesService.create({
           name: community.name,
           slug,
-          description: community.description || null,
+          description: community.description || '',
           category: community.type || "other",
-          location: community.location || null,
           member_count: community.member_count || 0,
-          founded_year: community.founded_year || null,
-          website: community.website || null,
-          twitter_url: community.twitter_url || null,
-          discord_url: community.discord_url || null,
-          telegram_url: community.telegram_url || null,
-          linkedin_url: community.linkedin_url || null,
-          logo_url: community.logo_url || null,
           tags: community.tags || [],
-          meeting_frequency: community.meeting_frequency || null,
-          is_active: community.is_active !== false,
           is_verified: community.is_verified || false,
           is_featured: community.is_featured || false,
         });
@@ -728,7 +718,7 @@ const AdminCommunities = () => {
                   </>
                 )}
 
-                {isAdmin && communities.filter((c) => !c.is_active).length > 0 && (
+                {isAdmin && communities.filter((c) => !c.is_verified).length > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -736,7 +726,7 @@ const AdminCommunities = () => {
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                   >
                     <Trash2 className="w-4 w-4 mr-2" />
-                    Eliminar {communities.filter((c) => !c.is_active).length} inactivas permanentemente
+                    Eliminar {communities.filter((c) => !c.is_verified).length} no verificadas permanentemente
                   </Button>
                 )}
               </div>
@@ -811,7 +801,7 @@ const AdminCommunities = () => {
                         className="mt-1"
                       />
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={community.logo_url || undefined} alt={community.name} />
+                      <AvatarImage src={(community as any).image_url || undefined} alt={community.name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {community.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -861,17 +851,9 @@ const AdminCommunities = () => {
                         {community.is_featured && (
                           <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                         )}
-                        {community.is_active && (
-                          <Shield className="w-4 h-4 text-green-500" />
-                        )}
                         {community.category && (
                           <Badge variant="outline" className="text-xs">
                             {community.category}
-                          </Badge>
-                        )}
-                        {!community.is_active && (
-                          <Badge variant="destructive" className="text-xs">
-                            Inactiva
                           </Badge>
                         )}
                       </div>
@@ -983,7 +965,7 @@ const AdminCommunities = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => toggleActive(community)}>
                               <Shield className="w-4 h-4 mr-2" />
-                              {community.is_active ? "Desactivar" : "Activar"}
+                              {community.is_verified ? "Desverificar" : "Verificar"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -991,7 +973,7 @@ const AdminCommunities = () => {
                               onClick={() => handleDelete(community)}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              {community.is_active ? "Eliminar" : "Eliminar permanentemente"}
+                              {community.is_verified ? "Eliminar" : "Eliminar permanentemente"}
                             </DropdownMenuItem>
                           </>
                         )}
@@ -1033,8 +1015,8 @@ const AdminCommunities = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                {communityToDelete?.is_active ? (
-                  `Esta acción desactivará la comunidad "${communityToDelete?.name}". Podrás reactivarla más tarde.`
+                {communityToDelete?.is_verified ? (
+                  `Esta acción desverificará la comunidad "${communityToDelete?.name}". Podrás verificarla más tarde.`
                 ) : (
                   `Esta acción eliminará permanentemente la comunidad "${communityToDelete?.name}" de la base de datos. Esta acción no se puede deshacer.`
                 )}
@@ -1044,9 +1026,9 @@ const AdminCommunities = () => {
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className={!communityToDelete?.is_active ? "bg-red-600 hover:bg-red-700" : "bg-destructive text-destructive-foreground"}
+                className={!communityToDelete?.is_verified ? "bg-red-600 hover:bg-red-700" : "bg-destructive text-destructive-foreground"}
               >
-                {communityToDelete?.is_active ? "Desactivar" : "Eliminar permanentemente"}
+                {communityToDelete?.is_verified ? "Desverificar" : "Eliminar permanentemente"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

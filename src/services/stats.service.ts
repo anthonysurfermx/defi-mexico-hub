@@ -92,34 +92,40 @@ class StatsService {
   async getPlatformStats(): Promise<DashboardStats> {
     try {
       // Ejecutar todas las consultas en paralelo
+      // NOTA: Campos corregidos según esquema real de BD:
+      // - communities: usa is_verified (no is_active), image_url (no logo_url), links (no social_links)
+      // - events: usa date para determinar upcoming (no existe is_upcoming)
+      // - blog_posts: usa status='published' (no campo published boolean)
+      const now = new Date().toISOString();
+
       const [
         communitiesResult,
         eventsResult,
         startupsResult,
         blogResult
       ] = await Promise.all([
-        supabase.from('communities').select('id, is_active, member_count'),
-        supabase.from('events').select('id, is_upcoming'),
+        supabase.from('communities').select('id, is_verified, member_count'),
+        supabase.from('events').select('id, date'),
         supabase.from('startups').select('id, is_featured'),
-        supabase.from('blog_posts').select('id, published')
+        supabase.from('blog_posts').select('id, status')
       ]);
 
-      // Procesar resultados de comunidades
+      // Procesar resultados de comunidades (usar is_verified en lugar de is_active)
       const communities = communitiesResult.data || [];
-      const activeCommunities = communities.filter(c => c.is_active);
+      const activeCommunities = communities.filter(c => c.is_verified);
       const totalMembers = communities.reduce((sum, c) => sum + (c.member_count || 0), 0);
 
-      // Procesar resultados de eventos
+      // Procesar resultados de eventos (comparar fecha en lugar de is_upcoming)
       const events = eventsResult.data || [];
-      const upcomingEvents = events.filter(e => e.is_upcoming);
+      const upcomingEvents = events.filter(e => e.date && new Date(e.date) > new Date());
 
       // Procesar resultados de startups
       const startups = startupsResult.data || [];
       const featuredStartups = startups.filter(s => s.is_featured);
 
-      // Procesar resultados de blog
+      // Procesar resultados de blog (usar status === 'published' en lugar de boolean published)
       const blogPosts = blogResult.data || [];
-      const publishedPosts = blogPosts.filter(p => p.published);
+      const publishedPosts = blogPosts.filter(p => p.status === 'published');
 
       return {
         totalCommunities: communities.length,
@@ -144,6 +150,7 @@ class StatsService {
    */
   async getCommunityStats(): Promise<CommunityStats[]> {
     try {
+      // NOTA: La BD usa is_verified, no is_active
       const { data: communities, error } = await supabase
         .from('communities')
         .select(`
@@ -153,7 +160,7 @@ class StatsService {
           created_at,
           updated_at
         `)
-        .eq('is_active', true)
+        .eq('is_verified', true)
         .order('member_count', { ascending: false, nullsLast: true });
 
       if (error) throw error;
@@ -182,18 +189,23 @@ class StatsService {
    */
   async getEventStats(): Promise<EventStats> {
     try {
+      // NOTA: La BD no tiene is_upcoming ni type, usamos date para determinar upcoming
+      // y status para agrupar (no existe campo type/event_type)
       const { data: events, error } = await supabase
         .from('events')
-        .select('id, type, is_upcoming, max_attendees, date, created_at');
+        .select('id, status, max_attendees, date, created_at');
 
       if (error) throw error;
 
-      const upcomingEvents = events?.filter(e => e.is_upcoming) || [];
-      const pastEvents = events?.filter(e => !e.is_upcoming) || [];
-      
-      // Calcular estadísticas por tipo
+      // Determinar upcoming/past comparando fecha actual
+      const now = new Date();
+      const upcomingEvents = events?.filter(e => e.date && new Date(e.date) > now) || [];
+      const pastEvents = events?.filter(e => e.date && new Date(e.date) <= now) || [];
+
+      // Calcular estadísticas por status (no hay campo type en la BD)
       const eventsByType = events?.reduce((acc, event) => {
-        acc[event.type] = (acc[event.type] || 0) + 1;
+        const eventStatus = event.status || 'Sin estado';
+        acc[eventStatus] = (acc[eventStatus] || 0) + 1;
         return acc;
       }, {} as Record<string, number>) || {};
 
@@ -280,15 +292,16 @@ class StatsService {
    */
   async getBlogStats(): Promise<BlogStats> {
     try {
+      // NOTA: La BD usa status='published'/'draft', no campo boolean published
       const { data: posts, error } = await supabase
         .from('blog_posts')
-        .select('id, title, excerpt, author, category, tags, published, published_at, created_at')
+        .select('id, title, excerpt, author, category, tags, status, published_at, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const publishedPosts = posts?.filter(p => p.published) || [];
-      const draftPosts = posts?.filter(p => !p.published) || [];
+      const publishedPosts = posts?.filter(p => p.status === 'published') || [];
+      const draftPosts = posts?.filter(p => p.status !== 'published') || [];
 
       // Agrupar por categoría
       const postsByCategory = posts?.reduce((acc, post) => {

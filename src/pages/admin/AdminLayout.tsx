@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
-  FileText,
   Calendar,
   Users,
   Menu,
@@ -11,8 +10,7 @@ import {
   ChevronRight,
   Settings,
   Globe, // Agregado para Comunidades
-  BookOpen, // Agregado para Academia
-  Video // Agregado para Video Tutoriales
+  UserCheck // Para Referentes
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -36,58 +34,38 @@ const menuItems: MenuItem[] = [
     path: '/admin',
     icon: LayoutDashboard,
     exact: true,
-    requiredRoles: ['admin', 'editor'] // Solo admin y editor
+    requiredRoles: ['admin', 'editor']
   },
-  {
-    title: 'Blog',
-    path: '/admin/blog',
-    icon: FileText,
-    requiredRoles: ['admin', 'editor'] // Solo admin y editor
-  },
-  {
-    title: 'Academia',
-    path: '/admin/academia',
-    icon: BookOpen,
-    badge: 'Nuevo',
-    requiredRoles: ['admin', 'editor'] // Admin y editor
-  },
-  {
-    title: 'Video Tutoriales',
-    path: '/admin/academia/videos',
-    icon: Video,
-    requiredRoles: ['admin', 'editor'] // Admin y editor
-  },
+  // Blog, Academia y Video Tutoriales removidos temporalmente
   {
     title: 'Comunidades',
     path: '/admin/comunidades',
     icon: Globe,
-    badge: 'Nuevo',
-    requiredRoles: ['admin', 'editor'] // Admin y editor
+    requiredRoles: ['admin', 'editor']
   },
   {
     title: 'Referentes',
     path: '/admin/referentes',
-    icon: Users,
-    badge: 'Nuevo',
-    requiredRoles: ['admin', 'editor'] // Admin y editor
+    icon: UserCheck,
+    requiredRoles: ['admin', 'editor']
   },
   {
     title: 'Startups',
     path: '/admin/startups',
     icon: Building2,
-    requiredRoles: ['admin', 'editor'] // Admin y editor
+    requiredRoles: ['admin', 'editor']
   },
   {
     title: 'Eventos',
     path: '/admin/eventos',
     icon: Calendar,
-    requiredRoles: ['admin', 'editor'] // Admin y editor
+    requiredRoles: ['admin', 'editor']
   },
   {
     title: 'Usuarios',
     path: '/admin/usuarios',
     icon: Users,
-    requiredRoles: ['admin'] // Solo admin
+    requiredRoles: ['admin']
   }
 ];
 

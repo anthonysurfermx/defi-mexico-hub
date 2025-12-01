@@ -176,6 +176,35 @@
     }
   }
 
+  /* Pokemon-style floating animation for map NPCs */
+  .animate-float {
+    animation: float 2.5s ease-in-out infinite;
+  }
+
+  .animate-float-delayed-1 {
+    animation: float 2.5s ease-in-out infinite;
+    animation-delay: 0.3s;
+  }
+
+  .animate-float-delayed-2 {
+    animation: float 2.5s ease-in-out infinite;
+    animation-delay: 0.6s;
+  }
+
+  .animate-float-delayed-3 {
+    animation: float 2.5s ease-in-out infinite;
+    animation-delay: 0.9s;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
   .text-gradient {
     background: var(--gradient-primary);
     -webkit-background-clip: text;

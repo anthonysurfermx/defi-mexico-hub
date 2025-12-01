@@ -261,11 +261,11 @@ const VideoTutorialsPage = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5" />
           <div className="container mx-auto relative">
             <Link
-              to="/academia"
+              to="/"
               className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Volver a Academia
+              Volver al Inicio
             </Link>
 
             <div className="flex items-center gap-4 mb-4">

@@ -133,16 +133,16 @@ const GameContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Back button to Academy */}
+      {/* Back button to Home */}
       <div className="container mx-auto px-4 pt-4">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/academia')}
+          onClick={() => navigate('/')}
           className="pixel-button mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver a Academia
+          Volver al Inicio
         </Button>
       </div>
 

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
 import { BookOpen, Map, Trophy } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
 import { GameEventBanner } from './GameEventBanner';
@@ -12,6 +13,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+// Componente simple de banderas para cambio de idioma
+const LanguageFlags = () => {
+  const { i18n } = useTranslation();
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => i18n.changeLanguage('es')}
+        className={`text-xl transition-all duration-200 hover:scale-110 ${
+          i18n.language === 'es' ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-80'
+        }`}
+        title="Español"
+        aria-label="Cambiar a Español"
+      >
+        🇲🇽
+      </button>
+      <button
+        onClick={() => i18n.changeLanguage('en')}
+        className={`text-xl transition-all duration-200 hover:scale-110 ${
+          i18n.language === 'en' ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-80'
+        }`}
+        title="English"
+        aria-label="Switch to English"
+      >
+        🇺🇸
+      </button>
+    </div>
+  );
+};
 
 interface GameHeaderProps {
   onOpenMap: () => void;
@@ -36,77 +67,91 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt }: GameHeaderProps) => {
     <>
       <GameEventBanner event={currentEvent} remainingTime={eventTimeRemaining} />
       
-      <header className="bg-gradient-to-r from-primary/20 via-purple-500/10 to-pink-500/10 border-b border-primary/20 p-4 mb-4">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl animate-float">🏪</span>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-wider">MERCADO LP</h1>
+      <header className="bg-gradient-to-r from-primary/20 via-purple-500/10 to-pink-500/10 border-b border-primary/20 p-3 mb-4">
+        <div className="container mx-auto space-y-3">
+          {/* Fila superior: Logo, banderas e iconos */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl md:text-3xl animate-float">🏪</span>
+              <h1 className="text-xl md:text-2xl font-bold tracking-wider">MERCADO LP</h1>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <LanguageFlags />
+              <ReputationDisplay />
+              <div className="pixel-card bg-card px-2 py-1.5 text-xs text-foreground/90 hidden sm:block">
+                <span className="text-amber-500">⭐</span> XP: {player.xp}
+              </div>
+              <Button
+                onClick={onOpenMap}
+                variant="outline"
+                size="sm"
+                className="rounded-full px-2 sm:px-3"
+              >
+                <Map className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">Mapa</span>
+              </Button>
+              <Button
+                onClick={handleLeaderboardClick}
+                variant="outline"
+                size="sm"
+                className="rounded-full px-2"
+                title="Leaderboard"
+              >
+                <Trophy className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={() => setShowEducation(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-full px-2"
+              >
+                <BookOpen className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Fila inferior: Botones de nivel */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
             <Button
               onClick={() => setCurrentLevel(1)}
               variant={currentLevel === 1 ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full text-xs px-4"
+              className="rounded-full text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
             >
-              🔄 MARCHANTE
+              <span className="font-bold">N1</span>
+              <span className="mx-0.5">🔄</span>
+              <span className="hidden xs:inline sm:inline">MARCHANTE</span>
             </Button>
             <Button
               onClick={() => setCurrentLevel(2)}
               variant={currentLevel === 2 ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full text-xs px-4"
+              className="rounded-full text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
             >
-              🏪 PUESTERO
+              <span className="font-bold">N2</span>
+              <span className="mx-0.5">🏪</span>
+              <span className="hidden xs:inline sm:inline">PUESTERO</span>
             </Button>
             <Button
               onClick={() => setCurrentLevel(3)}
               variant={currentLevel === 3 ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full text-xs px-4"
+              className="rounded-full text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
             >
-              🚜 AGRICULTOR
+              <span className="font-bold">N3</span>
+              <span className="mx-0.5">🚜</span>
+              <span className="hidden xs:inline sm:inline">AGRICULTOR</span>
             </Button>
             <Button
               onClick={() => setCurrentLevel(4)}
               variant={currentLevel === 4 ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full text-xs px-4"
+              className="rounded-full text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8"
             >
-              🔨 SUBASTERO
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ReputationDisplay />
-            <div className="pixel-card bg-card px-3 py-2 text-xs text-foreground/90">
-              <span className="text-amber-500">⭐</span> XP: {player.xp}
-            </div>
-            <Button
-              onClick={onOpenMap}
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-            >
-              <Map className="w-4 h-4 mr-1" /> Mapa
-            </Button>
-            <Button
-              onClick={handleLeaderboardClick}
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-              title="Leaderboard"
-            >
-              <Trophy className="w-4 h-4" />
-            </Button>
-            <Button
-              onClick={() => setShowEducation(true)}
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-            >
-              <BookOpen className="w-4 h-4" />
+              <span className="font-bold">N4</span>
+              <span className="mx-0.5">🔨</span>
+              <span className="hidden xs:inline sm:inline">SUBASTERO</span>
             </Button>
           </div>
         </div>

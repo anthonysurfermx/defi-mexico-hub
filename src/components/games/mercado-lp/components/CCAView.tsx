@@ -16,6 +16,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { AuctionBid } from '@/components/games/mercado-lp/types/game';
+import { useMercadoSound } from '@/hooks/useMercadoSound';
+import {
+  GraduationCapIcon,
+  LightbulbIcon,
+  AuctioneerIcon,
+  BoltIcon,
+  BoxIcon,
+  CoinsIcon,
+  QuestionIcon,
+} from './icons/GameIcons';
+import { MissionsCard } from './MissionsCard';
 
 export const CCAView = () => {
   const { player, auction, placeBid, advanceAuctionBlock, startAuction, resetAuction } = useGame();
@@ -27,6 +38,9 @@ export const CCAView = () => {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [playerTotalWon, setPlayerTotalWon] = useState(0);
   const [playerAvgPrice, setPlayerAvgPrice] = useState(0);
+
+  // Sound effects
+  const { play: playBidSound } = useMercadoSound('bid');
 
   // Verificar si la subasta terminó para mostrar resultados
   useEffect(() => {
@@ -101,6 +115,9 @@ export const CCAView = () => {
 
     placeBid(selectedBlock, bid);
 
+    // Play sound
+    playBidSound();
+
     // Feedback educativo mejorado
     if (playerPreviousBids === 0) {
       toast.success(`¡Primera oferta colocada! 🎉 El precio de clearing se ajustará según todas las ofertas.`, { duration: 4000 });
@@ -150,7 +167,9 @@ export const CCAView = () => {
         {/* Banner educativo del nivel */}
         <Card className="pixel-card p-4 bg-gradient-to-r from-violet-100 to-purple-100 border-violet-300">
           <div className="flex items-start gap-3">
-            <span className="text-3xl">🎓</span>
+            <div className="w-10 h-10 rounded-xl bg-violet-200 flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-violet-600" />
+            </div>
             <div className="space-y-2">
               <h3 className="font-bold text-base">Nivel 4: Subastero - Continuous Clearing Auctions</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
@@ -158,28 +177,19 @@ export const CCAView = () => {
                 subastas por bloques donde el precio se ajusta según demanda real. Más justo que venta directa.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
-                <span>💡</span>
+                <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>Concepto DeFi: <strong>Continuous Clearing Auctions + Fair Price Discovery</strong></span>
               </div>
             </div>
           </div>
         </Card>
 
-        <Card className="pixel-card p-4 bg-card">
-          <div className="flex items-center gap-2 mb-2">
-            <span>🎯</span>
-            <h3 className="font-bold text-sm">Tu misión</h3>
-          </div>
-          <div className="pixel-card p-3 text-sm bg-white">
-            <p className="font-semibold mb-1">Participa en la Subasta Continua (CCA)</p>
-            <p className="text-xs text-muted-foreground">
-              Haz ofertas en diferentes bloques. Ofertar temprano te da mejor precio promedio.
-            </p>
-          </div>
-        </Card>
+        <MissionsCard />
 
         <Card className="pixel-card p-6 text-center space-y-4">
-          <div className="text-6xl">🔨</div>
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-violet-100 flex items-center justify-center">
+            <AuctioneerIcon size={48} className="text-violet-600" />
+          </div>
           <div>
             <h2 className="text-xl font-bold mb-2">No hay subasta activa</h2>
             <p className="text-muted-foreground text-sm mb-4">
@@ -191,7 +201,8 @@ export const CCAView = () => {
             className="pixel-button text-lg"
             size="lg"
           >
-            🚀 Iniciar Subasta
+            <BoltIcon size={20} className="mr-2" />
+            Iniciar Subasta
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
             Nota: Necesitas haber creado al menos un token en el Nivel 3
@@ -211,24 +222,16 @@ export const CCAView = () => {
     <div className="space-y-4">
       <ConfettiBurst trigger={confettiKey} />
 
-      <Card className="pixel-card p-4 bg-card">
-        <div className="flex items-center gap-2 mb-2">
-          <span>🎯</span>
-          <h3 className="font-bold text-sm">Tu misión</h3>
-        </div>
-        <div className="pixel-card p-3 text-sm bg-white">
-          <p className="font-semibold mb-1">Participa en la Subasta Continua (CCA)</p>
-          <p className="text-xs text-muted-foreground">
-            Haz ofertas en diferentes bloques. Ofertar temprano te da mejor precio promedio.
-          </p>
-        </div>
-      </Card>
+      <MissionsCard />
 
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">🔨 El Subastero</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <AuctioneerIcon size={24} className="text-primary" />
+              El Subastero
+            </h1>
             <p className="text-xs text-muted-foreground">
               Subasta: {auction.tokenOffered.emoji} {auction.tokenOffered.symbol}
             </p>
@@ -258,7 +261,7 @@ export const CCAView = () => {
           <Card className="pixel-card p-4 bg-primary/10">
             <div className="flex flex-wrap items-center gap-3 justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">⚡</span>
+                <BoltIcon size={24} className="text-primary" />
                 <div>
                   <p className="text-sm font-bold">
                     {auction.active ? 'Subasta en progreso' : 'Subasta terminada'}
@@ -293,7 +296,8 @@ export const CCAView = () => {
           {currentBlock && (
             <Card className="pixel-card p-4 bg-gradient-to-b from-primary/10 to-purple-500/5">
               <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                <span>📦</span> Bloque {selectedBlock} - Detalles
+                <BoxIcon size={18} className="text-primary" />
+                Bloque {selectedBlock} - Detalles
               </h3>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
@@ -337,7 +341,8 @@ export const CCAView = () => {
           {/* Formulario de oferta */}
           <Card className="pixel-card p-4 space-y-3">
             <h3 className="font-bold text-sm flex items-center gap-2">
-              <span>💰</span> Coloca tu oferta
+              <CoinsIcon size={18} className="text-amber-500" />
+              Coloca tu oferta
             </h3>
 
             <div>
@@ -437,7 +442,8 @@ export const CCAView = () => {
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
-          <span>💡</span> Estrategia del Subastero
+          <LightbulbIcon size={18} className="text-amber-500" />
+          Estrategia del Subastero
         </h3>
         <p className="text-sm text-muted-foreground">
           <strong>Tip:</strong> Ofertar en bloques tempranos suele darte mejor precio promedio.
@@ -451,7 +457,8 @@ export const CCAView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>❓</span> ¿Qué es una Subasta Continua (CCA)?
+              <QuestionIcon size={20} className="text-blue-500" />
+              ¿Qué es una Subasta Continua (CCA)?
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>

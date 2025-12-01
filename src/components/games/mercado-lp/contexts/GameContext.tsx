@@ -8,6 +8,19 @@ import { achievements } from '@/components/games/mercado-lp/data/achievements';
 import { getPlayerLevel } from '@/components/games/mercado-lp/data/playerLevels';
 import { toast } from 'sonner';
 
+// Sound utilities
+const SOUND_BASE_PATH = '/sounds/mercado-lp';
+const MUTE_STORAGE_KEY = 'mercado_lp_sound_muted';
+
+const playSound = (soundName: string, volume = 0.5) => {
+  const isMuted = localStorage.getItem(MUTE_STORAGE_KEY) === 'true';
+  if (isMuted) return;
+
+  const audio = new Audio(`${SOUND_BASE_PATH}/${soundName}`);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+};
+
 interface GameContextType {
   tokens: Token[];
   pools: Pool[];
@@ -269,6 +282,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setPlayer(prev => ({ ...prev, level: newLevel.level }));
       setLevelUpNotification(newLevel);
 
+      // Play level up sound
+      playSound('LevelUp.wav', 0.6);
+
       toast.success(
         `¡Subiste de nivel! Ahora eres ${newLevel.name} ${newLevel.icon}`,
         { duration: 5000 }
@@ -337,6 +353,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         });
 
         setNewBadge(newBadgeData);
+
+        // Play badge sound
+        playSound('Badge.wav', 0.6);
+
         break; // Only show one badge at a time
       }
     }
@@ -565,6 +585,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         totalSwapVolume: prev.stats.totalSwapVolume + amountIn,
       },
     }));
+
+    // Play XP gain sound (subtle)
+    playSound('XPGain.wav', 0.3);
 
     if (!player.completedChallenges.includes('first-swap')) {
       completeChallenge('first-swap');

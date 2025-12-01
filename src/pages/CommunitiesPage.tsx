@@ -194,7 +194,7 @@ const CommunitiesPage = () => {
     }
     
     if (activeOnly) {
-      filtered = filtered.filter(c => c.is_active);
+      filtered = filtered.filter(c => c.is_verified);
     }
     
     if (featuredOnly) {
@@ -499,16 +499,14 @@ const CommunitiesPage = () => {
                     id={community.id}
                     name={community.name}
                     description={community.description}
-                    logo={community.logo_url}
+                    logo={(community as any).image_url}
                     members={community.member_count || 0}
                     category={community.category}
-                    location={community.location}
                     tags={community.tags}
-                    website={community.website}
-                    socialLinks={community.social_links}
-                    isActive={community.is_active}
+                    website={(community as any).links?.website}
+                    socialLinks={(community as any).links}
+                    isActive={community.is_verified}
                     isFeatured={community.is_featured}
-                    foundedDate={community.founded_date}
                     slug={community.slug}
                   />
                 </motion.div>

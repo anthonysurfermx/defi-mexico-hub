@@ -3,7 +3,7 @@
  */
 
 const STORAGE_KEY = 'mercado-lp-game-state';
-const STORAGE_VERSION = '1.0';
+const STORAGE_VERSION = '2.0';
 
 interface StorageData {
   version: string;
