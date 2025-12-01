@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, ChevronLeft, X, Sparkles, Target, Coins, ArrowLeftRight, Store } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 
 interface TutorialStep {
   id: string;
   title: string;
   description: string;
-  character: string;
-  characterName: string;
   highlightSelector?: string;
   position: 'center' | 'top' | 'bottom' | 'left' | 'right';
   action?: string;
@@ -19,62 +17,50 @@ interface TutorialStep {
 const tutorialSteps: TutorialStep[] = [
   {
     id: 'welcome',
-    title: '¡Bienvenido al Mercado LP! 🏪',
-    description: 'Aquí aprenderás cómo funcionan los exchanges descentralizados (DEX) de una forma divertida. Imagina un tianguis mexicano donde se intercambian frutas.',
-    character: '🤠',
-    characterName: 'Don Pancho',
+    title: 'Bienvenido al Mercado LP',
+    description: 'Piensa en un puesto automático: siempre hay precio y no hay intermediarios. Aquí lo ves con frutas, fácil y sin complicarte.',
     position: 'center',
-    tip: 'Este juego te enseñará conceptos reales de DeFi como AMM, liquidez e impermanent loss.',
+    tip: 'Es pura práctica. No es dinero real y puedes probar sin miedo.',
   },
   {
     id: 'inventory',
-    title: 'Tu Inventario de Frutas',
-    description: 'Estas son tus frutas. Los pesos 💵 son tu moneda base, y tienes diferentes frutas como mangos 🥭, limones 🍋 y sandías 🍉 para intercambiar.',
-    character: '👵',
-    characterName: 'Doña María',
+    title: 'Tus frutas (tokens)',
+    description: 'Tienes pesos como moneda base y frutas como tokens. Cambiarás entre ellos y verás cómo varían los precios.',
     highlightSelector: '[data-tutorial="inventory"]',
     position: 'right',
-    tip: 'Cada fruta representa un token diferente en el mundo crypto.',
+    tip: 'Cada fruta = un token. Practica con montos pequeños para ver cómo funciona.',
   },
   {
     id: 'pools',
-    title: 'Los Puestos del Mercado (Pools)',
-    description: 'Cada puesto tiene dos frutas que se pueden intercambiar. El precio depende de cuánta cantidad hay de cada una. ¡Menos mangos = más caros!',
-    character: '👴',
-    characterName: 'Don José',
+    title: 'Puestos (pools) automáticos',
+    description: 'Cada pool tiene dos frutas. El precio cambia según cuánta hay de cada una. Si queda poca fruta, sube el precio.',
     highlightSelector: '[data-tutorial="pools"]',
     position: 'left',
-    tip: 'Esto es lo que en DeFi se llama un Automated Market Maker (AMM).',
+    tip: 'Esto es un AMM: la fórmula mantiene balance y siempre te da un precio.',
   },
   {
     id: 'swap',
-    title: 'Hacer un Intercambio (Swap)',
-    description: 'Selecciona una fruta, elige cuánto quieres cambiar y observa cuánto recibirás. El "impacto de precio" te dice cuánto moviste el mercado.',
-    character: '💃',
-    characterName: 'Lupita',
+    title: 'Haz tu primer swap',
+    description: 'Elige una fruta, pon un monto y mira cuánto recibes. Verás el impacto en precio si el monto es grande.',
     highlightSelector: '[data-tutorial="swap-form"]',
     position: 'top',
-    action: 'Intenta hacer tu primer swap con una cantidad pequeña',
-    tip: 'Swaps grandes mueven más el precio. Los traders expertos dividen sus órdenes.',
+    action: 'Prueba con un monto pequeño para ver el cambio.',
+    tip: 'Montos pequeños mueven menos el precio; es la mejor forma de aprender.',
   },
   {
     id: 'fees',
-    title: 'Las Propinas (Fees)',
-    description: 'Cada vez que alguien hace un swap, paga una pequeña propina. Esta propina va para los dueños de los puestos que proveen liquidez.',
-    character: '🤠',
-    characterName: 'Don Pancho',
+    title: 'Propinas (fees)',
+    description: 'Cada swap paga una pequeña comisión que va a quienes pusieron frutas en el pool.',
     position: 'center',
-    tip: 'En el mundo real, estas fees van del 0.01% al 1% dependiendo del protocolo.',
+    tip: 'Así se incentiva a que siempre haya frutas disponibles.',
   },
   {
     id: 'mission',
-    title: '¡Tu Primera Misión! 🎯',
-    description: 'Completa tu primer swap exitosamente. Cambia algunos pesos por mangos y gana tu primera recompensa de XP.',
-    character: '💃',
-    characterName: 'Lupita',
+    title: 'Tu primera misión',
+    description: 'Completa tu primer swap. Cambia algunos pesos por fruta y gana XP.',
     position: 'center',
-    action: 'Haz un swap de al menos 10 pesos por cualquier fruta',
-    tip: 'Completa retos para subir de nivel y desbloquear nuevas funciones.',
+    action: 'Haz un swap de pesos por cualquier fruta.',
+    tip: 'Cada misión completada te da XP y te lleva al siguiente nivel.',
   },
 ];
 
@@ -128,32 +114,8 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
     onSkip();
   };
 
-  // Position styles based on step position
+  // Position styles: centrado en pantalla para todos los pasos
   const getPositionStyles = () => {
-    if (highlightRect && step.position !== 'center') {
-      switch (step.position) {
-        case 'top':
-          return {
-            top: Math.max(16, highlightRect.top - 280),
-            left: Math.max(16, highlightRect.left + highlightRect.width / 2 - 200),
-          };
-        case 'bottom':
-          return {
-            top: Math.min(window.innerHeight - 280, highlightRect.bottom + 16),
-            left: Math.max(16, highlightRect.left + highlightRect.width / 2 - 200),
-          };
-        case 'left':
-          return {
-            top: Math.max(16, highlightRect.top + highlightRect.height / 2 - 140),
-            left: Math.max(16, highlightRect.left - 420),
-          };
-        case 'right':
-          return {
-            top: Math.max(16, highlightRect.top + highlightRect.height / 2 - 140),
-            left: Math.min(window.innerWidth - 420, highlightRect.right + 16),
-          };
-      }
-    }
     return {
       top: '50%',
       left: '50%',
@@ -186,25 +148,20 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
         }`}
         style={getPositionStyles()}
       >
-        {/* Header with character */}
-        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-4xl animate-bounce">{step.character}</div>
-              <div>
-                <p className="text-xs text-muted-foreground">Guía del Mercado</p>
-                <p className="font-bold">{step.characterName}</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSkip}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        {/* Header simple */}
+        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-4 border-b border-border flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">Tutorial rápido</p>
+            <p className="font-bold">Mercado LP</p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSkip}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Content */}
@@ -216,20 +173,17 @@ export const OnboardingTutorial = ({ onComplete, onSkip }: OnboardingTutorialPro
 
           {/* Action callout */}
           {step.action && (
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-start gap-2">
-              <Target className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-primary">Tu misión:</p>
-                <p className="text-sm">{step.action}</p>
-              </div>
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+              <p className="text-xs font-semibold text-primary">Tu misión:</p>
+              <p className="text-sm">{step.action}</p>
             </div>
           )}
 
           {/* Tip */}
           {step.tip && (
-            <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">{step.tip}</p>
+            <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground">Tip rápido</p>
+              <p>{step.tip}</p>
             </div>
           )}
 

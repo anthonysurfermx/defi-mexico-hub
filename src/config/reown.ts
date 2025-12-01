@@ -15,12 +15,17 @@ export const wagmiAdapter = new WagmiAdapter({
 })
 
 // 3. Configure metadata
+const appUrl =
+  typeof window !== 'undefined' && window.location.origin
+    ? window.location.origin
+    : 'https://defimexico.org';
+
 export const metadata = {
   name: 'DeFi México Hub',
   description: 'El Hub #1 de DeFi en México',
-  url: 'https://defimexico.org',
-  icons: ['https://defimexico.org/icon.png']
-}
+  url: appUrl,
+  icons: ['https://defimexico.org/icon.png'],
+};
 
 // 4. Create modal
 export const modal = createAppKit({

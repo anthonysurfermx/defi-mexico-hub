@@ -182,7 +182,19 @@ export async function getRecentMarketActivity(limit = 10): Promise<MarketActivit
     }));
   } catch (error) {
     console.error('Error fetching market activity:', error);
-    return [];
+    // Fallback a datos locales para no romper la UI
+    return [
+      {
+        id: 'activity-local-1',
+        user_id: 'local',
+        user_name: 'Mercado LP',
+        user_avatar: '',
+        xp: 0,
+        level: 1,
+        swap_count: 0,
+        updated_at: new Date().toISOString(),
+      },
+    ];
   }
 }
 
