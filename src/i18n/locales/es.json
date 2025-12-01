@@ -390,7 +390,64 @@
         "swap": "Hacer swap",
         "help": "¿Cómo funciona?"
       }
+    },
+    "liquidity": {
+      "banner": {
+        "title": "Nivel 2: Puestero - Proveer Liquidez",
+        "body": "¿Recuerdas los swaps del N1? Ahora aprenderás de dónde vienen esas frutas. Tú las aportas al pool y ganas comisión (fee) cada vez que alguien intercambia.",
+        "concept": "Concepto DeFi: Liquidity Providing + Fee Earnings + Impermanent Loss"
+      },
+      "errors": {
+        "missing": "Pon cuántas frutas quieres aportar del primer tipo.",
+        "amount": "Pon un número mayor que 0.",
+        "balanceA": "No tienes suficiente {{symbol}}.",
+        "balanceB": "No tienes suficiente {{symbol}}.",
+        "noPosition": "No tienes puesto en este pool."
+      },
+      "toasts": {
+        "first": "¡Primera liquidez aportada! 🎉 Ahora ganas fees de cada swap en este pool.",
+        "opened": "¡Puesto abierto! Ahora ganas propinas. 🏪",
+        "closedFees": "¡Puesto cerrado! Ganaste {{fees}} en propinas. 💰",
+        "closed": "Puesto cerrado. 💰"
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "Abrir puesto",
+        "subtitleHint": "Aporta frutas y gana propinas.",
+        "selectPool": "Elige pool",
+        "selectPlaceholder": "Selecciona un pool",
+        "inputA": "Cuántas {{emoji}} {{symbol}} aportas",
+        "have": "Tienes: {{amount}}",
+        "needB": "Necesitas aportar {{emoji}} {{symbol}}",
+        "needHint": "Pon una cantidad arriba para ver cuánto necesitas del segundo token.",
+        "how": "¿Cómo funciona?",
+        "howList": [
+          "Aportas las dos frutas en la proporción del pool.",
+          "Cada swap en este pool te da una propina automática.",
+          "Puedes cerrar tu puesto cuando quieras y retirar todo."
+        ],
+        "open": "¡Abrir puesto! 🏪",
+        "fillAmounts": "Completa las cantidades",
+        "positionTitle": "Tu puesto en este pool",
+        "share": "Participación:",
+        "feesA": "Propinas ganadas {{emoji}}:",
+        "feesB": "Propinas ganadas {{emoji}}:",
+        "feesTotal": "Total propinas:",
+        "close": "Cerrar puesto y retirar todo 💰",
+        "tipTitle": "Tip rápido",
+        "tipBody": "Mientras más swaps haya en tu pool, más propinas ganas. Los pools grandes y activos suelen dar más fees.",
+        "modal": {
+          "title": "¿Qué es ser LP?",
+          "body1": "LP = Liquidity Provider = Puestero. Aportas dos frutas al pool y cada vez que alguien hace un cambio (swap), una pequeña propina (fee) va directo a ti.",
+          "list": [
+            "Aportas en la proporción correcta del pool.",
+            "Las propinas se acumulan automáticamente.",
+            "Puedes cerrar tu puesto cuando quieras."
+          ],
+          "note": "Nota: En Uniswap v4 real, puedes usar hooks y rangos de precio para optimizar tus ganancias.",
+          "ok": "Entendido"
+        }
+      }
     }
   }
-}
 }

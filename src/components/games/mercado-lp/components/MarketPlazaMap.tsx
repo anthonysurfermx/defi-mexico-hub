@@ -69,9 +69,22 @@ const LanguageFlags = () => {
   );
 };
 
+// Helper para resolver URLs de assets evitando 404 o bases inválidas
+const resolveAsset = (path: string) => {
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const base = import.meta.env.BASE_URL || '/';
+    // Asegura base absoluta
+    const baseUrl = new URL(base, origin || 'http://localhost');
+    return new URL(path, baseUrl).href;
+  } catch {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+};
+
 // Preload de imagen para carga suave
-const MAP_IMAGE_URL = '/market-plaza.png';
-const DEFAULT_PLAYER_IMAGE_URL = '/player.png';
+const MAP_IMAGE_URL = resolveAsset('market-plaza.png');
+const DEFAULT_PLAYER_IMAGE_URL = resolveAsset('player.png');
 
 // Cache global para evitar recargas
 let mapImageCache: HTMLImageElement | null = null;

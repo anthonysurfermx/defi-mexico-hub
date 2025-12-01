@@ -390,7 +390,64 @@
         "swap": "Swap",
         "help": "How it works?"
       }
+    },
+    "liquidity": {
+      "banner": {
+        "title": "Level 2: Provider - Add Liquidity",
+        "body": "Remember the swaps from N1? Now you’ll learn where that fruit comes from. You supply the pool and earn a fee every time someone swaps.",
+        "concept": "DeFi concept: Liquidity Providing + Fee Earnings + Impermanent Loss"
+      },
+      "errors": {
+        "missing": "Enter how many fruits of the first type you will add.",
+        "amount": "Enter a number greater than 0.",
+        "balanceA": "You don't have enough {{symbol}}.",
+        "balanceB": "You don't have enough {{symbol}}.",
+        "noPosition": "You have no position in this pool."
+      },
+      "toasts": {
+        "first": "First liquidity added! 🎉 Now you earn fees on every swap in this pool.",
+        "opened": "Stand opened! Now you earn tips. 🏪",
+        "closedFees": "Stand closed! You earned {{fees}} in tips. 💰",
+        "closed": "Stand closed. 💰"
+      },
+      "labels": {
+        "title": "Mercado LP",
+        "subtitle": "Open stand",
+        "subtitleHint": "Add fruits and earn tips.",
+        "selectPool": "Pick pool",
+        "selectPlaceholder": "Select a pool",
+        "inputA": "How many {{emoji}} {{symbol}} you add",
+        "have": "You have: {{amount}}",
+        "needB": "You need to add {{emoji}} {{symbol}}",
+        "needHint": "Enter an amount above to see the second token needed.",
+        "how": "How it works?",
+        "howList": [
+          "You add both fruits in the pool ratio.",
+          "Every swap in this pool sends you a tip automatically.",
+          "You can close your stand anytime and withdraw everything."
+        ],
+        "open": "Open stand 🏪",
+        "fillAmounts": "Fill the amounts",
+        "positionTitle": "Your stand in this pool",
+        "share": "Share:",
+        "feesA": "Tips earned {{emoji}}:",
+        "feesB": "Tips earned {{emoji}}:",
+        "feesTotal": "Total tips:",
+        "close": "Close stand and withdraw 💰",
+        "tipTitle": "Quick tip",
+        "tipBody": "More swaps in your pool = more tips. Large, active pools usually yield more fees.",
+        "modal": {
+          "title": "What is an LP?",
+          "body1": "LP = Liquidity Provider. You add two fruits to the pool and every swap sends a small fee to you.",
+          "list": [
+            "You add in the correct pool ratio.",
+            "Tips accumulate automatically.",
+            "You can close your stand anytime."
+          ],
+          "note": "Note: In real Uniswap v4 you can use hooks and price ranges to optimize gains.",
+          "ok": "Got it"
+        }
+      }
     }
   }
-}
 }

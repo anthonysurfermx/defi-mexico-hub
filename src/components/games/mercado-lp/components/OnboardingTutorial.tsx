@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface TutorialStep {

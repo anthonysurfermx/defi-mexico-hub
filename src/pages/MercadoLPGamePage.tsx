@@ -79,11 +79,14 @@ const GameContent = () => {
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    // Lleva al jugador al mapa después del tutorial
+    openMap();
     localStorage.setItem('mercado_lp_onboarding_complete', 'true');
   };
 
   const handleOnboardingSkip = () => {
     setShowOnboarding(false);
+    openMap();
     localStorage.setItem('mercado_lp_onboarding_complete', 'true');
   };
 

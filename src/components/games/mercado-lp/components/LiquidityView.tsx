@@ -31,6 +31,7 @@ import {
   QuestionIcon,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
+import { useTranslation } from 'react-i18next';
 
 export const LiquidityView = () => {
   const { pools, player, addLiquidity, removeLiquidity } = useGame();
@@ -39,6 +40,7 @@ export const LiquidityView = () => {
   const [confettiKey, setConfettiKey] = useState(0);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [lpSuccess, setLpSuccess] = useState(false);
+  const { t } = useTranslation();
 
   // Sound effects
   const { play: playAddLiquiditySound } = useMercadoSound('add-liquidity');
@@ -57,7 +59,7 @@ export const LiquidityView = () => {
 
   const handleAddLiquidity = () => {
     if (!currentPool || !amountA) {
-      toast.error('Pon cuántas frutas quieres aportar del primer tipo.');
+      toast.error(t('mercadoLP.liquidity.errors.missing'));
       return;
     }
 
@@ -65,17 +67,17 @@ export const LiquidityView = () => {
     const b = parseFloat(calculatedAmountB);
 
     if (isNaN(a) || isNaN(b) || a <= 0 || b <= 0) {
-      toast.error('Pon un número mayor que 0.');
+      toast.error(t('mercadoLP.liquidity.errors.amount'));
       return;
     }
 
     if ((player.inventory[currentPool.tokenA.id] || 0) < a) {
-      toast.error(`No tienes suficiente ${currentPool.tokenA.symbol}.`);
+      toast.error(t('mercadoLP.liquidity.errors.balanceA', { symbol: currentPool.tokenA.symbol }));
       return;
     }
 
     if ((player.inventory[currentPool.tokenB.id] || 0) < b) {
-      toast.error(`No tienes suficiente ${currentPool.tokenB.symbol}.`);
+      toast.error(t('mercadoLP.liquidity.errors.balanceB', { symbol: currentPool.tokenB.symbol }));
       return;
     }
 
@@ -87,9 +89,9 @@ export const LiquidityView = () => {
 
     // Feedback educativo mejorado
     if (isFirstLP) {
-      toast.success(`¡Primera liquidez aportada! 🎉 Ahora ganas fees de cada swap en este pool.`, { duration: 4000 });
+      toast.success(t('mercadoLP.liquidity.toasts.first'), { duration: 4000 });
     } else {
-      toast.success(`¡Puesto abierto! Ahora ganas propinas. 🏪`);
+      toast.success(t('mercadoLP.liquidity.toasts.opened'));
     }
 
     setConfettiKey(prev => prev + 1);
@@ -100,7 +102,7 @@ export const LiquidityView = () => {
 
   const handleRemoveLiquidity = () => {
     if (!currentPosition) {
-      toast.error('No tienes puesto en este pool.');
+      toast.error(t('mercadoLP.liquidity.errors.noPosition'));
       return;
     }
 
@@ -111,9 +113,9 @@ export const LiquidityView = () => {
     playRemoveLiquiditySound();
 
     if (feesEarned > 0) {
-      toast.success(`¡Puesto cerrado! Ganaste ${feesEarned.toFixed(2)} en propinas. 💰`);
+      toast.success(t('mercadoLP.liquidity.toasts.closedFees', { fees: feesEarned.toFixed(2) }));
     } else {
-      toast.success('Puesto cerrado. 💰');
+      toast.success(t('mercadoLP.liquidity.toasts.closed'));
     }
     setConfettiKey(prev => prev + 1);
   };
@@ -134,14 +136,13 @@ export const LiquidityView = () => {
               <GraduationCapIcon size={24} className="text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-bold text-base">Nivel 2: Puestero - Proveer Liquidez</h3>
+              <h3 className="font-bold text-base">{t('mercadoLP.liquidity.banner.title')}</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
-                <strong>¿Recuerdas los swaps del N1?</strong> Ahora aprenderás <strong>de dónde vienen esas frutas</strong>.
-                Tú las aportas al pool y ganas comisión (fee) cada vez que alguien intercambia.
+                {t('mercadoLP.liquidity.banner.body')}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
-                <span>Concepto DeFi: <strong>Liquidity Providing + Fee Earnings + Impermanent Loss</strong></span>
+                <span>{t('mercadoLP.liquidity.banner.concept')}</span>
               </div>
             </div>
           </div>
@@ -153,18 +154,22 @@ export const LiquidityView = () => {
       <Card className="pixel-card p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              {t('mercadoLP.liquidity.labels.title')}
+            </p>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <ProviderIcon size={24} className="text-primary" />
-              Abrir puesto
+              {t('mercadoLP.liquidity.labels.subtitle')}
             </h1>
-            <p className="text-xs text-muted-foreground">Aporta frutas y gana propinas.</p>
+            <p className="text-xs text-muted-foreground">
+              {t('mercadoLP.liquidity.labels.subtitleHint')}
+            </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="pixel-button"
-            title="Ayuda rápida"
+            title={t('mercadoLP.liquidity.labels.how')}
             onClick={() => setShowHelpModal(true)}
           >
             <HelpCircle className="w-4 h-4" />
@@ -184,10 +189,10 @@ export const LiquidityView = () => {
             />
           )}
           <div>
-            <Label className="text-xs text-muted-foreground">Elige pool</Label>
+            <Label className="text-xs text-muted-foreground">{t('mercadoLP.liquidity.labels.selectPool')}</Label>
             <Select value={selectedPool} onValueChange={(val) => { setSelectedPool(val); setAmountA(''); }}>
               <SelectTrigger className="pixel-border">
-                <SelectValue placeholder="Selecciona un pool" />
+                <SelectValue placeholder={t('mercadoLP.liquidity.labels.selectPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {pools.map(pool => (
@@ -204,7 +209,10 @@ export const LiquidityView = () => {
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">
-                    Cuántas {currentPool.tokenA.emoji} {currentPool.tokenA.symbol} aportas
+                    {t('mercadoLP.liquidity.labels.inputA', {
+                      emoji: currentPool.tokenA.emoji,
+                      symbol: currentPool.tokenA.symbol,
+                    })}
                   </Label>
                   <Input
                     type="number"
@@ -214,7 +222,9 @@ export const LiquidityView = () => {
                     className="pixel-border"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Tienes: {(player.inventory[currentPool.tokenA.id] || 0).toFixed(2)}
+                    {t('mercadoLP.liquidity.labels.have', {
+                      amount: (player.inventory[currentPool.tokenA.id] || 0).toFixed(2),
+                    })}
                   </p>
                 </div>
 
@@ -224,29 +234,34 @@ export const LiquidityView = () => {
 
                 <div>
                   <Label className="text-xs text-muted-foreground">
-                    Necesitas aportar {currentPool.tokenB.emoji} {currentPool.tokenB.symbol}
+                    {t('mercadoLP.liquidity.labels.needB', {
+                      emoji: currentPool.tokenB.emoji,
+                      symbol: currentPool.tokenB.symbol,
+                    })}
                   </Label>
                   <div className={`pixel-card bg-muted p-3 flex items-center justify-between ${lpSuccess ? 'animate-success' : ''}`}>
                     <span className="text-2xl">{currentPool.tokenB.emoji}</span>
                     <span className="text-xl font-bold">{calculatedAmountB || '0.00'}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Tienes: {(player.inventory[currentPool.tokenB.id] || 0).toFixed(2)}
+                    {t('mercadoLP.liquidity.labels.have', {
+                      amount: (player.inventory[currentPool.tokenB.id] || 0).toFixed(2),
+                    })}
                   </p>
                   {!amountA && (
                     <p className="text-[11px] text-muted-foreground mt-2">
-                      Pon una cantidad arriba para ver cuánto necesitas del segundo token.
+                      {t('mercadoLP.liquidity.labels.needHint')}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="pixel-card bg-muted p-3 text-xs space-y-2">
-                <p className="font-semibold">¿Cómo funciona?</p>
+                <p className="font-semibold">{t('mercadoLP.liquidity.labels.how')}</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Aportas las dos frutas en la proporción del pool.</li>
-                  <li>Cada swap en este pool te da una propina automática.</li>
-                  <li>Puedes cerrar tu puesto cuando quieras y retirar todo.</li>
+                  {(t('mercadoLP.liquidity.labels.howList', { returnObjects: true }) as string[]).map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -256,7 +271,7 @@ export const LiquidityView = () => {
                 size="lg"
                 disabled={!canAddLiquidity}
               >
-                {canAddLiquidity ? '¡Abrir puesto! 🏪' : 'Completa las cantidades'}
+                {canAddLiquidity ? t('mercadoLP.liquidity.labels.open') : t('mercadoLP.liquidity.labels.fillAmounts')}
               </Button>
 
               {currentPosition && (
@@ -264,23 +279,23 @@ export const LiquidityView = () => {
                   <div className="border-t border-border pt-4 mt-4">
                     <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
                       <ChartIcon size={18} className="text-primary" />
-                      Tu puesto en este pool
+                      {t('mercadoLP.liquidity.labels.positionTitle')}
                     </h3>
                     <div className="pixel-card bg-muted/50 p-3 space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span>Participación:</span>
+                        <span>{t('mercadoLP.liquidity.labels.share')}</span>
                         <span className="font-bold">{currentPosition.sharePercent.toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Propinas ganadas {currentPool.tokenA.emoji}:</span>
+                        <span>{t('mercadoLP.liquidity.labels.feesA', { emoji: currentPool.tokenA.emoji })}</span>
                         <span className="font-bold">{currentPosition.feesEarned.tokenA.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Propinas ganadas {currentPool.tokenB.emoji}:</span>
+                        <span>{t('mercadoLP.liquidity.labels.feesB', { emoji: currentPool.tokenB.emoji })}</span>
                         <span className="font-bold">{currentPosition.feesEarned.tokenB.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between pt-2 border-t border-border">
-                        <span>Total propinas:</span>
+                        <span>{t('mercadoLP.liquidity.labels.feesTotal')}</span>
                         <span className="font-bold text-primary">
                           {(currentPosition.feesEarned.tokenA + currentPosition.feesEarned.tokenB).toFixed(2)}
                         </span>
@@ -291,7 +306,7 @@ export const LiquidityView = () => {
                       className="w-full pixel-button mt-3"
                       variant="secondary"
                     >
-                      Cerrar puesto y retirar todo 💰
+                      {t('mercadoLP.liquidity.labels.close')}
                     </Button>
                   </div>
                 </>
@@ -304,10 +319,10 @@ export const LiquidityView = () => {
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
           <LightbulbIcon size={18} className="text-amber-500" />
-          Tip rápido
+          {t('mercadoLP.liquidity.labels.tipTitle')}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Mientras más swaps haya en tu pool, más propinas ganas. Los pools grandes y activos suelen dar más fees.
+          {t('mercadoLP.liquidity.labels.tipBody')}
         </p>
       </Card>
 
@@ -316,26 +331,23 @@ export const LiquidityView = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QuestionIcon size={20} className="text-blue-500" />
-              ¿Qué es ser LP?
+              {t('mercadoLP.liquidity.labels.modal.title')}
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
-              <p>
-                LP = Liquidity Provider = Puestero. Aportas dos frutas al pool y cada vez que alguien hace un cambio (swap),
-                una pequeña propina (fee) va directo a ti.
-              </p>
+              <p>{t('mercadoLP.liquidity.labels.modal.body1')}</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Aportas en la proporción correcta del pool.</li>
-                <li>Las propinas se acumulan automáticamente.</li>
-                <li>Puedes cerrar tu puesto cuando quieras.</li>
+                {(t('mercadoLP.liquidity.labels.modal.list', { returnObjects: true }) as string[]).map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
               </ul>
               <p className="text-xs text-muted-foreground mt-2">
-                Nota: En Uniswap v4 real, puedes usar hooks y rangos de precio para optimizar tus ganancias.
+                {t('mercadoLP.liquidity.labels.modal.note')}
               </p>
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
             <Button className="pixel-button" onClick={() => setShowHelpModal(false)}>
-              Entendido
+              {t('mercadoLP.liquidity.labels.modal.ok')}
             </Button>
           </div>
         </DialogContent>
