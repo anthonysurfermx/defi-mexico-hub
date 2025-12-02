@@ -34,6 +34,7 @@ const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 // const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 const VideoTutorialsPage = lazy(() => import('@/pages/VideoTutorialsPage'));
 const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
+const MetricsPage = lazy(() => import('@/pages/MetricsPage'));
 
 // Mercado LP Game
 const MercadoLPGamePage = lazy(() => import('@/pages/MercadoLPGamePage'));
@@ -387,6 +388,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <ReferentesPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'metricas',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <MetricsPage />
                 </Suspense>
               ),
             },

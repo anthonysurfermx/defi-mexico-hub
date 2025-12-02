@@ -195,6 +195,37 @@
     "noResults": "No results found",
     "recentSearches": "Recent searches"
   },
+  "metrics": {
+    "pageTitle": "DeFi Metrics",
+    "pageDescription": "Global DeFi ecosystem metrics compared with MXN stablecoins",
+    "badge": "DeFi Metrics",
+    "title": "Global DeFi vs MXN Stablecoins",
+    "subtitle": "Comparison of global Total Value Locked (TVL) in DeFi with Mexican stablecoins",
+    "globalTVL": "Global DeFi TVL",
+    "mxnTVL": "MXN Stablecoins TVL",
+    "dataSource": "Data from DefiLlama API",
+    "activeStablecoins": "4 active stablecoins",
+    "scaleComparison": "Scale Comparison",
+    "scaleDescription": "Global TVL is approximately {{ratio}}x larger than MXN stablecoins",
+    "defiGlobal": "Global DeFi",
+    "stablecoinsMXN": "MXN Stablecoins",
+    "scaleNote": "The bar represents the real proportion (very small compared to the global market)",
+    "breakdown": "MXN Stablecoins Breakdown",
+    "breakdownDescription": "TVL distribution among major Mexican stablecoins",
+    "historicalTVL": "Historical Global TVL",
+    "historicalDescription": "Evolution of Total Value Locked in DeFi",
+    "dataNote": "About the data",
+    "globalTVLNote": "Real-time data from DefiLlama API.",
+    "mxnNote": "Static data updated monthly.",
+    "lastUpdate": "Last update",
+    "aboutMetrics": "About the metrics",
+    "aboutDescription": "TVL (Total Value Locked) represents the total value of crypto assets deposited in DeFi protocols. This metric is one of the most important indicators for measuring DeFi ecosystem adoption and health.",
+    "table": {
+      "stablecoin": "Stablecoin",
+      "issuer": "Issuer",
+      "chain": "Chain"
+    }
+  },
   "mercadoLP": {
     "header": {
       "title": "MERCADO LP",

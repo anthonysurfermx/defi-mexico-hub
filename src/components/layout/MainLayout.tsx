@@ -18,7 +18,8 @@ import {
   Layers,
   Search,
   Gamepad2,
-  Youtube
+  Youtube,
+  BarChart3
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,7 @@ export default function MainLayout() {
     { name: t('nav.communities'), href: '/comunidades', icon: Network, description: 'Groups and communities' },
     { name: t('nav.advocates'), href: '/referentes', icon: UserCheck, description: 'Ecosystem leaders' },
     { name: t('nav.events'), href: '/eventos', icon: CalendarDays, description: 'Events and conferences' },
+    { name: 'Métricas', href: '/metricas', icon: BarChart3, description: 'DeFi TVL & stablecoins MXN' },
   ];
 
   const isActive = (path: string) => {
