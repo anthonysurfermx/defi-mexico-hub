@@ -9,23 +9,76 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Search, Rocket, Users, Calendar, FileText, Award } from 'lucide-react';
-import { startupsService } from '@/services/startups.service';
-import { communitiesService } from '@/services/communities.service';
-import { eventsService } from '@/services/events.service';
-import { blogService } from '@/services/blog.service';
-import { advocatesService } from '@/services/advocates.service';
+import { Rocket, Users, Calendar, FileText, Award } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+// Types for search results
+interface SearchStartup {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logo_url?: string;
+  category?: string;
+}
+
+interface SearchCommunity {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image_url?: string;
+  category?: string;
+}
+
+interface SearchEvent {
+  id: string;
+  title: string;
+  slug?: string;
+  description?: string;
+  image_url?: string;
+  venue_city?: string;
+  start_date?: string;
+}
+
+interface SearchBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  image_url?: string;
+  category?: string;
+}
+
+interface SearchAdvocate {
+  id: string;
+  name: string;
+  slug?: string;
+  bio?: string;
+  avatar_url?: string;
+  expertise?: string;
+}
+
+interface SearchResults {
+  startups: SearchStartup[];
+  communities: SearchCommunity[];
+  events: SearchEvent[];
+  blogPosts: SearchBlogPost[];
+  advocates: SearchAdvocate[];
+}
+
+const emptyResults: SearchResults = {
+  startups: [],
+  communities: [],
+  events: [],
+  blogPosts: [],
+  advocates: [],
+};
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any>({
-    startups: [],
-    communities: [],
-    events: [],
-    blogPosts: [],
-    advocates: [],
-  });
+  const [results, setResults] = useState<SearchResults>(emptyResults);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -43,77 +96,32 @@ export function GlobalSearch() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  // Search function with debouncing
+  // Search function using RPC - single DB call
   const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery || searchQuery.length < 2) {
-      setResults({
-        startups: [],
-        communities: [],
-        events: [],
-        blogPosts: [],
-        advocates: [],
-      });
+      setResults(emptyResults);
       return;
     }
 
     setIsLoading(true);
-    const lowerQuery = searchQuery.toLowerCase();
 
     try {
-      // Search across all content types
-      const [startups, communities, events, blogPosts, advocates] = await Promise.all([
-        startupsService.getStartups(),
-        communitiesService.getCommunities(),
-        eventsService.getEvents(),
-        blogService.getBlogPosts(),
-        advocatesService.getAdvocates(),
-      ]);
-
-      setResults({
-        startups: startups
-          .filter(
-            (s) =>
-              s.name.toLowerCase().includes(lowerQuery) ||
-              s.description?.toLowerCase().includes(lowerQuery) ||
-              s.category?.toLowerCase().includes(lowerQuery)
-          )
-          .slice(0, 3),
-        communities: communities
-          .filter(
-            (c) =>
-              c.name.toLowerCase().includes(lowerQuery) ||
-              c.description?.toLowerCase().includes(lowerQuery) ||
-              c.city?.toLowerCase().includes(lowerQuery)
-          )
-          .slice(0, 3),
-        events: events
-          .filter(
-            (e) =>
-              e.title.toLowerCase().includes(lowerQuery) ||
-              e.description?.toLowerCase().includes(lowerQuery) ||
-              e.location?.toLowerCase().includes(lowerQuery)
-          )
-          .slice(0, 3),
-        blogPosts: blogPosts
-          .filter(
-            (b) =>
-              b.title.toLowerCase().includes(lowerQuery) ||
-              b.excerpt?.toLowerCase().includes(lowerQuery) ||
-              b.content?.toLowerCase().includes(lowerQuery)
-          )
-          .slice(0, 3),
-        advocates: advocates
-          .filter(
-            (a) =>
-              a.name.toLowerCase().includes(lowerQuery) ||
-              a.bio?.toLowerCase().includes(lowerQuery) ||
-              a.expertise?.toLowerCase().includes(lowerQuery) ||
-              a.specializations?.some((s) => s.toLowerCase().includes(lowerQuery))
-          )
-          .slice(0, 3),
+      // Single RPC call that searches all tables server-side
+      const { data, error } = await supabase.rpc('global_search', {
+        search_query: searchQuery,
+        result_limit: 3
       });
+
+      if (error) {
+        console.error('Search RPC error:', error);
+        setResults(emptyResults);
+        return;
+      }
+
+      setResults(data as SearchResults);
     } catch (error) {
       console.error('Search error:', error);
+      setResults(emptyResults);
     } finally {
       setIsLoading(false);
     }
@@ -156,11 +164,11 @@ export function GlobalSearch() {
         {/* Startups */}
         {results.startups.length > 0 && (
           <CommandGroup heading={t('nav.startups')}>
-            {results.startups.map((startup: any) => (
+            {results.startups.map((startup) => (
               <CommandItem
                 key={startup.id}
                 value={startup.name}
-                onSelect={() => handleSelect('/startups')}
+                onSelect={() => handleSelect(startup.slug ? `/startups/${startup.slug}` : '/startups')}
               >
                 <Rocket className="mr-2 h-4 w-4 text-primary" />
                 <div className="flex flex-col">
@@ -179,18 +187,18 @@ export function GlobalSearch() {
         {/* Communities */}
         {results.communities.length > 0 && (
           <CommandGroup heading={t('nav.communities')}>
-            {results.communities.map((community: any) => (
+            {results.communities.map((community) => (
               <CommandItem
                 key={community.id}
                 value={community.name}
-                onSelect={() => handleSelect('/communities')}
+                onSelect={() => handleSelect(community.slug ? `/comunidades/${community.slug}` : '/comunidades')}
               >
                 <Users className="mr-2 h-4 w-4 text-primary" />
                 <div className="flex flex-col">
                   <span>{community.name}</span>
-                  {community.city && (
+                  {community.category && (
                     <span className="text-xs text-muted-foreground">
-                      {community.city}
+                      {community.category}
                     </span>
                   )}
                 </div>
@@ -202,18 +210,18 @@ export function GlobalSearch() {
         {/* Events */}
         {results.events.length > 0 && (
           <CommandGroup heading={t('nav.events')}>
-            {results.events.map((event: any) => (
+            {results.events.map((event) => (
               <CommandItem
                 key={event.id}
                 value={event.title}
-                onSelect={() => handleSelect('/eventos')}
+                onSelect={() => handleSelect(event.slug ? `/eventos/${event.slug}` : '/eventos')}
               >
                 <Calendar className="mr-2 h-4 w-4 text-primary" />
                 <div className="flex flex-col">
                   <span>{event.title}</span>
-                  {event.location && (
+                  {event.venue_city && (
                     <span className="text-xs text-muted-foreground">
-                      {event.location}
+                      {event.venue_city}
                     </span>
                   )}
                 </div>
@@ -225,7 +233,7 @@ export function GlobalSearch() {
         {/* Blog Posts */}
         {results.blogPosts.length > 0 && (
           <CommandGroup heading={t('nav.blog')}>
-            {results.blogPosts.map((post: any) => (
+            {results.blogPosts.map((post) => (
               <CommandItem
                 key={post.id}
                 value={post.title}
@@ -248,11 +256,11 @@ export function GlobalSearch() {
         {/* Advocates */}
         {results.advocates.length > 0 && (
           <CommandGroup heading={t('nav.advocates')}>
-            {results.advocates.map((advocate: any) => (
+            {results.advocates.map((advocate) => (
               <CommandItem
                 key={advocate.id}
                 value={advocate.name}
-                onSelect={() => handleSelect('/referentes')}
+                onSelect={() => handleSelect(advocate.slug ? `/referentes/${advocate.slug}` : '/referentes')}
               >
                 <Award className="mr-2 h-4 w-4 text-primary" />
                 <div className="flex flex-col">
