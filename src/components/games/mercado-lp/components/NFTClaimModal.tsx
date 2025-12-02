@@ -77,14 +77,25 @@ export const NFTClaimModal = ({
             * { box-sizing: border-box; }
             html, body {
               margin: 0;
-              padding: 0;
-              background: transparent;
+              padding: 8px;
+              background: #f8f9fa;
               font-family: system-ui, -apple-system, sans-serif;
               min-height: 100%;
+              border-radius: 12px;
             }
             [data-bueno-mint] {
               width: 100%;
               min-height: 550px;
+              background: #ffffff;
+              border-radius: 12px;
+              padding: 16px;
+            }
+            /* Override dark text on dark background */
+            [data-bueno-mint] * {
+              color: #1a1a1a !important;
+            }
+            [data-bueno-mint] button {
+              color: #ffffff !important;
             }
           </style>
         </head>
