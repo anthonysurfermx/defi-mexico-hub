@@ -64,3 +64,6 @@ complete_database.sql
 
 # OS
 Thumbs.db
+
+# Cursor IDE (contains sensitive tokens)
+.cursor/

@@ -49,7 +49,7 @@ BEGIN
   SELECT json_build_object(
     'total_users', (SELECT COUNT(*) FROM profiles),
     'total_startups', (SELECT COUNT(*) FROM startups WHERE status = 'approved'),
-    'upcoming_events', (SELECT COUNT(*) FROM events WHERE date >= today),
+    'upcoming_events', (SELECT COUNT(*) FROM events WHERE start_date >= today),
     'published_posts', (SELECT COUNT(*) FROM blog_posts WHERE status = 'published'),
     'weekly_new_users', (SELECT COUNT(*) FROM profiles WHERE created_at >= last_week)
   ) INTO result;
@@ -65,10 +65,9 @@ GRANT EXECUTE ON FUNCTION get_dashboard_stats() TO authenticated;
 -- COMPOSITE INDEXES for common query patterns
 -- ===================================================================
 
--- Communities: Featured + Active + Member count (for homepage listings)
-CREATE INDEX IF NOT EXISTS idx_communities_featured_active_members
-ON communities(is_featured DESC, is_active, member_count DESC)
-WHERE is_verified = true;
+-- Communities: Featured + Member count (for homepage listings)
+CREATE INDEX IF NOT EXISTS idx_communities_featured_members
+ON communities(is_featured DESC, member_count DESC);
 
 -- Blog posts: Published posts by date (for blog listing)
 CREATE INDEX IF NOT EXISTS idx_blog_posts_published_date
@@ -83,10 +82,10 @@ ON blog_posts(author, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_startups_status_featured
 ON startups(status, is_featured DESC, created_at DESC);
 
--- Events: Upcoming featured events
+-- Events: Featured events by start date
 CREATE INDEX IF NOT EXISTS idx_events_upcoming_featured
-ON events(is_featured DESC, date ASC)
-WHERE status = 'published' AND date >= CURRENT_DATE;
+ON events(is_featured DESC, start_date ASC)
+WHERE status = 'published';
 
 -- User roles: Active roles by user (for auth checks)
 CREATE INDEX IF NOT EXISTS idx_user_roles_active_user
