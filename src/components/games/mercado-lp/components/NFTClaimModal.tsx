@@ -59,7 +59,7 @@ export const NFTClaimModal = ({
       // Create an iframe with the Bueno widget embedded
       const iframe = document.createElement('iframe');
       iframe.style.width = '100%';
-      iframe.style.minHeight = '450px';
+      iframe.style.height = '600px'; // Taller to accommodate expanded widget with QR
       iframe.style.border = 'none';
       iframe.style.borderRadius = '12px';
       iframe.style.background = 'transparent';
@@ -75,15 +75,16 @@ export const NFTClaimModal = ({
           <link rel="stylesheet" href="https://app.bueno.art/widget/v3/styles.css">
           <style>
             * { box-sizing: border-box; }
-            body {
+            html, body {
               margin: 0;
               padding: 0;
               background: transparent;
               font-family: system-ui, -apple-system, sans-serif;
+              min-height: 100%;
             }
             [data-bueno-mint] {
               width: 100%;
-              min-height: 400px;
+              min-height: 550px;
             }
           </style>
         </head>
@@ -143,7 +144,7 @@ export const NFTClaimModal = ({
         }
         onClose();
       }}>
-        <DialogContent className={`pixel-card ${showMintWidget ? 'max-w-lg' : 'max-w-md'}`}>
+        <DialogContent className={`pixel-card ${showMintWidget ? 'max-w-xl max-h-[90vh] overflow-y-auto' : 'max-w-md'}`}>
           <DialogHeader>
             <DialogTitle className="text-center text-2xl mb-4">
               {showMintWidget
@@ -158,9 +159,9 @@ export const NFTClaimModal = ({
           {showMintWidget ? (
             <div className="space-y-4">
               {/* Bueno Art Widget Container (iframe) */}
-              <div className="relative min-h-[450px]">
+              <div className="relative">
                 {!widgetReady && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl">
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl min-h-[300px]">
                     <div className="text-center space-y-3">
                       <div className="text-4xl animate-bounce">🎨</div>
                       <p className="text-sm text-muted-foreground">Cargando widget de minting...</p>
@@ -169,7 +170,7 @@ export const NFTClaimModal = ({
                 )}
                 <div
                   ref={widgetContainerRef}
-                  className="min-h-[450px]"
+                  className="w-full"
                 />
               </div>
 
