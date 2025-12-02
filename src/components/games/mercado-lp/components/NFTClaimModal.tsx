@@ -22,31 +22,6 @@ interface NFTClaimModalProps {
   autoShowMintWidget?: boolean; // Si true, muestra directamente el widget de minting
 }
 
-// Load Bueno Art widget resources
-const loadBuenoArtResources = (): Promise<void> => {
-  return new Promise((resolve) => {
-    // Check if already loaded
-    if (document.querySelector('script[src*="bueno.art"]')) {
-      resolve();
-      return;
-    }
-
-    // Load CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://app.bueno.art/widget/v3/styles.css';
-    document.head.appendChild(link);
-
-    // Load Script
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.crossOrigin = 'anonymous';
-    script.src = 'https://app.bueno.art/widget/v3/index.js';
-    script.onload = () => resolve();
-    document.head.appendChild(script);
-  });
-};
-
 export const NFTClaimModal = ({
   open,
   onClose,
@@ -58,45 +33,85 @@ export const NFTClaimModal = ({
   const navigate = useNavigate();
   const [confettiKey, setConfettiKey] = useState(0);
   const [showMintWidget, setShowMintWidget] = useState(false);
-  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
   const widgetContainerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Requisitos para claim NFT
   const hasCompletedLevel4 = playerLevel >= 4;
   const hasMinimumXP = playerXP >= 1000;
   const canClaimNFT = hasCompletedLevel4 && hasMinimumXP;
 
-  // Load Bueno Art resources when modal opens and user can claim
-  useEffect(() => {
-    if (open && canClaimNFT && isAuthenticated) {
-      loadBuenoArtResources().then(() => {
-        setWidgetLoaded(true);
-      });
-    }
-  }, [open, canClaimNFT, isAuthenticated]);
-
   // Auto-show mint widget when returning from login
   useEffect(() => {
-    if (open && autoShowMintWidget && isAuthenticated && canClaimNFT && widgetLoaded) {
+    if (open && autoShowMintWidget && isAuthenticated && canClaimNFT) {
       setShowMintWidget(true);
     }
-  }, [open, autoShowMintWidget, isAuthenticated, canClaimNFT, widgetLoaded]);
+  }, [open, autoShowMintWidget, isAuthenticated, canClaimNFT]);
 
-  // Initialize widget when showing mint view
+  // Initialize widget using iframe approach when showing mint view
   useEffect(() => {
-    if (showMintWidget && widgetLoaded && widgetContainerRef.current) {
+    if (showMintWidget && widgetContainerRef.current) {
       // Clear any existing content
       widgetContainerRef.current.innerHTML = '';
+      setWidgetReady(false);
 
-      // Create widget element
-      const widgetDiv = document.createElement('div');
-      widgetDiv.setAttribute('data-bueno-mint', BUENO_WIDGET_ID);
-      widgetContainerRef.current.appendChild(widgetDiv);
+      // Create an iframe with the Bueno widget embedded
+      const iframe = document.createElement('iframe');
+      iframe.style.width = '100%';
+      iframe.style.minHeight = '450px';
+      iframe.style.border = 'none';
+      iframe.style.borderRadius = '12px';
+      iframe.style.background = 'transparent';
+      iframe.allow = 'clipboard-write; web-share';
+
+      // Write the widget HTML directly into the iframe
+      iframe.srcdoc = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link rel="stylesheet" href="https://app.bueno.art/widget/v3/styles.css">
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 0;
+              background: transparent;
+              font-family: system-ui, -apple-system, sans-serif;
+            }
+            [data-bueno-mint] {
+              width: 100%;
+              min-height: 400px;
+            }
+          </style>
+        </head>
+        <body>
+          <div data-bueno-mint="${BUENO_WIDGET_ID}"></div>
+          <script type="module" crossorigin src="https://app.bueno.art/widget/v3/index.js"></script>
+        </body>
+        </html>
+      `;
+
+      iframe.onload = () => {
+        setWidgetReady(true);
+      };
+
+      iframeRef.current = iframe;
+      widgetContainerRef.current.appendChild(iframe);
 
       // Trigger confetti on showing widget
       setConfettiKey(prev => prev + 1);
     }
-  }, [showMintWidget, widgetLoaded]);
+  }, [showMintWidget]);
+
+  // Cleanup iframe when modal closes or widget hides
+  useEffect(() => {
+    if (!showMintWidget && iframeRef.current) {
+      iframeRef.current = null;
+    }
+  }, [showMintWidget]);
 
   const handleLogin = () => {
     // Guardar que el usuario quiere reclamar NFT
@@ -142,17 +157,20 @@ export const NFTClaimModal = ({
           {/* Mint Widget View */}
           {showMintWidget ? (
             <div className="space-y-4">
-              {/* Bueno Art Widget Container */}
-              <div
-                ref={widgetContainerRef}
-                className="min-h-[400px] flex items-center justify-center"
-              >
-                {!widgetLoaded && (
-                  <div className="text-center space-y-3">
-                    <div className="text-4xl animate-bounce">🎨</div>
-                    <p className="text-sm text-muted-foreground">Cargando widget de minting...</p>
+              {/* Bueno Art Widget Container (iframe) */}
+              <div className="relative min-h-[450px]">
+                {!widgetReady && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl">
+                    <div className="text-center space-y-3">
+                      <div className="text-4xl animate-bounce">🎨</div>
+                      <p className="text-sm text-muted-foreground">Cargando widget de minting...</p>
+                    </div>
                   </div>
                 )}
+                <div
+                  ref={widgetContainerRef}
+                  className="min-h-[450px]"
+                />
               </div>
 
               {/* Instructions */}
