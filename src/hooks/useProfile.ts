@@ -1,7 +1,8 @@
 // src/hooks/useProfile.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'editor' | 'user';
 
@@ -28,16 +29,113 @@ export function useProfile(user: User | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Refs para prevenir memory leaks y race conditions
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const isMountedRef = useRef(true);
+  const currentUserIdRef = useRef<string | null>(null);
+
+  const createProfile = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error: insertError } = await supabase
+        // @ts-ignore - profiles table not in generated types
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+          avatar_url: user.user_metadata?.avatar_url || '',
+          role: 'user',
+          is_active: true,
+          email_verified: !!(user.email_confirmed_at || user.confirmed_at)
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (isMountedRef.current) {
+        setProfile(data as unknown as UserProfile);
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        console.error('Error creating profile:', err);
+        setError(err as Error);
+      }
+    }
+  }, [user]);
+
+  const fetchProfile = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        // @ts-ignore - profiles table not in generated types
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!isMountedRef.current) return;
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          await createProfile();
+          return;
+        }
+        throw fetchError;
+      }
+
+      setProfile(data as unknown as UserProfile);
+
+      // Actualizar last_login_at (no bloqueante)
+      (supabase as any)
+        .from('profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .then(() => {/* silently update */});
+
+    } catch (err) {
+      if (isMountedRef.current) {
+        console.error('Error fetching profile:', err);
+        setError(err as Error);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [user?.id, createProfile]);
+
+  // Efecto principal con cleanup mejorado
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (!user) {
       setProfile(null);
       setLoading(false);
       return;
     }
 
+    // Evitar re-suscripción si el usuario no cambió
+    if (currentUserIdRef.current === user.id && channelRef.current) {
+      return;
+    }
+
+    // Cleanup del canal anterior si existe
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current).catch(console.error);
+      channelRef.current = null;
+    }
+
+    currentUserIdRef.current = user.id;
     fetchProfile();
 
-    // Suscribirse a cambios en el perfil
+    // Suscribirse a cambios en el perfil con manejo de errores
     const channel = supabase
       .channel(`profile:${user.id}`)
       .on(
@@ -49,89 +147,37 @@ export function useProfile(user: User | null) {
           filter: `id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Profile updated:', payload);
-          if (payload.new) {
+          if (isMountedRef.current && payload.new) {
+            console.log('Profile updated via realtime:', payload);
             setProfile(payload.new as UserProfile);
           }
         }
       )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
-
-  const fetchProfile = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (fetchError) {
-        // Si el perfil no existe, crearlo
-        if (fetchError.code === 'PGRST116') {
-          await createProfile();
-          return;
+      .subscribe((_status, err) => {
+        if (err) {
+          console.error('Realtime subscription error:', err);
         }
-        throw fetchError;
+      });
+
+    channelRef.current = channel;
+
+    // Cleanup function mejorada
+    return () => {
+      isMountedRef.current = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current).catch(console.error);
+        channelRef.current = null;
       }
+      currentUserIdRef.current = null;
+    };
+  }, [user?.id, fetchProfile]);
 
-      setProfile(data as UserProfile);
-
-      // Actualizar last_login_at
-      await supabase
-        .from('profiles')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createProfile = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email: user.email || '',
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-          avatar_url: user.user_metadata?.avatar_url || '',
-          role: 'user', // Por defecto
-          is_active: true,
-          email_verified: !!(user.email_confirmed_at || user.confirmed_at)
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      setProfile(data as UserProfile);
-    } catch (err) {
-      console.error('Error creating profile:', err);
-      setError(err as Error);
-    }
-  };
-
-  const updateProfile = async (updates: Partial<UserProfile>) => {
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (!user) return { error: new Error('No user logged in') };
 
     try {
       const { data, error: updateError } = await supabase
+        // @ts-ignore - profiles table not in generated types
         .from('profiles')
         .update(updates)
         .eq('id', user.id)
@@ -140,13 +186,15 @@ export function useProfile(user: User | null) {
 
       if (updateError) throw updateError;
 
-      setProfile(data as UserProfile);
+      if (isMountedRef.current) {
+        setProfile(data as unknown as UserProfile);
+      }
       return { data, error: null };
     } catch (err) {
       console.error('Error updating profile:', err);
       return { data: null, error: err as Error };
     }
-  };
+  }, [user]);
 
   return {
     profile,

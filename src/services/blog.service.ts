@@ -484,12 +484,28 @@ class BlogService {
   }
 
   /**
-   * Obtener estadísticas del blog
+   * Obtener estadísticas del blog - OPTIMIZADO: usa RPC en lugar de cargar todos los posts
    */
   async getStats() {
+    // Intentar usar RPC optimizado primero
+    // @ts-ignore - get_blog_stats RPC may not be in generated types yet
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_blog_stats');
+
+    if (!rpcError && rpcData) {
+      console.log(`📊 BlogService.getStats (RPC):`, rpcData);
+      return rpcData as {
+        total: number;
+        published: number;
+        drafts: number;
+        review: number;
+      };
+    }
+
+    // Fallback: query tradicional si RPC no existe
+    console.warn('⚠️ get_blog_stats RPC not available, using fallback');
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('id, status, created_at');
+      .select('id, status', { count: 'exact', head: false });
 
     if (error) {
       console.error('❌ Error fetching stats:', error);
@@ -503,7 +519,7 @@ class BlogService {
       review: data?.filter(p => p.status === 'review').length || 0,
     };
 
-    console.log(`📊 BlogService.getStats:`, stats);
+    console.log(`📊 BlogService.getStats (fallback):`, stats);
     return stats;
   }
 

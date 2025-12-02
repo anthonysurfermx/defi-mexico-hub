@@ -1,17 +1,36 @@
 import { supabase } from '@/lib/supabase';
 
 export class AdminService {
-  // Estadísticas del dashboard
+  // Cache del usuario actual para evitar múltiples llamadas a getUser()
+  private cachedUserId: string | null = null;
+  private userIdCacheTime: number = 0;
+  private readonly USER_CACHE_TTL = 60000; // 1 minuto
+
+  private async getCurrentUserId(): Promise<string | undefined> {
+    const now = Date.now();
+    if (this.cachedUserId && (now - this.userIdCacheTime) < this.USER_CACHE_TTL) {
+      return this.cachedUserId;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    this.cachedUserId = user?.id || null;
+    this.userIdCacheTime = now;
+    return user?.id;
+  }
+
+  // Estadísticas del dashboard - OPTIMIZADO: usa head: true para solo contar
   async getDashboardStats() {
     const today = new Date().toISOString().split('T')[0];
     const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+    // Usar head: true para solo obtener el count sin transferir datos
     const [users, startups, events, posts, weeklyUsers] = await Promise.all([
-      supabase.from('profiles').select('count', { count: 'exact' }),
-      supabase.from('startups').select('count', { count: 'exact' }).eq('status', 'approved'),
-      supabase.from('events').select('count', { count: 'exact' }).gte('date', today),
-      supabase.from('blog_posts').select('count', { count: 'exact' }).eq('status', 'published'),
-      supabase.from('profiles').select('count', { count: 'exact' }).gte('created_at', lastWeek)
+      // @ts-expect-error - profiles table uses auth schema
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('startups').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('events').select('*', { count: 'exact', head: true }).gte('date', today),
+      supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+      // @ts-expect-error - profiles table uses auth schema
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', lastWeek)
     ]);
 
     return {
@@ -36,12 +55,13 @@ export class AdminService {
   }
 
   async approveStartup(id: string) {
+    const userId = await this.getCurrentUserId();
     return await supabase
       .from('startups')
-      .update({ 
-        status: 'approved', 
+      .update({
+        status: 'approved',
         approved_at: new Date().toISOString(),
-        approved_by: (await supabase.auth.getUser()).data.user?.id
+        approved_by: userId
       })
       .eq('id', id);
   }
@@ -72,25 +92,29 @@ export class AdminService {
   }
 
   async createEvent(event: any) {
+    const userId = await this.getCurrentUserId();
     return await supabase.from('events').insert({
       ...event,
-      created_by: (await supabase.auth.getUser()).data.user?.id
+      created_by: userId
     });
   }
 
   // Analytics
   async trackEvent(eventType: string, entityType: string, entityId: string, metadata?: any) {
+    const userId = await this.getCurrentUserId();
+    // @ts-expect-error - analytics table not in generated types
     return await supabase.from('analytics').insert({
       event_type: eventType,
       entity_type: entityType,
       entity_id: entityId,
       metadata,
-      user_id: (await supabase.auth.getUser()).data.user?.id
+      user_id: userId
     });
   }
 
   async getAnalytics(dateRange: { from: string; to: string }) {
     return await supabase
+      // @ts-expect-error - analytics table not in generated types
       .from('analytics')
       .select('*')
       .gte('created_at', dateRange.from)
