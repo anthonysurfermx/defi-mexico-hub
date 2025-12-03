@@ -238,13 +238,20 @@ export default function HomePage() {
       {/* Featured Communities Section - Minimal */}
       <section className="py-24 px-4 bg-muted/30">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              {t('home.communities.title')}
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t('communities.description')}
-            </p>
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                {t('home.communities.title')}
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                {t('communities.description')}
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link to="/comunidades">
+                {t('common.viewMore')}
+              </Link>
+            </Button>
           </div>
 
           {/* Communities Grid - Solo 3 cards */}
