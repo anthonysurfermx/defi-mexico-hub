@@ -37,18 +37,31 @@ const CommunidadesPage = () => {
     }
   };
 
-  const filteredCommunities = communities.filter(community => {
-    const matchesSearch = searchTerm === "" || 
-      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      community.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = categoryFilter === "all" || community.category === categoryFilter;
-    
-    const matchesTags = selectedTags.length === 0 || 
-                       (community.tags && selectedTags.every(tag => community.tags?.includes(tag)));
-    
-    return matchesSearch && matchesCategory && matchesTags;
-  });
+  const filteredCommunities = communities
+    .filter(community => {
+      const matchesSearch = searchTerm === "" ||
+        community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        community.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = categoryFilter === "all" || community.category === categoryFilter;
+
+      const matchesTags = selectedTags.length === 0 ||
+                         (community.tags && selectedTags.every(tag => community.tags?.includes(tag)));
+
+      return matchesSearch && matchesCategory && matchesTags;
+    })
+    // Ordenar: oficiales primero, luego destacadas, luego por miembros
+    .sort((a, b) => {
+      const aOfficial = (a as any).is_official ? 1 : 0;
+      const bOfficial = (b as any).is_official ? 1 : 0;
+      if (bOfficial !== aOfficial) return bOfficial - aOfficial;
+
+      const aFeatured = a.is_featured ? 1 : 0;
+      const bFeatured = b.is_featured ? 1 : 0;
+      if (bFeatured !== aFeatured) return bFeatured - aFeatured;
+
+      return (b.member_count || 0) - (a.member_count || 0);
+    });
 
   const categories = [...new Set(communities.map(c => c.category).filter(Boolean))].sort();
   const allTags = [...new Set(communities.flatMap(c => c.tags || []))].sort();

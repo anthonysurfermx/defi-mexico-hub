@@ -90,6 +90,7 @@ export default function CommunityCard({
     <Card className={cn(
       "group relative overflow-hidden transition-all duration-300 hover:shadow-xl",
       "bg-gradient-to-br from-card to-card/80",
+      "h-full flex flex-col", // Altura uniforme para todas las cards
       official
         ? [
             "border-[1.5px] border-slate-200/80",
@@ -166,7 +167,7 @@ export default function CommunityCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-1 flex flex-col">
         {/* Description */}
         <p className="text-sm text-muted-foreground line-clamp-2">
           {description}
@@ -218,8 +219,8 @@ export default function CommunityCard({
           </div>
         )}
 
-        {/* Social Links */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        {/* Social Links - siempre al final */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-auto">
           <div className="flex gap-1">
             {website && (
               <Button 
