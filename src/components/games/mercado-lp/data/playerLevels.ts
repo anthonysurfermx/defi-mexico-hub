@@ -39,7 +39,7 @@ export const playerLevels: PlayerLevel[] = [
     minXP: 2000,
     maxXP: 3999,
     icon: '⭐',
-    perks: ['Badge dorado', 'Bonus XP +50%', 'Descuento 15% en fees'],
+    perks: ['Acceso a Nivel 5: Ligas de Trading', 'Bonus XP +50%', 'Descuento 15% en fees', 'Competencia semanal'],
   },
   {
     level: 6,
@@ -47,7 +47,7 @@ export const playerLevels: PlayerLevel[] = [
     minXP: 4000,
     maxXP: 999999,
     icon: '👑',
-    perks: ['Badge legendario', 'Bonus XP +100%', 'Hall of Fame', 'Skin exclusiva'],
+    perks: ['Acceso a Nivel 6: Market Maker', 'Bonus XP +100%', 'Hooks avanzados', 'Hall of Fame'],
   },
 ];
 

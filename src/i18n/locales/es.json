@@ -602,8 +602,100 @@
           "ok": "¡Genial!"
         }
       }
-    }
-    ,
+    },
+    "enhancements": {
+      "dailyChallenges": {
+        "title": "Retos Diarios",
+        "resetsIn": "Reinicia en",
+        "completed": "completados",
+        "claimBonus": "Reclamar Bonus",
+        "allCompleted": "¡Completa los 3!",
+        "bonusReward": "¡Recompensa extra!",
+        "difficulty": {
+          "easy": "Fácil",
+          "medium": "Medio",
+          "hard": "Difícil"
+        }
+      },
+      "marketEvents": {
+        "active": "Evento activo",
+        "endsIn": "Termina en"
+      },
+      "streak": {
+        "title": "Racha Diaria",
+        "days": "días",
+        "best": "Mejor",
+        "claimDaily": "Bonus diario",
+        "claimed": "¡Reclamado hoy!",
+        "nextReward": "Próxima recompensa",
+        "daysLeft": "días más",
+        "rewardsToClaim": "¡Recompensas disponibles!",
+        "claim": "Reclamar",
+        "milestones": "Próximos hitos"
+      },
+      "league": {
+        "title": "Liga de Trading",
+        "weekEnds": "La semana termina en",
+        "yourRank": "Tu posición",
+        "weekReward": "Recompensa semanal",
+        "leaderboard": "Clasificación",
+        "volume": "Volumen",
+        "swaps": "Swaps",
+        "nextTier": "Siguiente tier",
+        "climbPositions": "Sube {{count}} posiciones para llegar a {{tier}}",
+        "boostRank": "Mejora tu posición",
+        "tradeMore": "Tradear Más",
+        "provideLP": "Proveer LP",
+        "tierRewards": "Recompensas por Tier",
+        "tiers": {
+          "bronze": "Bronce",
+          "silver": "Plata",
+          "gold": "Oro",
+          "platinum": "Platino",
+          "diamond": "Diamante"
+        }
+      },
+      "marketMaker": {
+        "title": "Modo Market Maker",
+        "locked": "Modo Market Maker Bloqueado",
+        "lockedDesc": "Alcanza el Nivel 6 (4000 XP) para desbloquear hooks avanzados y convertirte en Market Maker.",
+        "yourStats": "Tus Estadísticas",
+        "createPool": "Crear Pool Avanzado",
+        "createPoolDesc": "Selecciona tokens y un hook avanzado para tu pool",
+        "selectToken": "Seleccionar token",
+        "amount": "Cantidad",
+        "advancedHooks": "Hooks Avanzados",
+        "createWithHook": "Crear Pool con Hook Avanzado",
+        "utilization": "Utilización"
+      },
+      "auctionTutorial": {
+        "title": "Tutorial de Subastas",
+        "step": "Paso",
+        "continue": "Continuar",
+        "finish": "Terminar",
+        "placeBid": "Colocar Puja",
+        "executeBlock": "Ejecutar Bloque",
+        "startTrading": "¡Empezar a Tradear!",
+        "tryBid": "Prueba esta puja:",
+        "suggested": "Sugerido:",
+        "maxPrice": "Precio Máx.",
+        "totalSpend": "Gasto Total",
+        "reviewTutorial": "Revisar Tutorial",
+        "learnAuctions": "Aprender Subastas"
+      },
+      "levels": {
+        "n5": {
+          "name": "Maestro",
+          "title": "Ligas de Trading",
+          "desc": "Compite con otros traders semanalmente. Sube de rango y gana recompensas exclusivas."
+        },
+        "n6": {
+          "name": "Leyenda",
+          "title": "Market Maker",
+          "desc": "Crea pools con hooks avanzados. Personaliza tu estrategia y maximiza rendimientos."
+        }
+      }
+    },
     "map": {
       "dialog": {
         "1": {
