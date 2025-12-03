@@ -560,6 +560,70 @@
         "start": "Iniciar Subasta",
         "note": "Nota: Necesitas haber creado al menos un token en el Nivel 3"
       },
+      "practiceMode": {
+        "title": "Modo Práctica",
+        "description": "Experimenta sin gastar tus tokens reales",
+        "activate": "Activar",
+        "active": "✓ Activo",
+        "badge": "Práctica",
+        "hint": "Los resultados no afectarán tu inventario real. ¡Perfecto para aprender!"
+      },
+      "bidForm": {
+        "title": "Coloca tu oferta",
+        "maxPriceLabel": "Precio máximo por token ($/token)",
+        "maxPricePlaceholder": "Ej: 10",
+        "maxPriceHint": "Solo pagarás el precio de equilibrio, no necesariamente tu máximo.",
+        "spendLabel": "Gasto total (PESO)",
+        "spendPlaceholder": "Ej: 100",
+        "budgetHint": "Tu presupuesto:",
+        "estimate": "Estimación:",
+        "couldWin": "Podrías ganar",
+        "dependsOn": "(Depende del precio final de equilibrio)",
+        "blockExecuted": "Bloque ya ejecutado",
+        "placeBid": "¡Ofertar en este bloque! 🔨"
+      },
+      "tooltips": {
+        "maxPrice": {
+          "title": "¿Qué es el precio máximo?",
+          "body": "Es lo máximo que estás dispuesto a pagar. Si el precio de equilibrio es menor, ¡pagarás menos!",
+          "tip": "Ejemplo: Si pones $10 pero el precio final es $7, solo pagas $7"
+        },
+        "spend": {
+          "title": "¿Cuánto gastar?",
+          "body": "Es tu presupuesto para esta ronda. Se usará para calcular cuántos tokens puedes ganar.",
+          "tip": "Si gastas $50 y el precio es $5, ganarías 10 tokens"
+        }
+      },
+      "clearing": {
+        "title": "Cómo funciona el Clearing",
+        "steps": [
+          "Ordenando ofertas de mayor a menor precio...",
+          "Calculando el precio de equilibrio...",
+          "Precio justo: ${{price}} para TODOS",
+          "Asignando frutas a los ganadores...",
+          "¡Listo! Mira quién ganó y cuánto pagó"
+        ],
+        "bidder": "Ofertante",
+        "maxPrice": "Precio Máx",
+        "spend": "Gasto",
+        "result": "Resultado",
+        "lost": "Perdió",
+        "everyonePays": "Todos pagan lo mismo:",
+        "evenIfHigher": "¡Aunque hayas ofertado más!",
+        "youWon": "¡Ganaste!",
+        "savings": "Ofertaste ${{bid}} pero solo pagaste ${{paid}}. ¡Ahorraste ${{saved}}!",
+        "nextTime": "La próxima vez...",
+        "clearingWas": "El precio de equilibrio fue ${{price}}. ¡Oferta al menos eso para ganar!",
+        "roundComplete": "¡Ronda completa!",
+        "placeBidNext": "Coloca una oferta en la siguiente ronda para participar.",
+        "continue": "Continuar",
+        "processing": "Procesando..."
+      },
+      "diagram": {
+        "everyoneBids": "Todos ofertan",
+        "onePrice": "Un precio",
+        "winnersPay": "Ganadores pagan igual"
+      },
       "errors": {
         "missing": "Completa precio máximo y gasto total.",
         "amount": "Pon números mayores que 0.",

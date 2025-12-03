@@ -4,12 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { HelpCircle, TrendingUp, Award } from 'lucide-react';
+import { HelpCircle, TrendingUp, Award, Info, Beaker } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ConfettiBurst } from './ConfettiBurst';
 import { AuctionBlockTimeline } from './AuctionBlockTimeline';
 import { AuctionOnboarding } from './AuctionOnboarding';
+import { ClearingAnimation, ClearingDiagram } from './ClearingAnimation';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +52,13 @@ export const CCAView = () => {
   const [playerAvgPrice, setPlayerAvgPrice] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [pendingAuctionStart, setPendingAuctionStart] = useState(false);
+  const [showClearingAnimation, setShowClearingAnimation] = useState(false);
+  const [clearingAnimationData, setClearingAnimationData] = useState<{
+    bids: { name: string; maxPrice: number; spend: number; isPlayer?: boolean }[];
+    tokensAvailable: number;
+    clearingPrice: number;
+  } | null>(null);
+  const [isPracticeMode, setIsPracticeMode] = useState(false);
 
   // Sound effects
   const { play: playBidSound } = useMercadoSound('bid');
@@ -193,6 +207,37 @@ export const CCAView = () => {
       return;
     }
 
+    // Get current block data before advancing
+    const blockToExecute = auction.blocks.find(b => b.blockNumber === auction.currentBlock);
+
+    if (blockToExecute && blockToExecute.bids.length > 0) {
+      // Prepare data for clearing animation
+      const animationBids = blockToExecute.bids.map(bid => ({
+        name: bid.bidderName,
+        maxPrice: bid.maxPrice,
+        spend: bid.totalSpend,
+        isPlayer: bid.bidderId === 'player',
+      }));
+
+      setClearingAnimationData({
+        bids: animationBids,
+        tokensAvailable: blockToExecute.tokensAvailable,
+        clearingPrice: blockToExecute.currentPrice,
+      });
+      setShowClearingAnimation(true);
+    } else {
+      // No bids, just advance
+      advanceAuctionBlock();
+      toast.success(t('mercadoLP.cca.toasts.blockRun', { block: auction.currentBlock }));
+    }
+  };
+
+  const handleClearingAnimationComplete = () => {
+    setShowClearingAnimation(false);
+    setClearingAnimationData(null);
+
+    if (!auction) return;
+
     advanceAuctionBlock();
     toast.success(t('mercadoLP.cca.toasts.blockRun', { block: auction.currentBlock }));
 
@@ -217,17 +262,53 @@ export const CCAView = () => {
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
               <GraduationCapIcon size={24} className="text-primary" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3 flex-1">
               <h3 className="font-bold text-base">{t('mercadoLP.cca.banner.title')}</h3>
               <p className="text-sm text-foreground/90 leading-relaxed">
                 {t('mercadoLP.cca.banner.body')}
               </p>
+
+              {/* Visual diagram of how clearing works */}
+              <ClearingDiagram />
+
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-card/60 px-3 py-2 rounded">
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>{t('mercadoLP.cca.banner.concept')}</span>
               </div>
             </div>
           </div>
+        </Card>
+
+        {/* Practice Mode Toggle */}
+        <Card className="pixel-card p-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Beaker className="w-5 h-5 text-violet-500" />
+              <div>
+                <p className="text-sm font-medium">
+                  {t('mercadoLP.cca.practiceMode.title', { defaultValue: 'Modo Práctica' })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('mercadoLP.cca.practiceMode.description', { defaultValue: 'Experimenta sin gastar tus tokens reales' })}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant={isPracticeMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setIsPracticeMode(!isPracticeMode)}
+              className={isPracticeMode ? 'bg-violet-500 hover:bg-violet-600' : ''}
+            >
+              {isPracticeMode
+                ? t('mercadoLP.cca.practiceMode.active', { defaultValue: '✓ Activo' })
+                : t('mercadoLP.cca.practiceMode.activate', { defaultValue: 'Activar' })}
+            </Button>
+          </div>
+          {isPracticeMode && (
+            <div className="mt-2 p-2 bg-violet-500/10 rounded text-xs text-violet-700 dark:text-violet-300">
+              🧪 {t('mercadoLP.cca.practiceMode.hint', { defaultValue: 'Los resultados no afectarán tu inventario real. ¡Perfecto para aprender!' })}
+            </div>
+          )}
         </Card>
 
         <MissionsCard />
@@ -387,64 +468,103 @@ export const CCAView = () => {
           )}
 
           {/* Formulario de oferta */}
-          <Card className="pixel-card p-4 space-y-3">
-            <h3 className="font-bold text-sm flex items-center gap-2">
-              <CoinsIcon size={18} className="text-amber-500" />
-              Coloca tu oferta
-            </h3>
+          <TooltipProvider>
+            <Card className="pixel-card p-4 space-y-3">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <CoinsIcon size={18} className="text-amber-500" />
+                {t('mercadoLP.cca.bidForm.title', { defaultValue: 'Coloca tu oferta' })}
+                {isPracticeMode && (
+                  <span className="text-xs bg-violet-500/20 text-violet-600 px-2 py-0.5 rounded">
+                    🧪 {t('mercadoLP.cca.practiceMode.badge', { defaultValue: 'Práctica' })}
+                  </span>
+                )}
+              </h3>
 
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Precio máximo por token ($/token)
-              </Label>
-              <Input
-                type="number"
-                placeholder="Ej: 10"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="pixel-border"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Solo pagarás el precio de equilibrio, no necesariamente tu máximo.
-              </p>
-            </div>
-
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Gasto total (PESO)
-              </Label>
-              <Input
-                type="number"
-                placeholder="Ej: 100"
-                value={totalSpend}
-                onChange={(e) => setTotalSpend(e.target.value)}
-                className="pixel-border"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Tu presupuesto: {playerBudget.toFixed(2)} PESO
-              </p>
-            </div>
-
-            {estimatedTokens > 0 && (
-              <div className="pixel-card bg-muted p-2 text-xs">
-                <p className="font-semibold">Estimación:</p>
-                <p>Podrías ganar ~{estimatedTokens.toFixed(1)} {auction.tokenOffered.symbol}</p>
-                <p className="text-muted-foreground mt-1">
-                  (Depende del precio final de equilibrio)
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  {t('mercadoLP.cca.bidForm.maxPriceLabel', { defaultValue: 'Precio máximo por token ($/token)' })}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px] p-3">
+                      <p className="font-semibold text-sm mb-1">
+                        {t('mercadoLP.cca.tooltips.maxPrice.title', { defaultValue: '¿Qué es el precio máximo?' })}
+                      </p>
+                      <p className="text-xs">
+                        {t('mercadoLP.cca.tooltips.maxPrice.body', { defaultValue: 'Es lo máximo que estás dispuesto a pagar. Si el precio de equilibrio es menor, ¡pagarás menos!' })}
+                      </p>
+                      <div className="mt-2 p-2 bg-green-500/10 rounded text-xs">
+                        💡 {t('mercadoLP.cca.tooltips.maxPrice.tip', { defaultValue: 'Ejemplo: Si pones $10 pero el precio final es $7, solo pagas $7' })}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Input
+                  type="number"
+                  placeholder={t('mercadoLP.cca.bidForm.maxPricePlaceholder', { defaultValue: 'Ej: 10' })}
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="pixel-border"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('mercadoLP.cca.bidForm.maxPriceHint', { defaultValue: 'Solo pagarás el precio de equilibrio, no necesariamente tu máximo.' })}
                 </p>
               </div>
-            )}
 
-            <Button
-              onClick={handlePlaceBid}
-              className="w-full pixel-button"
-              disabled={!maxPrice || !totalSpend || selectedBlock < auction.currentBlock}
-            >
-              {selectedBlock < auction.currentBlock
-                ? 'Bloque ya ejecutado'
-                : '¡Ofertar en este bloque! 🔨'}
-            </Button>
-          </Card>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  {t('mercadoLP.cca.bidForm.spendLabel', { defaultValue: 'Gasto total (PESO)' })}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px] p-3">
+                      <p className="font-semibold text-sm mb-1">
+                        {t('mercadoLP.cca.tooltips.spend.title', { defaultValue: '¿Cuánto gastar?' })}
+                      </p>
+                      <p className="text-xs">
+                        {t('mercadoLP.cca.tooltips.spend.body', { defaultValue: 'Es tu presupuesto para esta ronda. Se usará para calcular cuántos tokens puedes ganar.' })}
+                      </p>
+                      <div className="mt-2 p-2 bg-blue-500/10 rounded text-xs">
+                        💰 {t('mercadoLP.cca.tooltips.spend.tip', { defaultValue: 'Si gastas $50 y el precio es $5, ganarías 10 tokens' })}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Input
+                  type="number"
+                  placeholder={t('mercadoLP.cca.bidForm.spendPlaceholder', { defaultValue: 'Ej: 100' })}
+                  value={totalSpend}
+                  onChange={(e) => setTotalSpend(e.target.value)}
+                  className="pixel-border"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('mercadoLP.cca.bidForm.budgetHint', { defaultValue: 'Tu presupuesto:' })} {playerBudget.toFixed(2)} PESO
+                </p>
+              </div>
+
+              {estimatedTokens > 0 && (
+                <div className="pixel-card bg-muted p-2 text-xs">
+                  <p className="font-semibold">{t('mercadoLP.cca.bidForm.estimate', { defaultValue: 'Estimación:' })}</p>
+                  <p>{t('mercadoLP.cca.bidForm.couldWin', { defaultValue: 'Podrías ganar' })} ~{estimatedTokens.toFixed(1)} {auction.tokenOffered.symbol}</p>
+                  <p className="text-muted-foreground mt-1">
+                    {t('mercadoLP.cca.bidForm.dependsOn', { defaultValue: '(Depende del precio final de equilibrio)' })}
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={handlePlaceBid}
+                className="w-full pixel-button"
+                disabled={!maxPrice || !totalSpend || selectedBlock < auction.currentBlock}
+              >
+                {selectedBlock < auction.currentBlock
+                  ? t('mercadoLP.cca.bidForm.blockExecuted', { defaultValue: 'Bloque ya ejecutado' })
+                  : t('mercadoLP.cca.bidForm.placeBid', { defaultValue: '¡Ofertar en este bloque! 🔨' })}
+              </Button>
+            </Card>
+          </TooltipProvider>
 
           {/* Resumen de tus ofertas */}
           <Card className="pixel-card p-4 bg-card">
@@ -593,6 +713,17 @@ export const CCAView = () => {
         <AuctionOnboarding
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
+        />
+      )}
+
+      {/* Clearing Animation - shows how the clearing process works */}
+      {showClearingAnimation && clearingAnimationData && auction && (
+        <ClearingAnimation
+          bids={clearingAnimationData.bids}
+          tokensAvailable={clearingAnimationData.tokensAvailable}
+          tokenEmoji={auction.tokenOffered.emoji}
+          clearingPrice={clearingAnimationData.clearingPrice}
+          onComplete={handleClearingAnimationComplete}
         />
       )}
     </div>

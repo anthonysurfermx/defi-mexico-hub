@@ -560,6 +560,70 @@
         "start": "Start Auction",
         "note": "Note: You need at least one token created in Level 3"
       },
+      "practiceMode": {
+        "title": "Practice Mode",
+        "description": "Experiment without spending your real tokens",
+        "activate": "Activate",
+        "active": "✓ Active",
+        "badge": "Practice",
+        "hint": "Results won't affect your real inventory. Perfect for learning!"
+      },
+      "bidForm": {
+        "title": "Place your bid",
+        "maxPriceLabel": "Max price per token ($/token)",
+        "maxPricePlaceholder": "Ex: 10",
+        "maxPriceHint": "You'll only pay the clearing price, not necessarily your max.",
+        "spendLabel": "Total spend (PESO)",
+        "spendPlaceholder": "Ex: 100",
+        "budgetHint": "Your budget:",
+        "estimate": "Estimate:",
+        "couldWin": "You could win",
+        "dependsOn": "(Depends on final clearing price)",
+        "blockExecuted": "Block already executed",
+        "placeBid": "Bid on this block! 🔨"
+      },
+      "tooltips": {
+        "maxPrice": {
+          "title": "What is max price?",
+          "body": "It's the maximum you're willing to pay. If the clearing price is lower, you'll pay less!",
+          "tip": "Example: If you bid $10 but the final price is $7, you only pay $7"
+        },
+        "spend": {
+          "title": "How much to spend?",
+          "body": "It's your budget for this round. It will be used to calculate how many tokens you can win.",
+          "tip": "If you spend $50 and the price is $5, you'd win 10 tokens"
+        }
+      },
+      "clearing": {
+        "title": "How Clearing Works",
+        "steps": [
+          "Sorting bids from highest to lowest...",
+          "Calculating the clearing price...",
+          "Fair price: ${{price}} for EVERYONE",
+          "Allocating fruits to winners...",
+          "Done! See who won and how much they paid"
+        ],
+        "bidder": "Bidder",
+        "maxPrice": "Max Price",
+        "spend": "Spend",
+        "result": "Result",
+        "lost": "Lost",
+        "everyonePays": "Everyone pays the same:",
+        "evenIfHigher": "Even if you bid higher!",
+        "youWon": "You won!",
+        "savings": "You bid ${{bid}} but only paid ${{paid}}. You saved ${{saved}}!",
+        "nextTime": "Next time...",
+        "clearingWas": "The clearing price was ${{price}}. Bid at least that to win!",
+        "roundComplete": "Round complete!",
+        "placeBidNext": "Place a bid in the next round to participate.",
+        "continue": "Continue",
+        "processing": "Processing..."
+      },
+      "diagram": {
+        "everyoneBids": "Everyone bids",
+        "onePrice": "One price",
+        "winnersPay": "Winners pay same"
+      },
       "errors": {
         "missing": "Fill max price and total spend.",
         "amount": "Enter numbers greater than 0.",

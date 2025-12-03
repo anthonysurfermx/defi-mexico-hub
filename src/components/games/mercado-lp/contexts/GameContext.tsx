@@ -1007,31 +1007,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  // Generate NPC bids for a block
-  const generateNPCBids = useCallback((blockNumber: number, minPrice: number): AuctionBid[] => {
-    const npcBids: AuctionBid[] = [];
-    const npcCount = 2 + Math.floor(Math.random() * 3); // 2-4 NPCs per block
-
-    for (let i = 0; i < npcCount; i++) {
-      const npc = npcs[Math.floor(Math.random() * npcs.length)];
-      // NPCs bid around the market price with some variance
-      const priceVariance = 0.7 + Math.random() * 0.6; // 0.7 - 1.3x
-      const maxPrice = Math.round(minPrice * priceVariance * (1 + blockNumber * 0.1) * 10) / 10;
-      // NPCs spend between 20-100 pesos
-      const totalSpend = Math.round((20 + Math.random() * 80) * 10) / 10;
-
-      npcBids.push({
-        id: `npc-bid-${blockNumber}-${i}-${Date.now()}`,
-        bidderId: `npc-${npc.id}-${blockNumber}-${i}`,
-        bidderName: npc.name,
-        maxPrice,
-        totalSpend,
-      });
-    }
-
-    return npcBids;
-  }, [npcs]);
-
   // Start a new auction manually
   const startAuction = () => {
     if (tokens.length <= 5) {
@@ -1047,21 +1022,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     const tokensPerBlock = totalSupply / blocksCount;
     const startPrice = 5;
 
-    // Generate auction blocks with NPC bids already placed
-    const auctionBlocks = Array.from({ length: blocksCount }, (_, i) => {
-      const blockNumber = i + 1;
-      const npcBids = generateNPCBids(blockNumber, startPrice);
-
-      return {
-        id: `block-${blockNumber}`,
-        blockNumber,
-        tokensAvailable: tokensPerBlock,
-        currentPrice: startPrice + i,
-        minPrice: startPrice,
-        bids: npcBids, // Start with NPC bids
-        executed: false,
-      };
-    });
+    const auctionBlocks = Array.from({ length: blocksCount }, (_, i) => ({
+      id: `block-${i + 1}`,
+      blockNumber: i + 1,
+      tokensAvailable: tokensPerBlock,
+      currentPrice: startPrice + i,
+      minPrice: startPrice,
+      bids: [],
+      executed: false,
+    }));
 
     setAuction({
       id: `auction-${Date.now()}`,
