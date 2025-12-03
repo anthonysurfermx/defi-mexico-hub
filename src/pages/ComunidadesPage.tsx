@@ -229,6 +229,7 @@ const CommunidadesPage = () => {
                   {...community}
                   logo={(community as any).image_url || community.logo_url}
                   socialLinks={(community as any).links || community.social_links}
+                  members={community.member_count ?? 0}
                   isActive={community.is_verified ?? true}
                   isFeatured={community.is_featured ?? false}
                   isOfficial={(community as any).is_official ?? false}
