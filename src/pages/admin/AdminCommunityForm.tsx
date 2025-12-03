@@ -153,7 +153,16 @@ const AdminCommunityForm = () => {
   };
   const platforms = ["Discord", "Telegram", "Meetup", "WhatsApp", "Slack", "Facebook", "LinkedIn"];
   const regions = ["Nacional", "CDMX", "Guadalajara", "Monterrey", "Tijuana", "Mérida", "Puebla", "Online"];
-  const types = ["DeFi", "Blockchain", "NFT", "Trading", "Desarrollo", "DAO", "Educación"];
+  // Categorías válidas según el constraint de Supabase (communities_category_check)
+  const types = [
+    { value: "defi", label: "DeFi" },
+    { value: "blockchain", label: "Blockchain" },
+    { value: "nft", label: "NFT" },
+    { value: "trading", label: "Trading" },
+    { value: "desarrollo", label: "Desarrollo" },
+    { value: "dao", label: "DAO" },
+    { value: "educacion", label: "Educación" }
+  ];
 
   const handleInputChange = (field: keyof CommunityFormData, value: string | number | boolean) => {
     setFormData(prev => ({
@@ -217,7 +226,7 @@ const AdminCommunityForm = () => {
       long_description: formData.longDescription || null,
       image_url: formData.logo || null, // BD usa image_url
       slug: slug,
-      category: formData.type || 'DeFi',
+      category: formData.type || 'defi',
       member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
       tags: formData.tags.length > 0 ? formData.tags : null,
       links: { // BD usa links (no social_links)
@@ -598,8 +607,8 @@ const AdminCommunityForm = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {types.map(type => (
-                                <SelectItem key={type} value={type}>
-                                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
