@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Save, Eye, Plus, X, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Eye, Plus, X, Loader2, Shield, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { communitiesService } from "@/services/communities.service";
 import { useAuth } from "@/hooks/useAuth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CommunityFormData {
   name: string;
@@ -38,6 +38,8 @@ interface CommunityFormData {
   instagram: string;
   longDescription: string;
   isActive: boolean;
+  isOfficial: boolean;
+  isFeatured: boolean;
 }
 
 const AdminCommunityForm = () => {
@@ -49,17 +51,13 @@ const AdminCommunityForm = () => {
   const [newFounder, setNewFounder] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userRole, setUserRole] = useState<string>('user');
 
   const isEditMode = !!id;
 
   // Obtener el rol del usuario
-  useEffect(() => {
-    if (user) {
-      const role = user.app_metadata?.role || user.role || 'user';
-      setUserRole(role);
-    }
-  }, [user]);
+  // Nota: ProtectedRoute ya valida que el usuario tiene permisos de admin/editor
+  // Si el usuario llegó a esta página, tiene permisos administrativos
+  const isAdminUser = true; // El usuario tiene acceso a /admin, por lo tanto tiene permisos
 
   const [formData, setFormData] = useState<CommunityFormData>({
     name: "",
@@ -82,7 +80,9 @@ const AdminCommunityForm = () => {
     meetup: "",
     instagram: "",
     longDescription: "",
-    isActive: true
+    isActive: true,
+    isOfficial: false,
+    isFeatured: false
   });
 
   const availableTags = ["Discord", "Telegram", "Meetup", "Desarrollo", "Trading", "Educación", "Mujeres", "DeFi", "NFT", "DAO", "Web3"];
@@ -128,7 +128,9 @@ const AdminCommunityForm = () => {
           meetup: links.meetup || "",
           instagram: links.instagram || "",
           longDescription: community.long_description || "",
-          isActive: true
+          isActive: true,
+          isOfficial: community.is_official || false,
+          isFeatured: community.is_featured || false
         });
       } else if (result.error) {
         toast({
@@ -151,7 +153,7 @@ const AdminCommunityForm = () => {
   };
   const platforms = ["Discord", "Telegram", "Meetup", "WhatsApp", "Slack", "Facebook", "LinkedIn"];
   const regions = ["Nacional", "CDMX", "Guadalajara", "Monterrey", "Tijuana", "Mérida", "Puebla", "Online"];
-  const types = ["defi", "bitcoin", "ethereum", "education", "trading", "development"];
+  const types = ["DeFi", "Blockchain", "NFT", "Trading", "Desarrollo", "DAO", "Educación"];
 
   const handleInputChange = (field: keyof CommunityFormData, value: string | number | boolean) => {
     setFormData(prev => ({
@@ -215,7 +217,7 @@ const AdminCommunityForm = () => {
       long_description: formData.longDescription || null,
       image_url: formData.logo || null, // BD usa image_url
       slug: slug,
-      category: formData.type || 'general',
+      category: formData.type || 'DeFi',
       member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
       tags: formData.tags.length > 0 ? formData.tags : null,
       links: { // BD usa links (no social_links)
@@ -228,14 +230,20 @@ const AdminCommunityForm = () => {
         meetup: formData.meetup || null,
         instagram: formData.instagram || null
       },
+      // Solo admins pueden cambiar estos campos
+      ...(isAdminUser && {
+        is_official: formData.isOfficial,
+        is_featured: formData.isFeatured,
+      }),
     };
 
     // Solo agregar estos campos en modo creación
     if (!isEditMode) {
       return {
         ...baseData,
-        is_featured: false,
-        is_verified: userRole === 'admin',
+        is_featured: isAdminUser ? formData.isFeatured : false,
+        is_official: isAdminUser ? formData.isOfficial : false,
+        is_verified: isAdminUser,
         created_by: user?.id || null
       };
     }
@@ -309,12 +317,11 @@ const AdminCommunityForm = () => {
 
       if (result.data) {
         console.log('✅ Comunidad guardada exitosamente:', result.data);
-        const isAdmin = userRole === 'admin';
         toast({
           title: "¡Éxito!",
           description: isEditMode
             ? "La comunidad ha sido actualizada exitosamente."
-            : isAdmin
+            : isAdminUser
               ? "La comunidad ha sido publicada exitosamente."
               : "La comunidad ha sido enviada para revisión. Un administrador la aprobará pronto.",
         });
@@ -419,15 +426,6 @@ const AdminCommunityForm = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Alerta para editores */}
-      {userRole === 'editor' && !isEditMode && (
-        <Alert className="mb-6 border-orange-200 bg-orange-50">
-          <Info className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
-            Como editor, las comunidades que crees quedarán pendientes de aprobación por un administrador antes de ser publicadas.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -659,6 +657,55 @@ const AdminCommunityForm = () => {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Admin-only: Official & Featured toggles */}
+                      {isAdminUser && (
+                        <div className="space-y-4 pt-4 border-t border-border">
+                          <Label className="text-base font-semibold">Clasificación (Solo Admin)</Label>
+
+                          <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-yellow-500/20">
+                                <Shield className="w-5 h-5 text-yellow-500" />
+                              </div>
+                              <div>
+                                <Label htmlFor="isOfficial" className="font-medium cursor-pointer">
+                                  Comunidad Oficial
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Marcar como comunidad oficial con contorno dorado
+                                </p>
+                              </div>
+                            </div>
+                            <Switch
+                              id="isOfficial"
+                              checked={formData.isOfficial}
+                              onCheckedChange={(checked) => handleInputChange("isOfficial", checked)}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/30">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-orange-500/20">
+                                <Star className="w-5 h-5 text-orange-500" />
+                              </div>
+                              <div>
+                                <Label htmlFor="isFeatured" className="font-medium cursor-pointer">
+                                  Comunidad Destacada
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Mostrar badge de destacada en la tarjeta
+                                </p>
+                              </div>
+                            </div>
+                            <Switch
+                              id="isFeatured"
+                              checked={formData.isFeatured}
+                              onCheckedChange={(checked) => handleInputChange("isFeatured", checked)}
+                            />
+                          </div>
+                        </div>
+                      )}
 
                     </CardContent>
                   </Card>

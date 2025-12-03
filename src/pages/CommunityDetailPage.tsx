@@ -26,6 +26,24 @@ import { motion } from "framer-motion";
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
 
+// Helper para obtener avatar de Twitter/X usando unavatar.io
+const getTwitterAvatar = (twitterUrl: string): string | null => {
+  try {
+    // Soporta tanto twitter.com como x.com
+    let username = twitterUrl.split('twitter.com/')[1]?.split(/[/?#]/)[0];
+    if (!username) {
+      username = twitterUrl.split('x.com/')[1]?.split(/[/?#]/)[0];
+    }
+    if (username) {
+      username = username.replace('@', '');
+      return `https://unavatar.io/twitter/${username}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 const CommunityDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -115,9 +133,20 @@ const CommunityDetailPage = () => {
   }
 
   // Extraer datos seguros de la comunidad
-  const logoUrl = community.image_url?.toString() || '';
-  const bannerUrl = community.banner_url?.toString() || '';
   const socialLinks = community.links || {};
+  const twitterAvatar = socialLinks?.twitter ? getTwitterAvatar(socialLinks.twitter as string) : null;
+  const logoUrl = community.image_url?.toString() || twitterAvatar || '';
+  const bannerUrl = community.banner_url?.toString() || '';
+
+  // Debug: ver qué datos llegan
+  console.log('🔍 Debug Community:', {
+    name: community.name,
+    image_url: community.image_url,
+    links: community.links,
+    socialLinks,
+    twitterAvatar,
+    logoUrl
+  });
   const tags = Array.isArray(community.tags) ? community.tags : [];
   const moderators = community.moderators && typeof community.moderators === 'object' 
     ? Object.keys(community.moderators) 

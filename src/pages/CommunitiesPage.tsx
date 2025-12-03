@@ -507,6 +507,7 @@ const CommunitiesPage = () => {
                     socialLinks={(community as any).links}
                     isActive={community.is_verified}
                     isFeatured={community.is_featured}
+                    isOfficial={(community as any).is_official}
                     slug={community.slug}
                   />
                 </motion.div>

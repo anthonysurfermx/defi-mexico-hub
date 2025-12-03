@@ -30,6 +30,8 @@ interface CommunityCardProps {
   socialLinks?: any;
   isActive?: boolean;
   isFeatured?: boolean;
+  isOfficial?: boolean;
+  is_official?: boolean;
   foundedDate?: string | null;
   slug?: string;
 }
@@ -45,6 +47,24 @@ const categoryColors: Record<string, string> = {
   default: "bg-gray-500/10 text-gray-500 border-gray-500/20"
 };
 
+// Helper para obtener avatar de Twitter/X usando unavatar.io
+const getTwitterAvatar = (twitterUrl: string): string | null => {
+  try {
+    // Soporta tanto twitter.com como x.com
+    let username = twitterUrl.split('twitter.com/')[1]?.split(/[/?#]/)[0];
+    if (!username) {
+      username = twitterUrl.split('x.com/')[1]?.split(/[/?#]/)[0];
+    }
+    if (username) {
+      username = username.replace('@', '');
+      return `https://unavatar.io/twitter/${username}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export default function CommunityCard({
   id,
   name,
@@ -58,47 +78,74 @@ export default function CommunityCard({
   socialLinks,
   isActive = true,
   isFeatured = false,
+  isOfficial = false,
+  is_official = false,
   foundedDate,
   slug
 }: CommunityCardProps) {
+  const official = isOfficial ?? is_official ?? false;
   // Parsear social links si vienen como JSON
-  const parsedSocialLinks = typeof socialLinks === 'string' 
-    ? JSON.parse(socialLinks) 
+  const parsedSocialLinks = typeof socialLinks === 'string'
+    ? JSON.parse(socialLinks)
     : socialLinks || {};
 
   const categoryColor = categoryColors[category?.toLowerCase()] || categoryColors.default;
   const memberCount = typeof members === 'number' ? members.toLocaleString() : members;
+  const categoryBadgeClass = cn(
+    "text-xs",
+    categoryColor,
+    official && "border-slate-300/80 text-slate-100 bg-slate-500/10 shadow-[0_0_0_1px_rgba(148,163,184,0.35)]"
+  );
 
   // Calcular años desde fundación
   const foundedYear = foundedDate ? new Date(foundedDate).getFullYear() : null;
+
+  // Obtener imagen: prioridad logo > twitter avatar > inicial
+  const twitterAvatar = parsedSocialLinks?.twitter ? getTwitterAvatar(parsedSocialLinks.twitter) : null;
+  const displayImage = logo || twitterAvatar;
   
   return (
     <Card className={cn(
       "group relative overflow-hidden transition-all duration-300 hover:shadow-xl",
-      "bg-gradient-to-br from-card to-card/80 border-border/50",
-      isFeatured && "ring-2 ring-primary/20",
+      "bg-gradient-to-br from-card to-card/80",
+      official
+        ? [
+            "border-[1.5px] border-slate-200/80",
+            "ring-2 ring-slate-100/50",
+            "shadow-[0_0_0_1px_rgba(226,232,240,0.8),0_16px_40px_rgba(148,163,184,0.25)]",
+            "hover:border-slate-50 hover:shadow-[0_0_0_1px_rgba(248,250,252,0.9),0_20px_48px_rgba(148,163,184,0.35)]",
+            "backdrop-blur-sm"
+          ].join(" ")
+        : "border-border/50",
+      isFeatured && !official && "ring-2 ring-primary/20",
       !isActive && "opacity-60"
     )}>
-      {/* Featured Badge */}
-      {isFeatured && (
-        <div className="absolute top-3 right-3 z-10">
+      {/* Official & Featured Badges */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 items-end">
+        {official && (
+          <Badge className="bg-gradient-to-r from-slate-400 to-slate-500 text-white border-0 shadow-md">
+            <Shield className="w-3 h-3 mr-1" />
+            Oficial
+          </Badge>
+        )}
+        {isFeatured && !official && (
           <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
             <Star className="w-3 h-3 mr-1" />
             Destacada
           </Badge>
-        </div>
-      )}
+        )}
+      </div>
 
       <CardHeader className="pb-4">
         <div className="flex items-start gap-4">
           {/* Logo */}
           <div className="relative">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
-              {logo ? (
+              {displayImage ? (
                 <>
-                  <img 
-                    src={logo} 
-                    alt={name} 
+                  <img
+                    src={displayImage}
+                    alt={name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
@@ -126,7 +173,7 @@ export default function CommunityCard({
               {name}
             </h3>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className={cn("text-xs", categoryColor)}>
+              <Badge variant="outline" className={categoryBadgeClass}>
                 {category}
               </Badge>
               {isActive && (
