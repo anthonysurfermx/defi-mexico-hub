@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ConfettiBurst } from './ConfettiBurst';
 import { AuctionBlockTimeline } from './AuctionBlockTimeline';
+import { AuctionOnboarding } from './AuctionOnboarding';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,8 @@ import {
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
 
+const AUCTION_ONBOARDING_KEY = 'mercado_lp_auction_onboarding_complete';
+
 export const CCAView = () => {
   const { t } = useTranslation();
   const { player, auction, placeBid, advanceAuctionBlock, startAuction, resetAuction } = useGame();
@@ -40,9 +43,44 @@ export const CCAView = () => {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [playerTotalWon, setPlayerTotalWon] = useState(0);
   const [playerAvgPrice, setPlayerAvgPrice] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [pendingAuctionStart, setPendingAuctionStart] = useState(false);
 
   // Sound effects
   const { play: playBidSound } = useMercadoSound('bid');
+
+  // Check if onboarding was completed
+  const hasCompletedOnboarding = () => {
+    return localStorage.getItem(AUCTION_ONBOARDING_KEY) === 'true';
+  };
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(AUCTION_ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+
+    // If we were waiting to start an auction, start it now
+    if (pendingAuctionStart) {
+      startAuction();
+      toast.success(t('mercadoLP.cca.toasts.started'));
+      setConfettiKey(prev => prev + 1);
+      setPendingAuctionStart(false);
+    }
+  };
+
+  // Handle onboarding skip
+  const handleOnboardingSkip = () => {
+    localStorage.setItem(AUCTION_ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+
+    // If we were waiting to start an auction, start it now
+    if (pendingAuctionStart) {
+      startAuction();
+      toast.success(t('mercadoLP.cca.toasts.started'));
+      setConfettiKey(prev => prev + 1);
+      setPendingAuctionStart(false);
+    }
+  };
 
   // Verificar si la subasta terminó para mostrar resultados
   useEffect(() => {
@@ -135,6 +173,13 @@ export const CCAView = () => {
   };
 
   const handleStartAuction = () => {
+    // Show onboarding if user hasn't completed it yet
+    if (!hasCompletedOnboarding()) {
+      setPendingAuctionStart(true);
+      setShowOnboarding(true);
+      return;
+    }
+
     startAuction();
     toast.success(t('mercadoLP.cca.toasts.started'));
     setConfettiKey(prev => prev + 1);
@@ -542,6 +587,14 @@ export const CCAView = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Auction Onboarding Tutorial */}
+      {showOnboarding && (
+        <AuctionOnboarding
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
     </div>
   );
 };

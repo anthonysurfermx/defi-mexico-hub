@@ -4,8 +4,13 @@ import { SwapView } from '@/components/games/mercado-lp/components/SwapView';
 import { LiquidityView } from '@/components/games/mercado-lp/components/LiquidityView';
 import { TokenCreatorView } from '@/components/games/mercado-lp/components/TokenCreatorView';
 import { CCAView } from '@/components/games/mercado-lp/components/CCAView';
+import { TradingLeagueView } from '@/components/games/mercado-lp/components/TradingLeagueView';
+import { MarketMakerView } from '@/components/games/mercado-lp/components/MarketMakerView';
 import { PlayerStatsPanel } from '@/components/games/mercado-lp/components/PlayerStatsPanel';
 import { NPCActivityFeed } from '@/components/games/mercado-lp/components/NPCActivityFeed';
+import { DailyChallengesPanel } from '@/components/games/mercado-lp/components/DailyChallengesPanel';
+import { StreakRewardsPanel } from '@/components/games/mercado-lp/components/StreakRewardsPanel';
+import { MarketEventsBanner } from '@/components/games/mercado-lp/components/MarketEventsBanner';
 import { ContextualTip } from '@/components/games/mercado-lp/components/ContextualTip';
 import { MarketPlazaMap } from '@/components/games/mercado-lp/components/MarketPlazaMap';
 import { BadgeNotification } from '@/components/games/mercado-lp/components/BadgeNotification';
@@ -15,6 +20,8 @@ import { StartScreen } from '@/components/games/mercado-lp/components/StartScree
 import { GameHeader } from '@/components/games/mercado-lp/components/GameHeader';
 import { OnboardingTutorial } from '@/components/games/mercado-lp/components/OnboardingTutorial';
 import { LoginPromptModal } from '@/components/games/mercado-lp/components/LoginPromptModal';
+import { AuctionTutorial } from '@/components/games/mercado-lp/components/AuctionTutorial';
+import { useGameEnhancements } from '@/components/games/mercado-lp/hooks/useGameEnhancements';
 import { GameLevel } from '@/components/games/mercado-lp/types/game';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,7 +31,7 @@ type LoginPromptReason = 'level_up' | 'xp_milestone' | 'leaderboard' | 'nft_clai
 const GameContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar, setPlayerCharacterName } = useGame();
+  const { currentLevel, activeTip, dismissTip, showMap, showStartScreen, isLoaded, openMap, closeMap, closeStartScreen, setCurrentLevel, newBadge, dismissBadge, levelUpNotification, dismissLevelUp, player, setPlayerAvatar, setPlayerCharacterName, tokens, pools, placeBid, advanceAuctionBlock } = useGame();
   const [showNFTModal, setShowNFTModal] = useState(false);
   const [autoShowMintWidget, setAutoShowMintWidget] = useState(false);
   const [hasShownNFTModal, setHasShownNFTModal] = useState(false);
@@ -32,6 +39,22 @@ const GameContent = () => {
   const [loginPromptReason, setLoginPromptReason] = useState<LoginPromptReason | null>(null);
   const [previousLevel, setPreviousLevel] = useState(player.level);
   const [previousXP, setPreviousXP] = useState(player.xp);
+
+  // Game enhancements hook - provides daily challenges, events, streaks, leagues, etc.
+  const enhancements = useGameEnhancements({
+    playerLevel: player.level,
+    playerXP: player.xp,
+    playerName: player.characterName || 'Trader',
+    playerAvatar: player.avatar || '/player.png',
+    onAddXP: (amount, source) => {
+      // XP is handled by GameContext, but we can track it here for enhancements
+      console.log(`Enhancement XP: +${amount} from ${source}`);
+    },
+    onAddTokens: (tokenId, amount) => {
+      // Token rewards from challenges/streaks would go through GameContext
+      console.log(`Enhancement tokens: +${amount} ${tokenId}`);
+    },
+  });
 
   // Check if a login prompt should be shown
   const shouldShowPrompt = useCallback((reason: LoginPromptReason) => {
@@ -173,6 +196,14 @@ const GameContent = () => {
       />
 
       <div className="container mx-auto px-4 pb-8">
+        {/* Market Events Banner - shows active events at the top */}
+        {enhancements.activeEvents.length > 0 && (
+          <MarketEventsBanner
+            events={enhancements.activeEvents}
+            onDismiss={enhancements.dismissEvent}
+          />
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main game area */}
           <div className="lg:col-span-2">
@@ -180,15 +211,67 @@ const GameContent = () => {
             {currentLevel === 2 && <LiquidityView />}
             {currentLevel === 3 && <TokenCreatorView />}
             {currentLevel === 4 && <CCAView />}
+            {currentLevel === 5 && enhancements.tradingLeague && (
+              <TradingLeagueView
+                league={enhancements.tradingLeague}
+                onNavigateToSwap={() => setCurrentLevel(1)}
+                onNavigateToLP={() => setCurrentLevel(2)}
+              />
+            )}
+            {currentLevel === 6 && (
+              <MarketMakerView
+                playerLevel={player.level}
+                tokens={tokens}
+                pools={pools}
+                marketMakerStats={enhancements.marketMakerStats}
+              />
+            )}
           </div>
 
           {/* Side panels */}
           <div className="space-y-4">
+            {/* Streak rewards - shows at the top if there are claimable rewards */}
+            {enhancements.streakState && (
+              <StreakRewardsPanel
+                streakState={enhancements.streakState}
+                onClaimReward={enhancements.claimStreakReward}
+                onClaimDailyBonus={enhancements.claimDailyBonus}
+              />
+            )}
+
+            {/* Daily challenges */}
+            {enhancements.dailyChallenges && (
+              <DailyChallengesPanel
+                challengesState={enhancements.dailyChallenges}
+                onClaimAllBonus={enhancements.claimAllCompletedBonus}
+              />
+            )}
+
             <NPCActivityFeed />
             <PlayerStatsPanel />
           </div>
         </div>
       </div>
+
+      {/* Auction Tutorial - Level 4 */}
+      {currentLevel === 4 && enhancements.auctionTutorial && enhancements.auctionTutorial.isActive && (
+        <AuctionTutorial
+          tutorialState={enhancements.auctionTutorial}
+          onUpdateState={enhancements.setAuctionTutorial}
+          onPlaceBid={(maxPrice, totalSpend) => {
+            placeBid(1, {
+              id: `tutorial-bid-${Date.now()}`,
+              bidderId: 'player',
+              bidderName: player.characterName || 'Player',
+              maxPrice,
+              totalSpend,
+            });
+          }}
+          onAdvanceBlock={advanceAuctionBlock}
+          onComplete={() => enhancements.setAuctionTutorial(prev => prev ? { ...prev, completed: true, isActive: false } : prev)}
+          onDismiss={() => enhancements.setAuctionTutorial(prev => prev ? { ...prev, isActive: false } : prev)}
+        />
+      )}
 
       {/* Badge notifications */}
       <BadgeNotification badge={newBadge} onDismiss={dismissBadge} />

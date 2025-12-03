@@ -550,13 +550,13 @@
     },
     "cca": {
       "banner": {
-        "title": "Nivel 4: Subastero - Continuous Clearing Auctions",
-        "body": "¿Recuerdas crear tokens en N3? Aquí aprendes otra forma de distribuirlos: subastas por bloques donde el precio se ajusta según demanda real.",
-        "concept": "Concepto DeFi: Continuous Clearing Auctions + Fair Price Discovery"
+        "title": "Nivel 4: El Subastero",
+        "body": "Aprende a distribuir frutas con subastas justas. Todos ofertan y el mercado decide el precio final - ¡podrías pagar menos de lo que ofreciste!",
+        "concept": "Concepto DeFi: Descubrimiento de Precio Justo"
       },
       "noAuction": {
-        "title": "No hay subasta activa",
-        "body": "Inicia una nueva subasta para participar en el descubrimiento de precios.",
+        "title": "No hay subastas activas",
+        "body": "Inicia una nueva subasta para aprender cómo funciona el descubrimiento de precios.",
         "start": "Iniciar Subasta",
         "note": "Nota: Necesitas haber creado al menos un token en el Nivel 3"
       },
@@ -567,37 +567,39 @@
         "minPrice": "El precio debe ser al menos ${{price}}"
       },
       "toasts": {
-        "firstBid": "¡Primera oferta colocada! 🎉 El precio de clearing se ajustará según todas las ofertas.",
-        "bidPlaced": "¡Oferta colocada en Bloque {{block}}! 🔨",
-        "started": "¡Subasta iniciada! Coloca tus ofertas. 🔨",
+        "firstBid": "¡Primera oferta colocada! 🎉 Al final de la ronda, se calculará un precio único para todos.",
+        "bidPlaced": "¡Oferta colocada en Ronda {{block}}! 🔨",
+        "started": "¡Subasta iniciada! Los compradores están llegando... 🔨",
         "ended": "La subasta ya terminó.",
-        "blockRun": "Bloque {{block}} ejecutado!",
+        "blockRun": "¡Ronda {{block}} terminada! Veamos los resultados...",
         "reset": "Subasta reiniciada. Puedes iniciar una nueva."
       },
       "labels": {
         "title": "Mercado LP",
         "subtitle": "El Subastero",
         "token": "Subasta: {{emoji}} {{symbol}}",
-        "budget": "Presupuesto: {{amount}} PESO",
-        "selectBlock": "Elige bloque",
-        "maxPrice": "Precio máximo por token",
-        "totalSpend": "Gasto total",
+        "budget": "Frutas disponibles: {{amount}}",
+        "selectBlock": "Elige la ronda",
+        "maxPrice": "Tu precio máximo por fruta",
+        "totalSpend": "Cuánto quieres gastar",
         "have": "Tienes: {{amount}} PESO",
-        "estReceive": "Tokens estimados: {{amount}}",
-        "ctaBid": "Colocar oferta",
-        "ctaAdvance": "Ejecutar siguiente bloque",
+        "estReceive": "Frutas estimadas: ~{{amount}}",
+        "ctaBid": "Ofertar",
+        "ctaAdvance": "Cerrar ronda",
         "ctaResults": "Ver resultados",
-        "ctaReset": "Reiniciar subasta",
-        "helpTitle": "¿Cómo funciona la CCA?",
+        "ctaReset": "Nueva subasta",
+        "helpTitle": "¿Cómo funciona?",
         "helpBody": [
-          "Ofertas por bloque: defines precio máximo y gasto total.",
-          "El precio de clearing se calcula al final del bloque según demanda.",
-          "Recibes tokens al mejor precio disponible bajo tu tope."
+          "1. Haces tu oferta: defines el máximo que pagarías y cuánto gastar.",
+          "2. Otros compradores (NPCs) también ofertan en secreto.",
+          "3. Al cerrar la ronda, se calcula UN precio único para todos.",
+          "4. Si tu oferta es mayor o igual al precio único, ¡ganas! Y pagas el precio único, no el tuyo.",
+          "💡 Tip: Oferta tu precio real. Si ganas, podrías pagar mucho menos."
         ],
         "modalResults": {
           "title": "Resultados de la subasta",
-          "won": "Tokens ganados:",
-          "avg": "Precio promedio:",
+          "won": "Frutas ganadas:",
+          "avg": "Precio final:",
           "new": "🔄 Nueva Subasta",
           "ok": "¡Genial!"
         }

@@ -550,13 +550,13 @@
     },
     "cca": {
       "banner": {
-        "title": "Level 4: Auctioneer - Continuous Clearing Auctions",
-        "body": "Remember creating tokens in N3? Here’s another way to distribute them: block-based auctions where price adjusts to real demand.",
-        "concept": "DeFi concept: Continuous Clearing Auctions + Fair Price Discovery"
+        "title": "Level 4: The Auctioneer",
+        "body": "Learn to distribute fruits with fair auctions. Everyone bids and the market decides the final price - you might pay less than you offered!",
+        "concept": "DeFi concept: Fair Price Discovery"
       },
       "noAuction": {
-        "title": "No active auction",
-        "body": "Start a new auction to join price discovery.",
+        "title": "No active auctions",
+        "body": "Start a new auction to learn how price discovery works.",
         "start": "Start Auction",
         "note": "Note: You need at least one token created in Level 3"
       },
@@ -567,37 +567,39 @@
         "minPrice": "Price must be at least ${{price}}"
       },
       "toasts": {
-        "firstBid": "First bid placed! 🎉 Clearing price will adjust with all bids.",
-        "bidPlaced": "Bid placed on Block {{block}}! 🔨",
-        "started": "Auction started! Place your bids. 🔨",
+        "firstBid": "First bid placed! 🎉 At round end, a single price will be calculated for everyone.",
+        "bidPlaced": "Bid placed on Round {{block}}! 🔨",
+        "started": "Auction started! Buyers are arriving... 🔨",
         "ended": "Auction already ended.",
-        "blockRun": "Block {{block}} executed!",
+        "blockRun": "Round {{block}} finished! Let's see the results...",
         "reset": "Auction reset. You can start a new one."
       },
       "labels": {
         "title": "Mercado LP",
         "subtitle": "The Auctioneer",
         "token": "Auction: {{emoji}} {{symbol}}",
-        "budget": "Budget: {{amount}} PESO",
-        "selectBlock": "Pick block",
-        "maxPrice": "Max price per token",
-        "totalSpend": "Total spend",
+        "budget": "Fruits available: {{amount}}",
+        "selectBlock": "Pick the round",
+        "maxPrice": "Your max price per fruit",
+        "totalSpend": "How much to spend",
         "have": "You have: {{amount}} PESO",
-        "estReceive": "Estimated tokens: {{amount}}",
-        "ctaBid": "Place bid",
-        "ctaAdvance": "Run next block",
+        "estReceive": "Estimated fruits: ~{{amount}}",
+        "ctaBid": "Bid",
+        "ctaAdvance": "Close round",
         "ctaResults": "See results",
-        "ctaReset": "Reset auction",
-        "helpTitle": "How does CCA work?",
+        "ctaReset": "New auction",
+        "helpTitle": "How does it work?",
         "helpBody": [
-          "Bids by block: set max price and total spend.",
-          "Clearing price is set at block end based on demand.",
-          "You get tokens at the best price within your cap."
+          "1. You make a bid: define the max you'd pay and how much to spend.",
+          "2. Other buyers (NPCs) also bid secretly.",
+          "3. When the round closes, ONE single price is calculated for everyone.",
+          "4. If your bid is equal or higher than the single price, you win! And you pay the single price, not yours.",
+          "💡 Tip: Bid your real price. If you win, you might pay much less."
         ],
         "modalResults": {
           "title": "Auction results",
-          "won": "Tokens won:",
-          "avg": "Average price:",
+          "won": "Fruits won:",
+          "avg": "Final price:",
           "new": "🔄 New Auction",
           "ok": "Great!"
         }
