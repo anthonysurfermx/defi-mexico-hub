@@ -266,9 +266,9 @@ export default function HomePage() {
                   className="bg-card border rounded-2xl p-6 hover:shadow-lg transition-all group"
                 >
                   <div className="space-y-4">
-                    {community.logo_url ? (
+                    {((community as any).image_url || community.logo_url) ? (
                       <img
-                        src={community.logo_url}
+                        src={(community as any).image_url || community.logo_url}
                         alt={community.name}
                         className="w-12 h-12 rounded-xl object-cover"
                       />

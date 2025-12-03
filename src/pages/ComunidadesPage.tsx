@@ -225,7 +225,15 @@ const CommunidadesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 * index }}
               >
-                <CommunityCard {...community} />
+                <CommunityCard
+                  {...community}
+                  logo={(community as any).image_url || community.logo_url}
+                  socialLinks={(community as any).links || community.social_links}
+                  isActive={community.is_verified ?? true}
+                  isFeatured={community.is_featured ?? false}
+                  isOfficial={(community as any).is_official ?? false}
+                  foundedDate={community.founded_date}
+                />
               </motion.div>
             ))}
           </div>
