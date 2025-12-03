@@ -2,11 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { GameLevel } from '@/components/games/mercado-lp/types/game';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Volume2, VolumeX, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMarketPlazaAmbient, useSoundMute } from '@/hooks/useMercadoSound';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import {
+  PixelStore,
+  PixelMango,
+  PixelLemon,
+  PixelWatermelon,
+  PixelBanana,
+  PixelChevronLeft,
+  PixelVolume,
+  PixelMute,
+  PixelX,
+  PixelInfo,
+} from './icons/GameIcons';
 
 // Componente de efecto typewriter para texto
 const TypewriterText = ({ text, speed = 30, onComplete }: { text: string; speed?: number; onComplete?: () => void }) => {
@@ -273,13 +284,13 @@ export const MarketPlazaMap = ({
         className="fixed inset-0 z-50 flex items-center justify-center"
         style={{ backgroundColor: '#f2a95c' }}
       >
-        {/* Botón sutil para regresar al home */}
+        {/* Botón pixel para regresar al home */}
         <Link
           to="/"
-          className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-amber-700/30 text-sm text-amber-900 hover:text-amber-950 hover:bg-white/80 transition-all duration-200 group"
+          className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 pixel-tag text-amber-900 hover:text-amber-950 transition-all duration-200 group"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span className="font-medium">DeFi México Hub</span>
+          <PixelChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          <span className="font-medium text-xs">DeFi México Hub</span>
         </Link>
 
         {/* Control de audio y selector de idioma */}
@@ -291,15 +302,17 @@ export const MarketPlazaMap = ({
               e.stopPropagation();
               toggleMute();
             }}
-            className="relative z-50 p-2 rounded-full bg-white/70 backdrop-blur-sm border border-amber-700/30 text-amber-900 hover:bg-white/90 transition-all duration-200 shadow-sm cursor-pointer"
+            className="relative z-50 p-2 pixel-tag text-amber-900 hover:bg-amber-200 transition-all duration-200 cursor-pointer"
             title={isMuted ? 'Activar sonido' : 'Silenciar'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? <PixelMute size={16} /> : <PixelVolume size={16} />}
           </button>
         </div>
 
         <div className="text-center space-y-6">
-          <div className="text-6xl animate-bounce">🏪</div>
+          <div className="animate-bounce flex justify-center">
+            <PixelStore size={64} className="text-amber-900" />
+          </div>
           <h2 className="text-2xl font-bold text-amber-900">{t('mercadoLP.map.loading')}</h2>
 
           {/* Barra de progreso */}
@@ -312,11 +325,11 @@ export const MarketPlazaMap = ({
             </div>
           </div>
 
-          <div className="flex justify-center gap-3">
-            <span className="text-2xl animate-pulse">🥭</span>
-            <span className="text-2xl animate-pulse" style={{ animationDelay: '0.15s' }}>🍋</span>
-            <span className="text-2xl animate-pulse" style={{ animationDelay: '0.3s' }}>🍉</span>
-            <span className="text-2xl animate-pulse" style={{ animationDelay: '0.45s' }}>🍌</span>
+          <div className="flex justify-center gap-3 items-center">
+            <span className="animate-pulse"><PixelMango size={28} /></span>
+            <span className="animate-pulse" style={{ animationDelay: '0.15s' }}><PixelLemon size={28} /></span>
+            <span className="animate-pulse" style={{ animationDelay: '0.3s' }}><PixelWatermelon size={28} /></span>
+            <span className="animate-pulse" style={{ animationDelay: '0.45s' }}><PixelBanana size={28} /></span>
           </div>
         </div>
       </div>
@@ -333,13 +346,13 @@ export const MarketPlazaMap = ({
     >
       <div className="relative w-full h-full overflow-hidden">
 
-        {/* Botón sutil para regresar al home */}
+        {/* Botón pixel para regresar al home */}
         <Link
           to="/"
-          className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-amber-700/30 text-sm text-amber-900 hover:text-amber-950 hover:bg-white/90 transition-all duration-200 group shadow-sm"
+          className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-2 pixel-tag text-amber-900 hover:text-amber-950 transition-all duration-200 group"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span className="font-medium">DeFi México Hub</span>
+          <PixelChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+          <span className="font-medium text-xs">DeFi México Hub</span>
         </Link>
 
         {/* Control de audio y selector de idioma */}
@@ -351,17 +364,17 @@ export const MarketPlazaMap = ({
               e.stopPropagation();
               toggleMute();
             }}
-            className="relative z-50 p-2 rounded-full bg-white/70 backdrop-blur-sm border border-amber-700/30 text-amber-900 hover:bg-white/90 transition-all duration-200 shadow-sm cursor-pointer"
+            className="relative z-50 p-2 pixel-tag text-amber-900 hover:bg-amber-200 transition-all duration-200 cursor-pointer"
             title={isMuted ? 'Activar sonido' : 'Silenciar'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? <PixelMute size={16} /> : <PixelVolume size={16} />}
           </button>
           <Button variant="secondary" size="sm" className="pixel-button" onClick={onClose}>
             {t('mercadoLP.map.enter')}
           </Button>
         </div>
 
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 pixel-card bg-card/60 backdrop-blur-sm px-4 py-2 text-sm font-bold tracking-wide">
+        <div className="hidden sm:block absolute top-3 left-1/2 -translate-x-1/2 pixel-card bg-card/60 backdrop-blur-sm px-4 py-2 text-sm font-bold tracking-wide">
           {t('mercadoLP.header.title')}
         </div>
 
@@ -394,10 +407,10 @@ export const MarketPlazaMap = ({
                 }}
               >
                 <div className={cn(
-                  "text-xs mt-1 px-3 py-1 bg-amber-100 text-amber-900 border-2 border-amber-700/50 rounded-sm shadow-md font-semibold",
+                  "text-xs mt-1 pixel-tag",
                   floatClass
                 )}>
-                  <span className="text-green-700 font-bold">N{zone.id}</span> - {t(stallDialog[zone.id].title)}
+                  <span className="text-emerald-700 font-bold">N{zone.id}</span> <span className="text-amber-800">- {t(stallDialog[zone.id].title)}</span>
                 </div>
               </div>
             );
@@ -415,14 +428,14 @@ export const MarketPlazaMap = ({
           />
 
           {nearStall && !dialogZone && (
-            <div className="absolute left-1/2 bottom-4 -translate-x-1/2 pixel-card bg-amber-50 border-2 border-amber-700/50 px-4 py-3 text-sm flex items-center gap-3 shadow-lg">
-              <span className="text-lg">❗</span>
+            <div className="absolute left-1/2 bottom-4 -translate-x-1/2 pixel-dialog px-4 py-3 text-sm flex items-center gap-3 animate-slide-up">
+              <PixelInfo size={20} className="text-amber-700" />
               <div>
                 <p className="font-semibold text-amber-900">{t(stallDialog[nearStall.id].title)}</p>
                 <p className="text-xs text-amber-700">{t('mercadoLP.map.enter')}</p>
               </div>
               <Button
-                className="pixel-button"
+                className="pixel-button bg-green-600 hover:bg-green-700 border-green-800"
                 onClick={() => {
                   if (nearStall.id) {
                     openDialogForZone(nearStall);
@@ -435,23 +448,30 @@ export const MarketPlazaMap = ({
           )}
 
           {dialogZone && (
-            <div className="absolute left-1/2 bottom-6 -translate-x-1/2 w-[90%] max-w-3xl pixel-card bg-amber-50 border-4 border-green-700/60 shadow-xl">
-              {/* Botón de cerrar */}
+            <div
+              className="absolute w-[280px] sm:w-[320px] pixel-dialog animate-slide-up z-20"
+              style={{
+                // Posicionar debajo del personaje seleccionado
+                left: `${Math.min(Math.max(dialogZone.area.left - 5, 5), 65)}%`,
+                top: `${Math.min(dialogZone.area.top + dialogZone.area.height + 2, 75)}%`,
+              }}
+            >
+              {/* Botón de cerrar pixel */}
               <button
                 onClick={() => setDialogZone(null)}
-                className="absolute -top-3 -right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors border-2 border-white"
+                className="absolute -top-3 -right-3 pixel-close-btn"
                 title="Cerrar"
               >
-                <X className="w-4 h-4" />
+                <PixelX size={12} />
               </button>
 
-              <div className="px-4 py-3 border-b-2 border-green-700/30 bg-gradient-to-r from-green-100 to-amber-100 space-y-1">
-                <p className="text-sm font-bold tracking-wide text-green-800">{t(stallDialog[dialogZone.id].title)}</p>
-                <p className="text-xs text-amber-700 font-medium">
+              <div className="pixel-dialog-header">
+                <p className="text-sm font-bold tracking-wide text-white">{t(stallDialog[dialogZone.id].title)}</p>
+                <p className="text-xs text-emerald-200 font-medium">
                   {t(stallDialog[dialogZone.id].subtitle)}
                 </p>
               </div>
-              <div className="px-4 py-3 text-sm leading-relaxed text-amber-900 min-h-[60px]">
+              <div className="px-4 py-3 text-sm leading-relaxed text-amber-900 h-[80px] overflow-y-auto">
                 <p>
                   <TypewriterText
                     key={dialogZone.id}
@@ -460,11 +480,11 @@ export const MarketPlazaMap = ({
                   />
                 </p>
               </div>
-              <div className="px-4 py-3 flex justify-end gap-2 border-t border-amber-200">
-                <Button variant="outline" className="pixel-button" onClick={() => setDialogZone(null)}>
+              <div className="px-4 py-3 flex justify-end gap-2 border-t-2 border-amber-700/30">
+                <Button variant="outline" className="pixel-button text-xs" size="sm" onClick={() => setDialogZone(null)}>
                   {t('mercadoLP.map.close')}
                 </Button>
-                <Button className="pixel-button" onClick={handleContinue}>
+                <Button className="pixel-button bg-green-600 hover:bg-green-700 border-green-800 text-xs" size="sm" onClick={handleContinue}>
                   {t('mercadoLP.map.enter')}
                 </Button>
               </div>

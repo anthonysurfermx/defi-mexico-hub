@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { getPlayerLevel, getXPProgress, getXPMultiplier, getFeeDiscount } from '@/components/games/mercado-lp/data/playerLevels';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Percent, Clock } from 'lucide-react';
+import { TokenIcon } from './icons/GameIcons';
 
 /**
  * Cap diario de XP escalado por nivel del jugador
@@ -176,7 +177,7 @@ export const PlayerStatsPanel = () => {
               return (
                 <div key={tokenId} className="pixel-card bg-muted p-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{token.emoji}</span>
+                    <TokenIcon tokenId={token.id} size={24} />
                     <span className="text-xs font-bold">{token.symbol}</span>
                   </div>
                   <span className="text-xs font-mono">{amount.toFixed(2)}</span>

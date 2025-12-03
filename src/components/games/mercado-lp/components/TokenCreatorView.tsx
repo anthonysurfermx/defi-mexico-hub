@@ -30,6 +30,8 @@ import {
   SproutIcon,
   DropIcon,
   QuestionIcon,
+  TokenIcon,
+  PixelMoney,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
 import { useTranslation } from 'react-i18next';
@@ -261,7 +263,9 @@ export const TokenCreatorView = () => {
                   <SelectContent>
                     {tokens.filter(t => t.isBaseToken).map(token => (
                       <SelectItem key={token.id} value={token.id}>
-                        {token.emoji} {token.symbol}
+                        <span className="flex items-center gap-1">
+                          <TokenIcon tokenId={token.id} size={16} /> {token.symbol}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -346,7 +350,9 @@ export const TokenCreatorView = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {tokens.filter(t => !t.isBaseToken).map(token => (
               <div key={token.id} className="pixel-card bg-card/70 p-3 text-center">
-                <div className="text-4xl mb-2">{token.emoji}</div>
+                <div className="flex justify-center mb-2">
+                  <TokenIcon tokenId={token.id} size={40} />
+                </div>
                 <p className="text-xs font-bold">{token.name}</p>
                 <p className="text-xs text-muted-foreground">{token.symbol}</p>
                 <div className="mt-2 text-xs">

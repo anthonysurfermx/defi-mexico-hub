@@ -1,5 +1,6 @@
 import { Token } from '@/components/games/mercado-lp/types/game';
 import { cn } from '@/lib/utils';
+import { TokenIcon, PixelStore } from './icons/GameIcons';
 
 interface LiquidityBasketProps {
   tokenA: Token;
@@ -34,12 +35,12 @@ export const LiquidityBasket = ({
   const previewCountA = previewAmountA ? getFruitCount(previewAmountA) : 0;
   const previewCountB = previewAmountB ? getFruitCount(previewAmountB) : 0;
 
-  const renderFruits = (count: number, emoji: string, isPreview = false) => {
+  const renderFruits = (count: number, tokenId: string, isPreview = false) => {
     return Array.from({ length: count }).map((_, i) => (
       <span
         key={i}
         className={cn(
-          'text-3xl transition-all duration-300',
+          'transition-all duration-300',
           isPreview ? 'opacity-40 animate-pulse' : 'animate-fade-in',
           'inline-block'
         )}
@@ -47,7 +48,7 @@ export const LiquidityBasket = ({
           animationDelay: `${i * 50}ms`,
         }}
       >
-        {emoji}
+        <TokenIcon tokenId={tokenId} size={28} />
       </span>
     ));
   };
@@ -62,8 +63,9 @@ export const LiquidityBasket = ({
 
       <div className="relative z-10">
         <div className="text-center mb-4">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">
-            🏪 Tu Puesto de Liquidez
+          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide flex items-center justify-center gap-2">
+            <PixelStore size={18} className="text-primary" />
+            Tu Puesto de Liquidez
           </h3>
         </div>
 
@@ -72,17 +74,19 @@ export const LiquidityBasket = ({
           <div className="flex flex-col items-center justify-center space-y-3">
             <div className="pixel-card bg-card/80 p-4 min-h-[120px] w-full flex flex-wrap gap-2 items-center justify-center">
               {fruitCountA === 0 && previewCountA === 0 ? (
-                <div className="text-4xl opacity-20">🧺</div>
+                <div className="opacity-20">
+                  <TokenIcon tokenId="mango" size={40} />
+                </div>
               ) : (
                 <>
-                  {renderFruits(fruitCountA, tokenA.emoji)}
-                  {renderFruits(previewCountA, tokenA.emoji, true)}
+                  {renderFruits(fruitCountA, tokenA.id)}
+                  {renderFruits(previewCountA, tokenA.id, true)}
                 </>
               )}
             </div>
             <div className="text-center space-y-1">
               <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl">{tokenA.emoji}</span>
+                <TokenIcon tokenId={tokenA.id} size={24} />
                 <span className="text-lg font-bold">{tokenA.symbol}</span>
               </div>
               <div className="text-2xl font-bold text-primary">
@@ -103,17 +107,19 @@ export const LiquidityBasket = ({
           <div className="flex flex-col items-center justify-center space-y-3">
             <div className="pixel-card bg-card/80 p-4 min-h-[120px] w-full flex flex-wrap gap-2 items-center justify-center">
               {fruitCountB === 0 && previewCountB === 0 ? (
-                <div className="text-4xl opacity-20">🧺</div>
+                <div className="opacity-20">
+                  <TokenIcon tokenId="limon" size={40} />
+                </div>
               ) : (
                 <>
-                  {renderFruits(fruitCountB, tokenB.emoji)}
-                  {renderFruits(previewCountB, tokenB.emoji, true)}
+                  {renderFruits(fruitCountB, tokenB.id)}
+                  {renderFruits(previewCountB, tokenB.id, true)}
                 </>
               )}
             </div>
             <div className="text-center space-y-1">
               <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl">{tokenB.emoji}</span>
+                <TokenIcon tokenId={tokenB.id} size={24} />
                 <span className="text-lg font-bold">{tokenB.symbol}</span>
               </div>
               <div className="text-2xl font-bold text-primary">

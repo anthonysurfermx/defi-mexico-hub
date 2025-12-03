@@ -624,6 +624,32 @@
         "onePrice": "Un precio",
         "winnersPay": "Ganadores pagan igual"
       },
+      "bidsInBlock": {
+        "title": "Ofertas en este bloque:",
+        "max": "Máx",
+        "spend": "Gasto"
+      },
+      "yourBids": {
+        "title": "Tus ofertas activas",
+        "block": "Bloque",
+        "won": "Ganaste {{amount}} tokens",
+        "empty": "No tienes ofertas aún. ¡Coloca tu primera oferta arriba!"
+      },
+      "strategy": {
+        "title": "Estrategia del Subastero",
+        "tipLabel": "Tip:",
+        "tipBody": "Ofertar en bloques tempranos suele darte mejor precio promedio. Los bloques avanzados se vuelven más competidos y caros. Distribuye tu presupuesto inteligentemente entre varios bloques."
+      },
+      "helpModal": {
+        "title": "¿Qué es una Subasta Continua (CCA)?",
+        "intro": "Las Continuous Clearing Auctions distribuyen tokens en bloques a lo largo del tiempo. Esto incentiva participación temprana y descubrimiento justo de precios.",
+        "point1": "Cada bloque vende una porción de tokens",
+        "point2": "Pones precio máximo y gasto total",
+        "point3": "Al ejecutarse, pagas el precio de equilibrio (no tu máximo)",
+        "point4": "Bloques tempranos = precios más bajos",
+        "footer": "Inspirado en Uniswap v4 CCA hooks para lanzamientos justos de tokens.",
+        "ok": "Entendido"
+      },
       "errors": {
         "missing": "Completa precio máximo y gasto total.",
         "amount": "Pon números mayores que 0.",
@@ -760,6 +786,53 @@
           "title": "Market Maker",
           "desc": "Crea pools con hooks avanzados. Personaliza tu estrategia y maximiza rendimientos."
         }
+      }
+    },
+    "education": {
+      "title": "La Escuelita del Tianguis",
+      "units": {
+        "mangos": "mangos"
+      },
+      "labels": {
+        "before": "Antes",
+        "after": "Después",
+        "price": "Precio",
+        "same": "igual"
+      },
+      "magicPot": {
+        "title": "La olla mágica (x·y=k)",
+        "description": "Mueve el deslizador: quita mangos de la olla y mira cómo sube el precio.",
+        "explanation": "Al haber menos mangos, cada mango \"vale\" más limones. Esa es la fórmula x·y=k en acción."
+      },
+      "slippage": {
+        "title": "Impacto de precio (slippage)",
+        "description": "Si compras mucho de golpe, tú mismo subes el precio. Ajusta el tamaño de compra de mangos:",
+        "avgPrice": "Precio promedio",
+        "impact": "Impacto",
+        "receive": "Recibes ~{{amount}} limones.",
+        "tip": "Tip: en el mercado real, los grandes reparten su orden en partes para bajar el impacto."
+      },
+      "liquidity": {
+        "title": "Liquidez y propinas",
+        "description": "Pones dos frutas en la olla y ganas una parte de cada propina. Tu porcentaje define cuánta propina recibes.",
+        "point1": "Deposita ambas frutas en el ratio actual",
+        "point2": "Ganas fees de cada swap según tu porcentaje",
+        "point3": "Si el precio se mueve, cambia tu mezcla (IL)"
+      },
+      "createToken": {
+        "title": "Crea tu fruta y su mercado",
+        "description": "Inventar fruta no basta: debes abrir su olla con liquidez inicial. El precio de arranque lo pones tú; después manda el mercado.",
+        "point1": "Define ícono, símbolo y color",
+        "point2": "Empareja con otra fruta y deposita ambas",
+        "point3": "El depósito inicial fija el precio de arranque"
+      },
+      "quickTips": {
+        "title": "Tips rápidos",
+        "tip1": "Siempre mira el impacto antes de confirmar",
+        "tip2": "Divide swaps grandes en varios pequeños",
+        "tip3": "LP: elige rangos y hooks pensando en tu riesgo",
+        "tip4": "Crea token + pool; sin olla, nadie puede comprar",
+        "more": "Más: v4.uniswap.org · Auditorías v4-core en GitHub"
       }
     },
     "map": {

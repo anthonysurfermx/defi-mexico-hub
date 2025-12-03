@@ -3,7 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Check, X, ArrowRight, Sparkles } from 'lucide-react';
+import {
+  PixelSparkles,
+  PixelArrowRight,
+  PixelCheck,
+  PixelX,
+  PixelMoney,
+  PixelScale,
+  PixelCheckCircle,
+  PixelXCircle,
+  PixelPerson,
+  PixelParty,
+  LightbulbIcon,
+  PixelClock,
+} from './icons/GameIcons';
 
 interface Bid {
   name: string;
@@ -86,7 +99,7 @@ export function ClearingAnimation({
         {/* Header */}
         <div className="p-4 border-b border-violet-500/30 text-center">
           <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" />
+            <PixelSparkles size={20} className="text-amber-400" />
             {language === 'en' ? 'How Clearing Works' : 'Cómo funciona el Clearing'}
           </h2>
           <p className="text-violet-200 text-sm mt-1">
@@ -133,10 +146,11 @@ export function ClearingAnimation({
                   }}
                 >
                   <span className={cn(
-                    'font-medium text-sm',
+                    'font-medium text-sm flex items-center gap-1',
                     bid.isPlayer ? 'text-amber-300' : 'text-violet-200'
                   )}>
-                    {bid.isPlayer ? '👤 ' : '🤖 '}{bid.name}
+                    {bid.isPlayer ? <PixelPerson size={14} className="text-amber-300" /> : <PixelPerson size={14} className="text-violet-300" />}
+                    {bid.name}
                   </span>
 
                   <span className={cn(
@@ -156,12 +170,12 @@ export function ClearingAnimation({
                       <span className="text-violet-400 text-xs">...</span>
                     ) : isWinner ? (
                       <div className="flex items-center gap-1 text-green-400 text-xs">
-                        <Check className="w-3 h-3" />
+                        <PixelCheck size={12} className="text-green-400" />
                         <span>{bid.tokensWon.toFixed(1)} {tokenEmoji}</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 text-red-400 text-xs">
-                        <X className="w-3 h-3" />
+                        <PixelX size={12} className="text-red-400" />
                         <span>{language === 'en' ? 'Lost' : 'Perdió'}</span>
                       </div>
                     )}
@@ -193,7 +207,7 @@ export function ClearingAnimation({
             <div className="p-4 bg-green-900/30 border border-green-500/30 rounded-xl animate-in slide-in-from-bottom">
               {sortedBids.find(b => b.isPlayer && b.won) ? (
                 <div className="flex items-start gap-3">
-                  <div className="text-2xl">🎉</div>
+                  <PixelParty size={28} />
                   <div>
                     <p className="font-bold text-green-300">
                       {language === 'en' ? 'You won!' : '¡Ganaste!'}
@@ -212,7 +226,7 @@ export function ClearingAnimation({
                 </div>
               ) : sortedBids.find(b => b.isPlayer && !b.won) ? (
                 <div className="flex items-start gap-3">
-                  <div className="text-2xl">💡</div>
+                  <LightbulbIcon size={28} className="text-amber-400" />
                   <div>
                     <p className="font-bold text-amber-300">
                       {language === 'en' ? 'Next time...' : 'La próxima vez...'}
@@ -226,7 +240,7 @@ export function ClearingAnimation({
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <div className="text-2xl">📊</div>
+                  <PixelScale size={28} className="text-violet-400" />
                   <div>
                     <p className="font-bold text-violet-300">
                       {language === 'en' ? 'Round complete!' : '¡Ronda completa!'}
@@ -252,13 +266,13 @@ export function ClearingAnimation({
           >
             {step < 4 ? (
               <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
+                <PixelClock size={16} className="animate-spin" />
                 {language === 'en' ? 'Processing...' : 'Procesando...'}
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 {language === 'en' ? 'Continue' : 'Continuar'}
-                <ArrowRight className="w-4 h-4" />
+                <PixelArrowRight size={16} />
               </span>
             )}
           </Button>
@@ -278,33 +292,35 @@ export function ClearingDiagram() {
       {/* Step 1: Bids */}
       <div className="text-center">
         <div className="flex gap-1 justify-center mb-1">
-          <span className="text-lg">💵</span>
-          <span className="text-lg">💵</span>
-          <span className="text-lg">💵</span>
+          <PixelMoney size={18} />
+          <PixelMoney size={18} />
+          <PixelMoney size={18} />
         </div>
         <p className="text-[10px] text-muted-foreground">
           {language === 'en' ? 'Everyone bids' : 'Todos ofertan'}
         </p>
       </div>
 
-      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+      <PixelArrowRight size={16} className="text-muted-foreground" />
 
       {/* Step 2: Price calculation */}
       <div className="text-center">
-        <div className="text-lg mb-1">⚖️</div>
+        <div className="flex justify-center mb-1">
+          <PixelScale size={18} className="text-violet-400" />
+        </div>
         <p className="text-[10px] text-muted-foreground">
           {language === 'en' ? 'One price' : 'Un precio'}
         </p>
       </div>
 
-      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+      <PixelArrowRight size={16} className="text-muted-foreground" />
 
       {/* Step 3: Winners */}
       <div className="text-center">
         <div className="flex gap-1 justify-center mb-1">
-          <span className="text-lg">✅</span>
-          <span className="text-lg">✅</span>
-          <span className="text-lg opacity-40">❌</span>
+          <PixelCheckCircle size={18} />
+          <PixelCheckCircle size={18} />
+          <span className="opacity-40"><PixelXCircle size={18} /></span>
         </div>
         <p className="text-[10px] text-muted-foreground">
           {language === 'en' ? 'Winners pay same' : 'Ganadores pagan igual'}

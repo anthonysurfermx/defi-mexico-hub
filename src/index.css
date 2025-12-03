@@ -235,3 +235,228 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* ============================================
+   PIXEL ART STYLE SYSTEM
+   Retro game aesthetic for Mercado LP
+   ============================================ */
+
+/* Pixel Card - Retro bordered container */
+.pixel-card {
+  position: relative;
+  background: hsl(var(--card));
+  border: 3px solid;
+  border-color: hsl(var(--border));
+  border-radius: 0;
+  image-rendering: pixelated;
+  /* Pixel art corners using box-shadow */
+  box-shadow:
+    /* Outer border effect */
+    3px 3px 0 0 hsl(var(--border) / 0.3),
+    /* Inner highlight */
+    inset 2px 2px 0 0 hsl(var(--foreground) / 0.1);
+}
+
+/* Pixel Card with light background (for map dialogs) */
+.pixel-card-light {
+  position: relative;
+  background: #fef3c7; /* amber-100 */
+  border: 4px solid #92400e; /* amber-800 */
+  border-radius: 0;
+  image-rendering: pixelated;
+  box-shadow:
+    4px 4px 0 0 rgba(120, 53, 15, 0.4),
+    inset 3px 3px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Pixel Button - Retro game button */
+.pixel-button {
+  position: relative;
+  border: 3px solid;
+  border-radius: 0 !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: transform 0.1s, box-shadow 0.1s;
+  image-rendering: pixelated;
+  /* 3D effect */
+  box-shadow:
+    3px 3px 0 0 hsl(var(--border)),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.2),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.pixel-button:hover {
+  transform: translate(1px, 1px);
+  box-shadow:
+    2px 2px 0 0 hsl(var(--border)),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.2),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.pixel-button:active {
+  transform: translate(3px, 3px);
+  box-shadow:
+    0px 0px 0 0 hsl(var(--border)),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.3),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Pixel Border - Simple pixel-style border */
+.pixel-border {
+  border: 2px solid hsl(var(--border));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 0 hsl(var(--border) / 0.3);
+}
+
+/* Pixel Dialog Box - RPG style dialog */
+.pixel-dialog {
+  position: relative;
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  border: 4px solid #78350f;
+  border-radius: 0;
+  box-shadow:
+    6px 6px 0 0 rgba(120, 53, 15, 0.5),
+    inset 0 0 0 2px #fef3c7,
+    inset 4px 4px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Pixel Dialog Header */
+.pixel-dialog-header {
+  background: linear-gradient(180deg, #065f46 0%, #047857 100%);
+  border-bottom: 3px solid #064e3b;
+  padding: 8px 12px;
+  box-shadow: inset 2px 2px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Pixel Tag/Label - NPC labels */
+.pixel-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #92400e;
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #78350f; /* amber-900 - texto oscuro visible sobre fondo amarillo */
+  box-shadow:
+    2px 2px 0 0 rgba(120, 53, 15, 0.4),
+    inset 1px 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Pixel Close Button */
+.pixel-close-btn {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border: 3px solid #991b1b;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow:
+    2px 2px 0 0 rgba(127, 29, 29, 0.6),
+    inset 1px 1px 0 0 rgba(255, 255, 255, 0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.pixel-close-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow:
+    1px 1px 0 0 rgba(127, 29, 29, 0.6),
+    inset 1px 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Pixel Progress Bar */
+.pixel-progress {
+  height: 12px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: inset 2px 2px 0 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-progress-bar {
+  height: 100%;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
+  box-shadow: inset 0 2px 0 0 rgba(255, 255, 255, 0.3);
+  transition: width 0.3s ease-out;
+}
+
+/* Slow bounce animation for selected NPCs */
+.animate-bounce-slow {
+  animation: bounce-slow 1.5s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Bob animation for player sprite */
+.animate-bob-slow {
+  animation: bob-slow 0.8s ease-in-out infinite;
+}
+
+@keyframes bob-slow {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-3px);
+  }
+}
+
+/* Fade in animation */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide up animation for notifications */
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-slow,
+  .animate-bob-slow,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-float,
+  .animate-float-delayed-1,
+  .animate-float-delayed-2,
+  .animate-float-delayed-3,
+  .animate-pan-bounce,
+  .animate-pulse-slow {
+    animation: none;
+  }
+}

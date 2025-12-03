@@ -29,6 +29,7 @@ import {
   ProviderIcon,
   ChartIcon,
   QuestionIcon,
+  TokenIcon,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
 import { useTranslation } from 'react-i18next';
@@ -197,7 +198,9 @@ export const LiquidityView = () => {
               <SelectContent>
                 {pools.map(pool => (
                   <SelectItem key={pool.id} value={pool.id}>
-                    {pool.tokenA.emoji} {pool.tokenA.symbol} / {pool.tokenB.emoji} {pool.tokenB.symbol}
+                    <span className="flex items-center gap-1">
+                      <TokenIcon tokenId={pool.tokenA.id} size={16} /> {pool.tokenA.symbol} / <TokenIcon tokenId={pool.tokenB.id} size={16} /> {pool.tokenB.symbol}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -240,7 +243,7 @@ export const LiquidityView = () => {
                     })}
                   </Label>
                   <div className={`pixel-card bg-muted p-3 flex items-center justify-between ${lpSuccess ? 'animate-success' : ''}`}>
-                    <span className="text-2xl">{currentPool.tokenB.emoji}</span>
+                    <TokenIcon tokenId={currentPool.tokenB.id} size={32} />
                     <span className="text-xl font-bold">{calculatedAmountB || '0.00'}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">

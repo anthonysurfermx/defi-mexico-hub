@@ -1,6 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
-import { BookOpen, Map, Trophy, Award } from 'lucide-react';
+import {
+  PixelMap,
+  PixelTrophy,
+  PixelBook,
+  PixelAward,
+  PixelStar,
+} from './icons/GameIcons';
 import { useEffect, useRef, useState } from 'react';
 import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
@@ -93,7 +99,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
               <div className="hidden sm:flex flex-col gap-1 w-[170px] rounded-xl bg-white/8 border border-white/15 px-3 py-2 text-xs text-white shadow-lg backdrop-blur">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <span className="text-amber-400">⭐</span>
+                    <PixelStar size={14} className="text-amber-400" />
                     <span className="font-semibold">{player.xp} XP</span>
                   </div>
                   <span className="text-[10px] text-white/80">
@@ -183,7 +189,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
                 size="sm"
                 className="rounded-full px-2 sm:px-3 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
               >
-                <Map className="w-4 h-4" />
+                <PixelMap size={16} />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.map')}</span>
               </Button>
               <Button
@@ -193,7 +199,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
                 className="rounded-full px-2 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
                 title={t('mercadoLP.header.leaderboard')}
               >
-                <Trophy className="w-4 h-4" />
+                <PixelTrophy size={16} />
               </Button>
               <Button
                 onClick={() => setShowEducation(true)}
@@ -201,7 +207,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
                 size="sm"
                 className="rounded-full px-2 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
               >
-                <BookOpen className="w-4 h-4" />
+                <PixelBook size={16} />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.education')}</span>
               </Button>
               {/* Mintear NFT button - visible when eligible */}
@@ -212,7 +218,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
                   className="rounded-full px-3 h-9 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg animate-pulse"
                   title="¡Reclama tu NFT!"
                 >
-                  <Award className="w-4 h-4" />
+                  <PixelAward size={16} />
                   <span className="ml-1 font-semibold">Mintear NFT</span>
                 </Button>
               )}
@@ -228,7 +234,7 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
         <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden p-0">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-500" />
+              <PixelTrophy size={20} className="text-yellow-500" />
               {t('mercadoLP.header.leaderboard')}
             </DialogTitle>
           </DialogHeader>

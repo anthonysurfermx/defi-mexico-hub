@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { PixelStore } from './icons/GameIcons';
 
 interface StartScreenProps {
   onSelectRole: (level: GameLevel, avatar: string, characterName: string) => void;
@@ -101,8 +102,8 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
       <div className="relative max-w-6xl w-full px-4">
         <div className="pixel-card p-6 md:p-8 bg-card backdrop-blur">
           <div className="text-center space-y-3 mb-8">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-4xl">🏪</span>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <PixelStore size={40} className="text-primary" />
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{t('mercadoLP.start.title')}</h1>
             </div>
             <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">

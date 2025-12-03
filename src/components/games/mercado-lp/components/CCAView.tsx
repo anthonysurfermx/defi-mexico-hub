@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { HelpCircle, TrendingUp, Award, Info, Beaker } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ConfettiBurst } from './ConfettiBurst';
@@ -34,6 +34,13 @@ import {
   BoxIcon,
   CoinsIcon,
   QuestionIcon,
+  PixelHelpCircle,
+  PixelBeaker,
+  PixelTrendingUp,
+  PixelAward,
+  PixelMoney,
+  PixelMoneyBag,
+  TokenIcon,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
 
@@ -283,7 +290,7 @@ export const CCAView = () => {
         <Card className="pixel-card p-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Beaker className="w-5 h-5 text-violet-500" />
+              <PixelBeaker size={20} className="text-violet-500" />
               <div>
                 <p className="text-sm font-medium">
                   {t('mercadoLP.cca.practiceMode.title', { defaultValue: 'Modo Práctica' })}
@@ -370,7 +377,7 @@ export const CCAView = () => {
             title={t('mercadoLP.cca.labels.helpTitle')}
             onClick={() => setShowHelpModal(true)}
           >
-            <HelpCircle className="w-4 h-4" />
+            <PixelHelpCircle size={16} />
           </Button>
         </div>
 
@@ -432,13 +439,17 @@ export const CCAView = () => {
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="pixel-card bg-card/80 p-3 text-center">
                   <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.tokensAvailable', { defaultValue: 'Tokens disponibles' })}</div>
-                  <div className="text-2xl">{auction.tokenOffered.emoji}</div>
+                  <div className="flex justify-center my-1">
+                    <TokenIcon tokenId={auction.tokenOffered.id} size={32} />
+                  </div>
                   <div className="text-lg font-bold">{currentBlock.tokensAvailable}</div>
                 </div>
 
                 <div className="pixel-card bg-card/80 p-3 text-center">
                   <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.currentPrice', { defaultValue: 'Precio actual' })}</div>
-                  <div className="text-2xl">💵</div>
+                  <div className="flex justify-center my-1">
+                    <PixelMoney size={32} />
+                  </div>
                   <div className="text-lg font-bold">${currentBlock.currentPrice.toFixed(2)}</div>
                 </div>
               </div>
@@ -446,7 +457,7 @@ export const CCAView = () => {
               {/* Ofertas existentes en este bloque */}
               {currentBlock.bids.length > 0 && (
                 <div className="pixel-card bg-card/60 p-3 space-y-2">
-                  <div className="text-xs font-semibold">Ofertas en este bloque:</div>
+                  <div className="text-xs font-semibold">{t('mercadoLP.cca.bidsInBlock.title', { defaultValue: 'Ofertas en este bloque:' })}</div>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {currentBlock.bids.map(bid => (
                       <div
@@ -457,7 +468,7 @@ export const CCAView = () => {
                           {bid.bidderName}
                         </span>
                         <span>
-                          Max: ${bid.maxPrice.toFixed(2)} | Gasto: ${bid.totalSpend.toFixed(0)}
+                          {t('mercadoLP.cca.bidsInBlock.max', { defaultValue: 'Max' })}: ${bid.maxPrice.toFixed(2)} | {t('mercadoLP.cca.bidsInBlock.spend', { defaultValue: 'Gasto' })}: ${bid.totalSpend.toFixed(0)}
                         </span>
                       </div>
                     ))}
@@ -526,8 +537,9 @@ export const CCAView = () => {
                       <p className="text-xs">
                         {t('mercadoLP.cca.tooltips.spend.body', { defaultValue: 'Es tu presupuesto para esta ronda. Se usará para calcular cuántos tokens puedes ganar.' })}
                       </p>
-                      <div className="mt-2 p-2 bg-blue-500/10 rounded text-xs">
-                        💰 {t('mercadoLP.cca.tooltips.spend.tip', { defaultValue: 'Si gastas $50 y el precio es $5, ganarías 10 tokens' })}
+                      <div className="mt-2 p-2 bg-blue-500/10 rounded text-xs flex items-center gap-1">
+                        <PixelMoneyBag size={16} />
+                        {t('mercadoLP.cca.tooltips.spend.tip', { defaultValue: 'Si gastas $50 y el precio es $5, ganarías 10 tokens' })}
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -569,7 +581,7 @@ export const CCAView = () => {
           {/* Resumen de tus ofertas */}
           <Card className="pixel-card p-4 bg-card">
             <h3 className="font-bold mb-2 flex items-center gap-2">
-              <span>📊</span> Tus ofertas activas
+              <span>📊</span> {t('mercadoLP.cca.yourBids.title', { defaultValue: 'Tus ofertas activas' })}
             </h3>
             <div className="space-y-2">
               {auction.blocks
@@ -582,17 +594,17 @@ export const CCAView = () => {
                       className="pixel-card bg-card p-2 flex justify-between items-center text-xs"
                     >
                       <div>
-                        <span className="font-bold">Bloque {block.blockNumber}</span>
+                        <span className="font-bold">{t('mercadoLP.cca.yourBids.block', { defaultValue: 'Bloque' })} {block.blockNumber}</span>
                         {block.executed && playerBid?.tokensWon && (
                           <span className="ml-2 text-green-600">
-                            ✓ Ganaste {playerBid.tokensWon.toFixed(1)} tokens
+                            ✓ {t('mercadoLP.cca.yourBids.won', { amount: playerBid.tokensWon.toFixed(1), defaultValue: `Ganaste ${playerBid.tokensWon.toFixed(1)} tokens` })}
                           </span>
                         )}
                       </div>
                       <div className="text-right">
-                        <div>Max: ${playerBid?.maxPrice.toFixed(2)}</div>
+                        <div>{t('mercadoLP.cca.bidsInBlock.max', { defaultValue: 'Max' })}: ${playerBid?.maxPrice.toFixed(2)}</div>
                         <div className="text-muted-foreground">
-                          Gasto: ${playerBid?.totalSpend.toFixed(0)}
+                          {t('mercadoLP.cca.bidsInBlock.spend', { defaultValue: 'Gasto' })}: ${playerBid?.totalSpend.toFixed(0)}
                         </div>
                       </div>
                     </div>
@@ -600,7 +612,7 @@ export const CCAView = () => {
                 })}
               {auction.blocks.filter(b => b.bids.some(bid => bid.bidderId === 'player')).length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-2">
-                  No tienes ofertas aún. ¡Coloca tu primera oferta arriba!
+                  {t('mercadoLP.cca.yourBids.empty', { defaultValue: 'No tienes ofertas aún. ¡Coloca tu primera oferta arriba!' })}
                 </p>
               )}
             </div>
@@ -611,12 +623,10 @@ export const CCAView = () => {
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
           <LightbulbIcon size={18} className="text-amber-500" />
-          Estrategia del Subastero
+          {t('mercadoLP.cca.strategy.title', { defaultValue: 'Estrategia del Subastero' })}
         </h3>
         <p className="text-sm text-muted-foreground">
-          <strong>Tip:</strong> Ofertar en bloques tempranos suele darte mejor precio promedio.
-          Los bloques avanzados se vuelven más competidos y caros. Distribuye tu presupuesto
-          inteligentemente entre varios bloques.
+          <strong>{t('mercadoLP.cca.strategy.tipLabel', { defaultValue: 'Tip:' })}</strong> {t('mercadoLP.cca.strategy.tipBody', { defaultValue: 'Ofertar en bloques tempranos suele darte mejor precio promedio. Los bloques avanzados se vuelven más competidos y caros. Distribuye tu presupuesto inteligentemente entre varios bloques.' })}
         </p>
       </Card>
 
@@ -626,27 +636,26 @@ export const CCAView = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QuestionIcon size={20} className="text-blue-500" />
-              ¿Qué es una Subasta Continua (CCA)?
+              {t('mercadoLP.cca.helpModal.title', { defaultValue: '¿Qué es una Subasta Continua (CCA)?' })}
             </DialogTitle>
             <DialogDescription className="text-sm space-y-2">
               <p>
-                Las Continuous Clearing Auctions distribuyen tokens en bloques a lo largo del tiempo.
-                Esto incentiva participación temprana y descubrimiento justo de precios.
+                {t('mercadoLP.cca.helpModal.intro', { defaultValue: 'Las Continuous Clearing Auctions distribuyen tokens en bloques a lo largo del tiempo. Esto incentiva participación temprana y descubrimiento justo de precios.' })}
               </p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Cada bloque vende una porción de tokens</li>
-                <li>Pones precio máximo y gasto total</li>
-                <li>Al ejecutarse, pagas el precio de equilibrio (no tu máximo)</li>
-                <li>Bloques tempranos = precios más bajos</li>
+                <li>{t('mercadoLP.cca.helpModal.point1', { defaultValue: 'Cada bloque vende una porción de tokens' })}</li>
+                <li>{t('mercadoLP.cca.helpModal.point2', { defaultValue: 'Pones precio máximo y gasto total' })}</li>
+                <li>{t('mercadoLP.cca.helpModal.point3', { defaultValue: 'Al ejecutarse, pagas el precio de equilibrio (no tu máximo)' })}</li>
+                <li>{t('mercadoLP.cca.helpModal.point4', { defaultValue: 'Bloques tempranos = precios más bajos' })}</li>
               </ul>
               <p className="text-xs text-muted-foreground mt-2">
-                Inspirado en Uniswap v4 CCA hooks para lanzamientos justos de tokens.
+                {t('mercadoLP.cca.helpModal.footer', { defaultValue: 'Inspirado en Uniswap v4 CCA hooks para lanzamientos justos de tokens.' })}
               </p>
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
             <Button className="pixel-button" onClick={() => setShowHelpModal(false)}>
-              Entendido
+              {t('mercadoLP.cca.helpModal.ok', { defaultValue: 'Entendido' })}
             </Button>
           </div>
         </DialogContent>
@@ -657,7 +666,7 @@ export const CCAView = () => {
         <DialogContent className="pixel-card max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Award className="w-6 h-6 text-yellow-600" />
+              <PixelAward size={24} className="text-yellow-600" />
               <span>¡Subasta completada!</span>
             </DialogTitle>
             <DialogDescription className="text-sm space-y-3">
@@ -681,7 +690,7 @@ export const CCAView = () => {
                   </div>
 
                   <div className="flex items-center gap-2 justify-center mt-3 p-2 bg-green-100 rounded">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <PixelTrendingUp size={16} className="text-green-600" />
                     <span className="text-sm text-green-700">
                       ¡Aprendiste sobre subastas continuas!
                     </span>

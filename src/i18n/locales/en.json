@@ -624,6 +624,32 @@
         "onePrice": "One price",
         "winnersPay": "Winners pay same"
       },
+      "bidsInBlock": {
+        "title": "Bids in this block:",
+        "max": "Max",
+        "spend": "Spend"
+      },
+      "yourBids": {
+        "title": "Your active bids",
+        "block": "Block",
+        "won": "Won {{amount}} tokens",
+        "empty": "No bids yet. Place your first bid above!"
+      },
+      "strategy": {
+        "title": "Auctioneer Strategy",
+        "tipLabel": "Tip:",
+        "tipBody": "Bidding on early blocks usually gives you a better average price. Later blocks become more competitive and expensive. Distribute your budget intelligently across multiple blocks."
+      },
+      "helpModal": {
+        "title": "What is a Continuous Clearing Auction (CCA)?",
+        "intro": "Continuous Clearing Auctions distribute tokens in blocks over time. This incentivizes early participation and fair price discovery.",
+        "point1": "Each block sells a portion of tokens",
+        "point2": "You set max price and total spend",
+        "point3": "When executed, you pay the clearing price (not your max)",
+        "point4": "Early blocks = lower prices",
+        "footer": "Inspired by Uniswap v4 CCA hooks for fair token launches.",
+        "ok": "Got it"
+      },
       "errors": {
         "missing": "Fill max price and total spend.",
         "amount": "Enter numbers greater than 0.",
@@ -760,6 +786,53 @@
           "title": "Market Maker",
           "desc": "Create pools with advanced hooks. Customize your strategy and maximize returns."
         }
+      }
+    },
+    "education": {
+      "title": "The Market School",
+      "units": {
+        "mangos": "mangoes"
+      },
+      "labels": {
+        "before": "Before",
+        "after": "After",
+        "price": "Price",
+        "same": "same"
+      },
+      "magicPot": {
+        "title": "The magic pot (x·y=k)",
+        "description": "Move the slider: remove mangoes from the pot and watch the price rise.",
+        "explanation": "With fewer mangoes, each mango is \"worth\" more lemons. That's the x·y=k formula in action."
+      },
+      "slippage": {
+        "title": "Price impact (slippage)",
+        "description": "If you buy a lot at once, you push the price up yourself. Adjust the mango purchase size:",
+        "avgPrice": "Average price",
+        "impact": "Impact",
+        "receive": "You receive ~{{amount}} lemons.",
+        "tip": "Tip: in the real market, whales split their orders to reduce impact."
+      },
+      "liquidity": {
+        "title": "Liquidity and tips",
+        "description": "You put two fruits in the pot and earn a share of each tip. Your percentage defines how much tip you receive.",
+        "point1": "Deposit both fruits at the current ratio",
+        "point2": "Earn fees from each swap based on your share",
+        "point3": "If the price moves, your mix changes (IL)"
+      },
+      "createToken": {
+        "title": "Create your fruit and its market",
+        "description": "Inventing fruit isn't enough: you must open its pot with initial liquidity. You set the starting price; then the market takes over.",
+        "point1": "Define icon, symbol and color",
+        "point2": "Pair it with another fruit and deposit both",
+        "point3": "The initial deposit sets the starting price"
+      },
+      "quickTips": {
+        "title": "Quick tips",
+        "tip1": "Always check the impact before confirming",
+        "tip2": "Split large swaps into several smaller ones",
+        "tip3": "LP: choose ranges and hooks based on your risk",
+        "tip4": "Create token + pool; without a pot, nobody can buy",
+        "more": "More: v4.uniswap.org · v4-core audits on GitHub"
       }
     },
     "map": {

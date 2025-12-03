@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,8 +15,34 @@ import {
   formatStreak,
   getRewardTitleEn,
 } from '../data/streakRewards';
-import { Flame, Gift, CheckCircle2, Lock, Sparkles, Calendar } from 'lucide-react';
+import {
+  PixelFlame,
+  PixelGift,
+  PixelCheckCircle,
+  PixelLock,
+  PixelSparkles,
+  PixelCalendar,
+  PixelStar,
+  PixelTrophy,
+  PixelCrown,
+  PixelMedal,
+  BoltIcon,
+} from './icons/GameIcons';
 import { cn } from '@/lib/utils';
+
+// Map streak days to pixel icons
+const getStreakRewardIcon = (days: number, size: number = 20) => {
+  const iconMap: Record<number, React.ReactNode> = {
+    3: <PixelFlame size={size} className="text-orange-400" />,
+    7: <PixelStar size={size} className="text-amber-400" />,
+    14: <BoltIcon size={size} className="text-blue-400" />,
+    21: <PixelTrophy size={size} className="text-yellow-500" />,
+    30: <PixelCrown size={size} className="text-amber-300" />,
+    60: <PixelMedal size={size} className="text-purple-400" />,
+    100: <PixelSparkles size={size} className="text-cyan-400" />,
+  };
+  return iconMap[days] || <PixelFlame size={size} className="text-orange-400" />;
+};
 
 interface StreakRewardsPanelProps {
   streakState: StreakState;
@@ -64,7 +91,7 @@ export function StreakRewardsPanel({
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className={cn('w-5 h-5', status.isActive ? 'text-orange-400 animate-pulse' : 'text-slate-500')} />
+              <PixelFlame size={20} className={cn(status.isActive ? 'text-orange-400 animate-pulse' : 'text-slate-500')} />
               <div>
                 <span className="text-lg font-bold">{streakState.currentStreak}</span>
                 <span className="text-xs text-muted-foreground ml-1">
@@ -74,7 +101,7 @@ export function StreakRewardsPanel({
             </div>
             {!streakState.todayBonusClaimed && (
               <Button size="sm" variant="ghost" className="text-orange-400" onClick={onClaimDailyBonus}>
-                <Gift className="w-4 h-4 mr-1" />
+                <PixelGift size={16} className="mr-1" />
                 +{dailyBonus} XP
               </Button>
             )}
@@ -100,11 +127,11 @@ export function StreakRewardsPanel({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Flame className={cn('w-5 h-5', status.isActive ? 'text-orange-400 animate-pulse' : 'text-slate-500')} />
+            <PixelFlame size={20} className={cn(status.isActive ? 'text-orange-400 animate-pulse' : 'text-slate-500')} />
             {language === 'en' ? 'Daily Streak' : 'Racha Diaria'}
           </CardTitle>
           <Badge variant="outline" className="bg-orange-500/20 border-orange-500/30">
-            <Calendar className="w-3 h-3 mr-1" />
+            <PixelCalendar size={12} className="mr-1" />
             {language === 'en' ? 'Best:' : 'Mejor:'} {streakState.bestStreak}
           </Badge>
         </div>
@@ -114,7 +141,7 @@ export function StreakRewardsPanel({
         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl border border-orange-500/30">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Flame className="w-10 h-10 text-orange-400" />
+              <PixelFlame size={40} className="text-orange-400" />
               {status.isActive && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
               )}
@@ -133,12 +160,12 @@ export function StreakRewardsPanel({
               className="bg-orange-500 hover:bg-orange-600"
               onClick={onClaimDailyBonus}
             >
-              <Gift className="w-4 h-4 mr-2" />
+              <PixelGift size={16} className="mr-2" />
               +{dailyBonus} XP
             </Button>
           ) : (
             <div className="flex items-center gap-2 text-green-400">
-              <CheckCircle2 className="w-5 h-5" />
+              <PixelCheckCircle size={20} />
               <span className="text-sm">
                 {language === 'en' ? 'Claimed today!' : '¡Reclamado hoy!'}
               </span>
@@ -167,8 +194,8 @@ export function StreakRewardsPanel({
         {/* Available rewards to claim */}
         {availableRewards.length > 0 && (
           <div className="space-y-2">
-            <div className="text-sm font-medium text-amber-400">
-              <Sparkles className="w-4 h-4 inline mr-1" />
+            <div className="text-sm font-medium text-amber-400 flex items-center">
+              <PixelSparkles size={16} className="mr-1" />
               {language === 'en' ? 'Rewards to claim!' : '¡Recompensas disponibles!'}
             </div>
             {availableRewards.map(reward => (
@@ -177,7 +204,7 @@ export function StreakRewardsPanel({
                 className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{reward.icon}</span>
+                  <span className="flex-shrink-0">{getStreakRewardIcon(reward.days, 28)}</span>
                   <div>
                     <div className="font-medium">{getRewardTitle(reward)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -224,10 +251,10 @@ export function StreakRewardsPanel({
                       : 'bg-slate-800/30 border-slate-700/30 opacity-50'
                   )}
                 >
-                  <div className="text-xl">{reward.icon}</div>
+                  <div>{getStreakRewardIcon(reward.days, 24)}</div>
                   <div className="text-xs font-medium">{reward.days}d</div>
-                  {isClaimed && <CheckCircle2 className="w-3 h-3 mx-auto text-green-400" />}
-                  {!isAchieved && <Lock className="w-3 h-3 mx-auto text-slate-500" />}
+                  {isClaimed && <PixelCheckCircle size={12} className="mx-auto text-green-400" />}
+                  {!isAchieved && <PixelLock size={12} className="mx-auto text-slate-500" />}
                 </div>
               );
             })}

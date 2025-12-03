@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Badge } from '@/components/games/mercado-lp/types/game';
+import { Badge as BadgeType } from '@/components/games/mercado-lp/types/game';
 import { Card } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
+import { PixelMedal } from './icons/GameIcons';
 
 interface BadgeNotificationProps {
-  badge: Badge | null;
+  badge: BadgeType | null;
   onDismiss: () => void;
 }
 
 export const BadgeNotification = ({ badge, onDismiss }: BadgeNotificationProps) => {
+  const { i18n } = useTranslation();
+  const language = i18n.language === 'en' ? 'en' : 'es';
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -33,11 +37,13 @@ export const BadgeNotification = ({ badge, onDismiss }: BadgeNotificationProps) 
         `}
       >
         <div className="flex items-start gap-3">
-          <div className="text-4xl animate-bounce-slow">{badge.icon}</div>
+          <div className="animate-bounce-slow">
+            <PixelMedal size={40} className="text-amber-300" />
+          </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider opacity-90">
-                ¡Insignia Desbloqueada!
+                {language === 'en' ? 'Badge Unlocked!' : '¡Insignia Desbloqueada!'}
               </span>
             </div>
             <h3 className="font-bold text-lg mb-1">{badge.name}</h3>

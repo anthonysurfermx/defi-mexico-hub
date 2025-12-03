@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -5,8 +6,39 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DailyChallenge, DailyChallengesState } from '../types/game';
 import { getTranslatedChallenge, ALL_COMPLETED_BONUS_XP } from '../data/dailyChallenges';
-import { CheckCircle2, Clock, Gift, Sparkles, Trophy } from 'lucide-react';
+import {
+  PixelTrophy,
+  PixelClock,
+  PixelCheckCircle,
+  PixelSparkles,
+  PixelGift,
+  SwapperIcon,
+  PixelStar,
+  ChartIcon,
+  DropIcon,
+  TargetIcon,
+  PixelCoins,
+  PixelTrendingUp,
+  AuctioneerIcon,
+} from './icons/GameIcons';
 import { cn } from '@/lib/utils';
+
+// Map challenge types to pixel icons
+const getChallengeIcon = (type: DailyChallenge['type'], size: number = 20) => {
+  const iconMap: Record<DailyChallenge['type'], React.ReactNode> = {
+    swap_count: <SwapperIcon size={size} className="text-blue-400" />,
+    reputation: <PixelStar size={size} className="text-amber-400" />,
+    swap_volume: <ChartIcon size={size} className="text-purple-400" />,
+    add_liquidity: <DropIcon size={size} className="text-cyan-400" />,
+    low_slippage: <TargetIcon size={size} className="text-green-400" />,
+    diverse_trades: <PixelSparkles size={size} className="text-pink-400" />,
+    earn_fees: <PixelCoins size={size} className="text-yellow-400" />,
+    profit_trade: <PixelTrendingUp size={size} className="text-emerald-400" />,
+    create_token: <PixelSparkles size={size} className="text-violet-400" />,
+    auction_bid: <AuctioneerIcon size={size} className="text-orange-400" />,
+  };
+  return iconMap[type] || <PixelTrophy size={size} className="text-primary" />;
+};
 
 interface DailyChallengesPanelProps {
   challengesState: DailyChallengesState;
@@ -61,7 +93,7 @@ export function DailyChallengesPanel({
         <CardContent className="p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-purple-400" />
+              <PixelTrophy size={16} className="text-purple-400" />
               <span className="text-sm font-medium text-purple-200">
                 {language === 'en' ? 'Daily Challenges' : 'Retos Diarios'}
               </span>
@@ -84,11 +116,11 @@ export function DailyChallengesPanel({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-purple-400" />
+            <PixelTrophy size={20} className="text-purple-400" />
             {language === 'en' ? 'Daily Challenges' : 'Retos Diarios'}
           </CardTitle>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3" />
+            <PixelClock size={12} />
             {language === 'en' ? 'Resets in' : 'Reinicia en'} {getTimeUntilReset()}
           </div>
         </div>
@@ -110,7 +142,7 @@ export function DailyChallengesPanel({
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{challenge.icon}</span>
+                  <span className="flex-shrink-0">{getChallengeIcon(challenge.type, 24)}</span>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{title}</span>
@@ -125,7 +157,7 @@ export function DailyChallengesPanel({
                   </div>
                 </div>
                 {challenge.completed ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <PixelCheckCircle size={20} className="text-green-400 flex-shrink-0" />
                 ) : (
                   <span className="text-xs text-purple-400 font-medium">
                     +{challenge.xpReward} XP
@@ -142,7 +174,7 @@ export function DailyChallengesPanel({
 
               {challenge.bonusReward && !challenge.completed && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-amber-400">
-                  <Gift className="w-3 h-3" />
+                  <PixelGift size={12} />
                   <span>
                     {challenge.bonusReward.type === 'tokens'
                       ? `+${challenge.bonusReward.value} ${challenge.bonusReward.tokenId?.toUpperCase()}`
@@ -165,7 +197,7 @@ export function DailyChallengesPanel({
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className={cn('w-5 h-5', allCompleted ? 'text-amber-400' : 'text-slate-500')} />
+              <PixelSparkles size={20} className={cn(allCompleted ? 'text-amber-400' : 'text-slate-500')} />
               <div>
                 <span className="text-sm font-medium">
                   {language === 'en' ? 'Complete All 3' : 'Completa los 3'}
@@ -184,7 +216,7 @@ export function DailyChallengesPanel({
                 +{ALL_COMPLETED_BONUS_XP} XP
               </Button>
             ) : challengesState.allCompletedBonus ? (
-              <CheckCircle2 className="w-5 h-5 text-amber-400" />
+              <PixelCheckCircle size={20} className="text-amber-400" />
             ) : (
               <span className="text-xs text-muted-foreground">
                 +{ALL_COMPLETED_BONUS_XP} XP

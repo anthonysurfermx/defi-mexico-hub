@@ -29,6 +29,7 @@ import {
   BookIcon,
   SwapperIcon,
   QuestionIcon,
+  TokenIcon,
 } from './icons/GameIcons';
 import { MissionsCard } from './MissionsCard';
 
@@ -297,7 +298,9 @@ export const SwapView = () => {
                 <SelectContent>
                   {pools.map(pool => (
                     <SelectItem key={pool.id} value={pool.id}>
-                      {pool.tokenA.emoji} {pool.tokenA.symbol} / {pool.tokenB.emoji} {pool.tokenB.symbol}
+                      <span className="flex items-center gap-1">
+                        <TokenIcon tokenId={pool.tokenA.id} size={16} /> {pool.tokenA.symbol} / <TokenIcon tokenId={pool.tokenB.id} size={16} /> {pool.tokenB.symbol}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -315,10 +318,14 @@ export const SwapView = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={currentPool.tokenA.id}>
-                          {currentPool.tokenA.emoji} {currentPool.tokenA.symbol}
+                          <span className="flex items-center gap-1">
+                            <TokenIcon tokenId={currentPool.tokenA.id} size={16} /> {currentPool.tokenA.symbol}
+                          </span>
                         </SelectItem>
                         <SelectItem value={currentPool.tokenB.id}>
-                          {currentPool.tokenB.emoji} {currentPool.tokenB.symbol}
+                          <span className="flex items-center gap-1">
+                            <TokenIcon tokenId={currentPool.tokenB.id} size={16} /> {currentPool.tokenB.symbol}
+                          </span>
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -336,8 +343,8 @@ export const SwapView = () => {
                     </p>
                   )}
                   {!amountIn && (
-                    <div className="pixel-card bg-muted text-[11px] text-muted-foreground p-2">
-                      Ejemplo: cambia 2 {tokenIn === currentPool.tokenA.id ? currentPool.tokenA.emoji : currentPool.tokenB.emoji} y mira cuántas recibes.
+                    <div className="pixel-card bg-muted text-[11px] text-muted-foreground p-2 flex items-center gap-1">
+                      Ejemplo: cambia 2 <TokenIcon tokenId={tokenIn === currentPool.tokenA.id ? currentPool.tokenA.id : currentPool.tokenB.id} size={14} /> y mira cuántas recibes.
                     </div>
                   )}
                 </div>
@@ -351,9 +358,7 @@ export const SwapView = () => {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Recibes aproximadamente</Label>
                   <div className={`pixel-card bg-card p-3 flex items-center justify-between ${swapSuccess ? 'animate-success' : ''}`}>
-                    <span className="text-2xl">
-                      {tokenIn === currentPool.tokenA.id ? currentPool.tokenB.emoji : currentPool.tokenA.emoji}
-                    </span>
+                    <TokenIcon tokenId={tokenIn === currentPool.tokenA.id ? currentPool.tokenB.id : currentPool.tokenA.id} size={32} />
                     <span className="text-xl font-bold">{calculateOutput().toFixed(2)}</span>
                   </div>
                   {!amountIn && (
