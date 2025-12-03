@@ -862,5 +862,49 @@
       "enter": "Entrar",
       "close": "Cerrar"
     }
+  },
+  "nftGallery": {
+    "badge": "Colección Exclusiva en Base",
+    "title": "NFT Collection",
+    "description": "Celebrando a los maestros DeFi que completaron Mercado LP y obtuvieron su certificación on-chain",
+    "playAndGet": "Jugar y Obtener NFT",
+    "viewOnOpenSea": "Ver en OpenSea",
+    "collectionName": "Mercado LP Maestro",
+    "collectionSubtitle": "DeFi México Collection",
+    "onBase": "On Base",
+    "stats": {
+      "minted": "NFTs Minteados",
+      "verified": "Verificados On-chain",
+      "avgXP": "XP Promedio",
+      "avgLevel": "Nivel Promedio"
+    },
+    "gallery": {
+      "title": "Maestros DeFi",
+      "playersCompleted": "{{count}} jugadores han completado el desafío",
+      "verified": "Verificado",
+      "level": "Nivel {{level}}",
+      "minted": "Minteado: {{date}}"
+    },
+    "empty": {
+      "title": "¡Sé el primero!",
+      "description": "Aún no hay NFTs minteados. Completa Mercado LP y conviértete en el primer Maestro DeFi de la colección.",
+      "cta": "Comenzar Ahora"
+    },
+    "cta": {
+      "title": "¿Listo para obtener tu NFT?",
+      "description": "Completa los 4 niveles de Mercado LP, domina los conceptos de DeFi y reclama tu NFT educativo gratuito en Base.",
+      "play": "Jugar Mercado LP",
+      "viewContract": "Ver Contrato"
+    },
+    "features": {
+      "free": "100% Gratuito",
+      "freeDesc": "Solo pagas el gas",
+      "certification": "Certificación",
+      "certificationDesc": "Prueba tu conocimiento",
+      "exclusive": "Exclusivo",
+      "exclusiveDesc": "Solo para completadores"
+    },
+    "footer": "NFT Collection by",
+    "deployedOn": "Deployed on"
   }
 }

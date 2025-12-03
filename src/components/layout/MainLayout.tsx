@@ -19,7 +19,8 @@ import {
   Search,
   Gamepad2,
   Youtube,
-  BarChart3
+  BarChart3,
+  Trophy
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -195,6 +196,22 @@ export default function MainLayout() {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* NFT Collection Link */}
+              <Link
+                to="/nft-gallery"
+                className={`
+                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/nft-gallery')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <Trophy className="h-4 w-4" />
+                NFT Collection
+              </Link>
             </div>
 
             {/* Desktop Actions */}
@@ -345,6 +362,30 @@ export default function MainLayout() {
                 );
               })}
 
+              {/* NFT Collection */}
+              <div className="pt-2 pb-1 px-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  NFT
+                </p>
+              </div>
+              <Link
+                to="/nft-gallery"
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/nft-gallery')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <Trophy className="h-5 w-5" />
+                NFT Collection
+                {isActive('/nft-gallery') && (
+                  <ChevronRight className="h-4 w-4 ml-auto" />
+                )}
+              </Link>
+
               {/* Mobile Actions */}
               <div className="pt-4">
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
@@ -426,6 +467,11 @@ export default function MainLayout() {
                 <li>
                   <Link to="/academia/juego/mercado-lp" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Mercado LP Game
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/nft-gallery" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    NFT Collection
                   </Link>
                 </li>
               </ul>

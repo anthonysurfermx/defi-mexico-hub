@@ -38,6 +38,7 @@ const MetricsPage = lazy(() => import('@/pages/MetricsPage'));
 
 // Mercado LP Game
 const MercadoLPGamePage = lazy(() => import('@/pages/MercadoLPGamePage'));
+const NFTGalleryPage = lazy(() => import('@/pages/NFTGalleryPage'));
 
 // Digital Art NFT Pages
 const DigitalArtDeFiPage = lazy(() => import('@/pages/DigitalArtDeFiPage'));
@@ -380,6 +381,15 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <MercadoLPGamePage />
+                </Suspense>
+              ),
+            },
+            // NFT Gallery (Mercado LP completers)
+            {
+              path: 'nft-gallery',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <NFTGalleryPage />
                 </Suspense>
               ),
             },

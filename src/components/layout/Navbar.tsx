@@ -43,6 +43,7 @@ const Navbar = () => {
     { label: "Inicio", href: "/" },
     { label: "Startups", href: "/startups" },
     { label: "Comunidades", href: "/comunidades" },
+    { label: "NFT Collection", href: "/nft-gallery" },
     { label: "TikTok", href: "/tiktok" },
     { label: "Eventos", href: "/eventos" }
   ];

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { useGame } from '@/components/games/mercado-lp/contexts/GameContext';
 import {
   PixelMap,
@@ -7,6 +8,7 @@ import {
   PixelAward,
   PixelStar,
 } from './icons/GameIcons';
+import { Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EducationModal } from './EducationModal';
 import { ReputationDisplay } from './ReputationDisplay';
@@ -210,6 +212,17 @@ export const GameHeader = ({ onOpenMap, onLoginPrompt, onOpenNFTModal }: GameHea
                 <PixelBook size={16} />
                 <span className="hidden sm:inline ml-1">{t('mercadoLP.header.education')}</span>
               </Button>
+              {/* NFT Gallery link */}
+              <Link to="/nft-gallery">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full px-2 h-9 bg-white/6 border-white/15 text-white/90 hover:bg-white/12"
+                  title="Galería NFT"
+                >
+                  <Users size={16} />
+                </Button>
+              </Link>
               {/* Mintear NFT button - visible when eligible */}
               {canClaimNFT && onOpenNFTModal && (
                 <Button

@@ -862,5 +862,49 @@
       "enter": "Enter",
       "close": "Close"
     }
+  },
+  "nftGallery": {
+    "badge": "Exclusive Collection on Base",
+    "title": "NFT Collection",
+    "description": "Celebrating DeFi masters who completed Mercado LP and earned their on-chain certification",
+    "playAndGet": "Play and Get NFT",
+    "viewOnOpenSea": "View on OpenSea",
+    "collectionName": "Mercado LP Master",
+    "collectionSubtitle": "DeFi México Collection",
+    "onBase": "On Base",
+    "stats": {
+      "minted": "NFTs Minted",
+      "verified": "Verified On-chain",
+      "avgXP": "Average XP",
+      "avgLevel": "Average Level"
+    },
+    "gallery": {
+      "title": "DeFi Masters",
+      "playersCompleted": "{{count}} players have completed the challenge",
+      "verified": "Verified",
+      "level": "Level {{level}}",
+      "minted": "Minted: {{date}}"
+    },
+    "empty": {
+      "title": "Be the first!",
+      "description": "No NFTs minted yet. Complete Mercado LP and become the first DeFi Master in the collection.",
+      "cta": "Start Now"
+    },
+    "cta": {
+      "title": "Ready to get your NFT?",
+      "description": "Complete all 4 levels of Mercado LP, master DeFi concepts and claim your free educational NFT on Base.",
+      "play": "Play Mercado LP",
+      "viewContract": "View Contract"
+    },
+    "features": {
+      "free": "100% Free",
+      "freeDesc": "Only pay gas",
+      "certification": "Certification",
+      "certificationDesc": "Prove your knowledge",
+      "exclusive": "Exclusive",
+      "exclusiveDesc": "Completers only"
+    },
+    "footer": "NFT Collection by",
+    "deployedOn": "Deployed on"
   }
 }
