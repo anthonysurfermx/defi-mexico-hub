@@ -3,19 +3,19 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  ExternalLink, 
-  MapPin, 
-  Calendar, 
-  Shield, 
+import {
+  Users,
+  ExternalLink,
+  MapPin,
+  Calendar,
+  Shield,
   Star,
   Globe,
   Github,
   Twitter,
   MessageCircle
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getTwitterAvatar } from "@/lib/utils";
 
 interface CommunityCardProps {
   id: string;
@@ -45,24 +45,6 @@ const categoryColors: Record<string, string> = {
   desarrollo: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
   trading: "bg-red-500/10 text-red-500 border-red-500/20",
   default: "bg-gray-500/10 text-gray-500 border-gray-500/20"
-};
-
-// Helper para obtener avatar de Twitter/X usando unavatar.io
-const getTwitterAvatar = (twitterUrl: string): string | null => {
-  try {
-    // Soporta tanto twitter.com como x.com
-    let username = twitterUrl.split('twitter.com/')[1]?.split(/[/?#]/)[0];
-    if (!username) {
-      username = twitterUrl.split('x.com/')[1]?.split(/[/?#]/)[0];
-    }
-    if (username) {
-      username = username.replace('@', '');
-      return `https://unavatar.io/twitter/${username}`;
-    }
-    return null;
-  } catch {
-    return null;
-  }
 };
 
 export default function CommunityCard({

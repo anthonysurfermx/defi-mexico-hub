@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
 import { useAuth } from '@/hooks/useAuth';
+import { getTwitterAvatar } from '@/lib/utils';
 
 // Utility function para formatear fecha
 const formatDate = (dateString: string): string => {
@@ -266,17 +267,27 @@ export default function HomePage() {
                   className="bg-card border rounded-2xl p-6 hover:shadow-lg transition-all group"
                 >
                   <div className="space-y-4">
-                    {((community as any).image_url || community.logo_url) ? (
-                      <img
-                        src={(community as any).image_url || community.logo_url}
-                        alt={community.name}
-                        className="w-12 h-12 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-primary" />
-                      </div>
-                    )}
+                    {(() => {
+                      const socialLinks = (community as any).links || community.social_links || {};
+                      const imageUrl = (community as any).image_url || community.logo_url;
+                      const twitterAvatar = getTwitterAvatar(socialLinks?.twitter);
+                      const displayImage = imageUrl || twitterAvatar;
+
+                      return displayImage ? (
+                        <img
+                          src={displayImage}
+                          alt={community.name}
+                          className="w-12 h-12 rounded-xl object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    <div className={`w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center ${((community as any).image_url || community.logo_url || getTwitterAvatar(((community as any).links || community.social_links)?.twitter)) ? 'hidden' : ''}`}>
+                      <Users className="w-6 h-6 text-primary" />
+                    </div>
                     <div>
                       <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">
                         {community.name}
