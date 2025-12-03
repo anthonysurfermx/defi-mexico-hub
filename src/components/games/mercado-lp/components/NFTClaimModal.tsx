@@ -155,7 +155,7 @@ export const NFTClaimModal = ({
         }
         onClose();
       }}>
-        <DialogContent className={`pixel-card ${showMintWidget ? 'max-w-xl max-h-[90vh] overflow-y-auto' : 'max-w-md'}`}>
+        <DialogContent className={showMintWidget ? 'max-w-xl max-h-[90vh] overflow-y-auto' : 'max-w-md'}>
           <DialogHeader>
             <DialogTitle className="text-center text-2xl mb-4">
               {showMintWidget
@@ -186,7 +186,7 @@ export const NFTClaimModal = ({
               </div>
 
               {/* Instructions */}
-              <div className="pixel-card bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+              <div className="bg-muted/50 p-3 text-xs text-muted-foreground space-y-2 rounded-lg border">
                 <p className="font-semibold text-foreground">📋 Instrucciones:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Conecta tu wallet (MetaMask, WalletConnect, etc.)</li>
@@ -210,7 +210,7 @@ export const NFTClaimModal = ({
             <div className="space-y-6">
               {/* NFT Preview */}
               <div className="relative">
-                <div className={`pixel-card p-6 text-center ${
+                <div className={`p-6 text-center rounded-lg border ${
                   canClaimNFT
                     ? 'bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-yellow-900/30'
                     : 'bg-muted opacity-60'
@@ -229,7 +229,7 @@ export const NFTClaimModal = ({
                 {/* Lock overlay */}
                 {!canClaimNFT && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="pixel-card bg-background/90 p-4 text-center">
+                    <div className="bg-background/90 p-4 text-center rounded-lg border">
                       <Lock className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm font-bold">Completa el Nivel 4</p>
                     </div>
@@ -238,7 +238,7 @@ export const NFTClaimModal = ({
               </div>
 
               {/* Requirements */}
-              <div className="pixel-card bg-muted p-4 space-y-3">
+              <div className="bg-muted p-4 space-y-3 rounded-lg border">
                 <h4 className="font-bold text-sm flex items-center gap-2">
                   <Award className="w-4 h-4" />
                   Requisitos para el NFT
@@ -281,13 +281,13 @@ export const NFTClaimModal = ({
                     de Mercado LP y dominas los conceptos básicos de DeFi.
                   </p>
                   <div className="flex justify-center gap-3 text-xs">
-                    <span className="pixel-card bg-primary/10 px-2 py-1">
+                    <span className="bg-primary/10 px-2 py-1 rounded border">
                       🎓 Educativo
                     </span>
-                    <span className="pixel-card bg-muted/50 px-2 py-1">
+                    <span className="bg-muted/50 px-2 py-1 rounded border">
                       🏆 Achievement
                     </span>
-                    <span className="pixel-card bg-card px-2 py-1">
+                    <span className="bg-card px-2 py-1 rounded border">
                       ⛓️ On-chain
                     </span>
                   </div>
@@ -300,7 +300,7 @@ export const NFTClaimModal = ({
                   <>
                     <Button
                       onClick={handleShowMintWidget}
-                      className="w-full pixel-button bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                       size="lg"
                     >
                       {isAuthenticated ? (
@@ -325,7 +325,7 @@ export const NFTClaimModal = ({
                 ) : (
                   <Button
                     onClick={onClose}
-                    className="w-full pixel-button"
+                    className="w-full"
                     variant="secondary"
                     size="lg"
                   >
@@ -339,7 +339,7 @@ export const NFTClaimModal = ({
                 onClick={onClose}
                 variant="ghost"
                 size="sm"
-                className="w-full pixel-button"
+                className="w-full"
               >
                 Cerrar
               </Button>

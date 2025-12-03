@@ -56,7 +56,7 @@ export const EducationModal = ({ open, onClose }: EducationModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-2xl pixel-card">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
             <PixelGraduationCap size={28} className="text-primary" /> {t('mercadoLP.education.title', { defaultValue: 'La Escuelita del Tianguis' })}
@@ -69,7 +69,7 @@ export const EducationModal = ({ open, onClose }: EducationModalProps) => {
               <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2">
                 <PixelScale size={20} className="text-primary" /> {t('mercadoLP.education.magicPot.title', { defaultValue: 'La olla mágica (x·y=k)' })}
               </h3>
-              <div className="pixel-card bg-muted p-3 space-y-2">
+              <div className="bg-muted p-3 space-y-2 rounded-lg border">
                 <p>{t('mercadoLP.education.magicPot.description', { defaultValue: 'Mueve el deslizador: quita mangos de la olla y mira cómo sube el precio.' })}</p>
                 <div className="flex items-center gap-3">
                   <PixelMango size={24} />
@@ -84,13 +84,13 @@ export const EducationModal = ({ open, onClose }: EducationModalProps) => {
                   <span className="text-xs text-muted-foreground">{dragMangos} {t('mercadoLP.education.units.mangos', { defaultValue: 'mangos' })}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Card className="pixel-card bg-card/80 p-2">
+                  <Card className="bg-card/80 p-2">
                     <p className="font-semibold">{t('mercadoLP.education.labels.before', { defaultValue: 'Antes' })}</p>
                     <p className="flex items-center gap-1"><PixelMango size={14} /> {basculaLesson.initialA} · <PixelLemon size={14} /> {basculaLesson.initialB}</p>
                     <p>k = {basculaLesson.k}</p>
                     <p className="flex items-center gap-1">{t('mercadoLP.education.labels.price', { defaultValue: 'Precio' })}: 1 <PixelMango size={12} /> = {basculaLesson.priceBefore.toFixed(2)} <PixelLemon size={12} /></p>
                   </Card>
-                  <Card className="pixel-card bg-card p-2">
+                  <Card className="bg-card p-2">
                     <p className="font-semibold">{t('mercadoLP.education.labels.after', { defaultValue: 'Después' })}</p>
                     <p className="flex items-center gap-1"><PixelMango size={14} /> {basculaLesson.newA.toFixed(1)} · <PixelLemon size={14} /> {basculaLesson.newB.toFixed(1)}</p>
                     <p>k = {basculaLesson.k.toFixed(1)} ({t('mercadoLP.education.labels.same', { defaultValue: 'igual' })})</p>
@@ -107,7 +107,7 @@ export const EducationModal = ({ open, onClose }: EducationModalProps) => {
               <h3 className="text-lg font-bold text-secondary mb-2 flex items-center gap-2">
                 <PixelTrendingUp size={20} className="text-secondary" /> {t('mercadoLP.education.slippage.title', { defaultValue: 'Impacto de precio (slippage)' })}
               </h3>
-              <div className="pixel-card bg-muted p-3 space-y-2">
+              <div className="bg-muted p-3 space-y-2 rounded-lg border">
                 <p>{t('mercadoLP.education.slippage.description', { defaultValue: 'Si compras mucho de golpe, tú mismo subes el precio. Ajusta el tamaño de compra de mangos:' })}</p>
                 <div className="flex items-center gap-3">
                   <PixelMango size={24} />
@@ -122,12 +122,12 @@ export const EducationModal = ({ open, onClose }: EducationModalProps) => {
                   <span className="text-xs text-muted-foreground">{buySize} {t('mercadoLP.education.units.mangos', { defaultValue: 'mangos' })}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Card className="pixel-card bg-card/80 p-2">
+                  <Card className="bg-card/80 p-2">
                     <p className="font-semibold">{t('mercadoLP.education.slippage.avgPrice', { defaultValue: 'Precio promedio' })}</p>
                     <p className="flex items-center gap-1">{t('mercadoLP.education.labels.before', { defaultValue: 'Antes' })}: {impactLesson.priceBefore.toFixed(2)} <PixelLemon size={12} /></p>
                     <p className="flex items-center gap-1">{t('mercadoLP.education.labels.after', { defaultValue: 'Después' })}: {impactLesson.priceAfter.toFixed(2)} <PixelLemon size={12} /></p>
                   </Card>
-                  <Card className="pixel-card bg-card p-2">
+                  <Card className="bg-card p-2">
                     <p className="font-semibold">{t('mercadoLP.education.slippage.impact', { defaultValue: 'Impacto' })}</p>
                     <p>{impactLesson.impact.toFixed(1)}% <span className={impactLesson.impact < 6 ? 'text-green-500' : impactLesson.impact < 12 ? 'text-yellow-500' : 'text-red-500'}>●</span></p>
                     <p className="text-[11px] text-muted-foreground">{t('mercadoLP.education.slippage.receive', { amount: impactLesson.amountOut.toFixed(1), defaultValue: `Recibes ~${impactLesson.amountOut.toFixed(1)} limones.` })}</p>
