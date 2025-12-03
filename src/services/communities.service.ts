@@ -311,8 +311,6 @@ class CommunitiesService {
   async update(id: string, updates: CommunityUpdate): Promise<ServiceResponse<Community>> {
     try {
       // Mapear campos del frontend a campos reales de la BD
-      // La BD usa: image_url (no logo_url), links (no social_links)
-      // No existen: website, location, founded_date, is_active, verified_at, verified_by
       const dbUpdates: Record<string, unknown> = {};
 
       // Campos que coinciden directamente
@@ -326,9 +324,14 @@ class CommunitiesService {
       if (updates.is_featured !== undefined) dbUpdates.is_featured = updates.is_featured;
       if (updates.is_verified !== undefined) dbUpdates.is_verified = updates.is_verified;
 
-      // Campos que necesitan mapeo
-      if ((updates as any).logo_url !== undefined) dbUpdates.image_url = (updates as any).logo_url;
-      if ((updates as any).social_links !== undefined) dbUpdates.links = (updates as any).social_links;
+      // Campos adicionales que envía el formulario
+      if ((updates as any).long_description !== undefined) dbUpdates.long_description = (updates as any).long_description;
+      if ((updates as any).image_url !== undefined) dbUpdates.image_url = (updates as any).image_url;
+      if ((updates as any).links !== undefined) dbUpdates.links = (updates as any).links;
+      if ((updates as any).is_official !== undefined) dbUpdates.is_official = (updates as any).is_official;
+
+      console.log('🔧 [Service] Updates recibidos:', updates);
+      console.log('🔧 [Service] dbUpdates a enviar:', dbUpdates);
 
       const { data, error } = await supabase
         .from('communities')
