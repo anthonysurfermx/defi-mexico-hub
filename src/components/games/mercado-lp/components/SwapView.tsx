@@ -249,46 +249,43 @@ export const SwapView = () => {
 
       <MissionsCard />
 
-      <Card className="pixel-card p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <SwapperIcon size={24} className="text-primary" />
+      <Card className="pixel-card p-3 sm:p-4 md:p-6">
+        <div className="flex items-start justify-between gap-3 flex-col sm:flex-row sm:items-center">
+          <div className="space-y-1">
+            <p className="text-[11px] sm:text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
+            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <SwapperIcon size={20} className="text-primary" />
               Cambiar frutas
             </h1>
-            <p className="text-xs text-muted-foreground">Misión: haz tu primer cambio en 2 pasos.</p>
+            <p className="text-xs text-muted-foreground">Haz tu primer swap en 2 pasos.</p>
           </div>
-          <Button variant="ghost" size="icon" className="pixel-button" title="Ayuda rápida" onClick={() => setShowHelpModal(true)}>
+          <Button variant="ghost" size="icon" className="pixel-button h-9 w-9" title="Ayuda rápida" onClick={() => setShowHelpModal(true)}>
             <HelpCircle className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr,1fr]">
-          <Card className="pixel-card p-6 pb-10 bg-muted relative overflow-hidden min-h-[380px] flex items-center justify-center">
+        <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-[1.4fr,1fr]">
+          <Card className="pixel-card p-4 sm:p-6 bg-muted/60 relative overflow-hidden min-h-[260px] sm:min-h-[320px] flex items-center justify-center">
             {currentPool ? (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background to-background/80" aria-hidden />
-                <div className="relative z-10 w-full max-w-md mx-auto space-y-4 flex flex-col items-center">
-                  <Bascula
-                    tokenA={currentPool.tokenA}
-                    tokenB={currentPool.tokenB}
-                    reserveA={currentPool.reserveA}
-                    reserveB={currentPool.reserveB}
-                    previewReserveA={previewReserves?.reserveA}
-                    previewReserveB={previewReserves?.reserveB}
-                  />
-                  <div className="text-sm font-semibold text-center pixel-card bg-white/85 px-3 py-1 shadow-sm">
-                    {spotText}
-                  </div>
+              <div className="relative z-10 w-full max-w-md mx-auto space-y-3 sm:space-y-4 flex flex-col items-center">
+                <Bascula
+                  tokenA={currentPool.tokenA}
+                  tokenB={currentPool.tokenB}
+                  reserveA={currentPool.reserveA}
+                  reserveB={currentPool.reserveB}
+                  previewReserveA={previewReserves?.reserveA}
+                  previewReserveB={previewReserves?.reserveB}
+                />
+                <div className="text-xs sm:text-sm font-semibold text-center pixel-card bg-white/85 px-3 py-1 shadow-sm">
+                  {spotText}
                 </div>
-              </>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">No hay puestos disponibles.</p>
             )}
           </Card>
 
-          <Card className="pixel-card p-4 space-y-3">
+          <Card className="pixel-card p-3 sm:p-4 space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Elige puesto</Label>
               <Select value={selectedPool} onValueChange={val => { setSelectedPool(val); setTokenIn(''); }}>
@@ -313,7 +310,7 @@ export const SwapView = () => {
                   <Label className="text-xs text-muted-foreground">Quiero cambiar</Label>
                   <div className="flex gap-2">
                     <Select value={tokenIn} onValueChange={setTokenIn}>
-                      <SelectTrigger className="pixel-border w-[160px]">
+                      <SelectTrigger className="pixel-border w-[140px] sm:w-[160px]">
                         <SelectValue placeholder="Fruta" />
                       </SelectTrigger>
                       <SelectContent>

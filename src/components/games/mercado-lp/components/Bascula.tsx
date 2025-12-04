@@ -32,9 +32,9 @@ export const Bascula = ({ tokenA, tokenB, reserveA, reserveB, className, preview
         className
       )}
     >
-      {/* Halo + grid */}
-      <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.12),transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
+      {/* Halo + grid - oculto en mobile para mejor rendimiento */}
+      <div className="hidden sm:block absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.12),transparent_50%)] pointer-events-none" />
+      <div className="hidden sm:block absolute inset-0 opacity-10 bg-[linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
 
       {/* Contenedor de los platos - diseño simplificado con flexbox */}
       <div className="relative z-10 flex items-end justify-center gap-4 sm:gap-8 w-full max-w-xs">

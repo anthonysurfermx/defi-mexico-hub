@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { GameLevel } from '@/components/games/mercado-lp/types/game';
-import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { PixelStore } from './icons/GameIcons';
+import { PixelChevronLeft } from '@/components/ui/pixel-icons';
 
 interface StartScreenProps {
   onSelectRole: (level: GameLevel, avatar: string, characterName: string) => void;
@@ -84,9 +84,9 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
       {/* Botón sutil para regresar al home */}
       <Link
         to="/"
-        className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-full bg-card/60 backdrop-blur-sm border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all duration-200 group"
+        className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 pixel-tag text-amber-900 hover:text-amber-950 transition-all duration-200 group text-xs sm:text-sm"
       >
-        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+        <PixelChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
         <span className="font-medium">DeFi México Hub</span>
       </Link>
 
@@ -95,7 +95,8 @@ export const StartScreen = ({ onSelectRole }: StartScreenProps) => {
         <LanguageSwitcher />
       </div>
 
-      <div className="absolute inset-0 pointer-events-none opacity-30" aria-hidden>
+      {/* Gradientes decorativos - ocultos en mobile para mejor rendimiento */}
+      <div className="hidden sm:block absolute inset-0 pointer-events-none opacity-30" aria-hidden>
         <div className="w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(0,255,136,0.1)_0,rgba(0,0,0,0)_30%),radial-gradient(circle_at_80%_0%,rgba(0,212,255,0.1)_0,rgba(0,0,0,0)_25%),radial-gradient(circle_at_30%_80%,rgba(139,92,246,0.1)_0,rgba(0,0,0,0)_30%)]" />
       </div>
 
