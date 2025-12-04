@@ -282,6 +282,17 @@ export const CCAView = () => {
                 <LightbulbIcon size={14} className="text-amber-500 shrink-0" />
                 <span>{t('mercadoLP.cca.banner.concept')}</span>
               </div>
+
+              {/* Botón a la vida real */}
+              <a
+                href="https://cca.uniswap.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 text-white text-sm font-medium rounded-lg transition-all hover:scale-105"
+              >
+                <PixelTrendingUp size={16} />
+                {t('mercadoLP.cca.banner.realLife', { defaultValue: 'Ir a la vida real' })}
+              </a>
             </div>
           </div>
         </Card>

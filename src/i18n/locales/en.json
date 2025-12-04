@@ -630,7 +630,8 @@
       "banner": {
         "title": "Level 4: The Auctioneer",
         "body": "Learn to distribute fruits with fair auctions. Everyone bids and the market decides the final price - you might pay less than you offered!",
-        "concept": "DeFi concept: Fair Price Discovery"
+        "concept": "DeFi concept: Fair Price Discovery",
+        "realLife": "Go to real life"
       },
       "noAuction": {
         "title": "No active auctions",

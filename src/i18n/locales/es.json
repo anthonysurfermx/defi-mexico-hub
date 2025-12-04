@@ -630,7 +630,8 @@
       "banner": {
         "title": "Nivel 4: El Subastero",
         "body": "Aprende a distribuir frutas con subastas justas. Todos ofertan y el mercado decide el precio final - ¡podrías pagar menos de lo que ofreciste!",
-        "concept": "Concepto DeFi: Descubrimiento de Precio Justo"
+        "concept": "Concepto DeFi: Descubrimiento de Precio Justo",
+        "realLife": "Ir a la vida real"
       },
       "noAuction": {
         "title": "No hay subastas activas",
