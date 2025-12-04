@@ -1,21 +1,21 @@
 // src/pages/CommunityDetailPage.tsx - CONECTADO CON BASE DE DATOS REAL
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Users, 
-  ExternalLink, 
-  MessageCircle, 
-  MapPin,
-  Shield,
-  Star,
-  Loader2,
-  AlertCircle,
-  Globe,
-  Hash,
-  TrendingUp
-} from "lucide-react";
+import {
+  PixelArrowLeft,
+  PixelCalendar,
+  PixelUsers,
+  PixelExternalLink,
+  PixelMessageCircle,
+  PixelMapPin,
+  PixelShield,
+  PixelStar,
+  PixelLoader,
+  PixelAlertCircle,
+  PixelGlobe,
+  PixelHash,
+  PixelTrendingUp
+} from "@/components/ui/pixel-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,7 +96,7 @@ const CommunityDetailPage = () => {
       <div className="min-h-screen py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <PixelLoader size={32} className="mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">Cargando comunidad...</p>
           </div>
         </div>
@@ -110,14 +110,14 @@ const CommunityDetailPage = () => {
       <div className="min-h-screen py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-20">
-            <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
+            <PixelAlertCircle size={32} className="mx-auto mb-4 text-destructive" />
             <h3 className="text-lg font-semibold mb-2">Comunidad no encontrada</h3>
             <p className="text-muted-foreground mb-4">
               {error || 'La comunidad que buscas no existe o ha sido eliminada'}
             </p>
             <div className="flex gap-2 justify-center">
               <Button variant="outline" onClick={() => navigate(-1)}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <PixelArrowLeft size={16} className="mr-2" />
                 Volver
               </Button>
               <Button asChild>
@@ -167,7 +167,7 @@ const CommunityDetailPage = () => {
         >
           <Button variant="ghost" asChild className="hover:bg-muted">
             <Link to="/comunidades">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <PixelArrowLeft size={16} className="mr-2" />
               Volver a comunidades
             </Link>
           </Button>
@@ -224,19 +224,19 @@ const CommunityDetailPage = () => {
                       <div className="flex gap-2">
                         {community.is_verified && (
                           <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
-                            <Shield className="w-3 h-3 mr-1" />
+                            <PixelShield size={12} className="mr-1" />
                             Verificada
                           </Badge>
                         )}
                         {community.is_featured && (
                           <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-                            <Star className="w-3 h-3 mr-1" />
+                            <PixelStar size={12} className="mr-1" />
                             Destacada
                           </Badge>
                         )}
                         {community.is_official && (
                           <Badge variant="default">
-                            <Shield className="w-3 h-3 mr-1" />
+                            <PixelShield size={12} className="mr-1" />
                             Oficial
                           </Badge>
                         )}
@@ -247,12 +247,12 @@ const CommunityDetailPage = () => {
                     <div className="flex items-center gap-4 text-muted-foreground mb-4">
                       {community.category && (
                         <div className="flex items-center gap-1">
-                          <Hash className="w-4 h-4" />
+                          <PixelHash size={16} />
                           <span className="capitalize">{community.category}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <PixelCalendar size={16} />
                         <span>Creada en {new Date(community.created_at).getFullYear()}</span>
                       </div>
                     </div>
@@ -380,7 +380,7 @@ const CommunityDetailPage = () => {
                           <a href={url} target="_blank" rel="noopener noreferrer">
                             <span className="mr-2">{getIcon(platform)}</span>
                             <span className="capitalize">{platform}</span>
-                            <ExternalLink className="w-3 h-3 ml-auto" />
+                            <PixelExternalLink size={12} className="ml-auto" />
                           </a>
                         </Button>
                       );
@@ -482,7 +482,7 @@ const CommunityDetailPage = () => {
             <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto mb-4 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
+                  <PixelUsers size={24} className="text-white" />
                 </div>
                 <h3 className="font-semibold mb-2">¡Únete a la comunidad!</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -498,7 +498,7 @@ const CommunityDetailPage = () => {
                       rel="noopener noreferrer"
                     >
                       Unirse ahora
-                      <ExternalLink className="w-4 h-4 ml-2" />
+                      <PixelExternalLink size={16} className="ml-2" />
                     </a>
                   </Button>
                 )}

@@ -3,19 +3,19 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  ExternalLink,
-  Globe,
-  AlertCircle,
-  Filter,
-  Search,
-  ChevronRight,
-  Ticket,
-  Plus
-} from "lucide-react";
+  PixelCalendar,
+  PixelClock,
+  PixelMapPin,
+  PixelUsers,
+  PixelExternalLink,
+  PixelGlobe,
+  PixelAlertCircle,
+  PixelFilter,
+  PixelSearch,
+  PixelChevronRight,
+  PixelTicket,
+  PixelPlus
+} from "@/components/ui/pixel-icons";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -196,13 +196,13 @@ const EventosPage = () => {
           <div className="space-y-3 flex-1">
             {/* Fecha */}
             <div className="flex items-center text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+              <PixelCalendar size={16} className="mr-2 text-primary flex-shrink-0" />
               <span className="line-clamp-1">{formatDate(event.start_date)}</span>
             </div>
             
             {/* Hora */}
             <div className="flex items-center text-sm text-muted-foreground">
-              <Clock className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+              <PixelClock size={16} className="mr-2 text-primary flex-shrink-0" />
               <span>{formatTime(event.start_time)}</span>
             </div>
             
@@ -210,12 +210,12 @@ const EventosPage = () => {
             <div className="flex items-center text-sm text-muted-foreground">
               {event.event_type === 'online' ? (
                 <>
-                  <Globe className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+                  <PixelGlobe size={16} className="mr-2 text-primary flex-shrink-0" />
                   <span>{event.online_platform || "Online"}</span>
                 </>
               ) : (
                 <>
-                  <MapPin className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+                  <PixelMapPin size={16} className="mr-2 text-primary flex-shrink-0" />
                   <span className="line-clamp-1">
                     {event.venue_name || event.venue_city || "Por definir"}
                   </span>
@@ -226,7 +226,7 @@ const EventosPage = () => {
             {/* Capacidad */}
             {event.capacity && (
               <div className="flex items-center text-sm text-muted-foreground">
-                <Users className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+                <PixelUsers size={16} className="mr-2 text-primary flex-shrink-0" />
                 <span>
                   {event.current_attendees || 0} / {event.capacity} asistentes
                 </span>
@@ -235,7 +235,7 @@ const EventosPage = () => {
 
             {/* Precio */}
             <div className="flex items-center text-sm">
-              <Ticket className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
+              <PixelTicket size={16} className="mr-2 text-primary flex-shrink-0" />
               {event.is_free ? (
                 <Badge variant="outline" className="text-green-500 border-green-500/50">
                   GRATIS
@@ -261,7 +261,7 @@ const EventosPage = () => {
                   >
                     <Button className="w-full bg-gradient-primary text-primary-foreground hover:shadow-neon">
                       Registrarse
-                      <ExternalLink className="w-4 h-4 ml-2" />
+                      <PixelExternalLink size={16} className="ml-2" />
                     </Button>
                   </a>
                 ) : (
@@ -275,7 +275,7 @@ const EventosPage = () => {
             <Link to={`/eventos/${event.slug || event.id}`}>
               <Button variant="outline" className="w-full">
                 Ver detalles
-                <ChevronRight className="w-4 h-4 ml-2" />
+                <PixelChevronRight size={16} className="ml-2" />
               </Button>
             </Link>
           </div>
@@ -333,7 +333,7 @@ const EventosPage = () => {
             onClick={handleAddEvent}
             className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           >
-            <Plus className="mr-2 h-5 w-5" />
+            <PixelPlus size={20} className="mr-2" />
             Agrega tu evento
           </Button>
         </div>
@@ -350,7 +350,7 @@ const EventosPage = () => {
               {/* Búsqueda */}
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <PixelSearch size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Buscar eventos..."
                     value={searchTerm}
@@ -363,7 +363,7 @@ const EventosPage = () => {
               {/* Filtro por tipo */}
               <Select value={eventTypeFilter} onValueChange={(value: any) => setEventTypeFilter(value)}>
                 <SelectTrigger className="w-full lg:w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
+                  <PixelFilter size={16} className="mr-2" />
                   <SelectValue placeholder="Tipo de evento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -394,7 +394,7 @@ const EventosPage = () => {
         {/* Error state */}
         {error && (
           <Alert className="mb-8">
-            <AlertCircle className="h-4 w-4" />
+            <PixelAlertCircle size={16} />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -477,7 +477,7 @@ const EventosPage = () => {
                 className="text-center py-12"
               >
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8 text-muted-foreground" />
+                  <PixelCalendar size={32} className="text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
                   No hay eventos próximos
@@ -524,7 +524,7 @@ const EventosPage = () => {
           className="mt-16 text-center"
         >
           <div className="bg-gradient-dark p-8 rounded-2xl border border-border">
-            <Users className="w-12 h-12 text-primary mx-auto mb-4" />
+            <PixelUsers size={48} className="text-primary mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-foreground mb-4">
               ¿Quieres organizar un evento?
             </h3>

@@ -6,7 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowUpRight, Users, TrendingUp, Globe, Filter, Rocket, DollarSign, Loader2, Plus } from 'lucide-react';
+import {
+  PixelSearch,
+  PixelArrowUpRight,
+  PixelUsers,
+  PixelTrendingUp,
+  PixelGlobe,
+  PixelFilter,
+  PixelRocket,
+  PixelDollar,
+  PixelLoader,
+  PixelPlus
+} from '@/components/ui/pixel-icons';
 import { startupsService } from '@/services/startups.service';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -115,7 +126,7 @@ export default function StartupsPage() {
             onClick={handleRegisterStartup}
             className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           >
-            <Plus className="mr-2 h-5 w-5" />
+            <PixelPlus size={20} className="mr-2" />
             {t('nav.contribute')}
           </Button>
         </div>
@@ -123,7 +134,7 @@ export default function StartupsPage() {
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <PixelSearch size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('common.search')}
               value={searchQuery}
@@ -163,7 +174,7 @@ export default function StartupsPage() {
           )}
 
           <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
+            <PixelFilter size={16} />
             Más filtros
           </Button>
         </div>
@@ -181,7 +192,7 @@ export default function StartupsPage() {
         {/* Startups Grid */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <PixelLoader size={32} className="text-primary" />
           </div>
         ) : filteredStartups.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -198,7 +209,7 @@ export default function StartupsPage() {
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Rocket className="w-6 h-6 text-primary" />
+                          <PixelRocket size={24} className="text-primary" />
                         </div>
                       )}
                       <div>
@@ -233,7 +244,7 @@ export default function StartupsPage() {
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     {startup.total_users && (
                       <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
+                        <PixelUsers size={16} />
                         <span>{startup.total_users.toLocaleString()} usuarios</span>
                       </div>
                     )}
@@ -250,7 +261,7 @@ export default function StartupsPage() {
                     {startup.website && (
                       <Button asChild variant="default" size="icon">
                         <a href={startup.website} target="_blank" rel="noopener noreferrer">
-                          <Globe className="h-4 w-4" />
+                          <PixelGlobe size={16} />
                         </a>
                       </Button>
                     )}
@@ -261,7 +272,7 @@ export default function StartupsPage() {
           </div>
         ) : (
           <Card className="p-12 text-center">
-            <Rocket className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <PixelRocket size={48} className="mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No se encontraron startups</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery || selectedCategory !== 'all' || selectedStage !== 'all' 
@@ -271,7 +282,7 @@ export default function StartupsPage() {
             {!loading && startups.length === 0 && (
               <Button asChild variant="outline">
                 <Link to="/admin/startups/new">
-                  <Rocket className="w-4 h-4 mr-2" />
+                  <PixelRocket size={16} className="mr-2" />
                   Agregar primera startup
                 </Link>
               </Button>

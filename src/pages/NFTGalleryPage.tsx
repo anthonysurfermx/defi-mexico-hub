@@ -18,21 +18,21 @@ import {
 } from '@/components/games/mercado-lp/lib/nftMetadata';
 import { NFTImage } from '@/components/games/mercado-lp/components/NFTImage';
 import {
-  Twitter,
-  ExternalLink,
-  Gamepad2,
-} from 'lucide-react';
+  PixelTwitter,
+  PixelExternalLink,
+  PixelGamepad,
+  PixelStar,
+  PixelSparkles,
+  PixelUsers,
+} from '@/components/ui/pixel-icons';
 import {
   TrophyIcon,
   BadgeIcon,
-  PixelStar,
-  PixelSparkles,
   ChartIcon,
   BoltIcon,
   PixelCrown,
   PixelMedal,
   GiftIcon,
-  PixelUsers,
 } from '@/components/games/mercado-lp/components/icons/GameIcons';
 
 export default function NFTGalleryPage() {
@@ -191,7 +191,7 @@ export default function NFTGalleryPage() {
               <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 flex-wrap">
                 <Link to="/academia/juego/mercado-lp">
                   <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 gap-2">
-                    <Gamepad2 className="w-5 h-5" />
+                    <PixelGamepad size={20} />
                     {t('nftGallery.playAndGet')}
                   </Button>
                 </Link>
@@ -202,7 +202,7 @@ export default function NFTGalleryPage() {
                 >
                   <Button variant="outline" size="lg" className="gap-2">
                     {t('nftGallery.viewOnOpenSea')}
-                    <ExternalLink className="w-4 h-4" />
+                    <PixelExternalLink size={16} />
                   </Button>
                 </a>
               </div>
@@ -433,7 +433,7 @@ export default function NFTGalleryPage() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors mb-3"
                           >
-                            <Twitter className="w-4 h-4" />
+                            <PixelTwitter size={16} />
                             @{profile.twitterHandle}
                           </a>
                         )}
@@ -460,7 +460,7 @@ export default function NFTGalleryPage() {
                               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                             >
                               <span className="font-mono">{shortenAddress(profile.walletAddress)}</span>
-                              <ExternalLink className="w-3 h-3" />
+                              <PixelExternalLink size={12} />
                             </a>
                           )}
 
@@ -492,7 +492,7 @@ export default function NFTGalleryPage() {
                   </p>
                   <Link to="/academia/juego/mercado-lp">
                     <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 gap-2">
-                      <Gamepad2 className="w-5 h-5" />
+                      <PixelGamepad size={20} />
                       {t('nftGallery.empty.cta')}
                     </Button>
                   </Link>
@@ -525,7 +525,7 @@ export default function NFTGalleryPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/academia/juego/mercado-lp">
                 <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 gap-2 px-8">
-                  <Gamepad2 className="w-5 h-5" />
+                  <PixelGamepad size={20} />
                   {t('nftGallery.cta.play')}
                 </Button>
               </Link>
@@ -536,7 +536,7 @@ export default function NFTGalleryPage() {
               >
                 <Button variant="outline" size="lg" className="gap-2">
                   {t('nftGallery.cta.viewContract')}
-                  <ExternalLink className="w-4 h-4" />
+                  <PixelExternalLink size={16} />
                 </Button>
               </a>
             </div>

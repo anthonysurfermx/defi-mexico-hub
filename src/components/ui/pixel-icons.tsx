@@ -622,6 +622,590 @@ export const PixelSettings = ({ className, size = 24 }: IconProps) => (
   </svg>
 );
 
+export const PixelHome = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="3" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="5" width="10" height="2" fill="currentColor"/>
+    <rect x="2" y="7" width="12" height="8" fill="currentColor"/>
+    <rect x="3" y="8" width="4" height="6" className="fill-background"/>
+    <rect x="9" y="8" width="4" height="6" className="fill-background"/>
+    <rect x="6" y="10" width="4" height="4" className="fill-background"/>
+  </svg>
+);
+
+export const PixelEye = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="4" width="8" height="2" fill="currentColor"/>
+    <rect x="2" y="6" width="12" height="4" fill="currentColor"/>
+    <rect x="4" y="10" width="8" height="2" fill="currentColor"/>
+    <rect x="6" y="6" width="4" height="4" className="fill-background"/>
+    <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelEyeOff = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="4" width="8" height="2" fill="currentColor"/>
+    <rect x="2" y="6" width="12" height="4" fill="currentColor"/>
+    <rect x="4" y="10" width="8" height="2" fill="currentColor"/>
+    <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="12" y="12" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelLock = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="2" width="6" height="2" fill="currentColor"/>
+    <rect x="4" y="4" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="4" width="2" height="4" fill="currentColor"/>
+    <rect x="3" y="7" width="10" height="8" fill="currentColor"/>
+    <rect x="7" y="10" width="2" height="3" className="fill-background"/>
+  </svg>
+);
+
+export const PixelUpload = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="2" width="2" height="6" fill="currentColor"/>
+    <rect x="5" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="10" width="2" height="4" fill="currentColor"/>
+    <rect x="12" y="10" width="2" height="4" fill="currentColor"/>
+    <rect x="2" y="12" width="12" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelImage = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="2" width="14" height="12" fill="currentColor"/>
+    <rect x="2" y="3" width="12" height="10" className="fill-background"/>
+    <rect x="4" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="9" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelPlay = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="2" width="2" height="12" fill="currentColor"/>
+    <rect x="6" y="3" width="2" height="10" fill="currentColor"/>
+    <rect x="8" y="4" width="2" height="8" fill="currentColor"/>
+    <rect x="10" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="12" y="6" width="2" height="4" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelPause = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="3" y="2" width="4" height="12" fill="currentColor"/>
+    <rect x="9" y="2" width="4" height="12" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelRefresh = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="4" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="10" y="7" width="4" height="2" fill="currentColor"/>
+    <rect x="12" y="5" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelSave = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="2" y="1" width="12" height="14" fill="currentColor"/>
+    <rect x="4" y="2" width="6" height="4" className="fill-background"/>
+    <rect x="4" y="8" width="8" height="6" className="fill-background"/>
+    <rect x="8" y="2" width="2" height="3" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelSend = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="6" width="2" height="4" fill="currentColor"/>
+    <rect x="5" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="7" y="4" width="2" height="8" fill="currentColor"/>
+    <rect x="9" y="3" width="2" height="6" fill="currentColor"/>
+    <rect x="11" y="2" width="2" height="4" fill="currentColor"/>
+    <rect x="13" y="1" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelDollar = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="3" width="8" height="2" fill="currentColor"/>
+    <rect x="3" y="5" width="3" height="2" fill="currentColor"/>
+    <rect x="5" y="7" width="6" height="2" fill="currentColor"/>
+    <rect x="10" y="9" width="3" height="2" fill="currentColor"/>
+    <rect x="4" y="11" width="8" height="2" fill="currentColor"/>
+    <rect x="7" y="13" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelTrendingUp = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="10" y="2" width="4" height="2" fill="currentColor"/>
+    <rect x="12" y="4" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="12" width="14" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelTrendingDown = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="10" y="8" width="4" height="2" fill="currentColor"/>
+    <rect x="12" y="4" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="12" width="14" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelAlertCircle = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="7" y="4" width="2" height="4" fill="currentColor"/>
+    <rect x="7" y="10" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelXCircle = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="5" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="9" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelFileText = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="2" y="1" width="12" height="14" fill="currentColor"/>
+    <rect x="3" y="2" width="10" height="12" className="fill-background"/>
+    <rect x="4" y="4" width="8" height="1" fill="currentColor"/>
+    <rect x="4" y="6" width="6" height="1" fill="currentColor"/>
+    <rect x="4" y="8" width="8" height="1" fill="currentColor"/>
+    <rect x="4" y="10" width="4" height="1" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelHash = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="2" height="14" fill="currentColor"/>
+    <rect x="9" y="1" width="2" height="14" fill="currentColor"/>
+    <rect x="1" y="5" width="14" height="2" fill="currentColor"/>
+    <rect x="1" y="9" width="14" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelTag = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="1" width="8" height="8" fill="currentColor"/>
+    <rect x="9" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="13" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="9" width="4" height="2" fill="currentColor"/>
+    <rect x="7" y="11" width="4" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="4" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" className="fill-background"/>
+  </svg>
+);
+
+export const PixelCompass = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="5" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelSun = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="5" width="6" height="6" fill="currentColor"/>
+    <rect x="1" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="13" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="13" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelMoon = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="6" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="4" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="10" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="13" width="4" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelAward = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="10" height="6" fill="currentColor"/>
+    <rect x="5" y="9" width="6" height="2" fill="currentColor"/>
+    <rect x="4" y="11" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="11" width="2" height="4" fill="currentColor"/>
+    <rect x="6" y="13" width="4" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelGraduationCap = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="3" width="8" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="14" height="2" fill="currentColor"/>
+    <rect x="3" y="7" width="2" height="4" fill="currentColor"/>
+    <rect x="11" y="7" width="2" height="4" fill="currentColor"/>
+    <rect x="5" y="9" width="6" height="2" fill="currentColor"/>
+    <rect x="13" y="6" width="2" height="6" fill="currentColor"/>
+    <rect x="12" y="11" width="4" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelTarget = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="6" y="6" width="4" height="4" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelZap = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="8" y="1" width="4" height="2" fill="currentColor"/>
+    <rect x="6" y="3" width="4" height="2" fill="currentColor"/>
+    <rect x="4" y="5" width="4" height="2" fill="currentColor"/>
+    <rect x="4" y="7" width="8" height="2" fill="currentColor"/>
+    <rect x="8" y="9" width="4" height="2" fill="currentColor"/>
+    <rect x="6" y="11" width="4" height="2" fill="currentColor"/>
+    <rect x="4" y="13" width="4" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelLayers = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="3" width="8" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="14" height="2" fill="currentColor"/>
+    <rect x="1" y="8" width="14" height="2" fill="currentColor"/>
+    <rect x="1" y="11" width="14" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelMoreHorizontal = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="2" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="12" y="7" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelYoutube = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="3" width="14" height="10" fill="currentColor"/>
+    <rect x="6" y="5" width="2" height="6" className="fill-background"/>
+    <rect x="8" y="6" width="2" height="4" className="fill-background"/>
+    <rect x="10" y="7" width="2" height="2" className="fill-background"/>
+  </svg>
+);
+
+export const PixelInstagram = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="1" width="14" height="14" fill="currentColor"/>
+    <rect x="2" y="2" width="12" height="12" className="fill-background"/>
+    <rect x="5" y="5" width="6" height="6" fill="currentColor"/>
+    <rect x="6" y="6" width="4" height="4" className="fill-background"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelChevronUp = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="8" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelArrowUp = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="2" width="2" height="10" fill="currentColor"/>
+    <rect x="5" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="6" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelArrowDown = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="4" width="2" height="10" fill="currentColor"/>
+    <rect x="5" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="8" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelArrowUpRight = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="6" y="2" width="8" height="2" fill="currentColor"/>
+    <rect x="12" y="4" width="2" height="6" fill="currentColor"/>
+    <rect x="10" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="12" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelBuilding = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="3" y="1" width="10" height="14" fill="currentColor"/>
+    <rect x="5" y="3" width="2" height="2" className="fill-background"/>
+    <rect x="9" y="3" width="2" height="2" className="fill-background"/>
+    <rect x="5" y="6" width="2" height="2" className="fill-background"/>
+    <rect x="9" y="6" width="2" height="2" className="fill-background"/>
+    <rect x="5" y="9" width="2" height="2" className="fill-background"/>
+    <rect x="9" y="9" width="2" height="2" className="fill-background"/>
+    <rect x="6" y="12" width="4" height="3" className="fill-background"/>
+  </svg>
+);
+
+export const PixelBriefcase = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="3" fill="currentColor"/>
+    <rect x="6" y="2" width="4" height="1" className="fill-background"/>
+    <rect x="1" y="4" width="14" height="10" fill="currentColor"/>
+    <rect x="1" y="8" width="14" height="2" className="fill-background"/>
+    <rect x="7" y="7" width="2" height="4" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelHelpCircle = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="6" y="4" width="4" height="2" fill="currentColor"/>
+    <rect x="9" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="10" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelMessageCircle = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="2" width="8" height="2" fill="currentColor"/>
+    <rect x="2" y="4" width="12" height="6" fill="currentColor"/>
+    <rect x="4" y="10" width="4" height="2" fill="currentColor"/>
+    <rect x="2" y="12" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelCode = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="6" width="2" height="4" fill="currentColor"/>
+    <rect x="4" y="10" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="12" y="6" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="10" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelMinus = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="2" y="7" width="12" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelCamera = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="1" y="3" width="14" height="10" fill="currentColor"/>
+    <rect x="5" y="5" width="6" height="6" className="fill-background"/>
+    <rect x="6" y="6" width="4" height="4" fill="currentColor"/>
+    <rect x="2" y="4" width="2" height="2" className="fill-background"/>
+  </svg>
+);
+
+export const PixelWrench = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="10" y="1" width="4" height="2" fill="currentColor"/>
+    <rect x="12" y="3" width="2" height="4" fill="currentColor"/>
+    <rect x="10" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="13" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="11" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelPalette = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="5" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="13" y="5" width="2" height="6" fill="currentColor"/>
+    <rect x="3" y="11" width="10" height="2" fill="currentColor"/>
+    <rect x="5" y="13" width="6" height="2" fill="currentColor"/>
+    <rect x="4" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="4" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="9" y="9" width="3" height="3" className="fill-background"/>
+  </svg>
+);
+
+export const PixelTicket = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="1" y="3" width="14" height="10" fill="currentColor"/>
+    <rect x="2" y="4" width="12" height="8" className="fill-background"/>
+    <rect x="1" y="7" width="2" height="2" className="fill-background"/>
+    <rect x="13" y="7" width="2" height="2" className="fill-background"/>
+    <rect x="4" y="6" width="8" height="4" fill="currentColor"/>
+    <rect x="5" y="7" width="6" height="2" className="fill-background"/>
+  </svg>
+);
+
+export const PixelNetwork = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="12" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="13" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="3" width="4" height="2" fill="currentColor"/>
+    <rect x="4" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="11" width="4" height="2" fill="currentColor"/>
+    <rect x="6" y="6" width="4" height="4" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelUserCheck = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="4" y="1" width="6" height="5" fill="currentColor"/>
+    <rect x="2" y="7" width="10" height="5" fill="currentColor"/>
+    <rect x="3" y="12" width="8" height="2" fill="currentColor"/>
+    <rect x="12" y="8" width="2" height="2" fill="currentColor"/>
+    <rect x="13" y="6" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="10" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelBarChart = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="2" y="9" width="3" height="5" fill="currentColor"/>
+    <rect x="6" y="5" width="3" height="9" fill="currentColor"/>
+    <rect x="10" y="2" width="3" height="12" fill="currentColor"/>
+    <rect x="1" y="14" width="14" height="1" fill="currentColor"/>
+  </svg>
+);
+
+// ============================================
+// PIXEL LOGO - DeFi México
+// ============================================
+
+interface LogoProps {
+  className?: string;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export const PixelLogo = ({ className, size = 'md' }: LogoProps) => {
+  const dimensions = {
+    sm: { width: 80, height: 12, fontSize: '10px' },
+    md: { width: 110, height: 16, fontSize: '14px' },
+    lg: { width: 140, height: 20, fontSize: '18px' },
+  };
+
+  const { width, height, fontSize } = dimensions[size];
+
+  return (
+    <div
+      className={cn('inline-flex items-center gap-1', className)}
+      style={{
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
+        fontSize,
+        letterSpacing: '-0.5px',
+        imageRendering: 'pixelated',
+      }}
+    >
+      <span className="text-primary font-bold" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>DeFi</span>
+      <span className="text-foreground font-bold" style={{ textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>México</span>
+    </div>
+  );
+};
+
 // ============================================
 // Re-export from game icons for compatibility
 // ============================================

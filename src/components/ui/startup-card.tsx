@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ExternalLink, Calendar, Users } from "lucide-react";
+import { PixelExternalLink, PixelCalendar, PixelUsers } from "@/components/ui/pixel-icons";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +49,7 @@ const StartupCard = ({
               <div>
                 <h3 className="font-semibold text-lg text-foreground">{name}</h3>
                 <div className="flex items-center text-muted-foreground text-sm">
-                  <Calendar className="w-4 h-4 mr-1" />
+                  <PixelCalendar size={16} className="mr-1" />
                   {foundedYear}
                 </div>
               </div>
@@ -57,7 +57,7 @@ const StartupCard = ({
             {website && (
               <Button variant="ghost" size="icon" asChild>
                 <a href={website} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-4 h-4" />
+                  <PixelExternalLink size={16} />
                 </a>
               </Button>
             )}
@@ -82,7 +82,7 @@ const StartupCard = ({
           <div className="flex flex-wrap gap-2">
             {founders.slice(0, 2).map((founder) => (
               <Badge key={founder} variant="secondary" className="text-xs">
-                <Users className="w-3 h-3 mr-1" />
+                <PixelUsers size={12} className="mr-1" />
                 {founder}
               </Badge>
             ))}

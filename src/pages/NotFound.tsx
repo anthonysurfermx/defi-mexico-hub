@@ -2,16 +2,22 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileQuestion, Home, ArrowLeft, Search, Compass } from 'lucide-react';
+import {
+  PixelHelpCircle,
+  PixelHome,
+  PixelArrowLeft,
+  PixelSearch,
+  PixelCompass
+} from '@/components/ui/pixel-icons';
 
 export default function NotFound() {
   const navigate = useNavigate();
 
   // Sugerencias de páginas populares
   const suggestions = [
-    { path: '/startups', label: 'Explorar Startups', icon: Compass },
-    { path: '/eventos', label: 'Ver Eventos', icon: Search },
-    { path: '/comunidades', label: 'Comunidades DeFi', icon: Compass },
+    { path: '/startups', label: 'Explorar Startups', Icon: PixelCompass },
+    { path: '/eventos', label: 'Ver Eventos', Icon: PixelSearch },
+    { path: '/comunidades', label: 'Comunidades DeFi', Icon: PixelCompass },
   ];
 
   return (
@@ -24,7 +30,7 @@ export default function NotFound() {
           <div className="mx-auto mb-4 relative">
             <div className="absolute inset-0 bg-primary/20 blur-xl animate-pulse" />
             <div className="relative p-4 bg-primary/10 rounded-full">
-              <FileQuestion className="h-12 w-12 text-primary animate-bounce" />
+              <PixelHelpCircle size={48} className="text-primary animate-bounce" />
             </div>
           </div>
           
@@ -54,7 +60,7 @@ export default function NotFound() {
                   to={suggestion.path}
                   className="flex items-center justify-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
                 >
-                  <suggestion.icon className="h-4 w-4 text-primary" />
+                  <suggestion.Icon size={16} className="text-primary" />
                   <span className="text-sm">{suggestion.label}</span>
                 </Link>
               ))}
@@ -68,7 +74,7 @@ export default function NotFound() {
             variant="default"
             className="w-full"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <PixelArrowLeft size={16} className="mr-2" />
             Volver atrás
           </Button>
           
@@ -77,7 +83,7 @@ export default function NotFound() {
             variant="outline"
             className="w-full"
           >
-            <Home className="mr-2 h-4 w-4" />
+            <PixelHome size={16} className="mr-2" />
             Ir al inicio
           </Button>
         </CardFooter>

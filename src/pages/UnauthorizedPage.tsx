@@ -2,7 +2,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldOff, Home, ArrowLeft, Lock } from 'lucide-react';
+import { PixelShield, PixelHome, PixelArrowLeft, PixelLock } from '@/components/ui/pixel-icons';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function UnauthorizedPage() {
@@ -24,7 +24,7 @@ export default function UnauthorizedPage() {
           <div className="mx-auto mb-4 relative">
             <div className="absolute inset-0 bg-destructive/20 blur-xl animate-pulse" />
             <div className="relative p-4 bg-destructive/10 rounded-full">
-              <ShieldOff className="h-12 w-12 text-destructive" />
+              <PixelShield size={48} className="text-destructive" />
             </div>
           </div>
           
@@ -74,7 +74,7 @@ export default function UnauthorizedPage() {
             variant="default"
             className="w-full"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <PixelArrowLeft size={16} className="mr-2" />
             Volver atrás
           </Button>
           
@@ -83,7 +83,7 @@ export default function UnauthorizedPage() {
             variant="outline"
             className="w-full"
           >
-            <Home className="mr-2 h-4 w-4" />
+            <PixelHome size={16} className="mr-2" />
             Ir al inicio
           </Button>
           
@@ -93,7 +93,7 @@ export default function UnauthorizedPage() {
               variant="ghost"
               className="w-full"
             >
-              <Lock className="mr-2 h-4 w-4" />
+              <PixelLock size={16} className="mr-2" />
               Cambiar de cuenta
             </Button>
           )}

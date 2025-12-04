@@ -1,27 +1,28 @@
 // src/components/layout/MainLayout.tsx
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
-  Menu,
-  X,
-  Home,
-  Github,
-  Mail,
-  ChevronRight,
-  Settings,
-  BookOpen,
-  ChevronDown,
-  Sparkles,
-  Coins,
-  CalendarDays,
-  Network,
-  UserCheck,
-  Layers,
-  Search,
-  Gamepad2,
-  Youtube,
-  BarChart3,
-  Trophy
-} from 'lucide-react';
+  PixelMenu,
+  PixelX,
+  PixelHome,
+  PixelGithub,
+  PixelMail,
+  PixelChevronRight,
+  PixelSettings,
+  PixelBook,
+  PixelChevronDown,
+  PixelSparkles,
+  PixelCoins,
+  PixelCalendar,
+  PixelNetwork,
+  PixelUserCheck,
+  PixelLayers,
+  PixelSearch,
+  PixelGamepad,
+  PixelYoutube,
+  PixelBarChart,
+  PixelTrophy,
+  PixelLogo
+} from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -47,22 +48,22 @@ export default function MainLayout() {
 
   // Navegación principal simplificada
   const mainNavigation = [
-    { name: t('nav.home'), href: '/', icon: Home },
+    { name: t('nav.home'), href: '/', Icon: PixelHome },
   ];
 
   // Navegación "Aprende" (dropdown)
   const aprendeNavigation = [
-    { name: 'Video Tutoriales', href: '/academia/videos', icon: Youtube, description: 'Videos educativos de DeFi' },
-    { name: 'Mercado LP', href: '/academia/juego/mercado-lp', icon: Gamepad2, description: 'Mini game educativo DeFi' },
+    { name: 'Video Tutoriales', href: '/academia/videos', Icon: PixelYoutube, description: 'Videos educativos de DeFi' },
+    { name: 'Mercado LP', href: '/academia/juego/mercado-lp', Icon: PixelGamepad, description: 'Mini game educativo DeFi' },
   ];
 
   // Navegación del ecosistema (dropdown)
   const ecosistemaNavigation = [
-    { name: t('nav.startups'), href: '/startups', icon: Layers, description: 'DeFi projects in Mexico' },
-    { name: t('nav.communities'), href: '/comunidades', icon: Network, description: 'Groups and communities' },
-    { name: t('nav.advocates'), href: '/referentes', icon: UserCheck, description: 'Ecosystem leaders' },
-    { name: t('nav.events'), href: '/eventos', icon: CalendarDays, description: 'Events and conferences' },
-    { name: 'Métricas', href: '/metricas', icon: BarChart3, description: 'DeFi TVL & stablecoins MXN' },
+    { name: t('nav.startups'), href: '/startups', Icon: PixelLayers, description: 'DeFi projects in Mexico' },
+    { name: t('nav.communities'), href: '/comunidades', Icon: PixelNetwork, description: 'Groups and communities' },
+    { name: t('nav.advocates'), href: '/referentes', Icon: PixelUserCheck, description: 'Ecosystem leaders' },
+    { name: t('nav.events'), href: '/eventos', Icon: PixelCalendar, description: 'Events and conferences' },
+    { name: 'Métricas', href: '/metricas', Icon: PixelBarChart, description: 'DeFi TVL & stablecoins MXN' },
   ];
 
   const isActive = (path: string) => {
@@ -88,14 +89,14 @@ export default function MainLayout() {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <Coins className="h-6 w-6 text-primary" />
-              <span className="font-bold text-xl">DeFi México</span>
+              <PixelCoins size={24} className="text-primary" />
+              <PixelLogo size="md" />
             </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex md:items-center md:space-x-1">
               {mainNavigation.map((item) => {
-                const Icon = item.icon;
+                const Icon = item.Icon;
                 return (
                   <Link
                     key={item.name}
@@ -109,7 +110,7 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon size={16} />
                     {item.name}
                   </Link>
                 );
@@ -128,21 +129,21 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <BookOpen className="h-4 w-4" />
+                    <PixelBook size={16} />
                     Learn
-                    <ChevronDown className="h-3 w-3 opacity-50" />
+                    <PixelChevronDown size={12} className="opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {aprendeNavigation.map((item) => {
-                    const Icon = item.icon;
+                    const Icon = item.Icon;
                     return (
                       <DropdownMenuItem key={item.name} asChild>
                         <Link
                           to={item.href}
                           className="flex items-start gap-3 cursor-pointer"
                         >
-                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <Icon size={16} className="mt-0.5 text-primary" />
                           <div className="flex-1">
                             <div className="font-medium">{item.name}</div>
                             <div className="text-xs text-muted-foreground">
@@ -169,21 +170,21 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Network className="h-4 w-4" />
+                    <PixelNetwork size={16} />
                     {t('nav.ecosystem')}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
+                    <PixelChevronDown size={12} className="opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {ecosistemaNavigation.map((item) => {
-                    const Icon = item.icon;
+                    const Icon = item.Icon;
                     return (
                       <DropdownMenuItem key={item.name} asChild>
                         <Link
                           to={item.href}
                           className="flex items-start gap-3 cursor-pointer"
                         >
-                          <Icon className="h-4 w-4 mt-0.5 text-primary" />
+                          <Icon size={16} className="mt-0.5 text-primary" />
                           <div className="flex-1">
                             <div className="font-medium">{item.name}</div>
                             <div className="text-xs text-muted-foreground">
@@ -209,7 +210,7 @@ export default function MainLayout() {
                   }
                 `}
               >
-                <Trophy className="h-4 w-4" />
+                <PixelTrophy size={16} />
                 NFT Collection
               </Link>
             </div>
@@ -229,7 +230,7 @@ export default function MainLayout() {
                   document.dispatchEvent(event);
                 }}
               >
-                <Search className="h-4 w-4" />
+                <PixelSearch size={16} />
                 <span className="hidden lg:inline">{t('search.search')}</span>
                 <kbd className="hidden lg:inline pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
                   <span className="text-xs">⌘</span>K
@@ -239,7 +240,7 @@ export default function MainLayout() {
               <LanguageSwitcher />
               <Button size="sm" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
                 <Link to="/startup-register">
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <PixelSparkles size={16} className="mr-2" />
                   {t('nav.contribute')}
                 </Link>
               </Button>
@@ -254,9 +255,9 @@ export default function MainLayout() {
                 className="p-2 rounded-lg hover:bg-accent"
               >
                 {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
+                  <PixelX size={24} />
                 ) : (
-                  <Menu className="h-6 w-6" />
+                  <PixelMenu size={24} />
                 )}
               </button>
             </div>
@@ -269,7 +270,7 @@ export default function MainLayout() {
             <div className="container mx-auto px-4 py-4 space-y-1">
               {/* Main Navigation */}
               {mainNavigation.map((item) => {
-                const Icon = item.icon;
+                const Icon = item.Icon;
                 return (
                   <Link
                     key={item.name}
@@ -283,10 +284,10 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon size={20} />
                     {item.name}
                     {isActive(item.href) && (
-                      <ChevronRight className="h-4 w-4 ml-auto" />
+                      <PixelChevronRight size={16} className="ml-auto" />
                     )}
                   </Link>
                 );
@@ -299,7 +300,7 @@ export default function MainLayout() {
                 </p>
               </div>
               {aprendeNavigation.map((item) => {
-                const Icon = item.icon;
+                const Icon = item.Icon;
                 return (
                   <Link
                     key={item.name}
@@ -313,7 +314,7 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon className="h-5 w-5 mt-0.5" />
+                    <Icon size={20} className="mt-0.5" />
                     <div className="flex-1">
                       <div>{item.name}</div>
                       <div className="text-xs text-muted-foreground">
@@ -321,7 +322,7 @@ export default function MainLayout() {
                       </div>
                     </div>
                     {isActive(item.href) && (
-                      <ChevronRight className="h-4 w-4 ml-auto mt-1" />
+                      <PixelChevronRight size={16} className="ml-auto mt-1" />
                     )}
                   </Link>
                 );
@@ -334,7 +335,7 @@ export default function MainLayout() {
                 </p>
               </div>
               {ecosistemaNavigation.map((item) => {
-                const Icon = item.icon;
+                const Icon = item.Icon;
                 return (
                   <Link
                     key={item.name}
@@ -348,7 +349,7 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon className="h-5 w-5 mt-0.5" />
+                    <Icon size={20} className="mt-0.5" />
                     <div className="flex-1">
                       <div>{item.name}</div>
                       <div className="text-xs text-muted-foreground">
@@ -356,7 +357,7 @@ export default function MainLayout() {
                       </div>
                     </div>
                     {isActive(item.href) && (
-                      <ChevronRight className="h-4 w-4 ml-auto mt-1" />
+                      <PixelChevronRight size={16} className="ml-auto mt-1" />
                     )}
                   </Link>
                 );
@@ -379,10 +380,10 @@ export default function MainLayout() {
                   }
                 `}
               >
-                <Trophy className="h-5 w-5" />
+                <PixelTrophy size={20} />
                 NFT Collection
                 {isActive('/nft-gallery') && (
-                  <ChevronRight className="h-4 w-4 ml-auto" />
+                  <PixelChevronRight size={16} className="ml-auto" />
                 )}
               </Link>
 
@@ -390,7 +391,7 @@ export default function MainLayout() {
               <div className="pt-4">
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
                   <Link to="/startup-register">
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <PixelSparkles size={16} className="mr-2" />
                     {t('nav.contribute')}
                   </Link>
                 </Button>
@@ -412,8 +413,8 @@ export default function MainLayout() {
             {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Coins className="h-6 w-6 text-primary" />
-                <span className="font-bold text-lg">DeFi México Hub</span>
+                <PixelCoins size={24} className="text-primary" />
+                <PixelLogo size="sm" />
               </div>
               <p className="text-sm text-muted-foreground">
                 Impulsando el ecosistema DeFi en México a través de la innovación y colaboración.
@@ -425,7 +426,7 @@ export default function MainLayout() {
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Github className="h-5 w-5" />
+                  <PixelGithub size={20} />
                 </a>
               </div>
             </div>
@@ -510,7 +511,7 @@ export default function MainLayout() {
                   Privacidad
                 </a>
                 <a href="mailto:hola@defimexico.com" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
+                  <PixelMail size={12} />
                   Contacto
                 </a>
                 
@@ -522,7 +523,7 @@ export default function MainLayout() {
                   className="text-muted-foreground hover:text-primary opacity-60 hover:opacity-100 transition-opacity"
                 >
                   <Link to="/admin" className="inline-flex items-center gap-1">
-                    <Settings className="h-3 w-3" />
+                    <PixelSettings size={12} />
                     <span className="text-xs">Admin</span>
                   </Link>
                 </Button>
