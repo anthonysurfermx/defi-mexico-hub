@@ -9,7 +9,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Wallet, ChevronDown, Copy, ExternalLink, LogOut } from 'lucide-react';
+import {
+  PixelWallet,
+  PixelChevronDown,
+  PixelCopy,
+  PixelExternalLink,
+  PixelLogOut
+} from '@/components/ui/pixel-icons';
 import { toast } from 'sonner';
 
 export const WalletConnect: React.FC = () => {
@@ -59,7 +65,7 @@ export const WalletConnect: React.FC = () => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Wallet className="w-4 h-4" />
+            <PixelWallet size={16} />
             <span className="hidden sm:inline">{formatAddress(address)}</span>
             <span className="sm:hidden">Wallet</span>
             {chain && (
@@ -67,7 +73,7 @@ export const WalletConnect: React.FC = () => {
                 {getChainName(chain.id)}
               </span>
             )}
-            <ChevronDown className="w-4 h-4" />
+            <PixelChevronDown size={16} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
@@ -88,7 +94,7 @@ export const WalletConnect: React.FC = () => {
               onClick={copyAddress}
               className="w-full justify-start"
             >
-              <Copy className="w-4 h-4 mr-2" />
+              <PixelCopy size={16} className="mr-2" />
               Copiar dirección
             </Button>
             <Button
@@ -97,7 +103,7 @@ export const WalletConnect: React.FC = () => {
               onClick={openExplorer}
               className="w-full justify-start"
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
+              <PixelExternalLink size={16} className="mr-2" />
               Ver en Explorer
             </Button>
             <Button
@@ -106,7 +112,7 @@ export const WalletConnect: React.FC = () => {
               onClick={() => open()}
               className="w-full justify-start"
             >
-              <Wallet className="w-4 h-4 mr-2" />
+              <PixelWallet size={16} className="mr-2" />
               Cambiar Wallet
             </Button>
           </div>
@@ -120,7 +126,7 @@ export const WalletConnect: React.FC = () => {
               onClick={handleDisconnect}
               className="w-full justify-start"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <PixelLogOut size={16} className="mr-2" />
               Desconectar
             </Button>
           </div>
@@ -136,7 +142,7 @@ export const WalletConnect: React.FC = () => {
       className="flex items-center gap-2"
       onClick={() => open()}
     >
-      <Wallet className="w-4 h-4" />
+      <PixelWallet size={16} />
       <span className="hidden sm:inline">Conectar Wallet</span>
       <span className="sm:hidden">Wallet</span>
     </Button>

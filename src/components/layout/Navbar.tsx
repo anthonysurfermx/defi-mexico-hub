@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 import { WalletConnect } from "@/components/WalletConnect";
-import { PixelMenu, PixelX, PixelSearch, PixelChevronRight } from "@/components/ui/pixel-icons";
+import { PixelMenu, PixelX, PixelSearch, PixelChevronRight, PixelPlus } from "@/components/ui/pixel-icons";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -154,6 +154,7 @@ const Navbar = () => {
                 asChild
               >
                 <Link to="/login">
+                  <PixelPlus size={14} className="mr-1.5" />
                   Contribuye
                 </Link>
               </Button>
@@ -306,6 +307,7 @@ const Navbar = () => {
                     asChild
                   >
                     <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                      <PixelPlus size={14} className="mr-1.5" />
                       Contribuye
                     </Link>
                   </Button>

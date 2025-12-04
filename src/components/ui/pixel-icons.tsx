@@ -555,6 +555,73 @@ export const PixelShare = ({ className, size = 24 }: IconProps) => (
   </svg>
 );
 
+export const PixelLogOut = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    {/* Door frame */}
+    <rect x="2" y="1" width="2" height="14" fill="currentColor"/>
+    <rect x="2" y="1" width="6" height="2" fill="currentColor"/>
+    <rect x="2" y="13" width="6" height="2" fill="currentColor"/>
+    {/* Arrow */}
+    <rect x="6" y="7" width="6" height="2" fill="currentColor"/>
+    <rect x="10" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="10" y="9" width="2" height="2" fill="currentColor"/>
+    <rect x="12" y="7" width="2" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelPlus = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="2" width="2" height="12" fill="currentColor"/>
+    <rect x="2" y="7" width="12" height="2" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelEdit = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    {/* Pencil body */}
+    <rect x="10" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="8" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="6" y="5" width="2" height="2" fill="currentColor"/>
+    <rect x="4" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="2" y="9" width="2" height="2" fill="currentColor"/>
+    {/* Pencil tip */}
+    <rect x="1" y="11" width="2" height="2" fill="currentColor"/>
+    {/* Eraser */}
+    <rect x="12" y="1" width="3" height="3" fill="currentColor"/>
+  </svg>
+);
+
+export const PixelTrash = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    {/* Lid */}
+    <rect x="2" y="2" width="12" height="2" fill="currentColor"/>
+    <rect x="6" y="1" width="4" height="1" fill="currentColor"/>
+    {/* Can body */}
+    <rect x="3" y="4" width="10" height="10" fill="currentColor"/>
+    {/* Lines */}
+    <rect x="5" y="6" width="1" height="6" className="fill-background"/>
+    <rect x="7" y="6" width="1" height="6" className="fill-background"/>
+    <rect x="10" y="6" width="1" height="6" className="fill-background"/>
+  </svg>
+);
+
+export const PixelSettings = ({ className, size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={cn('text-current', className)} style={{ imageRendering: 'pixelated' }}>
+    {/* Gear teeth */}
+    <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+    <rect x="7" y="13" width="2" height="2" fill="currentColor"/>
+    <rect x="1" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="13" y="7" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="3" width="2" height="2" fill="currentColor"/>
+    <rect x="3" y="11" width="2" height="2" fill="currentColor"/>
+    <rect x="11" y="11" width="2" height="2" fill="currentColor"/>
+    {/* Center circle */}
+    <rect x="5" y="5" width="6" height="6" fill="currentColor"/>
+    <rect x="6" y="6" width="4" height="4" className="fill-background"/>
+  </svg>
+);
+
 // ============================================
 // Re-export from game icons for compatibility
 // ============================================
