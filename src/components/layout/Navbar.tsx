@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 import { WalletConnect } from "@/components/WalletConnect";
+import { PixelMenu, PixelX, PixelSearch, PixelChevronRight } from "@/components/ui/pixel-icons";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -145,7 +145,7 @@ const Navbar = () => {
                 size="sm"
                 className="text-muted-foreground hover:text-foreground"
               >
-                <Search className="w-4 h-4" />
+                <PixelSearch size={16} />
               </Button>
               <WalletConnect />
               <Button
@@ -208,7 +208,7 @@ const Navbar = () => {
                 {breadcrumbs.map((crumb, index) => (
                   <div key={crumb.href} className="flex items-center">
                     {index > 0 && (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground mx-2" />
+                      <PixelChevronRight className="text-muted-foreground mx-2" size={16} />
                     )}
                     <Link
                       to={crumb.href}
@@ -259,7 +259,7 @@ const Navbar = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <PixelX size={20} />
                   </button>
                 </div>
 
@@ -295,7 +295,7 @@ const Navbar = () => {
                     className="w-full justify-start"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Search className="w-4 h-4 mr-2" />
+                    <PixelSearch size={16} className="mr-2" />
                     Buscar
                   </Button>
                   <div className="w-full">

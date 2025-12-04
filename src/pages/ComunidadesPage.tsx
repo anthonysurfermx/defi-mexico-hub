@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import CommunityCard from "@/components/ui/community-card";
 import { motion } from "framer-motion";
 import { communitiesService, type Community } from "@/services/communities.service";
+import { PixelSearch, PixelFilter, PixelX } from "@/components/ui/pixel-icons";
 
 const CommunidadesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,7 +109,9 @@ const CommunidadesPage = () => {
         >
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                <PixelSearch size={20} />
+              </div>
               <Input
                 placeholder="Buscar comunidades por nombre o descripción..."
                 value={searchTerm}
@@ -121,7 +123,7 @@ const CommunidadesPage = () => {
             <div className="flex gap-2">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
+                  <PixelFilter size={16} className="mr-2" />
                   <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,7 +151,7 @@ const CommunidadesPage = () => {
                 >
                   {tag}
                   {selectedTags.includes(tag) && (
-                    <X className="w-3 h-3 ml-1" />
+                    <PixelX size={12} className="ml-1" />
                   )}
                 </Badge>
               ))}
@@ -259,7 +261,7 @@ const CommunidadesPage = () => {
             className="text-center py-12"
           >
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+              <PixelSearch size={32} className="text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
               Aún no hay comunidades registradas

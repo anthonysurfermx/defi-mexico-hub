@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  ArrowRight,
-  Building2,
-  Users,
-  Calendar,
-  Mail,
-  Sparkles
-} from 'lucide-react';
+  PixelArrowRight,
+  PixelRocket,
+  PixelUsers,
+  PixelCalendar,
+  PixelMail,
+  PixelSparkles
+} from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { communitiesService, type Community } from '@/services/communities.service';
@@ -141,7 +141,7 @@ export default function HomePage() {
           {/* Badge sutil */}
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
             <span className="text-xs md:text-sm text-primary font-medium">{t('home.badge')}</span>
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-primary" />
+            <PixelSparkles className="text-primary" size={16} />
           </div>
 
           {/* Título grande y limpio */}
@@ -177,7 +177,7 @@ export default function HomePage() {
             <div className="md:col-span-2 bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-primary" />
+                  <PixelRocket className="text-primary" size={24} />
                 </div>
                 <h3 className="text-2xl font-bold">{t('home.features.startups.title')}</h3>
                 <p className="text-muted-foreground">
@@ -186,7 +186,7 @@ export default function HomePage() {
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/startups">
                     {t('home.startups.viewAll')}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
               </div>
@@ -196,7 +196,7 @@ export default function HomePage() {
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
+                  <PixelUsers className="text-primary" size={24} />
                 </div>
                 <h3 className="text-xl font-bold">{t('home.features.communities.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
@@ -205,7 +205,7 @@ export default function HomePage() {
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/comunidades">
                     {t('home.communities.viewAll')}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
               </div>
@@ -215,7 +215,7 @@ export default function HomePage() {
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-primary" />
+                  <PixelCalendar className="text-primary" size={24} />
                 </div>
                 <h3 className="text-xl font-bold">{t('home.features.events.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
@@ -224,7 +224,7 @@ export default function HomePage() {
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/eventos">
                     {t('home.events.viewAll')}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
               </div>
@@ -293,7 +293,7 @@ export default function HomePage() {
                       ) : null;
                     })()}
                     <div className={`w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center ${((community as any).image_url || community.logo_url || getTwitterAvatar(((community as any).links || community.social_links)?.twitter)) ? 'hidden' : ''}`}>
-                      <Users className="w-6 h-6 text-primary" />
+                      <PixelUsers className="text-primary" size={24} />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">
@@ -304,7 +304,7 @@ export default function HomePage() {
                       </p>
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
-                      <Users className="w-4 h-4 mr-1" />
+                      <PixelUsers className="mr-1" size={16} />
                       {community.member_count?.toLocaleString() || '0'} {t('home.communities.members')}
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export default function HomePage() {
               ))
             ) : (
               <div className="col-span-full text-center py-12">
-                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <PixelUsers className="text-muted-foreground mx-auto mb-4" size={48} />
                 <h3 className="text-lg font-medium mb-2">
                   No hay comunidades destacadas disponibles
                 </h3>
@@ -367,14 +367,14 @@ export default function HomePage() {
                       {event.description || 'Evento del ecosistema DeFi mexicano'}
                     </p>
                     <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
-                      Ver detalles <ArrowRight className="w-4 h-4 ml-2" />
+                      Ver detalles <PixelArrowRight className="ml-2" size={16} />
                     </Button>
                   </div>
                 </Link>
               ))
             ) : (
               <div className="col-span-full text-center py-12">
-                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <PixelCalendar className="text-muted-foreground mx-auto mb-4" size={48} />
                 <h4 className="font-semibold mb-2">Próximos eventos en camino</h4>
                 <p className="text-sm text-muted-foreground">
                   Estamos preparando increíbles eventos para la comunidad
@@ -412,7 +412,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <Mail className="w-4 h-4 mr-2" />
+                  <PixelMail className="mr-2" size={16} />
                   {t('home.newsletter.button')}
                 </>
               )}

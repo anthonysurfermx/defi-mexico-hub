@@ -3,19 +3,20 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users,
-  ExternalLink,
-  MapPin,
-  Calendar,
-  Shield,
-  Star,
-  Globe,
-  Github,
-  Twitter,
-  MessageCircle
-} from "lucide-react";
 import { cn, getTwitterAvatar } from "@/lib/utils";
+import { Youtube } from "lucide-react";
+import {
+  PixelUsers,
+  PixelMapPin,
+  PixelCalendar,
+  PixelShield,
+  PixelStar,
+  PixelGlobe,
+  PixelGithub,
+  PixelTwitter,
+  PixelDiscord,
+  PixelExternalLink
+} from "@/components/ui/pixel-icons";
 
 interface CommunityCardProps {
   id: string;
@@ -115,13 +116,13 @@ export default function CommunityCard({
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 items-end">
         {official && (
           <Badge className="bg-gradient-to-r from-slate-400 to-slate-500 text-white border-0 shadow-md">
-            <Shield className="w-3 h-3 mr-1" />
+            <PixelShield className="mr-1" size={12} />
             Oficial
           </Badge>
         )}
         {isFeatured && !official && (
           <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
-            <Star className="w-3 h-3 mr-1" />
+            <PixelStar className="mr-1" size={12} />
             Destacada
           </Badge>
         )}
@@ -168,7 +169,7 @@ export default function CommunityCard({
                 {category}
               </Badge>
               {isActive && (
-                <Shield className="w-4 h-4 text-green-500" title="Comunidad Verificada" />
+                <PixelShield className="text-green-500" size={16} />
               )}
             </div>
           </div>
@@ -184,21 +185,21 @@ export default function CommunityCard({
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2 text-sm">
-            <Users className="w-4 h-4 text-muted-foreground" />
+            <PixelUsers className="text-muted-foreground" size={16} />
             <span className="font-medium">{memberCount}</span>
             <span className="text-muted-foreground">miembros</span>
           </div>
           
           {location && (
             <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <PixelMapPin className="text-muted-foreground" size={16} />
               <span className="text-muted-foreground truncate">{location}</span>
             </div>
           )}
 
           {foundedYear && (
             <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <PixelCalendar className="text-muted-foreground" size={16} />
               <span className="text-muted-foreground">Desde {foundedYear}</span>
             </div>
           )}
@@ -237,13 +238,13 @@ export default function CommunityCard({
                 className="h-8 w-8"
                 asChild
               >
-                <a 
-                  href={website} 
-                  target="_blank" 
+                <a
+                  href={website}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Visitar sitio web de ${name}`}
                 >
-                  <Globe className="w-4 h-4" />
+                  <PixelGlobe size={16} />
                 </a>
               </Button>
             )}
@@ -255,13 +256,13 @@ export default function CommunityCard({
                 className="h-8 w-8"
                 asChild
               >
-                <a 
-                  href={parsedSocialLinks.github} 
-                  target="_blank" 
+                <a
+                  href={parsedSocialLinks.github}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`GitHub de ${name}`}
                 >
-                  <Github className="w-4 h-4" />
+                  <PixelGithub size={16} />
                 </a>
               </Button>
             )}
@@ -273,13 +274,13 @@ export default function CommunityCard({
                 className="h-8 w-8"
                 asChild
               >
-                <a 
-                  href={parsedSocialLinks.twitter} 
-                  target="_blank" 
+                <a
+                  href={parsedSocialLinks.twitter}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Twitter de ${name}`}
                 >
-                  <Twitter className="w-4 h-4" />
+                  <PixelTwitter size={16} />
                 </a>
               </Button>
             )}
@@ -291,13 +292,31 @@ export default function CommunityCard({
                 className="h-8 w-8"
                 asChild
               >
-                <a 
-                  href={parsedSocialLinks.discord} 
-                  target="_blank" 
+                <a
+                  href={parsedSocialLinks.discord}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Discord de ${name}`}
                 >
-                  <MessageCircle className="w-4 h-4" />
+                  <PixelDiscord size={16} />
+                </a>
+              </Button>
+            )}
+
+            {parsedSocialLinks?.youtube && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                asChild
+              >
+                <a
+                  href={parsedSocialLinks.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`YouTube de ${name}`}
+                >
+                  <Youtube className="w-4 h-4" />
                 </a>
               </Button>
             )}
@@ -312,7 +331,7 @@ export default function CommunityCard({
           >
             <Link to={`/comunidades/${slug || id}`}>
               Ver más
-              <ExternalLink className="w-3 h-3 ml-1 transition-transform group-hover/btn:translate-x-0.5" />
+              <PixelExternalLink className="ml-1 transition-transform group-hover/btn:translate-x-0.5" size={12} />
             </Link>
           </Button>
         </div>
