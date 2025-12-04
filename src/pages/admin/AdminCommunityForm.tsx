@@ -102,6 +102,8 @@ const AdminCommunityForm = () => {
       if (result.data) {
         const community = result.data as any; // Cast para acceder a campos reales de BD
 
+        console.log('📋 Comunidad cargada - category:', community.category);
+
         // La BD usa 'links' (no social_links) y 'image_url' (no logo_url)
         const links = (typeof community.links === 'object' && community.links !== null)
           ? community.links as Record<string, string>
@@ -157,11 +159,19 @@ const AdminCommunityForm = () => {
   const types = [
     { value: "defi", label: "DeFi" },
     { value: "blockchain", label: "Blockchain" },
+    { value: "bitcoin", label: "Bitcoin" },
+    { value: "ethereum", label: "Ethereum" },
     { value: "nft", label: "NFT" },
-    { value: "trading", label: "Trading" },
-    { value: "desarrollo", label: "Desarrollo" },
     { value: "dao", label: "DAO" },
-    { value: "educacion", label: "Educación" }
+    { value: "web3", label: "Web3" },
+    { value: "crypto", label: "Crypto" },
+    { value: "trading", label: "Trading" },
+    { value: "development", label: "Desarrollo" },
+    { value: "education", label: "Educación" },
+    { value: "gaming", label: "Gaming" },
+    { value: "metaverse", label: "Metaverse" },
+    { value: "investment", label: "Inversión" },
+    { value: "other", label: "Otro" }
   ];
 
   const handleInputChange = (field: keyof CommunityFormData, value: string | number | boolean) => {
@@ -309,6 +319,7 @@ const AdminCommunityForm = () => {
     try {
       const communityData = mapFormDataToCommunity();
       console.log('🔄 Datos mapeados para BD:', communityData);
+      console.log('📋 Category que se enviará:', communityData.category);
 
       let result;
 

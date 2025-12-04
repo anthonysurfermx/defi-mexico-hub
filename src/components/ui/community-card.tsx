@@ -37,13 +37,21 @@ interface CommunityCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  blockchain: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   defi: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  blockchain: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  bitcoin: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  ethereum: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
   nft: "bg-pink-500/10 text-pink-500 border-pink-500/20",
   dao: "bg-green-500/10 text-green-500 border-green-500/20",
-  educacion: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  desarrollo: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+  web3: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+  crypto: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   trading: "bg-red-500/10 text-red-500 border-red-500/20",
+  development: "bg-teal-500/10 text-teal-500 border-teal-500/20",
+  education: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  gaming: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  metaverse: "bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20",
+  investment: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  other: "bg-gray-500/10 text-gray-500 border-gray-500/20",
   default: "bg-gray-500/10 text-gray-500 border-gray-500/20"
 };
 
