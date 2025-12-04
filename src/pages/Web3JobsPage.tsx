@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,6 @@ import {
   PixelLoader,
   PixelGlobe,
   PixelUsers,
-  PixelStar,
   PixelBriefcase,
   PixelMapPin,
   PixelClock,
@@ -31,7 +29,6 @@ const jobTypes = [
 ];
 
 export default function Web3JobsPage() {
-  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,6 +65,36 @@ export default function Web3JobsPage() {
 
   const featuredJobs = filteredJobs.filter(job => job.is_featured);
   const regularJobs = filteredJobs.filter(job => !job.is_featured);
+
+  // Calcular salario estimado total (suma de promedios de cada trabajo)
+  const calculateTotalEstimatedSalary = () => {
+    let total = 0;
+    let jobsWithSalary = 0;
+
+    jobs.forEach(job => {
+      if (job.salary_min || job.salary_max) {
+        const min = job.salary_min || job.salary_max || 0;
+        const max = job.salary_max || job.salary_min || 0;
+        const avg = (min + max) / 2;
+        total += avg;
+        jobsWithSalary++;
+      }
+    });
+
+    return { total, jobsWithSalary };
+  };
+
+  const { total: totalSalary, jobsWithSalary } = calculateTotalEstimatedSalary();
+
+  // Formatear número en formato compacto (ej: 1.2M, 500K)
+  const formatSalaryCompact = (amount: number) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(0)}K`;
+    }
+    return `$${amount.toFixed(0)}`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,11 +156,13 @@ export default function Web3JobsPage() {
             <Card className="pixel-card bg-gradient-to-br from-amber-500/5 to-amber-500/10 hover:scale-105 transition-transform">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <PixelStar size={24} className="text-amber-500" />
+                  <PixelDollar size={24} className="text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{featuredJobs.length}</p>
-                  <p className="text-xs text-muted-foreground">Destacados</p>
+                  <p className="text-2xl font-bold">{formatSalaryCompact(totalSalary)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Salario Est. ({jobsWithSalary} jobs)
+                  </p>
                 </div>
               </CardContent>
             </Card>

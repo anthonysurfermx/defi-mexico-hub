@@ -7,6 +7,8 @@
     "events": "Eventos",
     "blog": "Blog",
     "advocates": "Referentes",
+    "jobs": "Trabajos Web3",
+    "metrics": "Métricas",
     "contribute": "Contribuye",
     "admin": "Admin"
   },
@@ -145,7 +147,8 @@
       "communities": "Comunidades",
       "events": "Eventos",
       "blog": "Blog",
-      "advocates": "Referentes"
+      "advocates": "Referentes",
+      "jobs": "Trabajos"
     },
     "actions": {
       "add": "Agregar",
@@ -194,6 +197,81 @@
     "searching": "Buscando...",
     "noResults": "No se encontraron resultados",
     "recentSearches": "Búsquedas recientes"
+  },
+  "jobs": {
+    "title": "Trabajos Web3 México",
+    "description": "Encuentra tu próximo trabajo en el ecosistema blockchain",
+    "noResults": "No se encontraron trabajos",
+    "stats": {
+      "total": "Trabajos",
+      "remote": "Remotos",
+      "companies": "Empresas",
+      "salary": "Salario Est."
+    },
+    "filters": {
+      "search": "Buscar por título, empresa o tecnología...",
+      "category": "Categoría",
+      "type": "Modalidad",
+      "all": "Todas"
+    },
+    "types": {
+      "remote": "Remoto",
+      "hybrid": "Híbrido",
+      "onsite": "Presencial"
+    },
+    "categories": {
+      "engineering": "Ingeniería",
+      "product": "Producto",
+      "marketing": "Marketing",
+      "security": "Seguridad",
+      "legal": "Legal & Compliance",
+      "design": "Diseño",
+      "operations": "Operaciones",
+      "finance": "Finanzas"
+    },
+    "card": {
+      "featured": "Destacado",
+      "apply": "Aplicar",
+      "viewDetails": "Ver detalles",
+      "postedAgo": "Publicado hace {{time}}",
+      "salaryRange": "{{min}} - {{max}} {{currency}}"
+    },
+    "cta": {
+      "title": "¿Tienes una vacante Web3?",
+      "description": "Publica tu oferta de trabajo y conecta con el mejor talento blockchain de México. Llegamos a miles de desarrolladores, diseñadores y profesionales crypto.",
+      "button": "Publicar Trabajo"
+    },
+    "propose": {
+      "title": "Proponer Trabajo Web3",
+      "description": "Completa el formulario para proponer una nueva oferta de trabajo. Será revisada por nuestro equipo antes de publicarse.",
+      "form": {
+        "title": "Título del puesto",
+        "company": "Empresa",
+        "companyLogo": "URL del logo (opcional)",
+        "description": "Descripción del puesto",
+        "location": "Ubicación",
+        "jobType": "Modalidad",
+        "category": "Categoría",
+        "experienceLevel": "Nivel de experiencia",
+        "salaryMin": "Salario mínimo",
+        "salaryMax": "Salario máximo",
+        "salaryCurrency": "Moneda",
+        "requirements": "Requisitos",
+        "benefits": "Beneficios",
+        "applyUrl": "URL para aplicar",
+        "applyEmail": "Email para aplicar",
+        "tags": "Etiquetas"
+      },
+      "experienceLevels": {
+        "junior": "Junior (0-2 años)",
+        "mid": "Mid (2-4 años)",
+        "senior": "Senior (5+ años)",
+        "lead": "Lead/Manager"
+      },
+      "submit": "Enviar propuesta",
+      "success": "¡Propuesta enviada! Será revisada por nuestro equipo.",
+      "error": "Error al enviar la propuesta"
+    }
   },
   "metrics": {
     "pageTitle": "Métricas DeFi",

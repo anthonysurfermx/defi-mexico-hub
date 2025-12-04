@@ -7,6 +7,8 @@
     "events": "Events",
     "blog": "Blog",
     "advocates": "Advocates",
+    "jobs": "Web3 Jobs",
+    "metrics": "Metrics",
     "contribute": "Contribute",
     "admin": "Admin"
   },
@@ -145,7 +147,8 @@
       "communities": "Communities",
       "events": "Events",
       "blog": "Blog",
-      "advocates": "Advocates"
+      "advocates": "Advocates",
+      "jobs": "Jobs"
     },
     "actions": {
       "add": "Add",
@@ -194,6 +197,81 @@
     "searching": "Searching...",
     "noResults": "No results found",
     "recentSearches": "Recent searches"
+  },
+  "jobs": {
+    "title": "Web3 Jobs Mexico",
+    "description": "Find your next job in the blockchain ecosystem",
+    "noResults": "No jobs found",
+    "stats": {
+      "total": "Jobs",
+      "remote": "Remote",
+      "companies": "Companies",
+      "salary": "Est. Salary"
+    },
+    "filters": {
+      "search": "Search by title, company or technology...",
+      "category": "Category",
+      "type": "Type",
+      "all": "All"
+    },
+    "types": {
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "onsite": "On-site"
+    },
+    "categories": {
+      "engineering": "Engineering",
+      "product": "Product",
+      "marketing": "Marketing",
+      "security": "Security",
+      "legal": "Legal & Compliance",
+      "design": "Design",
+      "operations": "Operations",
+      "finance": "Finance"
+    },
+    "card": {
+      "featured": "Featured",
+      "apply": "Apply",
+      "viewDetails": "View details",
+      "postedAgo": "Posted {{time}} ago",
+      "salaryRange": "{{min}} - {{max}} {{currency}}"
+    },
+    "cta": {
+      "title": "Have a Web3 vacancy?",
+      "description": "Post your job offer and connect with Mexico's best blockchain talent. We reach thousands of developers, designers and crypto professionals.",
+      "button": "Post Job"
+    },
+    "propose": {
+      "title": "Propose Web3 Job",
+      "description": "Complete the form to propose a new job offer. It will be reviewed by our team before publishing.",
+      "form": {
+        "title": "Job title",
+        "company": "Company",
+        "companyLogo": "Logo URL (optional)",
+        "description": "Job description",
+        "location": "Location",
+        "jobType": "Job type",
+        "category": "Category",
+        "experienceLevel": "Experience level",
+        "salaryMin": "Minimum salary",
+        "salaryMax": "Maximum salary",
+        "salaryCurrency": "Currency",
+        "requirements": "Requirements",
+        "benefits": "Benefits",
+        "applyUrl": "Apply URL",
+        "applyEmail": "Apply email",
+        "tags": "Tags"
+      },
+      "experienceLevels": {
+        "junior": "Junior (0-2 years)",
+        "mid": "Mid (2-4 years)",
+        "senior": "Senior (5+ years)",
+        "lead": "Lead/Manager"
+      },
+      "submit": "Submit proposal",
+      "success": "Proposal submitted! It will be reviewed by our team.",
+      "error": "Error submitting proposal"
+    }
   },
   "metrics": {
     "pageTitle": "DeFi Metrics",

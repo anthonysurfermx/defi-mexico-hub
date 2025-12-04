@@ -77,6 +77,7 @@ ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view published jobs"
   ON public.jobs
   FOR SELECT
+  TO anon, authenticated
   USING (status = 'published');
 
 -- Política: Admins pueden ver todos los trabajos
@@ -90,7 +91,6 @@ CREATE POLICY "Admins can view all jobs"
       WHERE user_roles.user_id = auth.uid()
       AND user_roles.role IN ('admin', 'super_admin')
       AND user_roles.is_active = TRUE
-      AND (user_roles.expires_at IS NULL OR user_roles.expires_at > NOW())
     )
   );
 
@@ -105,7 +105,6 @@ CREATE POLICY "Admins can insert jobs"
       WHERE user_roles.user_id = auth.uid()
       AND user_roles.role IN ('admin', 'super_admin')
       AND user_roles.is_active = TRUE
-      AND (user_roles.expires_at IS NULL OR user_roles.expires_at > NOW())
     )
   );
 
@@ -120,7 +119,6 @@ CREATE POLICY "Admins can update jobs"
       WHERE user_roles.user_id = auth.uid()
       AND user_roles.role IN ('admin', 'super_admin')
       AND user_roles.is_active = TRUE
-      AND (user_roles.expires_at IS NULL OR user_roles.expires_at > NOW())
     )
   );
 
@@ -135,7 +133,6 @@ CREATE POLICY "Admins can delete jobs"
       WHERE user_roles.user_id = auth.uid()
       AND user_roles.role IN ('admin', 'super_admin')
       AND user_roles.is_active = TRUE
-      AND (user_roles.expires_at IS NULL OR user_roles.expires_at > NOW())
     )
   );
 
