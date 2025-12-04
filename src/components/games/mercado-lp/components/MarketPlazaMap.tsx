@@ -135,6 +135,7 @@ export const MarketPlazaMap = ({
   playerAvatar = DEFAULT_PLAYER_IMAGE_URL,
 }: MarketPlazaMapProps) => {
   const { t } = useTranslation();
+  const [isMobile, setIsMobile] = useState(false);
   const [selected, setSelected] = useState<GameLevel | null>(null);
   const [dogPos, setDogPos] = useState<{ x: number; y: number }>({ x: 50, y: 70 });
   const [dialogZone, setDialogZone] = useState<StallZone | null>(null);
@@ -147,6 +148,11 @@ export const MarketPlazaMap = ({
   // Preload de imágenes cuando el mapa se abre
   useEffect(() => {
     if (!open) return;
+
+    // Detectar mobile (simple breakpoint)
+    const detectMobile = () => setIsMobile(window.innerWidth < 768);
+    detectMobile();
+    window.addEventListener('resize', detectMobile);
 
     const avatarSrc = playerAvatar || DEFAULT_PLAYER_IMAGE_URL;
 
@@ -192,6 +198,7 @@ export const MarketPlazaMap = ({
 
     return () => {
       cancelled = true;
+      window.removeEventListener('resize', detectMobile);
     };
   }, [open, playerAvatar]);
 
@@ -349,14 +356,14 @@ export const MarketPlazaMap = ({
         {/* Botón pixel para regresar al home */}
         <Link
           to="/"
-          className="absolute top-3 left-3 z-10 flex items-center gap-2 px-3 py-2 pixel-tag text-amber-900 hover:text-amber-950 transition-all duration-200 group"
+          className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 pixel-tag text-amber-900 hover:text-amber-950 transition-all duration-200 group text-[11px] sm:text-xs"
         >
           <PixelChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
           <span className="font-medium text-xs">DeFi México Hub</span>
         </Link>
 
         {/* Control de audio y selector de idioma */}
-        <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-50 flex items-center gap-1.5 sm:gap-2">
           <LanguageSwitcher />
           <button
             type="button"
@@ -364,12 +371,17 @@ export const MarketPlazaMap = ({
               e.stopPropagation();
               toggleMute();
             }}
-            className="relative z-50 p-2 pixel-tag text-amber-900 hover:bg-amber-200 transition-all duration-200 cursor-pointer"
+            className="relative z-50 p-1.5 sm:p-2 pixel-tag text-amber-900 hover:bg-amber-200 transition-all duration-200 cursor-pointer"
             title={isMuted ? 'Activar sonido' : 'Silenciar'}
           >
             {isMuted ? <PixelMute size={16} /> : <PixelVolume size={16} />}
           </button>
-          <Button variant="secondary" size="sm" className="pixel-button" onClick={onClose}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="pixel-button h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
+            onClick={onClose}
+          >
             {t('mercadoLP.map.enter')}
           </Button>
         </div>
@@ -407,10 +419,13 @@ export const MarketPlazaMap = ({
                 }}
               >
                 <div className={cn(
-                  "text-xs mt-1 pixel-tag",
+                  "text-[11px] sm:text-xs mt-1 pixel-tag",
                   floatClass
                 )}>
-                  <span className="text-emerald-700 font-bold">N{zone.id}</span> <span className="text-amber-800">- {t(stallDialog[zone.id].title)}</span>
+                  <span className="text-emerald-700 font-bold">N{zone.id}</span>
+                  {!isMobile && (
+                    <span className="text-amber-800"> - {t(stallDialog[zone.id].title)}</span>
+                  )}
                 </div>
               </div>
             );
@@ -419,7 +434,7 @@ export const MarketPlazaMap = ({
           <img
             src={playerImageCache[playerAvatar]?.src || playerAvatar || DEFAULT_PLAYER_IMAGE_URL}
             alt="Jugador con perrito"
-            className="absolute w-16 h-auto animate-bob-slow pointer-events-none select-none drop-shadow-[0_4px_2px_rgba(0,0,0,0.35)]"
+            className="absolute w-12 sm:w-16 h-auto animate-bob-slow pointer-events-none select-none drop-shadow-[0_4px_2px_rgba(0,0,0,0.35)]"
             style={{
               left: `${dogPos.x}%`,
               top: `${dogPos.y}%`,
@@ -427,15 +442,16 @@ export const MarketPlazaMap = ({
             }}
           />
 
-          {nearStall && !dialogZone && (
-            <div className="absolute left-1/2 bottom-4 -translate-x-1/2 pixel-dialog px-4 py-3 text-sm flex items-center gap-3 animate-slide-up">
+          {!isMobile && nearStall && !dialogZone && (
+            <div className="absolute left-1/2 bottom-3 sm:bottom-4 -translate-x-1/2 pixel-dialog px-3 py-3 sm:px-4 text-xs sm:text-sm flex items-center gap-2 sm:gap-3 animate-slide-up max-w-[92vw]">
               <PixelInfo size={20} className="text-amber-700" />
               <div>
-                <p className="font-semibold text-amber-900">{t(stallDialog[nearStall.id].title)}</p>
-                <p className="text-xs text-amber-700">{t('mercadoLP.map.enter')}</p>
+                <p className="font-semibold text-amber-900">
+                  {t(stallDialog[nearStall.id].title)} · {t(stallDialog[nearStall.id].subtitle)}
+                </p>
               </div>
               <Button
-                className="pixel-button bg-green-600 hover:bg-green-700 border-green-800"
+                className="pixel-button bg-green-600 hover:bg-green-700 border-green-800 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm"
                 onClick={() => {
                   if (nearStall.id) {
                     openDialogForZone(nearStall);
@@ -447,9 +463,9 @@ export const MarketPlazaMap = ({
             </div>
           )}
 
-          {dialogZone && (
+          {!isMobile && dialogZone && (
             <div
-              className="absolute w-[280px] sm:w-[320px] pixel-dialog animate-slide-up z-20"
+              className="absolute w-[92vw] max-w-[340px] sm:max-w-[360px] sm:w-[320px] pixel-dialog animate-slide-up z-20"
               style={{
                 // Posicionar debajo del personaje seleccionado
                 left: `${Math.min(Math.max(dialogZone.area.left - 5, 5), 65)}%`,
@@ -471,20 +487,16 @@ export const MarketPlazaMap = ({
                   {t(stallDialog[dialogZone.id].subtitle)}
                 </p>
               </div>
-              <div className="px-4 py-3 text-sm leading-relaxed text-amber-900 h-[80px] overflow-y-auto">
-                <p>
-                  <TypewriterText
-                    key={dialogZone.id}
-                    text={t(stallDialog[dialogZone.id].message)}
-                    speed={25}
-                  />
+              <div className="px-3 sm:px-4 py-3 text-sm leading-relaxed text-amber-900">
+                <p className="truncate">
+                  {t(stallDialog[dialogZone.id].title)} · {t(stallDialog[dialogZone.id].subtitle)}
                 </p>
               </div>
-              <div className="px-4 py-3 flex justify-end gap-2 border-t-2 border-amber-700/30">
-                <Button variant="outline" className="pixel-button text-xs" size="sm" onClick={() => setDialogZone(null)}>
+              <div className="px-3 sm:px-4 py-3 flex justify-end gap-2 border-t-2 border-amber-700/30">
+                <Button variant="outline" className="pixel-button text-xs h-9 px-3 sm:h-10 sm:px-4" size="sm" onClick={() => setDialogZone(null)}>
                   {t('mercadoLP.map.close')}
                 </Button>
-                <Button className="pixel-button bg-green-600 hover:bg-green-700 border-green-800 text-xs" size="sm" onClick={handleContinue}>
+                <Button className="pixel-button bg-green-600 hover:bg-green-700 border-green-800 text-xs h-9 px-3 sm:h-10 sm:px-4" size="sm" onClick={handleContinue}>
                   {t('mercadoLP.map.enter')}
                 </Button>
               </div>
