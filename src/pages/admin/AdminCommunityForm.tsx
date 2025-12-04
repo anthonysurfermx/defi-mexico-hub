@@ -214,14 +214,21 @@ const AdminCommunityForm = () => {
     }));
   };
 
-  // Función para generar slug
+  // Función para generar slug único
   const generateSlug = (name: string): string => {
-    return name
+    const baseSlug = name
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remover acentos
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+
+    // En modo creación, agregar sufijo único para evitar duplicados
+    if (!isEditMode) {
+      const uniqueSuffix = Date.now().toString(36).slice(-4);
+      return `${baseSlug}-${uniqueSuffix}`;
+    }
+    return baseSlug;
   };
 
   // Mapear datos del formulario al formato REAL de la BD
@@ -229,6 +236,19 @@ const AdminCommunityForm = () => {
   // No existen: website, location, founded_date, is_active
   const mapFormDataToCommunity = (): any => {
     const slug = generateSlug(formData.name);
+    const categoryMap: Record<string, string> = {
+      desarrollo: "development",
+      educación: "education",
+      educacion: "education",
+      inversion: "investment",
+      inversión: "investment",
+      metaverso: "metaverse",
+      otro: "other"
+    };
+    const allowedCategories = types.map(type => type.value);
+    const normalizedCategory = (formData.type || '').trim().toLowerCase();
+    const mappedCategory = categoryMap[normalizedCategory] || normalizedCategory;
+    const safeCategory = allowedCategories.includes(mappedCategory) ? mappedCategory : 'other';
 
     const baseData = {
       name: formData.name,
@@ -236,7 +256,7 @@ const AdminCommunityForm = () => {
       long_description: formData.longDescription || null,
       image_url: formData.logo || null, // BD usa image_url
       slug: slug,
-      category: formData.type || 'defi',
+      category: safeCategory || 'defi',
       member_count: formData.members ? parseInt(formData.members.replace(/,/g, '')) : null,
       tags: formData.tags.length > 0 ? formData.tags : null,
       links: { // BD usa links (no social_links)
