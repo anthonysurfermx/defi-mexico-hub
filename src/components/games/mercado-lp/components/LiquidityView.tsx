@@ -152,24 +152,21 @@ export const LiquidityView = () => {
 
       <MissionsCard />
 
-      <Card className="pixel-card p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+      <div className="pixel-card p-3 sm:p-4 md:p-5 bg-card border rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">
               {t('mercadoLP.liquidity.labels.title')}
             </p>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <ProviderIcon size={24} className="text-primary" />
-              {t('mercadoLP.liquidity.labels.subtitle')}
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2 truncate">
+              <ProviderIcon size={18} className="text-primary shrink-0" />
+              <span className="truncate">{t('mercadoLP.liquidity.labels.subtitle')}</span>
             </h1>
-            <p className="text-xs text-muted-foreground">
-              {t('mercadoLP.liquidity.labels.subtitleHint')}
-            </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="pixel-button"
+            className="pixel-button h-8 w-8 shrink-0 hidden sm:inline-flex"
             title={t('mercadoLP.liquidity.labels.how')}
             onClick={() => setShowHelpModal(true)}
           >
@@ -270,7 +267,7 @@ export const LiquidityView = () => {
 
               <Button
                 onClick={handleAddLiquidity}
-                className="w-full pixel-button text-lg"
+                className="w-full pixel-button text-sm sm:text-lg"
                 size="lg"
                 disabled={!canAddLiquidity}
               >
@@ -317,7 +314,7 @@ export const LiquidityView = () => {
             </>
           )}
         </div>
-      </Card>
+      </div>
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">

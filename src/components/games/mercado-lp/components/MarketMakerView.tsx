@@ -101,60 +101,60 @@ export function MarketMakerView({
   }
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <Badge variant="outline" className="mb-2 bg-gradient-to-r from-violet-500/20 to-purple-500/20">
+      <div className="text-center space-y-1 sm:space-y-2">
+        <Badge variant="outline" className="mb-1 sm:mb-2 text-[10px] sm:text-xs bg-gradient-to-r from-violet-500/20 to-purple-500/20">
           {language === 'en' ? 'Level 6' : 'Nivel 6'}
         </Badge>
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-3">
-          <Crown className="w-8 h-8 text-purple-400" />
-          {language === 'en' ? 'Market Maker Mode' : 'Modo Market Maker'}
+        <h1 className="text-xl sm:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+          <Crown className="w-5 h-5 sm:w-8 sm:h-8 text-purple-400 shrink-0" />
+          <span className="truncate">{language === 'en' ? 'Market Maker Mode' : 'Modo Market Maker'}</span>
         </h1>
-        <p className="text-muted-foreground max-w-md mx-auto">
+        <p className="text-xs sm:text-base text-muted-foreground max-w-md mx-auto px-2">
           {language === 'en'
             ? 'Create pools with advanced hooks. Customize your strategy and maximize returns.'
             : 'Crea pools con hooks avanzados. Personaliza tu estrategia y maximiza rendimientos.'}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Stats overview */}
         <Card className="bg-gradient-to-br from-violet-900/40 to-purple-900/40 border-purple-500/30">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm sm:text-lg truncate">
                 {language === 'en' ? 'Your Stats' : 'Tus Estadísticas'}
               </CardTitle>
-              <Badge className="bg-purple-500">{title.icon} {score}</Badge>
+              <Badge className="bg-purple-500 text-[10px] sm:text-xs shrink-0">{title.icon} {score}</Badge>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               {language === 'en' ? title.titleEn : title.title}
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-black/20 rounded-lg text-center">
-              <TrendingUp className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-              <div className="font-bold">{Math.round(marketMakerStats.totalVolumeProvided)}</div>
-              <div className="text-[10px] text-muted-foreground">
+          <CardContent className="grid grid-cols-2 gap-2 sm:gap-3 p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="p-2 sm:p-3 bg-black/20 rounded-lg text-center">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 text-blue-400" />
+              <div className="font-bold text-sm sm:text-base">{Math.round(marketMakerStats.totalVolumeProvided)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">
                 {language === 'en' ? 'Volume' : 'Volumen'}
               </div>
             </div>
-            <div className="p-3 bg-black/20 rounded-lg text-center">
-              <Sparkles className="w-5 h-5 mx-auto mb-1 text-amber-400" />
-              <div className="font-bold">{marketMakerStats.totalFeesEarned.toFixed(1)}</div>
-              <div className="text-[10px] text-muted-foreground">Fees</div>
+            <div className="p-2 sm:p-3 bg-black/20 rounded-lg text-center">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 text-amber-400" />
+              <div className="font-bold text-sm sm:text-base">{marketMakerStats.totalFeesEarned.toFixed(1)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Fees</div>
             </div>
-            <div className="p-3 bg-black/20 rounded-lg text-center">
-              <Droplets className="w-5 h-5 mx-auto mb-1 text-cyan-400" />
-              <div className="font-bold">{marketMakerStats.poolsCreated}</div>
-              <div className="text-[10px] text-muted-foreground">Pools</div>
+            <div className="p-2 sm:p-3 bg-black/20 rounded-lg text-center">
+              <Droplets className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 text-cyan-400" />
+              <div className="font-bold text-sm sm:text-base">{marketMakerStats.poolsCreated}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Pools</div>
             </div>
-            <div className="p-3 bg-black/20 rounded-lg text-center">
-              <Users className="w-5 h-5 mx-auto mb-1 text-green-400" />
-              <div className="font-bold">{Math.round(marketMakerStats.averageUtilization * 100)}%</div>
-              <div className="text-[10px] text-muted-foreground">
-                {language === 'en' ? 'Utilization' : 'Utilización'}
+            <div className="p-2 sm:p-3 bg-black/20 rounded-lg text-center">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 mx-auto mb-1 text-green-400" />
+              <div className="font-bold text-sm sm:text-base">{Math.round(marketMakerStats.averageUtilization * 100)}%</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">
+                {language === 'en' ? 'Utilization' : 'Util.'}
               </div>
             </div>
           </CardContent>
@@ -162,20 +162,20 @@ export function MarketMakerView({
 
         {/* Pool creation */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">
               {language === 'en' ? 'Create Advanced Pool' : 'Crear Pool Avanzado'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               {language === 'en'
                 ? 'Select tokens and an advanced hook for your pool'
                 : 'Selecciona tokens y un hook avanzado para tu pool'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Token A</label>
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Token A</label>
                 <Select value={selectedTokenA} onValueChange={setSelectedTokenA}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'en' ? 'Select token' : 'Seleccionar token'} />
@@ -206,8 +206,8 @@ export function MarketMakerView({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Token B</label>
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Token B</label>
                 <Select value={selectedTokenB} onValueChange={setSelectedTokenB}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'en' ? 'Select token' : 'Seleccionar token'} />
@@ -240,12 +240,12 @@ export function MarketMakerView({
             </div>
 
             <Button
-              className="w-full"
+              className="w-full text-xs sm:text-sm"
               disabled={!selectedTokenA || !selectedTokenB || !selectedHook}
               onClick={handleCreatePool}
             >
-              <Zap className="w-4 h-4 mr-2" />
-              {language === 'en' ? 'Create Pool with Advanced Hook' : 'Crear Pool con Hook Avanzado'}
+              <Zap className="w-4 h-4 mr-1 sm:mr-2" />
+              {language === 'en' ? 'Create Pool' : 'Crear Pool'}
             </Button>
           </CardContent>
         </Card>

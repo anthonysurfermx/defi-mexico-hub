@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { GameProvider, useGame } from '@/components/games/mercado-lp/contexts/GameContext';
 import { SwapView } from '@/components/games/mercado-lp/components/SwapView';
 import { LiquidityView } from '@/components/games/mercado-lp/components/LiquidityView';
@@ -39,6 +40,7 @@ const GameContent = () => {
   const [loginPromptReason, setLoginPromptReason] = useState<LoginPromptReason | null>(null);
   const [previousLevel, setPreviousLevel] = useState(player.level);
   const [previousXP, setPreviousXP] = useState(player.xp);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Game enhancements hook - provides daily challenges, events, streaks, leagues, etc.
   const enhancements = useGameEnhancements({
@@ -113,6 +115,14 @@ const GameContent = () => {
     localStorage.setItem('mercado_lp_onboarding_complete', 'true');
   };
 
+  // Detect mobile to disable MarketPlaza background (heavy image) on small screens
+  useEffect(() => {
+    const detect = () => setIsMobile(window.innerWidth < 768);
+    detect();
+    window.addEventListener('resize', detect);
+    return () => window.removeEventListener('resize', detect);
+  }, []);
+
   // Detectar si el usuario regresa del login con pending NFT claim
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -178,7 +188,7 @@ const GameContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {showMap && (
+      {showMap && !isMobile && (
         <MarketPlazaMap
           open={showMap}
           onClose={closeMap}
@@ -328,10 +338,49 @@ const GameContent = () => {
 };
 
 const MercadoLPGamePage = () => {
+  const BASE_URL = 'https://defimexico.org';
+  const ogImage = `${BASE_URL}/Cover.png`;
+  const pageUrl = `${BASE_URL}/academia/juego/mercado-lp`;
+
   return (
-    <GameProvider>
-      <GameContent />
-    </GameProvider>
+    <>
+      <Helmet>
+        {/* Primary Meta Tags */}
+        <title>Mercado LP - Aprende DeFi Jugando | DeFi México</title>
+        <meta name="title" content="Mercado LP - Aprende DeFi Jugando | DeFi México" />
+        <meta name="description" content="Aprende sobre liquidez, AMMs y trading DeFi de forma interactiva con Mercado LP. Un minijuego educativo gratuito para entender las finanzas descentralizadas." />
+
+        {/* Open Graph / Facebook / LinkedIn */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content="Mercado LP - Aprende DeFi Jugando" />
+        <meta property="og:description" content="Aprende sobre liquidez, AMMs y trading DeFi de forma interactiva con Mercado LP. Un minijuego educativo gratuito para entender las finanzas descentralizadas." />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:secure_url" content={ogImage} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Mercado LP - Minijuego educativo de DeFi" />
+        <meta property="og:site_name" content="DeFi México" />
+        <meta property="og:locale" content="es_MX" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content="Mercado LP - Aprende DeFi Jugando" />
+        <meta name="twitter:description" content="Aprende sobre liquidez, AMMs y trading DeFi de forma interactiva. Un minijuego educativo gratuito." />
+        <meta name="twitter:image" content={ogImage} />
+        <meta name="twitter:image:alt" content="Mercado LP - Minijuego educativo de DeFi" />
+        <meta name="twitter:site" content="@DeFiMexico" />
+        <meta name="twitter:creator" content="@DeFiMexico" />
+
+        {/* Telegram / WhatsApp optimization */}
+        <link rel="canonical" href={pageUrl} />
+      </Helmet>
+      <GameProvider>
+        <GameContent />
+      </GameProvider>
+    </>
   );
 };
 

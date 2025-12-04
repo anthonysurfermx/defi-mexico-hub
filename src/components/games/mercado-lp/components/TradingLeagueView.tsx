@@ -31,41 +31,41 @@ export function TradingLeagueView({ league, onNavigateToSwap, onNavigateToLP }: 
   const positionsToClimb = nextTier ? league.playerRank - nextTier.minRank : 0;
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <Badge variant="outline" className="mb-2">
+      <div className="text-center space-y-1 sm:space-y-2">
+        <Badge variant="outline" className="mb-1 sm:mb-2 text-[10px] sm:text-xs">
           {language === 'en' ? 'Level 5' : 'Nivel 5'}
         </Badge>
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-3">
-          <Trophy className="w-8 h-8 text-amber-400" />
-          {language === 'en' ? 'Trading Leagues' : 'Ligas de Trading'}
+        <h1 className="text-xl sm:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+          <Trophy className="w-5 h-5 sm:w-8 sm:h-8 text-amber-400 shrink-0" />
+          <span className="truncate">{language === 'en' ? 'Trading Leagues' : 'Ligas de Trading'}</span>
         </h1>
-        <p className="text-muted-foreground max-w-md mx-auto">
+        <p className="text-xs sm:text-base text-muted-foreground max-w-md mx-auto px-2">
           {language === 'en'
             ? 'Compete with other traders weekly. Climb the ranks and earn exclusive rewards!'
             : '¡Compite con otros traders semanalmente. Sube de rango y gana recompensas exclusivas!'}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Main league panel */}
         <div className="lg:col-span-2">
           <TradingLeaguePanel league={league} showFull />
         </div>
 
         {/* Side info */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Time remaining */}
           <Card className="bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-blue-400" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 shrink-0" />
                 <div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     {language === 'en' ? 'Week ends in' : 'La semana termina en'}
                   </div>
-                  <div className="text-2xl font-bold">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {timeRemaining.days}d {timeRemaining.hours}h
                   </div>
                 </div>

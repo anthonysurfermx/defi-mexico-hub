@@ -287,15 +287,15 @@ export const CCAView = () => {
         </Card>
 
         {/* Practice Mode Toggle */}
-        <Card className="pixel-card p-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PixelBeaker size={20} className="text-violet-500" />
-              <div>
-                <p className="text-sm font-medium">
+        <Card className="pixel-card p-2 sm:p-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/20">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <PixelBeaker size={18} className="text-violet-500 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">
                   {t('mercadoLP.cca.practiceMode.title', { defaultValue: 'Modo Práctica' })}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {t('mercadoLP.cca.practiceMode.description', { defaultValue: 'Experimenta sin gastar tus tokens reales' })}
                 </p>
               </div>
@@ -304,7 +304,7 @@ export const CCAView = () => {
               variant={isPracticeMode ? 'default' : 'outline'}
               size="sm"
               onClick={() => setIsPracticeMode(!isPracticeMode)}
-              className={isPracticeMode ? 'bg-violet-500 hover:bg-violet-600' : ''}
+              className={`shrink-0 text-xs sm:text-sm ${isPracticeMode ? 'bg-violet-500 hover:bg-violet-600' : ''}`}
             >
               {isPracticeMode
                 ? t('mercadoLP.cca.practiceMode.active', { defaultValue: '✓ Activo' })
@@ -312,7 +312,7 @@ export const CCAView = () => {
             </Button>
           </div>
           {isPracticeMode && (
-            <div className="mt-2 p-2 bg-violet-500/10 rounded text-xs text-violet-700 dark:text-violet-300">
+            <div className="mt-2 p-1.5 sm:p-2 bg-violet-500/10 rounded text-[10px] sm:text-xs text-violet-700 dark:text-violet-300">
               🧪 {t('mercadoLP.cca.practiceMode.hint', { defaultValue: 'Los resultados no afectarán tu inventario real. ¡Perfecto para aprender!' })}
             </div>
           )}
@@ -320,25 +320,26 @@ export const CCAView = () => {
 
         <MissionsCard />
 
-        <Card className="pixel-card p-6 text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-violet-100 flex items-center justify-center">
-            <AuctioneerIcon size={48} className="text-violet-600" />
+        <Card className="pixel-card p-4 sm:p-6 text-center space-y-3 sm:space-y-4">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto rounded-xl sm:rounded-2xl bg-violet-100 flex items-center justify-center">
+            <AuctioneerIcon size={32} className="text-violet-600 sm:hidden" />
+            <AuctioneerIcon size={48} className="text-violet-600 hidden sm:block" />
           </div>
           <div>
-            <h2 className="text-xl font-bold mb-2">{t('mercadoLP.cca.noAuction.title')}</h2>
-            <p className="text-muted-foreground text-sm mb-4">
+            <h2 className="text-base sm:text-xl font-bold mb-1 sm:mb-2">{t('mercadoLP.cca.noAuction.title')}</h2>
+            <p className="text-muted-foreground text-xs sm:text-sm mb-3 sm:mb-4 px-2">
               {t('mercadoLP.cca.noAuction.body')}
             </p>
           </div>
           <Button
             onClick={handleStartAuction}
-            className="pixel-button text-lg"
+            className="pixel-button text-sm sm:text-lg"
             size="lg"
           >
-            <BoltIcon size={20} className="mr-2" />
+            <BoltIcon size={18} className="mr-1 sm:mr-2 shrink-0" />
             {t('mercadoLP.cca.noAuction.start')}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 sm:mt-2 px-2">
             {t('mercadoLP.cca.noAuction.note')}
           </p>
         </Card>
@@ -358,22 +359,22 @@ export const CCAView = () => {
 
       <MissionsCard />
 
-      <Card className="pixel-card p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.cca.labels.title')}</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <AuctioneerIcon size={24} className="text-primary" />
-              {t('mercadoLP.cca.labels.subtitle')}
+      <div className="pixel-card p-3 sm:p-4 md:p-6 bg-card border rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.cca.labels.title')}</p>
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2 truncate">
+              <AuctioneerIcon size={18} className="text-primary shrink-0" />
+              <span className="truncate">{t('mercadoLP.cca.labels.subtitle')}</span>
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
               {t('mercadoLP.cca.labels.token', { emoji: auction.tokenOffered.emoji, symbol: auction.tokenOffered.symbol })}
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="pixel-button"
+            className="pixel-button h-8 w-8 shrink-0 hidden sm:inline-flex"
             title={t('mercadoLP.cca.labels.helpTitle')}
             onClick={() => setShowHelpModal(true)}
           >
@@ -392,26 +393,27 @@ export const CCAView = () => {
           />
 
           {/* Controles de subasta */}
-          <Card className="pixel-card p-4 bg-primary/10">
-            <div className="flex flex-wrap items-center gap-3 justify-between">
-              <div className="flex items-center gap-2">
-                <BoltIcon size={24} className="text-primary" />
-                <div>
-                  <p className="text-sm font-bold">
+          <Card className="pixel-card p-3 sm:p-4 bg-primary/10">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 sm:justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <BoltIcon size={18} className="text-primary shrink-0 sm:hidden" />
+                <BoltIcon size={24} className="text-primary shrink-0 hidden sm:block" />
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-bold truncate">
                     {auction.active
                       ? t('mercadoLP.cca.labels.progress', { defaultValue: 'Subasta en progreso' })
                       : t('mercadoLP.cca.labels.ended', { defaultValue: 'Subasta terminada' })}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     {t('mercadoLP.cca.labels.blockProgress', { current: auction.currentBlock, total: auction.blocksCount, defaultValue: `Bloque ${auction.currentBlock} de ${auction.blocksCount}` })}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 {auction.active && auction.currentBlock <= auction.blocksCount && (
                   <Button
                     onClick={handleAdvanceBlock}
-                    className="pixel-button"
+                    className="pixel-button text-xs sm:text-sm flex-1 sm:flex-none"
                     variant="default"
                   >
                     ▶️ {t('mercadoLP.cca.labels.ctaAdvance')}
@@ -419,10 +421,10 @@ export const CCAView = () => {
                 )}
                 <Button
                   onClick={handleResetAuction}
-                  className="pixel-button"
+                  className="pixel-button text-xs sm:text-sm flex-1 sm:flex-none"
                   variant="secondary"
                 >
-                  🔄 {t('mercadoLP.cca.labels.ctaReset')}
+                  🔄 <span className="hidden sm:inline">{t('mercadoLP.cca.labels.ctaReset')}</span><span className="sm:hidden">Reset</span>
                 </Button>
               </div>
             </div>
@@ -430,27 +432,29 @@ export const CCAView = () => {
 
           {/* Info del bloque seleccionado */}
           {currentBlock && (
-            <Card className="pixel-card p-4 bg-gradient-to-b from-primary/10 to-purple-500/5">
-              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                <BoxIcon size={18} className="text-primary" />
-                {t('mercadoLP.cca.labels.blockDetails', { block: selectedBlock, defaultValue: `Bloque ${selectedBlock} - Detalles` })}
+            <Card className="pixel-card p-3 sm:p-4 bg-gradient-to-b from-primary/10 to-purple-500/5">
+              <h3 className="font-bold text-xs sm:text-sm mb-2 sm:mb-3 flex items-center gap-2">
+                <BoxIcon size={16} className="text-primary shrink-0" />
+                <span className="truncate">{t('mercadoLP.cca.labels.blockDetails', { block: selectedBlock, defaultValue: `Bloque ${selectedBlock} - Detalles` })}</span>
               </h3>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="pixel-card bg-card/80 p-3 text-center">
-                  <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.tokensAvailable', { defaultValue: 'Tokens disponibles' })}</div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <div className="pixel-card bg-card/80 p-2 sm:p-3 text-center">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">{t('mercadoLP.cca.labels.tokensAvailable', { defaultValue: 'Tokens disponibles' })}</div>
                   <div className="flex justify-center my-1">
-                    <TokenIcon tokenId={auction.tokenOffered.id} size={32} />
+                    <TokenIcon tokenId={auction.tokenOffered.id} size={24} className="sm:hidden" />
+                    <TokenIcon tokenId={auction.tokenOffered.id} size={32} className="hidden sm:block" />
                   </div>
-                  <div className="text-lg font-bold">{currentBlock.tokensAvailable}</div>
+                  <div className="text-sm sm:text-lg font-bold">{currentBlock.tokensAvailable}</div>
                 </div>
 
-                <div className="pixel-card bg-card/80 p-3 text-center">
-                  <div className="text-xs text-muted-foreground">{t('mercadoLP.cca.labels.currentPrice', { defaultValue: 'Precio actual' })}</div>
+                <div className="pixel-card bg-card/80 p-2 sm:p-3 text-center">
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">{t('mercadoLP.cca.labels.currentPrice', { defaultValue: 'Precio actual' })}</div>
                   <div className="flex justify-center my-1">
-                    <PixelMoney size={32} />
+                    <PixelMoney size={24} className="sm:hidden" />
+                    <PixelMoney size={32} className="hidden sm:block" />
                   </div>
-                  <div className="text-lg font-bold">${currentBlock.currentPrice.toFixed(2)}</div>
+                  <div className="text-sm sm:text-lg font-bold">${currentBlock.currentPrice.toFixed(2)}</div>
                 </div>
               </div>
 
@@ -480,12 +484,12 @@ export const CCAView = () => {
 
           {/* Formulario de oferta */}
           <TooltipProvider>
-            <Card className="pixel-card p-4 space-y-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
-                <CoinsIcon size={18} className="text-amber-500" />
-                {t('mercadoLP.cca.bidForm.title', { defaultValue: 'Coloca tu oferta' })}
+            <Card className="pixel-card p-3 sm:p-4 space-y-2 sm:space-y-3">
+              <h3 className="font-bold text-xs sm:text-sm flex items-center gap-2 flex-wrap">
+                <CoinsIcon size={16} className="text-amber-500 shrink-0" />
+                <span>{t('mercadoLP.cca.bidForm.title', { defaultValue: 'Coloca tu oferta' })}</span>
                 {isPracticeMode && (
-                  <span className="text-xs bg-violet-500/20 text-violet-600 px-2 py-0.5 rounded">
+                  <span className="text-[10px] sm:text-xs bg-violet-500/20 text-violet-600 px-1.5 sm:px-2 py-0.5 rounded">
                     🧪 {t('mercadoLP.cca.practiceMode.badge', { defaultValue: 'Práctica' })}
                   </span>
                 )}
@@ -568,7 +572,7 @@ export const CCAView = () => {
 
               <Button
                 onClick={handlePlaceBid}
-                className="w-full pixel-button"
+                className="w-full pixel-button text-sm sm:text-base"
                 disabled={!maxPrice || !totalSpend || selectedBlock < auction.currentBlock}
               >
                 {selectedBlock < auction.currentBlock
@@ -618,7 +622,7 @@ export const CCAView = () => {
             </div>
           </Card>
         </div>
-      </Card>
+      </div>
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">

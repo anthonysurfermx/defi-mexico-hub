@@ -170,20 +170,19 @@ export const TokenCreatorView = () => {
 
       <MissionsCard />
 
-      <Card className="p-4 sm:p-6 bg-transparent border-none shadow-none">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.token.labels.title')}</p>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <FarmerIcon size={24} className="text-primary" />
-              {t('mercadoLP.token.labels.subtitle')}
+      <div className="pixel-card p-3 sm:p-4 md:p-5 bg-card border rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">{t('mercadoLP.token.labels.title')}</p>
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2 truncate">
+              <FarmerIcon size={18} className="text-primary shrink-0" />
+              <span className="truncate">{t('mercadoLP.token.labels.subtitle')}</span>
             </h1>
-            <p className="text-xs text-muted-foreground">{t('mercadoLP.token.labels.subtitleHint')}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="pixel-button"
+            className="pixel-button h-8 w-8 shrink-0 hidden sm:inline-flex"
             title={t('mercadoLP.token.labels.modal.title')}
             onClick={() => setShowHelpModal(true)}
           >
@@ -321,14 +320,14 @@ export const TokenCreatorView = () => {
 
           <Button
             onClick={handleCreateToken}
-            className="w-full pixel-button text-lg"
+            className="w-full pixel-button text-sm sm:text-lg"
             size="lg"
             disabled={!canPlant}
           >
             {canPlant ? t('mercadoLP.token.labels.action.go') : t('mercadoLP.token.labels.action.fill')}
           </Button>
         </div>
-      </Card>
+      </div>
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">

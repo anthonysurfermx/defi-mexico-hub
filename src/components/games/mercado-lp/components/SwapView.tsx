@@ -249,25 +249,31 @@ export const SwapView = () => {
 
       <MissionsCard />
 
-      <Card className="pixel-card p-3 sm:p-4 md:p-6">
-        <div className="flex items-start justify-between gap-3 flex-col sm:flex-row sm:items-center">
-          <div className="space-y-1">
-            <p className="text-[11px] sm:text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
-            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-              <SwapperIcon size={20} className="text-primary" />
-              Cambiar frutas
+      <div className="pixel-card p-3 sm:p-4 md:p-5 bg-card border rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Mercado LP</p>
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2 truncate">
+              <SwapperIcon size={18} className="text-primary shrink-0" />
+              <span className="truncate">Cambiar frutas</span>
             </h1>
-            <p className="text-xs text-muted-foreground">Haz tu primer swap en 2 pasos.</p>
           </div>
-          <Button variant="ghost" size="icon" className="pixel-button h-9 w-9" title="Ayuda rápida" onClick={() => setShowHelpModal(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="pixel-button h-8 w-8 shrink-0 hidden sm:inline-flex"
+            title="Ayuda rápida"
+            onClick={() => setShowHelpModal(true)}
+          >
             <HelpCircle className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-[1.4fr,1fr]">
-          <Card className="pixel-card p-4 sm:p-6 bg-muted/60 relative overflow-hidden min-h-[260px] sm:min-h-[320px] flex items-center justify-center">
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.35fr,1fr]">
+          {/* Báscula - simplificada para mobile */}
+          <div className="space-y-2">
             {currentPool ? (
-              <div className="relative z-10 w-full max-w-md mx-auto space-y-3 sm:space-y-4 flex flex-col items-center">
+              <>
                 <Bascula
                   tokenA={currentPool.tokenA}
                   tokenB={currentPool.tokenB}
@@ -276,18 +282,18 @@ export const SwapView = () => {
                   previewReserveA={previewReserves?.reserveA}
                   previewReserveB={previewReserves?.reserveB}
                 />
-                <div className="text-xs sm:text-sm font-semibold text-center pixel-card bg-white/85 px-3 py-1 shadow-sm">
+                <div className="text-[10px] sm:text-sm font-semibold text-center pixel-card bg-card px-2 py-1 shadow-sm">
                   {spotText}
                 </div>
-              </div>
+              </>
             ) : (
-              <p className="text-sm text-muted-foreground">No hay puestos disponibles.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No hay puestos disponibles.</p>
             )}
-          </Card>
+          </div>
 
-          <Card className="pixel-card p-3 sm:p-4 space-y-3">
+          <div className="pixel-card p-3 sm:p-4 space-y-3 bg-card border rounded-lg">
             <div>
-              <Label className="text-xs text-muted-foreground">Elige puesto</Label>
+              <Label className="text-[11px] sm:text-xs text-muted-foreground">Elige puesto</Label>
               <Select value={selectedPool} onValueChange={val => { setSelectedPool(val); setTokenIn(''); }}>
                 <SelectTrigger className="pixel-border">
                   <SelectValue placeholder="Selecciona un mercado" />
@@ -307,10 +313,10 @@ export const SwapView = () => {
             {currentPool && (
               <>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Quiero cambiar</Label>
+                  <Label className="text-[11px] sm:text-xs text-muted-foreground">Quiero cambiar</Label>
                   <div className="flex gap-2">
                     <Select value={tokenIn} onValueChange={setTokenIn}>
-                      <SelectTrigger className="pixel-border w-[140px] sm:w-[160px]">
+                      <SelectTrigger className="pixel-border w-[110px] sm:w-[160px]">
                         <SelectValue placeholder="Fruta" />
                       </SelectTrigger>
                       <SelectContent>
@@ -340,9 +346,9 @@ export const SwapView = () => {
                     </p>
                   )}
                   {!amountIn && (
-                    <div className="pixel-card bg-muted text-[11px] text-muted-foreground p-2 flex items-center gap-1">
-                      Ejemplo: cambia 2 <TokenIcon tokenId={tokenIn === currentPool.tokenA.id ? currentPool.tokenA.id : currentPool.tokenB.id} size={14} /> y mira cuántas recibes.
-                    </div>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+                      Ej: cambia 2 y mira cuántas recibes
+                    </p>
                   )}
                 </div>
 
@@ -353,10 +359,10 @@ export const SwapView = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Recibes aproximadamente</Label>
-                  <div className={`pixel-card bg-card p-3 flex items-center justify-between ${swapSuccess ? 'animate-success' : ''}`}>
-                    <TokenIcon tokenId={tokenIn === currentPool.tokenA.id ? currentPool.tokenB.id : currentPool.tokenA.id} size={32} />
-                    <span className="text-xl font-bold">{calculateOutput().toFixed(2)}</span>
+                  <Label className="text-[11px] sm:text-xs text-muted-foreground">Recibes aproximadamente</Label>
+                  <div className={`pixel-card bg-card p-2 sm:p-3 flex items-center justify-between ${swapSuccess ? 'animate-success' : ''}`}>
+                    <TokenIcon tokenId={tokenIn === currentPool.tokenA.id ? currentPool.tokenB.id : currentPool.tokenA.id} size={28} />
+                    <span className="text-lg sm:text-xl font-bold">{calculateOutput().toFixed(2)}</span>
                   </div>
                   {!amountIn && (
                     <p className="text-[11px] text-muted-foreground">Pon una cantidad para ver el estimado.</p>
@@ -364,27 +370,24 @@ export const SwapView = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="h-3 w-full rounded-full overflow-hidden bg-muted">
+                  <div className="h-2 sm:h-3 w-full rounded-full overflow-hidden bg-muted">
                     <div
                       className={`h-full ${priceBarClass}`}
                       style={{ width: priceImpact ? `${Math.min(priceImpact * 3, 100)}%` : '35%' }}
                     />
                   </div>
-                  <p className="text-xs font-semibold">{priceMood.label}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {amountIn ? 'El precio sube si compras mucho en un solo pedido.' : 'Pon una cantidad para ver cómo se mueve el precio.'}
-                  </p>
-                  <div className="mt-2">
-                    <p className="text-[11px] text-muted-foreground font-semibold">Profundidad del puesto</p>
-                    <div className="h-2 w-full rounded-full overflow-hidden bg-muted">
+                  <p className="text-[11px] sm:text-xs font-semibold">{priceMood.label}</p>
+                  <div className="mt-1 sm:mt-2">
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground font-semibold">Profundidad</p>
+                    <div className="h-1.5 sm:h-2 w-full rounded-full overflow-hidden bg-muted">
                       <div
                         className={`h-full ${depthBarClass}`}
                         style={{ width: currentPool ? Math.min((currentPool.reserveA + currentPool.reserveB) / 5, 100) + '%' : '20%' }}
                       />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">{depthState.label}</p>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">{depthState.label}</p>
                   </div>
-                  <div className="mt-2 pixel-card bg-muted p-2 text-[11px] space-y-1">
+                  <div className="mt-2 pixel-card bg-muted p-2 text-[11px] space-y-1 hidden sm:block">
                     <p className="font-semibold text-xs">Checklist rápido</p>
                     <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                       <li>El puesto tiene fruta (revisa la barra verde).</li>
@@ -396,17 +399,17 @@ export const SwapView = () => {
 
                 <Button
                   onClick={handleSwap}
-                  className="w-full pixel-button text-lg"
+                  className="w-full pixel-button text-sm sm:text-lg"
                   size="lg"
                   disabled={!isSwapReady}
                 >
-                  {isSwapReady ? '¡Cámbialo! 🔄' : 'Escribe una cantidad para cambiar'}
+                  {isSwapReady ? '¡Cámbialo! 🔄' : 'Escribe cantidad'}
                 </Button>
               </>
             )}
-          </Card>
+          </div>
         </div>
-      </Card>
+      </div>
 
       <Card className="pixel-card p-4 bg-card">
         <h3 className="font-bold mb-2 flex items-center gap-2">
