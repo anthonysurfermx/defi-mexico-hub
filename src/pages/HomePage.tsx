@@ -35,7 +35,7 @@ export default function HomePage() {
   const { user, isAdmin, hasRole } = useAuth();
   const [email, setEmail] = useState('');
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
-  const [featuredCommunities, setFeaturedCommunities] = useState<Community[]>([]);
+  const [officialCommunities, setOfficialCommunities] = useState<Community[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -58,24 +58,24 @@ export default function HomePage() {
     }
   };
 
-  // ✨ FUNCIÓN PARA CARGAR COMUNIDADES DESTACADAS
-  const loadFeaturedCommunities = async () => {
+  // ✨ FUNCIÓN PARA CARGAR COMUNIDADES OFICIALES
+  const loadOfficialCommunities = async () => {
     try {
       setLoadingCommunities(true);
-      console.log('🔍 Cargando comunidades destacadas para HomePage...');
-      
-      const result = await communitiesService.getFeatured(6);
-      
+      console.log('🔍 Cargando comunidades oficiales para HomePage...');
+
+      const result = await communitiesService.getOfficial(6);
+
       if (result.data) {
-        setFeaturedCommunities(result.data);
-        console.log('✅ Comunidades destacadas cargadas:', result.data.length);
+        setOfficialCommunities(result.data);
+        console.log('✅ Comunidades oficiales cargadas:', result.data.length);
       } else if (result.error) {
-        console.error('❌ Error loading featured communities:', result.error);
-        setFeaturedCommunities([]);
+        console.error('❌ Error loading official communities:', result.error);
+        setOfficialCommunities([]);
       }
     } catch (error) {
-      console.error('❌ Error in loadFeaturedCommunities:', error);
-      setFeaturedCommunities([]);
+      console.error('❌ Error in loadOfficialCommunities:', error);
+      setOfficialCommunities([]);
     } finally {
       setLoadingCommunities(false);
     }
@@ -106,7 +106,7 @@ export default function HomePage() {
 
   // Cargar comunidades y eventos
   useEffect(() => {
-    loadFeaturedCommunities();
+    loadOfficialCommunities();
     loadFeaturedEvents();
   }, []);
 
@@ -266,8 +266,8 @@ export default function HomePage() {
                   <div className="h-4 bg-muted rounded w-16"></div>
                 </div>
               ))
-            ) : featuredCommunities.length > 0 ? (
-              featuredCommunities.slice(0, 3).map((community) => (
+            ) : officialCommunities.length > 0 ? (
+              officialCommunities.slice(0, 3).map((community) => (
                 <Link
                   key={community.id}
                   to={`/comunidades/${community.slug || community.id}`}
@@ -314,7 +314,7 @@ export default function HomePage() {
               <div className="col-span-full text-center py-12">
                 <PixelUsers className="text-muted-foreground mx-auto mb-4" size={48} />
                 <h3 className="text-lg font-medium mb-2">
-                  No hay comunidades destacadas disponibles
+                  No hay comunidades oficiales disponibles
                 </h3>
               </div>
             )}

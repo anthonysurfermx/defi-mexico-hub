@@ -242,9 +242,34 @@ class CommunitiesService {
       return { data: data || [], error: null };
     } catch (err) {
       console.error('Error in getFeatured:', err);
-      return { 
-        data: null, 
-        error: err instanceof Error ? err.message : 'Error desconocido' 
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      };
+    }
+  }
+
+  // Obtener comunidades oficiales
+  async getOfficial(limit: number = 6): Promise<ServiceResponse<Community[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('communities')
+        .select('*')
+        .eq('is_official', true)
+        .order('member_count', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching official communities:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error('Error in getOfficial:', err);
+      return {
+        data: null,
+        error: err instanceof Error ? err.message : 'Error desconocido'
       };
     }
   }

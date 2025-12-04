@@ -35,6 +35,7 @@ interface CommunityFormData {
   telegram: string;
   github: string;
   meetup: string;
+  youtube: string;
   instagram: string;
   longDescription: string;
   isActive: boolean;
@@ -59,6 +60,39 @@ const AdminCommunityForm = () => {
   // Si el usuario llegó a esta página, tiene permisos administrativos
   const isAdminUser = true; // El usuario tiene acceso a /admin, por lo tanto tiene permisos
 
+  const allowedCategories = [
+    "defi",
+    "nft",
+    "dao",
+    "blockchain",
+    "bitcoin",
+    "ethereum",
+    "web3",
+    "crypto",
+    "metaverse",
+    "gaming",
+    "education",
+    "trading",
+    "development",
+    "investment",
+    "other"
+  ];
+
+  const normalizeCategoryValue = (value: string) => {
+    const categoryMap: Record<string, string> = {
+      desarrollo: "development",
+      educación: "education",
+      educacion: "education",
+      inversion: "investment",
+      inversión: "investment",
+      metaverso: "metaverse",
+      otro: "other"
+    };
+    const normalized = (value || '').trim().toLowerCase();
+    const mapped = categoryMap[normalized] || normalized;
+    return allowedCategories.includes(mapped) ? mapped : "other";
+  };
+
   const [formData, setFormData] = useState<CommunityFormData>({
     name: "",
     description: "",
@@ -71,13 +105,14 @@ const AdminCommunityForm = () => {
     monthlyMessages: "",
     platform: "",
     region: "",
-    type: "",
+    type: "defi",
     twitter: "",
     linkedin: "",
     discord: "",
     telegram: "",
     github: "",
     meetup: "",
+    youtube: "",
     instagram: "",
     longDescription: "",
     isActive: true,
@@ -121,13 +156,14 @@ const AdminCommunityForm = () => {
           monthlyMessages: "",
           platform: "",
           region: "", // No existe en BD actual
-          type: community.category || "",
+          type: normalizeCategoryValue(community.category || ""),
           twitter: links.twitter || "",
           linkedin: links.linkedin || "",
           discord: links.discord || "",
           telegram: links.telegram || "",
           github: links.github || "",
           meetup: links.meetup || "",
+          youtube: links.youtube || "",
           instagram: links.instagram || "",
           longDescription: community.long_description || "",
           isActive: true,
@@ -236,19 +272,7 @@ const AdminCommunityForm = () => {
   // No existen: website, location, founded_date, is_active
   const mapFormDataToCommunity = (): any => {
     const slug = generateSlug(formData.name);
-    const categoryMap: Record<string, string> = {
-      desarrollo: "development",
-      educación: "education",
-      educacion: "education",
-      inversion: "investment",
-      inversión: "investment",
-      metaverso: "metaverse",
-      otro: "other"
-    };
-    const allowedCategories = types.map(type => type.value);
-    const normalizedCategory = (formData.type || '').trim().toLowerCase();
-    const mappedCategory = categoryMap[normalizedCategory] || normalizedCategory;
-    const safeCategory = allowedCategories.includes(mappedCategory) ? mappedCategory : 'other';
+    const safeCategory = normalizeCategoryValue(formData.type);
 
     const baseData = {
       name: formData.name,
@@ -267,6 +291,7 @@ const AdminCommunityForm = () => {
         linkedin: formData.linkedin || null,
         github: formData.github || null,
         meetup: formData.meetup || null,
+        youtube: formData.youtube || null,
         instagram: formData.instagram || null
       },
       // Solo admins pueden cambiar estos campos
@@ -445,6 +470,11 @@ const AdminCommunityForm = () => {
           {formData.website && (
             <Button size="sm" variant="ghost">
               🔗
+            </Button>
+          )}
+          {formData.youtube && (
+            <Button size="sm" variant="ghost">
+              ▶
             </Button>
           )}
         </div>
@@ -881,6 +911,16 @@ const AdminCommunityForm = () => {
                             value={formData.meetup}
                             onChange={(e) => handleInputChange("meetup", e.target.value)}
                             placeholder="https://meetup.com/comunidad"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="youtube">YouTube</Label>
+                          <Input
+                            id="youtube"
+                            value={formData.youtube}
+                            onChange={(e) => handleInputChange("youtube", e.target.value)}
+                            placeholder="https://youtube.com/@canal"
                           />
                         </div>
                         
