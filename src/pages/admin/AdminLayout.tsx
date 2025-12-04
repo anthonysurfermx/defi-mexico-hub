@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Settings,
   Globe, // Agregado para Comunidades
-  UserCheck // Para Referentes
+  UserCheck, // Para Referentes
+  Briefcase // Para Trabajos Web3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -53,6 +54,12 @@ const menuItems: MenuItem[] = [
     title: 'Startups',
     path: '/admin/startups',
     icon: Building2,
+    requiredRoles: ['admin', 'editor']
+  },
+  {
+    title: 'Trabajos Web3',
+    path: '/admin/jobs',
+    icon: Briefcase,
     requiredRoles: ['admin', 'editor']
   },
   {

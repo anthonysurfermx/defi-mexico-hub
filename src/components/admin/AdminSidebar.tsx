@@ -1,13 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Rocket, 
-  FileText, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  Rocket,
+  FileText,
+  Calendar,
   Settings,
   Bell,
   LogOut,
-  User
+  User,
+  Briefcase
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Startups", url: "/admin/startups", icon: Rocket },
+  { title: "Trabajos Web3", url: "/admin/jobs", icon: Briefcase },
   { title: "Blog", url: "/admin/blog", icon: FileText },
   { title: "Eventos", url: "/admin/eventos", icon: Calendar },
   { title: "Notificaciones", url: "/admin/notifications", icon: Bell, badge: 3 },

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Rocket, FileText, Calendar, Users, GraduationCap, MapPin } from "lucide-react";
+import { Plus, Rocket, FileText, Calendar, Users, GraduationCap, MapPin, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface QuickAction {
@@ -54,6 +54,13 @@ const quickActions: QuickAction[] = [
     icon: MapPin,
     href: "/admin/comunidades/new",
     color: "from-blue-500 to-blue-400"
+  },
+  {
+    title: "Nuevo Trabajo",
+    description: "Publicar oferta de trabajo Web3",
+    icon: Briefcase,
+    href: "/admin/jobs/new",
+    color: "from-amber-500 to-amber-400"
   },
 ];
 

@@ -21,7 +21,8 @@ import {
   PixelYoutube,
   PixelBarChart,
   PixelTrophy,
-  PixelLogo
+  PixelLogo,
+  PixelBriefcase
 } from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +64,7 @@ export default function MainLayout() {
     { name: t('nav.communities'), href: '/comunidades', Icon: PixelNetwork, description: 'Groups and communities' },
     { name: t('nav.advocates'), href: '/referentes', Icon: PixelUserCheck, description: 'Ecosystem leaders' },
     { name: t('nav.events'), href: '/eventos', Icon: PixelCalendar, description: 'Events and conferences' },
-    { name: 'Métricas', href: '/metricas', Icon: PixelBarChart, description: 'DeFi TVL & stablecoins MXN' },
+    { name: 'Trabajos Web3', href: '/ecosistema/trabajos', Icon: PixelBriefcase, description: 'Web3 jobs in Mexico' },
   ];
 
   const isActive = (path: string) => {
@@ -212,6 +213,22 @@ export default function MainLayout() {
               >
                 <PixelTrophy size={16} />
                 NFT Collection
+              </Link>
+
+              {/* Métricas Link */}
+              <Link
+                to="/metricas"
+                className={`
+                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/metricas')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <PixelBarChart size={16} />
+                Métricas
               </Link>
             </div>
 
@@ -363,10 +380,10 @@ export default function MainLayout() {
                 );
               })}
 
-              {/* NFT Collection */}
+              {/* NFT & Métricas */}
               <div className="pt-2 pb-1 px-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  NFT
+                  Más
                 </p>
               </div>
               <Link
@@ -383,6 +400,23 @@ export default function MainLayout() {
                 <PixelTrophy size={20} />
                 NFT Collection
                 {isActive('/nft-gallery') && (
+                  <PixelChevronRight size={16} className="ml-auto" />
+                )}
+              </Link>
+              <Link
+                to="/metricas"
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/metricas')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <PixelBarChart size={20} />
+                Métricas
+                {isActive('/metricas') && (
                   <PixelChevronRight size={16} className="ml-auto" />
                 )}
               </Link>

@@ -45,6 +45,9 @@ const DigitalArtDeFiPage = lazy(() => import('@/pages/DigitalArtDeFiPage'));
 const DigitalArtStudioPage = lazy(() => import('@/pages/DigitalArtStudioPage'));
 const DigitalArtGalleryPage = lazy(() => import('@/pages/DigitalArtGalleryPage'));
 
+// Web3 Jobs
+const Web3JobsPage = lazy(() => import('@/pages/Web3JobsPage'));
+
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
@@ -73,12 +76,17 @@ const ProposeCommunity = lazy(() => import('@/pages/user/ProposeCommunity'));
 const ProposeEvent = lazy(() => import('@/pages/user/ProposeEvent'));
 const ProposeStartup = lazy(() => import('@/pages/user/ProposeStartup'));
 const ProposeReferent = lazy(() => import('@/pages/user/ProposeReferent'));
+const ProposeJob = lazy(() => import('@/pages/user/ProposeJob'));
 
 // Admin Startup Forms
 const AdminStartupForm = lazy(() => import('@/pages/admin/AdminStartupForm'));
 
 // Admin Community Forms
 const AdminCommunityForm = lazy(() => import('@/pages/admin/AdminCommunityForm'));
+
+// Admin Jobs
+const AdminJobs = lazy(() => import('@/pages/admin/AdminJobs'));
+const AdminJobForm = lazy(() => import('@/pages/admin/AdminJobForm'));
 
 // Admin Blog Forms - REMOVIDOS TEMPORALMENTE
 // const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
@@ -434,7 +442,16 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
-            
+            // Web3 Jobs México
+            {
+              path: 'ecosistema/trabajos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <Web3JobsPage />
+                </Suspense>
+              ),
+            },
+
             // ==========================================
             // RUTA ESPECIAL PARA STARTUP OWNERS CON MAIN LAYOUT
             // ==========================================
@@ -587,6 +604,14 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'trabajos/nuevo',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ProposeJob />
+                </Suspense>
+              ),
+            },
           ],
         },
 
@@ -736,6 +761,31 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminAdvocates />
+                </Suspense>
+              ),
+            },
+            // Admin Jobs Routes
+            {
+              path: 'jobs',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminJobs />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'jobs/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminJobForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'jobs/edit/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminJobForm />
                 </Suspense>
               ),
             },

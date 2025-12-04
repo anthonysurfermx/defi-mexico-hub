@@ -250,7 +250,8 @@ export function useProposals(options: UseProposalsOptions = {}) {
         community: 'communities',
         referent: 'defi_advocates',
         course: 'courses',
-        blog: 'blog_posts'
+        blog: 'blog_posts',
+        job: 'jobs'
       };
 
       const tableName = tableMap[proposal.content_type];
@@ -496,6 +497,31 @@ export function useProposals(options: UseProposalsOptions = {}) {
             published_at: new Date().toISOString(),
             view_count: 0,
             is_featured: false
+          };
+          break;
+
+        case 'job':
+          insertData = {
+            title: insertData.title,
+            company: insertData.company,
+            company_logo: insertData.company_logo || null,
+            location: insertData.location || 'México',
+            job_type: insertData.job_type || 'remote',
+            category: insertData.category || 'Engineering',
+            salary_min: insertData.salary_min || null,
+            salary_max: insertData.salary_max || null,
+            salary_currency: insertData.salary_currency || 'USD',
+            experience_level: insertData.experience_level || 'Mid (2-4 años)',
+            tags: insertData.tags || [],
+            description: insertData.description || '',
+            requirements: insertData.requirements || null,
+            benefits: insertData.benefits || null,
+            apply_url: insertData.apply_url || '',
+            apply_email: insertData.apply_email || null,
+            proposal_id: proposal.id,
+            created_by: proposal.proposed_by,
+            is_featured: false,
+            status: 'published' // Publicar automáticamente al aprobar
           };
           break;
       }

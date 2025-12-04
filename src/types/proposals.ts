@@ -1,7 +1,7 @@
 // src/types/proposals.ts
 
 // Tipos de contenido que pueden ser propuestos
-export type ContentType = 'startup' | 'event' | 'community' | 'referent' | 'blog' | 'course';
+export type ContentType = 'startup' | 'event' | 'community' | 'referent' | 'blog' | 'course' | 'job';
 
 // Estados de una propuesta
 export type ProposalStatus = 'pending' | 'approved' | 'rejected' | 'draft';
@@ -375,10 +375,30 @@ export interface CourseProposalData {
   tags?: string[];
 }
 
+export interface JobProposalData {
+  title: string;
+  company: string;
+  company_logo?: string;
+  description: string;
+  location?: string;
+  job_type?: 'remote' | 'hybrid' | 'onsite';
+  category?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  experience_level?: string;
+  requirements?: string;
+  benefits?: string;
+  tags?: string[];
+  apply_url?: string;
+  apply_email?: string;
+}
+
 // Tipo union para todos los datos de propuestas
 export type ProposalData =
   | StartupProposalData
   | EventProposalData
   | CommunityProposalData
   | ReferentProposalData
-  | CourseProposalData;
+  | CourseProposalData
+  | JobProposalData;

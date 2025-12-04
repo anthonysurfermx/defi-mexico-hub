@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Calendar, Globe, Users, FileText, Plus, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Building2, Calendar, Globe, Users, FileText, Plus, Clock, CheckCircle, XCircle, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProposals } from "@/hooks/useProposals";
@@ -45,6 +45,13 @@ export default function UserDashboard() {
       icon: Users,
       path: "/user/referentes/nuevo",
       color: "from-orange-500 to-red-500",
+    },
+    {
+      title: "Publicar Trabajo Web3",
+      description: "Publica una oferta de trabajo en el ecosistema",
+      icon: Briefcase,
+      path: "/user/trabajos/nuevo",
+      color: "from-amber-500 to-yellow-500",
     },
   ];
 
@@ -141,7 +148,8 @@ export default function UserDashboard() {
                   startup: Building2,
                   referent: Users,
                   blog: FileText,
-                  course: FileText
+                  course: FileText,
+                  job: Briefcase
                 };
                 const TypeIcon = typeIcons[proposal.content_type] || FileText;
 
@@ -171,7 +179,8 @@ export default function UserDashboard() {
                            proposal.content_type === 'event' ? 'Evento' :
                            proposal.content_type === 'startup' ? 'Startup' :
                            proposal.content_type === 'referent' ? 'Referente' :
-                           proposal.content_type === 'blog' ? 'Blog' : 'Curso'}
+                           proposal.content_type === 'blog' ? 'Blog' :
+                           proposal.content_type === 'job' ? 'Trabajo' : 'Curso'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

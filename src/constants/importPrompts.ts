@@ -179,4 +179,57 @@ IMPORTANTE:
 - El reading_time es el tiempo estimado de lectura en minutos
 - El author_id se dejará null para asignarlo manualmente después
 - Incluye meta_description y meta_keywords para SEO`,
+
+  jobs: `Busca 50 ofertas de trabajo Web3/DeFi en México y América Latina. Para cada una, extrae la siguiente información y genera un archivo JSON con este formato exacto:
+
+[
+  {
+    "title": "Título del Puesto",
+    "company": "Nombre de la Empresa",
+    "company_logo": "https://logo.url",
+    "location": "Ciudad, País o Remoto México",
+    "job_type": "remote|hybrid|onsite",
+    "category": "Engineering|Product|Marketing|Security|Legal & Compliance|Design|Operations|Finance",
+    "salary_min": 50000,
+    "salary_max": 80000,
+    "salary_currency": "USD",
+    "experience_level": "Junior (0-2 años)|Mid (2-4 años)|Senior (5+ años)|Lead/Manager",
+    "tags": ["Solidity", "React", "Web3.js", "DeFi"],
+    "description": "Descripción detallada del puesto de 2-3 párrafos. Incluye responsabilidades principales, proyectos en los que trabajará y el impacto que tendrá en el equipo.",
+    "requirements": "- Requisito 1\\n- Requisito 2\\n- Requisito 3",
+    "benefits": "- Beneficio 1\\n- Beneficio 2\\n- Beneficio 3",
+    "apply_url": "https://empresa.com/careers/puesto",
+    "apply_email": "jobs@empresa.com",
+    "is_featured": false,
+    "status": "published"
+  }
+]
+
+Categorías (category):
+- Engineering: Desarrollo, DevOps, Smart Contracts
+- Product: Product Management, Project Management
+- Marketing: Marketing, Growth, Community
+- Security: Seguridad, Auditoría
+- Legal & Compliance: Legal, Compliance, Regulatorio
+- Design: UX/UI, Diseño Gráfico
+- Operations: Operaciones, RRHH, Admin
+- Finance: Finanzas, Contabilidad, Tesorería
+
+Tipos de trabajo (job_type):
+- remote: Trabajo 100% remoto
+- hybrid: Híbrido (oficina + remoto)
+- onsite: Presencial
+
+Niveles de experiencia:
+- Junior (0-2 años)
+- Mid (2-4 años)
+- Senior (5+ años)
+- Lead/Manager
+
+IMPORTANTE:
+- El salary_min y salary_max son números enteros (sin comas ni símbolos)
+- El salary_currency es "USD" o "MXN"
+- Los tags deben incluir tecnologías y habilidades específicas
+- El apply_url debe ser un link válido para aplicar
+- El status debe ser "published" para que aparezca públicamente`,
 };

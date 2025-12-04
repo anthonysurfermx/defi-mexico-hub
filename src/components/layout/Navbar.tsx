@@ -4,7 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 import { WalletConnect } from "@/components/WalletConnect";
-import { PixelMenu, PixelX, PixelSearch, PixelChevronRight, PixelPlus } from "@/components/ui/pixel-icons";
+import { PixelMenu, PixelX, PixelSearch, PixelChevronRight, PixelChevronDown, PixelPlus } from "@/components/ui/pixel-icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Briefcase, Rocket, Users, BarChart3 } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -45,8 +52,19 @@ const Navbar = () => {
     { label: "Comunidades", href: "/comunidades" },
     { label: "NFT Collection", href: "/nft-gallery" },
     { label: "TikTok", href: "/tiktok" },
-    { label: "Eventos", href: "/eventos" }
+    { label: "Eventos", href: "/eventos" },
+    { label: "Métricas", href: "/metricas" }
   ];
+
+  const ecosistemaItems = [
+    { label: "Startups", href: "/startups", icon: Rocket },
+    { label: "Comunidades", href: "/comunidades", icon: Users },
+    { label: "Trabajos Web3", href: "/ecosistema/trabajos", icon: Briefcase },
+  ];
+
+  const isEcosistemaActive = () => {
+    return ecosistemaItems.some(item => location.pathname.startsWith(item.href));
+  };
 
   const isActivePage = (href: string) => {
     if (href === "/") {
@@ -118,24 +136,121 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`relative text-sm font-medium transition-colors group ${
-                    isActivePage(item.href)
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+              <Link
+                to="/"
+                className={`relative text-sm font-medium transition-colors group ${
+                  isActivePage("/") && location.pathname === "/"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Inicio
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                    location.pathname === "/" ? "w-full" : ""
                   }`}
-                >
-                  {item.label}
-                  <span
-                    className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
-                      isActivePage(item.href) ? "w-full" : ""
+                />
+              </Link>
+
+              {/* Ecosistema Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`relative text-sm font-medium transition-colors group flex items-center gap-1 ${
+                      isEcosistemaActive()
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
-                  />
-                </Link>
-              ))}
+                  >
+                    Ecosistema
+                    <PixelChevronDown size={14} />
+                    <span
+                      className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                        isEcosistemaActive() ? "w-full" : ""
+                      }`}
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {ecosistemaItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        to={item.href}
+                        className={`flex items-center gap-2 ${
+                          isActivePage(item.href) ? "text-primary" : ""
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Link
+                to="/nft-gallery"
+                className={`relative text-sm font-medium transition-colors group ${
+                  isActivePage("/nft-gallery")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                NFT Collection
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                    isActivePage("/nft-gallery") ? "w-full" : ""
+                  }`}
+                />
+              </Link>
+
+              <Link
+                to="/tiktok"
+                className={`relative text-sm font-medium transition-colors group ${
+                  isActivePage("/tiktok")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                TikTok
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                    isActivePage("/tiktok") ? "w-full" : ""
+                  }`}
+                />
+              </Link>
+
+              <Link
+                to="/eventos"
+                className={`relative text-sm font-medium transition-colors group ${
+                  isActivePage("/eventos")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Eventos
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                    isActivePage("/eventos") ? "w-full" : ""
+                  }`}
+                />
+              </Link>
+
+              <Link
+                to="/metricas"
+                className={`relative text-sm font-medium transition-colors group ${
+                  isActivePage("/metricas")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Métricas
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                    isActivePage("/metricas") ? "w-full" : ""
+                  }`}
+                />
+              </Link>
             </nav>
 
             {/* Desktop Actions */}
@@ -265,27 +380,107 @@ const Navbar = () => {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-6 py-4">
+                <nav className="flex-1 px-6 py-4 overflow-y-auto">
                   <div className="space-y-2">
-                    {navItems.map((item, index) => (
-                      <motion.div
-                        key={item.href}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
+                    {/* Inicio */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Link
+                        to="/"
+                        className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                          location.pathname === "/"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
                       >
+                        Inicio
+                      </Link>
+                    </motion.div>
+
+                    {/* Ecosistema Section */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="pt-2"
+                    >
+                      <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Ecosistema
+                      </p>
+                      <div className="space-y-1">
+                        {ecosistemaItems.map((item) => (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                              isActivePage(item.href)
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+
+                    {/* Other Items */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="pt-2"
+                    >
+                      <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Más
+                      </p>
+                      <div className="space-y-1">
                         <Link
-                          to={item.href}
-                          className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                            isActivePage(item.href)
+                          to="/nft-gallery"
+                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActivePage("/nft-gallery")
                               ? "bg-primary text-primary-foreground"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted"
                           }`}
                         >
-                          {item.label}
+                          NFT Collection
                         </Link>
-                      </motion.div>
-                    ))}
+                        <Link
+                          to="/tiktok"
+                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActivePage("/tiktok")
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          TikTok
+                        </Link>
+                        <Link
+                          to="/eventos"
+                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActivePage("/eventos")
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          Eventos
+                        </Link>
+                        <Link
+                          to="/metricas"
+                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActivePage("/metricas")
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          Métricas
+                        </Link>
+                      </div>
+                    </motion.div>
                   </div>
                 </nav>
 
