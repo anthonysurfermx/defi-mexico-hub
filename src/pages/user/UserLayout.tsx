@@ -10,8 +10,10 @@ import {
   Settings,
   Globe,
   LogOut,
-  ChevronRight
+  Home,
+  ArrowLeft
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -109,11 +111,20 @@ export default function UserLayout() {
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <h1 className="text-lg font-bold">DeFi México</h1>
+            <Link to="/" className="text-lg font-bold hover:text-primary transition-colors">
+              DeFi México
+            </Link>
           </div>
-          <Badge variant={isEditor ? "default" : "secondary"}>
-            {isEditor ? "Editor" : "Usuario"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/">
+                <Home className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Badge variant={isEditor ? "default" : "secondary"}>
+              {isEditor ? "Editor" : "Usuario"}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -122,17 +133,31 @@ export default function UserLayout() {
         <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-card min-h-screen sticky top-0">
           {/* Logo */}
           <div className="p-6 border-b">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <span className="text-xl font-bold text-primary-foreground">DM</span>
               </div>
               <div>
-                <h2 className="font-bold text-lg">DeFi México</h2>
+                <h2 className="font-bold text-lg group-hover:text-primary transition-colors">DeFi México</h2>
                 <p className="text-xs text-muted-foreground">
                   {isEditor ? "Panel Editor" : "Panel Usuario"}
                 </p>
               </div>
-            </div>
+            </Link>
+          </div>
+
+          {/* Back to Home */}
+          <div className="px-4 pt-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Ir a DeFi México</span>
+              </Link>
+            </Button>
           </div>
 
           {/* User Info */}
@@ -210,6 +235,20 @@ export default function UserLayout() {
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
                 className="fixed left-0 top-16 bottom-0 w-64 bg-card border-r z-40 lg:hidden overflow-y-auto"
               >
+                {/* Back to Home */}
+                <div className="p-4 border-b">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                    asChild
+                  >
+                    <Link to="/">
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Ir a DeFi México</span>
+                    </Link>
+                  </Button>
+                </div>
+
                 {/* User Info */}
                 <div className="p-4 border-b">
                   <div className="flex items-center gap-3">
