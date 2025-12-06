@@ -19,7 +19,6 @@ import UserLayout from '@/pages/user/UserLayout';
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
-const StartupDashboard = lazy(() => import('@/pages/StartupDashboard'));
 // Blog removido temporalmente
 // const BlogPage = lazy(() => import('@/pages/BlogPage'));
 // const BlogPostPage = lazy(() => import('@/pages/BlogPostPage'));
@@ -259,20 +258,6 @@ const router = createBrowserRouter(
                 <Suspense fallback={<PageLoader />}>
                   <StartupDetailPage />
                 </Suspense>
-              ),
-            },
-            
-            // ==========================================
-            // DASHBOARD PARA STARTUP OWNERS
-            // ==========================================
-            {
-              path: 'startup-register',
-              element: (
-                <ProtectedRoute requireAnyRole={['user', 'admin', 'editor']}>
-                  <Suspense fallback={<PageLoader />}>
-                    <StartupDashboard />
-                  </Suspense>
-                </ProtectedRoute>
               ),
             },
             // ==========================================

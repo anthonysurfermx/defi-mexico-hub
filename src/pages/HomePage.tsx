@@ -50,11 +50,9 @@ export default function HomePage() {
     // Si está autenticado, redirigir según su rol
     if (isAdmin() || hasRole('editor')) {
       return '/admin';
-    } else if (hasRole('startup_owner')) {
-      return '/startup-register';
     } else {
-      // Usuario normal va al dashboard de registro de startup
-      return '/startup-register';
+      // Usuario normal va al dashboard de propuestas
+      return '/user';
     }
   };
 

@@ -85,7 +85,7 @@ const AdminStartupForm = () => {
         description: "No tienes permisos para editar startups existentes.",
         variant: "destructive",
       });
-      navigate('/startup-register');
+      navigate('/user');
       return;
     }
     
@@ -98,7 +98,7 @@ const AdminStartupForm = () => {
   // Función para determinar el botón de vuelta según el rol
   const getBackRoute = () => {
     if (isStartupOwner) {
-      return '/startup-register';
+      return '/user';
     }
     return '/admin/startups';
   };
@@ -329,7 +329,7 @@ const AdminStartupForm = () => {
       if (isStartupOwner) {
         // Startup owners van de vuelta a su dashboard
         console.log('🚀 Redirigiendo startup owner a dashboard...');
-        navigate('/startup-register');
+        navigate('/user');
       } else if (!id && data && data[0]) {
         // Admins/editores van a la página de edición si es nuevo
         console.log('🚀 Redirigiendo admin a edición...');

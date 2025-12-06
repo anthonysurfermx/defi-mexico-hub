@@ -256,7 +256,7 @@ export default function MainLayout() {
               <ThemeToggle />
               <LanguageSwitcher />
               <Button size="sm" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:opacity-90">
-                <Link to="/startup-register">
+                <Link to="/user">
                   <PixelSparkles size={16} className="mr-2" />
                   {t('nav.contribute')}
                 </Link>
@@ -424,7 +424,7 @@ export default function MainLayout() {
               {/* Mobile Actions */}
               <div className="pt-4">
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
-                  <Link to="/startup-register">
+                  <Link to="/user">
                     <PixelSparkles size={16} className="mr-2" />
                     {t('nav.contribute')}
                   </Link>

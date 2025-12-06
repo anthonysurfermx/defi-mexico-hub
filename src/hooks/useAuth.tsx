@@ -179,8 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               // Solo redirigir si NO estamos ya en las páginas protegidas para evitar loops
               const isOnProtectedPage = window.location.pathname.startsWith('/admin') ||
-                                       window.location.pathname.startsWith('/user') ||
-                                       window.location.pathname.startsWith('/startup-register');
+                                       window.location.pathname.startsWith('/user');
 
               if (!isOnProtectedPage) {
                 // Redirigir según el rol del perfil
@@ -269,8 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const currentPath = window.location.pathname;
                     const currentHash = window.location.hash;
                     const isAlreadyInProtectedArea = currentPath.startsWith('/admin') ||
-                                                     currentPath.startsWith('/user') ||
-                                                     currentPath.startsWith('/startup-register');
+                                                     currentPath.startsWith('/user');
 
                     console.log(`🔍 SIGNED_IN - Path: ${currentPath}, Hash: ${currentHash.substring(0, 50)}...`);
                     console.log(`🔍 SIGNED_IN - Already in protected area: ${isAlreadyInProtectedArea}`);

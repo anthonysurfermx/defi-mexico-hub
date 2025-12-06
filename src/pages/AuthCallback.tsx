@@ -251,10 +251,10 @@ export default function AuthCallback() {
                 return;
               }
               
-              // Si no es admin/editor pero tiene email verificado, es startup_owner
+              // Si no es admin/editor pero tiene email verificado, ir al panel de usuario
               if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
-                console.log(`🎯 Redirecting verified user to startup dashboard`);
-                setTimeout(() => navigate('/startup-register', { replace: true }), 800);
+                console.log(`🎯 Redirecting verified user to user dashboard`);
+                setTimeout(() => navigate('/user', { replace: true }), 800);
                 return;
               }
             }

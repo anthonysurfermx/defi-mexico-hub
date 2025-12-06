@@ -74,8 +74,8 @@ export default function StartupDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => navigate('/login?redirectTo=/startup-register')}
+            <Button
+              onClick={() => navigate('/login?redirectTo=/user')}
               className="w-full"
             >
               Iniciar Sesión
