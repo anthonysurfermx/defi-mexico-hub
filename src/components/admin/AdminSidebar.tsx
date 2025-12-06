@@ -2,13 +2,13 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Rocket,
-  FileText,
   Calendar,
   Settings,
-  Bell,
   LogOut,
-  User,
-  Briefcase
+  Briefcase,
+  Users,
+  MapPin,
+  Star
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,15 +26,15 @@ import {
 import LogoDeFiMx from "@/components/ui/LogoDeFiMx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Startups", url: "/admin/startups", icon: Rocket },
+  { title: "Comunidades", url: "/admin/comunidades", icon: MapPin },
   { title: "Trabajos Web3", url: "/admin/jobs", icon: Briefcase },
-  { title: "Blog", url: "/admin/blog", icon: FileText },
   { title: "Eventos", url: "/admin/eventos", icon: Calendar },
-  { title: "Notificaciones", url: "/admin/notifications", icon: Bell, badge: 3 },
+  { title: "Referentes", url: "/admin/referentes", icon: Star },
+  { title: "Usuarios", url: "/admin/usuarios", icon: Users },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
 
@@ -104,14 +104,7 @@ export function AdminSidebar() {
                     <NavLink to={item.url} className={getNavCls(item.url)}>
                       <item.icon className="w-5 h-5" />
                       {!collapsed && (
-                        <div className="flex items-center justify-between flex-1">
-                          <span>{item.title}</span>
-                          {item.badge && (
-                            <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                              {item.badge}
-                            </Badge>
-                          )}
-                        </div>
+                        <span>{item.title}</span>
                       )}
                     </NavLink>
                   </SidebarMenuButton>

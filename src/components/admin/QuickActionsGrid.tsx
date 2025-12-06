@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, Rocket, FileText, Calendar, Users, GraduationCap, MapPin, Briefcase } from "lucide-react";
+import { Plus, Rocket, Calendar, Users, MapPin, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface QuickAction {
@@ -21,36 +20,8 @@ const quickActions: QuickAction[] = [
     color: "from-primary to-primary/80"
   },
   {
-    title: "Nuevo Artículo",
-    description: "Escribir un nuevo post para el blog",
-    icon: FileText,
-    href: "/admin/blog/new",
-    color: "from-secondary to-secondary/80"
-  },
-  {
-    title: "Gestionar Eventos",
-    description: "Administrar eventos y crear nuevos",
-    icon: Calendar,
-    href: "/admin/eventos",
-    color: "from-accent to-accent/80"
-  },
-  {
-    title: "Gestionar Usuarios",
-    description: "Administrar usuarios e invitar nuevos",
-    icon: Users,
-    href: "/admin/users",
-    color: "from-purple-500 to-purple-400"
-  },
-  {
-    title: "Academia",
-    description: "Gestionar cursos y contenido educativo",
-    icon: GraduationCap,
-    href: "/admin/academia",
-    color: "from-green-500 to-green-400"
-  },
-  {
     title: "Nueva Comunidad",
-    description: "Crear una nueva comunidad",
+    description: "Crear una nueva comunidad Web3",
     icon: MapPin,
     href: "/admin/comunidades/new",
     color: "from-blue-500 to-blue-400"
@@ -61,6 +32,20 @@ const quickActions: QuickAction[] = [
     icon: Briefcase,
     href: "/admin/jobs/new",
     color: "from-amber-500 to-amber-400"
+  },
+  {
+    title: "Gestionar Eventos",
+    description: "Administrar eventos y crear nuevos",
+    icon: Calendar,
+    href: "/admin/eventos",
+    color: "from-accent to-accent/80"
+  },
+  {
+    title: "Gestionar Usuarios",
+    description: "Administrar usuarios y roles",
+    icon: Users,
+    href: "/admin/usuarios",
+    color: "from-purple-500 to-purple-400"
   },
 ];
 

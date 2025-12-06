@@ -657,6 +657,14 @@ const router = createBrowserRouter(
               ),
             },
             {
+              path: 'startups/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminStartupForm />
+                </Suspense>
+              ),
+            },
+            {
               path: 'startups/edit/:id',
               element: (
                 <Suspense fallback={<PageLoader />}>

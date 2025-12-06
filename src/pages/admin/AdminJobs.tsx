@@ -297,10 +297,10 @@ const AdminJobs = () => {
     );
   };
 
-  // Combinar jobs con propuestas
+  // Combinar jobs con propuestas (solo mostrar pendientes, no aprobadas ni rechazadas)
   const allItems = [
     ...proposals
-      .filter(p => p.status !== 'rejected')
+      .filter(p => p.status === 'pending')
       .map(p => ({
         id: p.id,
         title: p.content_data.title || 'Sin título',

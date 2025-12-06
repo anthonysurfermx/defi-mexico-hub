@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,14 +7,25 @@ import { Badge } from "@/components/ui/badge";
 import CommunityCard from "@/components/ui/community-card";
 import { motion } from "framer-motion";
 import { communitiesService, type Community } from "@/services/communities.service";
-import { PixelSearch, PixelFilter, PixelX } from "@/components/ui/pixel-icons";
+import { PixelSearch, PixelFilter, PixelX, PixelPlus } from "@/components/ui/pixel-icons";
+import { useAuth } from "@/hooks/useAuth";
 
 const CommunidadesPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const handleProposeCommunity = () => {
+    if (user) {
+      navigate('/user/comunidades/nueva');
+    } else {
+      navigate('/login?redirectTo=/user/comunidades/nueva');
+    }
+  };
 
   // Cargar comunidades desde Supabase
   useEffect(() => {
@@ -88,16 +100,28 @@ const CommunidadesPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="mb-12"
         >
-          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Comunidades <span className="text-gradient">DeFi México</span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Únete a las comunidades más activas del ecosistema DeFi mexicano. 
-            Desde Discord servers hasta meetups presenciales, encuentra tu tribu 
-            y conecta con otros entusiastas de blockchain.
-          </p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div className="text-center md:text-left flex-1">
+              <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+                Comunidades <span className="text-gradient">DeFi México</span>
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-3xl">
+                Únete a las comunidades más activas del ecosistema DeFi mexicano.
+                Desde Discord servers hasta meetups presenciales, encuentra tu tribu
+                y conecta con otros entusiastas de blockchain.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              onClick={handleProposeCommunity}
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            >
+              <PixelPlus size={20} className="mr-2" />
+              Propón tu Comunidad
+            </Button>
+          </div>
         </motion.div>
 
         {/* Filters */}

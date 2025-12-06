@@ -102,11 +102,11 @@ export default function StartupsPage() {
 
   const handleRegisterStartup = () => {
     if (user) {
-      // Si ya está autenticado, redirigir al dashboard de registro
-      navigate('/startup-register');
+      // Si ya está autenticado, redirigir al formulario de propuesta
+      navigate('/user/startups/nueva');
     } else {
       // Si no está autenticado, redirigir al login con redirect
-      navigate('/login?redirectTo=/startup-register');
+      navigate('/login?redirectTo=/user/startups/nueva');
     }
   };
 
@@ -127,7 +127,7 @@ export default function StartupsPage() {
             className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           >
             <PixelPlus size={20} className="mr-2" />
-            {t('nav.contribute')}
+            Propón tu Startup
           </Button>
         </div>
 

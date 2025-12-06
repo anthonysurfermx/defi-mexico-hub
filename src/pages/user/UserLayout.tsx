@@ -2,7 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
-  FileText,
+  Briefcase,
   Calendar,
   Users,
   Menu,
@@ -37,30 +37,29 @@ const menuItems: MenuItem[] = [
     exact: true,
   },
   {
-    title: 'Blog',
-    path: '/user/blog',
-    icon: FileText,
-    editorOnly: true,
-  },
-  {
-    title: 'Comunidades',
-    path: '/user/comunidades',
-    icon: Globe,
-  },
-  {
-    title: 'Referentes',
-    path: '/user/referentes',
-    icon: Users,
-  },
-  {
-    title: 'Startups',
-    path: '/user/startups',
+    title: 'Proponer Startup',
+    path: '/user/startups/nueva',
     icon: Building2,
   },
   {
-    title: 'Eventos',
-    path: '/user/eventos',
+    title: 'Proponer Comunidad',
+    path: '/user/comunidades/nueva',
+    icon: Globe,
+  },
+  {
+    title: 'Proponer Evento',
+    path: '/user/eventos/nuevo',
     icon: Calendar,
+  },
+  {
+    title: 'Proponer Referente',
+    path: '/user/referentes/nuevo',
+    icon: Users,
+  },
+  {
+    title: 'Publicar Trabajo',
+    path: '/user/trabajos/nuevo',
+    icon: Briefcase,
   },
   {
     title: 'Configuración',

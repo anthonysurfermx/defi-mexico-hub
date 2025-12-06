@@ -268,7 +268,7 @@ const Navbar = () => {
                 className="bg-gradient-primary text-primary-foreground hover:shadow-neon transition-all duration-300"
                 asChild
               >
-                <Link to="/login">
+                <Link to="/user">
                   <PixelPlus size={14} className="mr-1.5" />
                   Contribuye
                 </Link>
@@ -501,7 +501,7 @@ const Navbar = () => {
                     className="w-full bg-gradient-primary text-primary-foreground"
                     asChild
                   >
-                    <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/user" onClick={() => setIsMobileMenuOpen(false)}>
                       <PixelPlus size={14} className="mr-1.5" />
                       Contribuye
                     </Link>

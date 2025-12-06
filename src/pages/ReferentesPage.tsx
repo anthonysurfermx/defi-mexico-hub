@@ -1,5 +1,6 @@
 // src/pages/ReferentesPage.tsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { Users, Sparkles, Filter } from 'lucide-react';
@@ -8,14 +9,25 @@ import AdvocateCard from '@/components/advocates/AdvocateCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ReferentesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [advocates, setAdvocates] = useState<DeFiAdvocate[]>([]);
   const [filteredAdvocates, setFilteredAdvocates] = useState<DeFiAdvocate[]>([]);
   const [selectedTrack, setSelectedTrack] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleProposeReferent = () => {
+    if (user) {
+      navigate('/user/referentes/nuevo');
+    } else {
+      navigate('/login?redirectTo=/user/referentes/nuevo');
+    }
+  };
 
   const trackFilters = [
     { value: 'all', label: t('advocates.categories.all') },
@@ -174,8 +186,8 @@ export default function ReferentesPage() {
             Si eres un experto en DeFi, educador, desarrollador o líder comunitario en México,
             nos encantaría conocerte y destacar tu contribución al ecosistema.
           </p>
-          <Button size="lg" asChild>
-            <a href="mailto:contacto@defimexico.com">Postúlate Ahora</a>
+          <Button size="lg" onClick={handleProposeReferent}>
+            Postúlate Ahora
           </Button>
         </div>
       </div>

@@ -13,6 +13,7 @@ import {
   Course
 } from '@/types/proposals';
 import { toast } from 'sonner';
+import { notifyProposalSubmitted, notifyProposalApproved, notifyProposalRejected } from '@/services/notifications.service';
 
 interface UseProposalsOptions {
   status?: ProposalStatus;
@@ -109,6 +110,11 @@ export function useProposals(options: UseProposalsOptions = {}) {
 
       if (insertError) throw insertError;
 
+      // Enviar notificaciones por email
+      const contentTitle = (contentData as any).title || (contentData as any).name || 'Sin título';
+      notifyProposalSubmitted(user.email || '', proposalContentType, contentTitle)
+        .catch(err => console.error('Error sending notification:', err));
+
       toast.success('Propuesta enviada correctamente');
       await fetchProposals();
 
@@ -133,15 +139,21 @@ export function useProposals(options: UseProposalsOptions = {}) {
         throw new Error('Usuario no autenticado');
       }
 
-      // Obtener la propuesta primero
+      // Obtener la propuesta con el email del usuario
       const { data: proposal, error: fetchError } = await supabase
         .from('proposals')
-        .select('*')
+        .select(`
+          *,
+          proposed_by_user:proposed_by(email)
+        `)
         .eq('id', proposalId)
         .single();
 
       if (fetchError) throw fetchError;
       if (!proposal) throw new Error('Propuesta no encontrada');
+
+      // Extraer email del usuario que propuso
+      const proposerEmail = (proposal as any).proposed_by_user?.email;
 
       // Actualizar estado de la propuesta
       console.log('🔄 Attempting to update proposal:', proposalId, 'by user:', user.id);
@@ -171,6 +183,13 @@ export function useProposals(options: UseProposalsOptions = {}) {
       // Migrar contenido a la tabla correspondiente
       await migrateProposalToContent(proposal as Proposal);
 
+      // Enviar notificación al usuario
+      if (proposerEmail) {
+        const contentTitle = proposal.content_data?.title || proposal.content_data?.name || 'Sin título';
+        notifyProposalApproved(proposerEmail, proposal.content_type, contentTitle)
+          .catch(err => console.error('Error sending approval notification:', err));
+      }
+
       toast.success('Propuesta aprobada correctamente');
       await fetchProposals();
 
@@ -195,6 +214,20 @@ export function useProposals(options: UseProposalsOptions = {}) {
         throw new Error('Usuario no autenticado');
       }
 
+      // Obtener la propuesta con el email del usuario
+      const { data: proposal, error: fetchError } = await supabase
+        .from('proposals')
+        .select(`
+          *,
+          proposed_by_user:proposed_by(email)
+        `)
+        .eq('id', proposalId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const proposerEmail = (proposal as any)?.proposed_by_user?.email;
+
       const { error: updateError } = await supabase
         .from('proposals')
         .update({
@@ -206,6 +239,13 @@ export function useProposals(options: UseProposalsOptions = {}) {
         .eq('id', proposalId);
 
       if (updateError) throw updateError;
+
+      // Enviar notificación al usuario
+      if (proposerEmail && proposal) {
+        const contentTitle = proposal.content_data?.title || proposal.content_data?.name || 'Sin título';
+        notifyProposalRejected(proposerEmail, proposal.content_type, contentTitle, reviewNotes)
+          .catch(err => console.error('Error sending rejection notification:', err));
+      }
 
       toast.success('Propuesta rechazada');
       await fetchProposals();

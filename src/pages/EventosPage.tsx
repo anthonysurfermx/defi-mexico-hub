@@ -44,9 +44,9 @@ const EventosPage = () => {
   // Función para agregar evento
   const handleAddEvent = () => {
     if (user) {
-      navigate('/admin/eventos');
+      navigate('/user/eventos/nuevo');
     } else {
-      navigate('/login?redirectTo=/admin/eventos');
+      navigate('/login?redirectTo=/user/eventos/nuevo');
     }
   };
   
@@ -532,7 +532,7 @@ const EventosPage = () => {
               Si tienes una idea para un evento, workshop o meetup relacionado con DeFi, 
               nos encantaría colaborar contigo para hacerlo realidad.
             </p>
-            <Button size="lg" className="bg-gradient-primary text-primary-foreground hover:shadow-neon">
+            <Button size="lg" onClick={handleAddEvent} className="bg-gradient-primary text-primary-foreground hover:shadow-neon">
               Proponer Evento
             </Button>
           </div>
