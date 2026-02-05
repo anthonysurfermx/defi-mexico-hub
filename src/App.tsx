@@ -47,6 +47,9 @@ const DigitalArtGalleryPage = lazy(() => import('@/pages/DigitalArtGalleryPage')
 // Web3 Jobs
 const Web3JobsPage = lazy(() => import('@/pages/Web3JobsPage'));
 
+// Hackathon Projects
+const HackathonProjectsPage = lazy(() => import('@/pages/HackathonProjectsPage'));
+
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
@@ -60,7 +63,7 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 // Admin Blog y Academia removidos temporalmente
 // const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 // const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
-// const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
+const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
 const AdminStartups = lazy(() => import('@/pages/admin/AdminStartups'));
 const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
@@ -436,6 +439,15 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            // MVP Hackathon Projects
+            {
+              path: 'hackathon-projects',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <HackathonProjectsPage />
+                </Suspense>
+              ),
+            },
 
             // ==========================================
             // RUTA ESPECIAL PARA STARTUP OWNERS CON MAIN LAYOUT
@@ -705,14 +717,14 @@ const router = createBrowserRouter(
             //     </Suspense>
             //   ),
             // },
-            // {
-            //   path: 'academia/videos',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <AdminVideoTutorials />
-            //     </Suspense>
-            //   ),
-            // },
+            {
+              path: 'academia/videos',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminVideoTutorials />
+                </Suspense>
+              ),
+            },
 
             // ==========================================
             // OTRAS RUTAS ADMIN

@@ -8,7 +8,8 @@ import {
   Briefcase,
   Users,
   MapPin,
-  Star
+  Star,
+  Video
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const menuItems = [
   { title: "Trabajos Web3", url: "/admin/jobs", icon: Briefcase },
   { title: "Eventos", url: "/admin/eventos", icon: Calendar },
   { title: "Referentes", url: "/admin/referentes", icon: Star },
+  { title: "Video Tutoriales", url: "/admin/academia/videos", icon: Video },
   { title: "Usuarios", url: "/admin/usuarios", icon: Users },
   { title: "Configuración", url: "/admin/settings", icon: Settings },
 ];
