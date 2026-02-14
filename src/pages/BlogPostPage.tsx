@@ -53,23 +53,38 @@ const calculateReadTime = (content: string): number => {
 // Componente para convertir markdown básico a HTML
 const PostContent = ({ content }: { content: string }) => {
   const markdownToHtml = (md: string) => {
-    return md
+    // Preserve iframes by extracting them first
+    const iframes: string[] = [];
+    let processed = md.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, (match) => {
+      iframes.push(`<div class="my-8 flex justify-center"><div class="w-full max-w-3xl aspect-video">${match.replace(/width="[^"]*"/, 'width="100%"').replace(/height="[^"]*"/, 'height="100%"')}</div></div>`);
+      return `%%IFRAME_${iframes.length - 1}%%`;
+    });
+
+    processed = processed
       .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-6 mt-8 first:mt-0">$1</h1>')
       .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-4 mt-8">$1</h2>')
       .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-3 mt-6">$1</h3>')
+      .replace(/^- (.*$)/gm, '<li class="ml-4 mb-1 list-disc text-muted-foreground">$1</li>')
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
       .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
       .replace(/`(.*?)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono text-foreground">$1</code>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>')
       .replace(/\n\n/g, '</p><p class="mb-4">')
       .replace(/\n/g, '<br>');
+
+    // Restore iframes
+    iframes.forEach((iframe, i) => {
+      processed = processed.replace(`%%IFRAME_${i}%%`, iframe);
+    });
+
+    return processed;
   };
 
   const htmlContent = `<div class="prose-content"><p class="mb-4">${markdownToHtml(content)}</p></div>`;
 
   return (
-    <div 
-      className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground"
+    <div
+      className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border"
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );

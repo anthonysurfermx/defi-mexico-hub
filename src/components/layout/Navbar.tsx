@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Rocket, Users, BarChart3 } from "lucide-react";
+import { Briefcase, Rocket, Users, BarChart3, Trophy } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -53,11 +53,13 @@ const Navbar = () => {
     { label: "NFT Collection", href: "/nft-gallery" },
     { label: "TikTok", href: "/tiktok" },
     { label: "Eventos", href: "/eventos" },
+    { label: "Blog", href: "/blog" },
     { label: "Métricas", href: "/metricas" }
   ];
 
   const ecosistemaItems = [
     { label: "Startups", href: "/startups", icon: Rocket },
+    { label: "MVPs Hackathon", href: "/hackathon-projects", icon: Trophy },
     { label: "Comunidades", href: "/comunidades", icon: Users },
     { label: "Trabajos Web3", href: "/ecosistema/trabajos", icon: Briefcase },
   ];
