@@ -22,7 +22,8 @@ import {
   PixelBarChart,
   PixelTrophy,
   PixelLogo,
-  PixelBriefcase
+  PixelBriefcase,
+  PixelFileText
 } from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +55,7 @@ export default function MainLayout() {
 
   // Navegación "Aprende" (dropdown)
   const aprendeNavigation = [
+    { name: 'Blog', href: '/blog', Icon: PixelFileText, description: 'Growth insights & DeFi analysis' },
     { name: 'Video Tutoriales', href: '/academia/videos', Icon: PixelYoutube, description: 'Videos educativos de DeFi' },
     { name: 'Mercado LP', href: '/academia/juego/mercado-lp', Icon: PixelGamepad, description: 'Mini game educativo DeFi' },
   ];
@@ -61,6 +63,7 @@ export default function MainLayout() {
   // Navegación del ecosistema (dropdown)
   const ecosistemaNavigation = [
     { name: t('nav.startups'), href: '/startups', Icon: PixelLayers, description: 'DeFi projects in Mexico' },
+    { name: 'MVPs Hackathon', href: '/hackathon-projects', Icon: PixelTrophy, description: 'Hackathon winning projects' },
     { name: t('nav.communities'), href: '/comunidades', Icon: PixelNetwork, description: 'Groups and communities' },
     { name: t('nav.advocates'), href: '/referentes', Icon: PixelUserCheck, description: 'Ecosystem leaders' },
     { name: t('nav.events'), href: '/eventos', Icon: PixelCalendar, description: 'Events and conferences' },
@@ -492,6 +495,11 @@ export default function MainLayout() {
                 <li>
                   <Link to="/digital-art-defi" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     NFT Studio
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Blog
                   </Link>
                 </li>
                 <li>
