@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Rocket, Users, BarChart3, Trophy } from "lucide-react";
+import { Briefcase, Rocket, Users, BarChart3, Trophy, BookOpen, Gamepad2, Video, FileText } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -64,8 +64,18 @@ const Navbar = () => {
     { label: "Trabajos Web3", href: "/ecosistema/trabajos", icon: Briefcase },
   ];
 
+  const learnItems = [
+    { label: "Blog", href: "/blog", icon: FileText },
+    { label: "Video Tutorials", href: "/academia/videos", icon: Video },
+    { label: "Mercado LP", href: "/academia/juego/mercado-lp", icon: Gamepad2 },
+  ];
+
   const isEcosistemaActive = () => {
     return ecosistemaItems.some(item => location.pathname.startsWith(item.href));
+  };
+
+  const isLearnActive = () => {
+    return learnItems.some(item => location.pathname.startsWith(item.href));
   };
 
   const isActivePage = (href: string) => {
@@ -175,6 +185,42 @@ const Navbar = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
                   {ecosistemaItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        to={item.href}
+                        className={`flex items-center gap-2 ${
+                          isActivePage(item.href) ? "text-primary" : ""
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Learn Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`relative text-sm font-medium transition-colors group flex items-center gap-1 ${
+                      isLearnActive()
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Learn
+                    <PixelChevronDown size={14} />
+                    <span
+                      className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
+                        isLearnActive() ? "w-full" : ""
+                      }`}
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {learnItems.map((item) => (
                     <DropdownMenuItem key={item.href} asChild>
                       <Link
                         to={item.href}
@@ -414,6 +460,34 @@ const Navbar = () => {
                       </p>
                       <div className="space-y-1">
                         {ecosistemaItems.map((item) => (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                              isActivePage(item.href)
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+
+                    {/* Learn Section */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.25 }}
+                      className="pt-2"
+                    >
+                      <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Learn
+                      </p>
+                      <div className="space-y-1">
+                        {learnItems.map((item) => (
                           <Link
                             key={item.href}
                             to={item.href}
