@@ -1,19 +1,21 @@
 // src/pages/BlogPostPage.tsx - ACTUALIZADA
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  Eye, 
-  Heart, 
-  Share2, 
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Eye,
+  Heart,
+  Share2,
   User,
   Tag,
   ChevronRight,
   FileText,
-  Loader2
+  Loader2,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -256,7 +258,9 @@ const RelatedPosts = ({ currentSlug, tags, categories }: {
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const [post, setPost] = useState<DomainPost | null>(null);
+  const [translationSlug, setTranslationSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -289,7 +293,19 @@ const BlogPostPage = () => {
 
         setPost(postData);
         console.log(`✅ Loaded blog post: ${postData.title}`);
-        
+
+        // Check if a translated version exists
+        try {
+          const translation = await blogService.getTranslation(slug, postData.locale);
+          if (translation && translation.status === 'published') {
+            setTranslationSlug(translation.slug);
+          } else {
+            setTranslationSlug(null);
+          }
+        } catch {
+          setTranslationSlug(null);
+        }
+
         // Incrementar contador de vistas si el método existe
         if (blogService.incrementViews) {
           try {
@@ -443,6 +459,19 @@ const BlogPostPage = () => {
               </div>
             )}
           </header>
+
+          {/* Language toggle */}
+          {translationSlug && (
+            <Link
+              to={`/blog/${translationSlug}`}
+              className="flex items-center gap-2 mb-6 px-4 py-2.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors w-fit text-sm"
+            >
+              <Globe className="w-4 h-4 text-primary" />
+              <span className="text-muted-foreground">
+                {post.locale === 'en' ? 'Leer en Español' : 'Read in English'}
+              </span>
+            </Link>
+          )}
 
           {/* Imagen destacada */}
           {post.image_url && (

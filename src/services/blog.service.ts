@@ -48,6 +48,7 @@ export interface DomainPost {
   author: string;
   categories: string[];
   tags: string[];
+  locale: 'en' | 'es';
   image_url: string | null;
   status: 'published' | 'draft';
   published_at: string | null;
@@ -88,25 +89,34 @@ const sanitize = (s: unknown): string =>
     .trim()
     .slice(0, 200);
 
-const toDomain = (row: BlogPost): DomainPost => ({
-  id: row.id,
-  title: row.title,
-  slug: row.slug,
-  subtitle: row.subtitle,
-  excerpt: row.excerpt || row.subtitle || '',
-  content: row.content || '',
-  author: row.author || 'Equipo DeFi México',
-  categories: row.category ? [row.category] : [],
-  tags: row.tags || [],
-  image_url: row.image_url || row.featured_image || null,
-  status: row.status === 'published' ? 'published' : 'draft',
-  published_at: row.published_at,
-  created_at: row.created_at,
-  updated_at: row.updated_at,
-  reading_time_minutes: row.reading_time_minutes,
-  is_featured: row.is_featured,
-  view_count: row.view_count || 0,
-});
+const extractLocale = (tags: string[]): 'en' | 'es' => {
+  if (tags.includes('lang:es')) return 'es';
+  return 'en';
+};
+
+const toDomain = (row: BlogPost): DomainPost => {
+  const tags = row.tags || [];
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    subtitle: row.subtitle,
+    excerpt: row.excerpt || row.subtitle || '',
+    content: row.content || '',
+    author: row.author || 'Equipo DeFi México',
+    categories: row.category ? [row.category] : [],
+    tags: tags.filter(t => !t.startsWith('lang:')),
+    locale: extractLocale(tags),
+    image_url: row.image_url || row.featured_image || null,
+    status: row.status === 'published' ? 'published' : 'draft',
+    published_at: row.published_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    reading_time_minutes: row.reading_time_minutes,
+    is_featured: row.is_featured,
+    view_count: row.view_count || 0,
+  };
+};
 
 /**
  * Servicio de Blog - Versión Final con soporte completo para tu esquema
@@ -122,6 +132,7 @@ class BlogService {
     status?: 'published' | 'draft' | 'review' | 'all';
     category?: string;
     tag?: string;
+    locale?: string;
     signal?: AbortSignal;
   } = {}): Promise<Page<DomainPost>> {
     const page = Math.max(1, params.page || 1);
@@ -153,6 +164,10 @@ class BlogService {
 
     if (params.tag) {
       query = query.contains('tags', [params.tag]);
+    }
+
+    if (params.locale) {
+      query = query.contains('tags', [`lang:${params.locale}`]);
     }
 
     if (params.q) {
@@ -198,6 +213,7 @@ class BlogService {
       status?: 'published' | 'draft' | 'review' | 'all';
       category?: string;
       tag?: string;
+      locale?: string;
     },
     signal?: AbortSignal
   ) {
@@ -218,6 +234,7 @@ class BlogService {
       status,
       category: filters?.category,
       tag: filters?.tag,
+      locale: filters?.locale,
       signal,
     });
 
@@ -668,6 +685,27 @@ class BlogService {
       .trim()
       .slice(0, maxLength)
       .trim() + (content.length > maxLength ? '...' : '');
+  }
+
+  /**
+   * Get the paired translation slug for a post.
+   * Convention: EN slug = "2026-02-14-article", ES slug = "2026-02-14-article-es"
+   */
+  getTranslationSlug(slug: string, currentLocale: 'en' | 'es'): string {
+    if (currentLocale === 'es') {
+      // We're viewing ES → paired EN slug removes the -es suffix
+      return slug.replace(/-es$/, '');
+    }
+    // We're viewing EN → paired ES slug adds -es
+    return `${slug}-es`;
+  }
+
+  /**
+   * Check if a translated version of a post exists
+   */
+  async getTranslation(slug: string, currentLocale: 'en' | 'es'): Promise<DomainPost | null> {
+    const pairedSlug = this.getTranslationSlug(slug, currentLocale);
+    return this.getBySlug(pairedSlug);
   }
 }
 

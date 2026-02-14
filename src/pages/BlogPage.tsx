@@ -11,11 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
-// Util: formatear fechas de manera segura
-const formatDateEsMX = (iso?: string) => {
+// Util: formatear fechas respecting locale
+const formatDate = (iso?: string, locale = 'es') => {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+    const loc = locale === 'en' ? 'en-US' : 'es-MX';
+    return new Date(iso).toLocaleDateString(loc, { year: "numeric", month: "long", day: "numeric" });
   } catch {
     return "";
   }
@@ -44,7 +45,8 @@ const PAGE_SIZE = 12;
 const DEBOUNCE_MS = 300;
 
 const BlogPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('es') ? 'es' : 'en';
   const navigate = useNavigate();
   const { user } = useAuth();
   const initial = useRef(readQuery());
@@ -119,6 +121,7 @@ const BlogPage = () => {
             search: debouncedSearch || undefined,
             status: "published",
             category: categoryFilter === "all" ? undefined : categoryFilter,
+            locale,
           },
           controller.signal // pasa signal al servicio
         );
@@ -145,7 +148,7 @@ const BlogPage = () => {
 
     fetchPosts();
     return () => controller.abort();
-  }, [debouncedSearch, categoryFilter, currentPage]);
+  }, [debouncedSearch, categoryFilter, currentPage, locale]);
 
   const hasActiveFilters = debouncedSearch.length > 0 || categoryFilter !== "all";
 
@@ -294,7 +297,7 @@ const BlogPage = () => {
                       title={post.title}
                       excerpt={post.excerpt}
                       author={post.author}
-                      date={formatDateEsMX(post.published_at || post.created_at)}
+                      date={formatDate(post.published_at || post.created_at, locale)}
                       category={(post.categories && post.categories.length > 0) ? post.categories[0] : "General"}
                       tags={post.tags}
                       imageUrl={post.image_url}
