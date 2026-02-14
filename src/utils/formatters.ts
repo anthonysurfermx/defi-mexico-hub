@@ -54,3 +54,24 @@ export const formatTVL = (tvl: string): string => {
   
   return formatCurrency(num, 'USD');
 };
+
+// Chart-specific formatters for DeFi Charts Service
+
+export const formatTVLValue = (num: number): string => {
+  if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(1)}B`;
+  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`;
+  return `$${num.toFixed(0)}`;
+};
+
+export const formatChartDate = (timestamp: number, rangeDays: number): string => {
+  const date = new Date(timestamp * 1000);
+  if (rangeDays <= 30) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  if (rangeDays <= 365) {
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  }
+  // Full date for ALL / tooltip
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};

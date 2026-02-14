@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { blogService, type DomainPost } from '@/services/blog.service';
+import { DefiChart } from '@/components/charts/DefiChart';
 
 // Helper function para formatear fechas
 const formatDate = (dateString: string): string => {
@@ -50,43 +51,82 @@ const calculateReadTime = (content: string): number => {
   return Math.max(1, Math.round(words / wordsPerMinute));
 };
 
-// Componente para convertir markdown básico a HTML
+// Markdown to HTML converter (for non-chart segments)
+const markdownToHtml = (md: string) => {
+  // Preserve iframes by extracting them first
+  const iframes: string[] = [];
+  let processed = md.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, (match) => {
+    iframes.push(`<div class="my-8 flex justify-center"><div class="w-full max-w-3xl aspect-video">${match.replace(/width="[^"]*"/, 'width="100%"').replace(/height="[^"]*"/, 'height="100%"')}</div></div>`);
+    return `%%IFRAME_${iframes.length - 1}%%`;
+  });
+
+  processed = processed
+    .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-6 mt-8 first:mt-0">$1</h1>')
+    .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-4 mt-8">$1</h2>')
+    .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-3 mt-6">$1</h3>')
+    .replace(/^- (.*$)/gm, '<li class="ml-4 mb-1 list-disc text-muted-foreground">$1</li>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    .replace(/`(.*?)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono text-foreground">$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\n\n/g, '</p><p class="mb-4">')
+    .replace(/\n/g, '<br>');
+
+  // Restore iframes
+  iframes.forEach((iframe, i) => {
+    processed = processed.replace(`%%IFRAME_${i}%%`, iframe);
+  });
+
+  return processed;
+};
+
+// Splits content into alternating HTML segments and DefiChart components
 const PostContent = ({ content }: { content: string }) => {
-  const markdownToHtml = (md: string) => {
-    // Preserve iframes by extracting them first
-    const iframes: string[] = [];
-    let processed = md.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, (match) => {
-      iframes.push(`<div class="my-8 flex justify-center"><div class="w-full max-w-3xl aspect-video">${match.replace(/width="[^"]*"/, 'width="100%"').replace(/height="[^"]*"/, 'height="100%"')}</div></div>`);
-      return `%%IFRAME_${iframes.length - 1}%%`;
-    });
+  // Split on [defichart:type:identifier] tags
+  const chartPattern = /\[defichart:([a-z_]+):([a-zA-Z0-9_-]+)\]/g;
+  const segments: Array<{ type: 'html'; html: string } | { type: 'chart'; chartType: string; identifier: string }> = [];
 
-    processed = processed
-      .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-6 mt-8 first:mt-0">$1</h1>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-4 mt-8">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-3 mt-6">$1</h3>')
-      .replace(/^- (.*$)/gm, '<li class="ml-4 mb-1 list-disc text-muted-foreground">$1</li>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono text-foreground">$1</code>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>')
-      .replace(/\n\n/g, '</p><p class="mb-4">')
-      .replace(/\n/g, '<br>');
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
 
-    // Restore iframes
-    iframes.forEach((iframe, i) => {
-      processed = processed.replace(`%%IFRAME_${i}%%`, iframe);
-    });
+  while ((match = chartPattern.exec(content)) !== null) {
+    // Add HTML segment before this chart tag
+    if (match.index > lastIndex) {
+      const mdSegment = content.slice(lastIndex, match.index);
+      segments.push({ type: 'html', html: markdownToHtml(mdSegment) });
+    }
+    // Add chart segment
+    segments.push({ type: 'chart', chartType: match[1], identifier: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
 
-    return processed;
-  };
+  // Add remaining HTML
+  if (lastIndex < content.length) {
+    const mdSegment = content.slice(lastIndex);
+    segments.push({ type: 'html', html: markdownToHtml(mdSegment) });
+  }
 
-  const htmlContent = `<div class="prose-content"><p class="mb-4">${markdownToHtml(content)}</p></div>`;
+  // If no chart tags found, render everything as HTML (fast path)
+  if (segments.length === 0) {
+    const htmlContent = `<div class="prose-content"><p class="mb-4">${markdownToHtml(content)}</p></div>`;
+    return (
+      <div
+        className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+    );
+  }
 
   return (
-    <div
-      className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border"
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
+    <div className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border">
+      {segments.map((seg, i) =>
+        seg.type === 'html' ? (
+          <div key={i} dangerouslySetInnerHTML={{ __html: `<p class="mb-4">${seg.html}</p>` }} />
+        ) : (
+          <DefiChart key={i} type={seg.chartType} identifier={seg.identifier} />
+        )
+      )}
+    </div>
   );
 };
 
