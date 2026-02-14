@@ -19,9 +19,8 @@ import UserLayout from '@/pages/user/UserLayout';
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const StartupsPage = lazy(() => import('@/pages/StartupsPage'));
 const StartupDetailPage = lazy(() => import('@/pages/StartupDetailPage'));
-// Blog removido temporalmente
-// const BlogPage = lazy(() => import('@/pages/BlogPage'));
-// const BlogPostPage = lazy(() => import('@/pages/BlogPostPage'));
+const BlogPage = lazy(() => import('@/pages/BlogPage'));
+const BlogPostPage = lazy(() => import('@/pages/BlogPostPage'));
 const CommunityDetailPage = lazy(() => import('@/pages/CommunityDetailPage'));
 const ComunidadesPage = lazy(() => import('@/pages/ComunidadesPage'));
 const EventosPage = lazy(() => import('@/pages/EventosPage'));
@@ -61,7 +60,7 @@ const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 // Admin Blog y Academia removidos temporalmente
-// const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
+const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 // const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
 const AdminVideoTutorials = lazy(() => import('@/pages/admin/AdminVideoTutorials'));
 const AdminEvents = lazy(() => import('@/pages/admin/AdminEvents'));
@@ -91,8 +90,8 @@ const AdminJobs = lazy(() => import('@/pages/admin/AdminJobs'));
 const AdminJobForm = lazy(() => import('@/pages/admin/AdminJobForm'));
 
 // Admin Blog Forms - REMOVIDOS TEMPORALMENTE
-// const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
-// const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
+const BlogNew = lazy(() => import('@/pages/admin/BlogNew'));
+const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
 
 // TikTok Feed Page
 const TikTokFeedPage = lazy(() => import('@/pages/TikTokFeedPage'));
@@ -264,24 +263,24 @@ const router = createBrowserRouter(
               ),
             },
             // ==========================================
-            // RUTAS DEL BLOG - REMOVIDO TEMPORALMENTE
+            // RUTAS DEL BLOG
             // ==========================================
-            // {
-            //   path: 'blog',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <BlogPage />
-            //     </Suspense>
-            //   ),
-            // },
-            // {
-            //   path: 'blog/:slug',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <BlogPostPage />
-            //     </Suspense>
-            //   ),
-            // },
+            {
+              path: 'blog',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog/:slug',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogPostPage />
+                </Suspense>
+              ),
+            },
             // ==========================================
             // TIKTOK FEED
             // ==========================================
@@ -679,32 +678,32 @@ const router = createBrowserRouter(
             },
 
             // ==========================================
-            // RUTAS ADMIN - BLOG - REMOVIDO TEMPORALMENTE
+            // RUTAS ADMIN - BLOG
             // ==========================================
-            // {
-            //   path: 'blog',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <AdminBlog />
-            //     </Suspense>
-            //   ),
-            // },
-            // {
-            //   path: 'blog/new',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <BlogNew />
-            //     </Suspense>
-            //   ),
-            // },
-            // {
-            //   path: 'blog/edit/:id',
-            //   element: (
-            //     <Suspense fallback={<PageLoader />}>
-            //       <BlogEditPage />
-            //     </Suspense>
-            //   ),
-            // },
+            {
+              path: 'blog',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminBlog />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog/new',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogNew />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'blog/edit/:id',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BlogEditPage />
+                </Suspense>
+              ),
+            },
 
             // ==========================================
             // RUTAS ADMIN - ACADEMIA - REMOVIDO TEMPORALMENTE
