@@ -1,6 +1,7 @@
 import { ProtocolTVLChart } from './ProtocolTVLChart';
 import { ChainTVLChart } from './ChainTVLChart';
 import { ProtocolFeesChart } from './ProtocolFeesChart';
+import { KastGrowthChart } from './KastGrowthChart';
 
 interface Props {
   type: string;
@@ -16,6 +17,8 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <ChainTVLChart identifier={identifier} title={title} />;
     case 'protocol_fees':
       return <ProtocolFeesChart identifier={identifier} title={title} />;
+    case 'kast_growth':
+      return <KastGrowthChart />;
     default:
       return null;
   }
