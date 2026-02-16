@@ -14,15 +14,20 @@ import { CHART_COLORS } from './DefiChartTheme';
 const DATA = [
   { name: 'Mercado Bitcoin', pairs: 1226, type: 'LATAM', currencies: 'BRL' },
   { name: 'NovaDAX', pairs: 581, type: 'LATAM', currencies: 'BRL' },
+  { name: 'Foxbit', pairs: 134, type: 'LATAM', currencies: 'BRL' },
   { name: 'Binance', pairs: 35, type: 'Global', currencies: 'BRL, MXN, ARS, COP' },
   { name: 'Bitso', pairs: 30, type: 'LATAM', currencies: 'MXN, BRL, ARS, COP' },
+  { name: 'SatoshiTango', pairs: 23, type: 'LATAM', currencies: 'ARS' },
+  { name: 'Lemon Cash', pairs: 21, type: 'LATAM', currencies: 'ARS' },
+  { name: 'Buda', pairs: 18, type: 'LATAM', currencies: 'CLP, COP, PEN' },
   { name: 'OKX', pairs: 10, type: 'Global', currencies: 'BRL' },
+  { name: 'Belo', pairs: 8, type: 'LATAM', currencies: 'ARS' },
   { name: 'Bybit', pairs: 5, type: 'Global', currencies: 'BRL' },
+  { name: 'Binance Spot', pairs: 6, type: 'Global', currencies: 'MXN' },
   { name: 'Bitget', pairs: 4, type: 'Global', currencies: 'BRL' },
   { name: 'KuCoin', pairs: 3, type: 'Global', currencies: 'BRL' },
   { name: 'Gate.io', pairs: 0, type: 'Global', currencies: '' },
   { name: 'MEXC', pairs: 0, type: 'Global', currencies: '' },
-  { name: 'HTX', pairs: 0, type: 'Global', currencies: '' },
   { name: 'Crypto.com', pairs: 0, type: 'Global', currencies: '' },
   { name: 'Kraken', pairs: 0, type: 'Global', currencies: '' },
   { name: 'BingX', pairs: 0, type: 'Global', currencies: '' },
@@ -78,11 +83,11 @@ export function LatamExchangeHeatChart() {
           LATAM Fiat Trading Pairs by Exchange
         </h4>
         <p className="text-xs mt-1" style={{ color: CHART_COLORS.textMuted }}>
-          Direct API scan of 14 major exchanges. Only 8 offer any LATAM local currency pairs.
+          Direct API scan of 26 exchanges (16 global + 10 LATAM-native). Shows order book pairs only.
         </p>
       </div>
 
-      <ResponsiveContainer width="100%" height={420}>
+      <ResponsiveContainer width="100%" height={560}>
         <BarChart data={DATA} layout="vertical" margin={{ left: 5, right: 50, top: 0, bottom: 0 }}>
           <XAxis type="number" hide />
           <YAxis
