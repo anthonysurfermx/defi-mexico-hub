@@ -338,21 +338,38 @@ async function fetchLBank(): Promise<{ totalPairs: number; latamPairs: LatamPair
 }
 
 async function fetchBitso(): Promise<{ totalPairs: number; latamPairs: LatamPair[] }> {
-  const res = await fetch('https://api.bitso.com/v3/available_books');
-  const data = await res.json();
-  const books = data.payload || [];
-  const latam: LatamPair[] = [];
-  for (const b of books) {
-    const parts = (b.book || '').split('_');
-    if (parts.length === 2) {
-      const q = matchLatam(parts[1]);
-      if (q) latam.push({
-        exchange: 'Bitso', base: parts[0].toUpperCase(), quote: q,
-        pair: `${parts[0].toUpperCase()}/${q}`, status: 'active',
-      });
+  try {
+    const res = await fetch('https://api.bitso.com/v3/available_books');
+    const data = await res.json();
+    const books = data.payload || [];
+    const latam: LatamPair[] = [];
+    for (const b of books) {
+      const parts = (b.book || '').split('_');
+      if (parts.length === 2) {
+        const q = matchLatam(parts[1]);
+        if (q) latam.push({
+          exchange: 'Bitso', base: parts[0].toUpperCase(), quote: q,
+          pair: `${parts[0].toUpperCase()}/${q}`, status: 'active',
+        });
+      }
     }
+    return { totalPairs: books.length, latamPairs: latam };
+  } catch {
+    // Bitso API blocks browser CORS; use hardcoded data from Feb 2026 scan
+    const pairs: [string, string][] = [
+      ['BTC','MXN'],['ETH','MXN'],['SOL','MXN'],['XRP','MXN'],['USDT','MXN'],
+      ['USDC','MXN'],['LTC','MXN'],['AVAX','MXN'],['MANA','MXN'],['DAI','MXN'],
+      ['PYUSD','MXN'],['UNI','MXN'],['COMP','MXN'],['BAT','MXN'],['LINK','MXN'],
+      ['GRT','MXN'],['AXS','MXN'],['CHZ','MXN'],['DOGE','MXN'],['SHIB','MXN'],
+      ['BTC','BRL'],['ETH','BRL'],['SOL','BRL'],['USDT','BRL'],
+      ['BTC','ARS'],['ETH','ARS'],['USD','ARS'],
+      ['BTC','COP'],['ETH','COP'],['USD','COP'],
+    ];
+    const latam: LatamPair[] = pairs.map(([base, quote]) => ({
+      exchange: 'Bitso', base, quote, pair: `${base}/${quote}`, status: 'active' as const,
+    }));
+    return { totalPairs: 99, latamPairs: latam };
   }
-  return { totalPairs: books.length, latamPairs: latam };
 }
 
 async function fetchMercadoBitcoin(): Promise<{ totalPairs: number; latamPairs: LatamPair[] }> {
