@@ -172,6 +172,27 @@
       "news": "News",
       "analysis": "Analysis",
       "other": "Other"
+    },
+    "comments": {
+      "title": "Comments",
+      "placeholder": "Write a comment...",
+      "submit": "Comment",
+      "reply": "Reply",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "replyPlaceholder": "Write a reply...",
+      "loginToComment": "Log in to comment",
+      "empty": "Be the first to comment",
+      "posted": "Comment posted",
+      "edited": "Comment edited",
+      "deleted": "Comment deleted",
+      "errorPosting": "Error posting comment",
+      "errorEditing": "Error editing comment",
+      "errorDeleting": "Error deleting comment",
+      "deletedComment": "[comment deleted]",
+      "anonymous": "Anonymous",
+      "editedLabel": "edited"
     }
   },
   "advocates": {

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { DefiChart } from '@/components/charts/DefiChart';
+import { BlogComments } from '@/components/BlogComments';
 
 // Helper function para formatear fechas
 const formatDate = (dateString: string): string => {
@@ -556,8 +557,11 @@ const BlogPostPage = () => {
           </footer>
         </motion.article>
 
+        {/* Comentarios */}
+        <BlogComments postId={post.id} />
+
         {/* Posts relacionados */}
-        <RelatedPosts 
+        <RelatedPosts
           currentSlug={post.slug}
           tags={post.tags}
           categories={post.categories}
