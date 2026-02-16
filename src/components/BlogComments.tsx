@@ -5,7 +5,7 @@ import { MessageSquare, Reply, Trash2, Pencil, Send, X, LogIn } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface CommentProfile {
@@ -50,7 +50,7 @@ function getInitials(name: string | null): string {
 
 export function BlogComments({ postId, allowComments = true }: Props) {
   const { t } = useTranslation();
-  const { user, profile, isAdmin, isModerator } = useAuth();
+  const { user, isAdmin, hasRole } = useAuth();
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,7 +205,7 @@ export function BlogComments({ postId, allowComments = true }: Props) {
     }
   };
 
-  const canModerate = isAdmin() || isModerator();
+  const canModerate = isAdmin() || hasRole('moderator');
 
   // Build thread structure: top-level + replies
   const topLevel = comments.filter(c => !c.parent_id);
@@ -366,8 +366,8 @@ export function BlogComments({ postId, allowComments = true }: Props) {
       {user ? (
         <div className="flex gap-3 mb-6">
           <Avatar className="w-8 h-8 shrink-0">
-            {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name || ''} />}
-            <AvatarFallback className="text-xs">{getInitials(profile?.full_name || null)}</AvatarFallback>
+            {user.user_metadata?.avatar_url && <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata?.name || ''} />}
+            <AvatarFallback className="text-xs">{getInitials(user.user_metadata?.name || user.email || null)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <textarea
