@@ -1,5 +1,5 @@
 // src/pages/BlogPostPage.tsx - ACTUALIZADA
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
@@ -16,13 +16,17 @@ import {
   ChevronRight,
   FileText,
   Loader2,
-  Globe
+  Globe,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { DefiChart } from '@/components/charts/DefiChart';
 import { BlogComments } from '@/components/BlogComments';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 // Helper function para formatear fechas
 const formatDate = (dateString: string): string => {
@@ -261,10 +265,15 @@ const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { i18n } = useTranslation();
+  const { user } = useAuth();
   const [post, setPost] = useState<DomainPost | null>(null);
   const [translationSlug, setTranslationSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Cargar el post
   useEffect(() => {
@@ -371,6 +380,78 @@ const BlogPostPage = () => {
 
   const readTime = post.reading_time_minutes || calculateReadTime(post.content);
   const publishedDate = post.published_at || post.created_at;
+
+  // Like logic - cast to any since likes table is not in typed schema
+  const db = supabase as any;
+
+  const loadLikes = useCallback(async () => {
+    const { count } = await db
+      .from('likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('entity_id', post.id)
+      .eq('entity_type', 'blog_post');
+    setLikeCount(count || 0);
+
+    if (user) {
+      const { data } = await db
+        .from('likes')
+        .select('id')
+        .eq('entity_id', post.id)
+        .eq('entity_type', 'blog_post')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setLiked(!!data);
+    }
+  }, [post.id, user]);
+
+  useEffect(() => {
+    loadLikes();
+  }, [loadLikes]);
+
+  const toggleLike = async () => {
+    if (!user) {
+      toast.error('Inicia sesión para dar like');
+      return;
+    }
+    if (likeBusy) return;
+    setLikeBusy(true);
+
+    if (liked) {
+      await db
+        .from('likes')
+        .delete()
+        .eq('entity_id', post.id)
+        .eq('entity_type', 'blog_post')
+        .eq('user_id', user.id);
+      setLiked(false);
+      setLikeCount(c => Math.max(0, c - 1));
+    } else {
+      await db.from('likes').insert({
+        entity_id: post.id,
+        entity_type: 'blog_post',
+        user_id: user.id,
+      });
+      setLiked(true);
+      setLikeCount(c => c + 1);
+    }
+    setLikeBusy(false);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: post.title, url });
+      } catch {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success('Link copiado');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const canonicalUrl = `https://defimexico.org/blog/${post.slug}`;
   const metaDescription = post.excerpt || post.subtitle || post.title;
@@ -544,13 +625,18 @@ const BlogPostPage = () => {
 
               {/* Botones de acción */}
               <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm">
-                  <Heart className="w-4 h-4 mr-2" />
-                  Me gusta
+                <Button
+                  variant={liked ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleLike}
+                  disabled={likeBusy}
+                >
+                  <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
+                  {likeCount > 0 ? likeCount : 'Me gusta'}
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Compartir
+                <Button variant="outline" size="sm" onClick={handleShare}>
+                  {copied ? <Check className="w-4 h-4 mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
+                  {copied ? 'Copiado' : 'Compartir'}
                 </Button>
               </div>
             </div>
