@@ -1,5 +1,5 @@
 // src/pages/MetricsPage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -7,20 +7,54 @@ import {
   Globe,
   DollarSign,
   BarChart3,
-  ExternalLink,
-  Info,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Layers,
+  Activity,
+  Info,
+  Coins,
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { ChainTVLChart } from '@/components/charts/ChainTVLChart';
+import { CHART_COLORS } from '@/components/charts/DefiChartTheme';
+
+// ── Types ───────────────────────────────────────────────────────────
+interface KPIData {
+  globalTVL: number | null;
+  globalTVLChange: number | null;
+  dexVolume: number | null;
+  dexVolumeChange: number | null;
+  totalFees: number | null;
+  totalFeesChange: number | null;
+  stablecoinsMcap: number | null;
+  stablecoinsMcapChange: number | null;
+}
+
+interface ChainData {
+  name: string;
+  tvl: number;
+  tokenSymbol: string;
+}
+
+interface ProtocolData {
+  name: string;
+  category: string;
+  tvl: number;
+  change_1d: number | null;
+  change_7d: number | null;
+  logo: string;
+}
 
 interface MXNStablecoin {
   name: string;
@@ -31,8 +65,9 @@ interface MXNStablecoin {
   color: string;
 }
 
-// MXN Stablecoins data (manually tracked as they're not all on DefiLlama)
-// Last updated: December 2024
+// ── Static Data ─────────────────────────────────────────────────────
+// MXN Stablecoins (manually tracked — not on DefiLlama)
+// Last updated: February 2026
 const mxnStablecoins: MXNStablecoin[] = [
   { name: 'MXNB', symbol: 'MXNB', tvl: 15000000, issuer: 'Bitso', chain: 'Ethereum', color: '#00D4AA' },
   { name: 'MXNe', symbol: 'MXNe', tvl: 8000000, issuer: 'Brale', chain: 'Ethereum', color: '#8B5CF6' },
@@ -40,259 +75,413 @@ const mxnStablecoins: MXNStablecoin[] = [
   { name: 'MMXN', symbol: 'MMXN', tvl: 5000000, issuer: 'Moneta', chain: 'Polygon', color: '#F97316' },
 ];
 
+const CHAIN_BAR_COLORS = [
+  '#00FF88', '#00D4FF', '#8B5CF6', '#F97316', '#EF4444',
+  '#10B981', '#3B82F6', '#EC4899', '#F59E0B', '#6366F1',
+];
+
+// ── In-memory cache ─────────────────────────────────────────────────
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
+const cache: Record<string, { data: unknown; ts: number }> = {};
+
+async function cachedFetch<T>(key: string, url: string): Promise<T> {
+  const hit = cache[key];
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data as T;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const data = await res.json();
+  cache[key] = { data, ts: Date.now() };
+  return data as T;
+}
+
+// ── Formatters ──────────────────────────────────────────────────────
+function fmt(value: number, decimals = 1): string {
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(decimals)}T`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(decimals)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(decimals)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(decimals)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
+function ChangeIndicator({ value }: { value: number | null }) {
+  if (value === null || value === undefined || isNaN(value)) return null;
+  const positive = value >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${positive ? 'text-green-500' : 'text-red-500'}`}>
+      {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+      {Math.abs(value).toFixed(2)}%
+    </span>
+  );
+}
+
+// ── Component ───────────────────────────────────────────────────────
 export default function MetricsPage() {
   const { t, i18n } = useTranslation();
-  const [globalTVL, setGlobalTVL] = useState<number | null>(null);
-  const [globalChange, setGlobalChange] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [kpi, setKpi] = useState<KPIData>({
+    globalTVL: null, globalTVLChange: null,
+    dexVolume: null, dexVolumeChange: null,
+    totalFees: null, totalFeesChange: null,
+    stablecoinsMcap: null, stablecoinsMcapChange: null,
+  });
+  const [chains, setChains] = useState<ChainData[]>([]);
+  const [protocols, setProtocols] = useState<ProtocolData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate total MXN stablecoins TVL
-  const totalMXNTVL = mxnStablecoins.reduce((sum, coin) => sum + coin.tvl, 0);
-  const maxTVL = Math.max(...mxnStablecoins.map(c => c.tvl));
+  const totalMXNTVL = mxnStablecoins.reduce((s, c) => s + c.tvl, 0);
+  const maxMXNTVL = Math.max(...mxnStablecoins.map(c => c.tvl));
+  const lastUpdated = i18n.language === 'en' ? 'February 2026' : 'Febrero 2026';
 
-  // Get last updated string based on language
-  const lastUpdated = i18n.language === 'en' ? 'December 2024' : 'Diciembre 2024';
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Fire all API calls in parallel
+      const [tvlData, dexData, feesData, stableData, chainsData, protocolsData] = await Promise.allSettled([
+        cachedFetch<Array<{ date: number; tvl: number }>>('tvl', 'https://api.llama.fi/v2/historicalChainTvl'),
+        cachedFetch<{ total24h: number; change_1d: number }>('dex', 'https://api.llama.fi/overview/dexs?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true'),
+        cachedFetch<{ total24h: number; change_1d: number }>('fees', 'https://api.llama.fi/overview/fees?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true'),
+        cachedFetch<{ peggedAssets: Array<{ circulating: { peggedUSD: number }; circulatingPrevDay: { peggedUSD: number } }> }>('stables', 'https://stablecoins.llama.fi/stablecoins?includePrices=true'),
+        cachedFetch<ChainData[]>('chains', 'https://api.llama.fi/v2/chains'),
+        cachedFetch<ProtocolData[]>('protocols', 'https://api.llama.fi/protocols'),
+      ]);
 
-  // Fetch global DeFi TVL from DefiLlama
-  useEffect(() => {
-    const fetchGlobalTVL = async () => {
-      try {
-        const response = await fetch('https://api.llama.fi/v2/historicalChainTvl');
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-          const latest = data[data.length - 1];
-          const previous = data[data.length - 2];
-          setGlobalTVL(latest.tvl);
-
-          if (previous) {
-            const change = ((latest.tvl - previous.tvl) / previous.tvl) * 100;
-            setGlobalChange(change);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching global TVL:', error);
-        setGlobalTVL(200000000000);
-      } finally {
-        setIsLoading(false);
+      // KPI: Global TVL
+      if (tvlData.status === 'fulfilled' && tvlData.value.length > 0) {
+        const latest = tvlData.value[tvlData.value.length - 1];
+        const prev = tvlData.value[tvlData.value.length - 2];
+        const change = prev ? ((latest.tvl - prev.tvl) / prev.tvl) * 100 : null;
+        setKpi(k => ({ ...k, globalTVL: latest.tvl, globalTVLChange: change }));
       }
-    };
 
-    fetchGlobalTVL();
+      // KPI: DEX Volume
+      if (dexData.status === 'fulfilled') {
+        setKpi(k => ({ ...k, dexVolume: dexData.value.total24h, dexVolumeChange: dexData.value.change_1d }));
+      }
+
+      // KPI: Fees
+      if (feesData.status === 'fulfilled') {
+        setKpi(k => ({ ...k, totalFees: feesData.value.total24h, totalFeesChange: feesData.value.change_1d }));
+      }
+
+      // KPI: Stablecoins MCap
+      if (stableData.status === 'fulfilled') {
+        const assets = stableData.value.peggedAssets;
+        const totalMcap = assets.reduce((s, a) => s + (a.circulating?.peggedUSD || 0), 0);
+        const prevMcap = assets.reduce((s, a) => s + (a.circulatingPrevDay?.peggedUSD || 0), 0);
+        const change = prevMcap ? ((totalMcap - prevMcap) / prevMcap) * 100 : null;
+        setKpi(k => ({ ...k, stablecoinsMcap: totalMcap, stablecoinsMcapChange: change }));
+      }
+
+      // Chains: top 10 by TVL
+      if (chainsData.status === 'fulfilled') {
+        const sorted = [...chainsData.value]
+          .filter(c => c.tvl > 0)
+          .sort((a, b) => b.tvl - a.tvl)
+          .slice(0, 10);
+        setChains(sorted);
+      }
+
+      // Protocols: top 15 DeFi (no CEX)
+      if (protocolsData.status === 'fulfilled') {
+        const sorted = [...protocolsData.value]
+          .filter(p => p.category !== 'CEX' && p.tvl > 0)
+          .sort((a, b) => b.tvl - a.tvl)
+          .slice(0, 15);
+        setProtocols(sorted);
+      }
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Format currency
-  const formatCurrency = (value: number, decimals = 2) => {
-    if (value >= 1e12) {
-      return `$${(value / 1e12).toFixed(decimals)}T`;
-    } else if (value >= 1e9) {
-      return `$${(value / 1e9).toFixed(decimals)}B`;
-    } else if (value >= 1e6) {
-      return `$${(value / 1e6).toFixed(decimals)}M`;
-    }
-    return `$${value.toLocaleString()}`;
-  };
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Calculate scale ratio
-  const scaleRatio = globalTVL ? (globalTVL / totalMXNTVL).toFixed(0) : '5,882';
+  // ── KPI Card helper ─────────────────────────────────────────────
+  function KPICard({ icon: Icon, label, value, change, color }: {
+    icon: typeof Globe;
+    label: string;
+    value: number | null;
+    change: number | null;
+    color: string;
+  }) {
+    return (
+      <Card className={`border border-${color}/20 bg-gradient-to-br from-${color}/5 to-transparent`}>
+        <CardContent className="pt-4 pb-4 px-4 sm:px-5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </div>
+          {loading || value === null ? (
+            <Skeleton className="h-8 w-28" />
+          ) : (
+            <div className="space-y-1">
+              <div className="text-xl sm:text-2xl font-bold text-foreground">{fmt(value)}</div>
+              <ChangeIndicator value={change} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ── Custom Tooltip for chains bar chart ─────────────────────────
+  function ChainsTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChainData }> }) {
+    if (!active || !payload?.[0]) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="rounded-lg border bg-background/95 backdrop-blur px-3 py-2 text-xs shadow-lg">
+        <div className="font-semibold">{d.name}</div>
+        <div className="text-muted-foreground">{fmt(d.tvl)}</div>
+      </div>
+    );
+  }
 
   return (
-    <TooltipProvider>
+    <>
       <Helmet>
-        <title>{t('metrics.pageTitle')} | DeFi México Hub</title>
+        <title>{t('metrics.pageTitle')} | DeFi México</title>
         <meta name="description" content={t('metrics.pageDescription')} />
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        {/* Hero Section - Mobile optimized */}
+        {/* Hero */}
         <section className="relative py-8 sm:py-12 md:py-16 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5" />
           <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto text-center space-y-3 sm:space-y-4">
-              <Badge variant="outline" className="mb-2 sm:mb-4">
-                <BarChart3 className="w-3 h-3 mr-1" />
+            <div className="max-w-5xl mx-auto text-center space-y-3">
+              <Badge variant="outline" className="mb-2">
+                <Activity className="w-3 h-3 mr-1" />
                 {t('metrics.badge')}
               </Badge>
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                 {t('metrics.title')}
               </h1>
-              <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
                 {t('metrics.subtitle')}
               </p>
             </div>
           </div>
         </section>
 
-        {/* Main Stats Cards - Mobile optimized */}
-        <section className="container mx-auto px-4 -mt-4 sm:-mt-6 md:-mt-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
-            {/* Global DeFi TVL Card */}
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-              <CardHeader className="pb-2 px-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <CardDescription className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                    <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {t('metrics.globalTVL')}
-                  </CardDescription>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{t('metrics.dataSource')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+        {/* ── Section 1: KPI Cards ──────────────────────────────── */}
+        <section className="container mx-auto px-4 -mt-4 sm:-mt-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
+            <KPICard icon={Globe} label={t('metrics.globalTVL')} value={kpi.globalTVL} change={kpi.globalTVLChange} color="primary" />
+            <KPICard icon={BarChart3} label={t('metrics.dexVolume')} value={kpi.dexVolume} change={kpi.dexVolumeChange} color="blue-500" />
+            <KPICard icon={Coins} label={t('metrics.totalFees')} value={kpi.totalFees} change={kpi.totalFeesChange} color="amber-500" />
+            <KPICard icon={DollarSign} label={t('metrics.stablecoinsMcap')} value={kpi.stablecoinsMcap} change={kpi.stablecoinsMcapChange} color="purple-500" />
+          </div>
+        </section>
+
+        {/* ── Section 2: Top Chains by TVL ──────────────────────── */}
+        <section className="container mx-auto px-4 py-8 sm:py-10">
+          <div className="max-w-5xl mx-auto">
+            <Card>
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {t('metrics.topChains')}
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  {t('metrics.topChainsDescription')}
+                </CardDescription>
               </CardHeader>
               <CardContent className="px-4 sm:px-6">
-                {isLoading ? (
-                  <Skeleton className="h-10 sm:h-12 w-32 sm:w-48" />
+                {loading || chains.length === 0 ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-full" />
+                    ))}
+                  </div>
                 ) : (
-                  <div className="space-y-1 sm:space-y-2">
-                    <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">
-                      {globalTVL ? formatCurrency(globalTVL) : '$200B'}
+                  <>
+                    {/* Bar chart */}
+                    <div className="w-full h-[300px] sm:h-[350px] mb-6">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chains} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+                          <XAxis type="number" tickFormatter={(v) => fmt(v, 0)} tick={{ fill: CHART_COLORS.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="name" width={80} tick={{ fill: CHART_COLORS.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <RechartsTooltip content={<ChainsTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                          <Bar dataKey="tvl" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                            {chains.map((_, i) => (
+                              <Cell key={i} fill={CHAIN_BAR_COLORS[i % CHAIN_BAR_COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                    {globalChange !== null && (
-                      <div className={`flex items-center gap-1 text-xs sm:text-sm ${globalChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {globalChange >= 0 ? (
-                          <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        ) : (
-                          <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        )}
-                        {Math.abs(globalChange).toFixed(2)}% (24h)
-                      </div>
-                    )}
+
+                    {/* Table */}
+                    <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
+                      <table className="w-full text-xs sm:text-sm min-w-[320px]">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="text-left p-2 sm:p-3 font-medium w-10">{t('metrics.rank')}</th>
+                            <th className="text-left p-2 sm:p-3 font-medium">{t('metrics.chain')}</th>
+                            <th className="text-right p-2 sm:p-3 font-medium">{t('metrics.tvl')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {chains.map((chain, i) => (
+                            <tr key={chain.name} className="hover:bg-muted/30 transition-colors">
+                              <td className="p-2 sm:p-3 text-muted-foreground">{i + 1}</td>
+                              <td className="p-2 sm:p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CHAIN_BAR_COLORS[i % CHAIN_BAR_COLORS.length] }} />
+                                  <span className="font-medium">{chain.name}</span>
+                                  {chain.tokenSymbol && <span className="text-muted-foreground text-xs hidden sm:inline">({chain.tokenSymbol})</span>}
+                                </div>
+                              </td>
+                              <td className="p-2 sm:p-3 text-right font-mono">{fmt(chain.tvl)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* ── Section 3: Top DeFi Protocols ─────────────────────── */}
+        <section className="container mx-auto px-4 pb-8 sm:pb-10">
+          <div className="max-w-5xl mx-auto">
+            <Card>
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {t('metrics.topProtocols')}
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  {t('metrics.topProtocolsDescription')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6">
+                {loading || protocols.length === 0 ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
+                    <table className="w-full text-xs sm:text-sm min-w-[480px]">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-2 sm:p-3 font-medium w-10">{t('metrics.rank')}</th>
+                          <th className="text-left p-2 sm:p-3 font-medium">{t('metrics.protocol')}</th>
+                          <th className="text-left p-2 sm:p-3 font-medium hidden sm:table-cell">{t('metrics.category')}</th>
+                          <th className="text-right p-2 sm:p-3 font-medium">{t('metrics.tvl')}</th>
+                          <th className="text-right p-2 sm:p-3 font-medium">{t('metrics.change1d')}</th>
+                          <th className="text-right p-2 sm:p-3 font-medium hidden sm:table-cell">{t('metrics.change7d')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {protocols.map((p, i) => (
+                          <tr key={p.name} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-2 sm:p-3 text-muted-foreground">{i + 1}</td>
+                            <td className="p-2 sm:p-3">
+                              <div className="flex items-center gap-2">
+                                {p.logo && <img src={p.logo} alt="" className="w-5 h-5 rounded-full flex-shrink-0" loading="lazy" />}
+                                <span className="font-medium truncate max-w-[140px] sm:max-w-none">{p.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-2 sm:p-3 text-muted-foreground hidden sm:table-cell">
+                              <Badge variant="secondary" className="text-[10px] font-normal">{p.category}</Badge>
+                            </td>
+                            <td className="p-2 sm:p-3 text-right font-mono">{fmt(p.tvl)}</td>
+                            <td className="p-2 sm:p-3 text-right">
+                              <ChangeIndicator value={p.change_1d} />
+                            </td>
+                            <td className="p-2 sm:p-3 text-right hidden sm:table-cell">
+                              <ChangeIndicator value={p.change_7d} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            {/* MXN Stablecoins TVL Card */}
-            <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
-              <CardHeader className="pb-2 px-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <CardDescription className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                    <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {t('metrics.mxnTVL')}
-                  </CardDescription>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>MXNB, MXNe, MXNT, MMXN</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 sm:px-6">
-                <div className="space-y-1 sm:space-y-2">
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-500">
-                    {formatCurrency(totalMXNTVL)}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                    <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {t('metrics.activeStablecoins')}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </section>
 
-        {/* Scale Comparison - Mobile optimized */}
-        <section className="container mx-auto px-4 py-8 sm:py-10 md:py-12">
-          <div className="max-w-4xl mx-auto">
-            <Card className="overflow-hidden">
-              <CardHeader className="px-4 sm:px-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
-                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {t('metrics.scaleComparison')}
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  {t('metrics.scaleDescription', { ratio: scaleRatio })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Global DeFi Bar */}
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <div className="flex justify-between items-center text-xs sm:text-sm">
-                      <span className="font-medium">{t('metrics.defiGlobal')}</span>
-                      <span className="text-muted-foreground">{globalTVL ? formatCurrency(globalTVL) : '$200B'}</span>
-                    </div>
-                    <div className="h-6 sm:h-8 bg-gradient-to-r from-primary to-primary/70 rounded-lg relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
-                    </div>
-                  </div>
-
-                  {/* MXN Stablecoins Bar */}
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <div className="flex justify-between items-center text-xs sm:text-sm">
-                      <span className="font-medium">{t('metrics.stablecoinsMXN')}</span>
-                      <span className="text-muted-foreground">{formatCurrency(totalMXNTVL)}</span>
-                    </div>
-                    <div className="h-6 sm:h-8 bg-muted rounded-lg overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-lg"
-                        style={{ width: `${Math.max(0.5, (totalMXNTVL / (globalTVL || 200000000000)) * 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                      {t('metrics.scaleNote')}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* MXN Stablecoins Breakdown - Mobile optimized */}
-        <section className="container mx-auto px-4 pb-8 sm:pb-10 md:pb-12">
-          <div className="max-w-4xl mx-auto">
+        {/* ── Section 4: Historical Global TVL (replaces iframe) ── */}
+        <section className="container mx-auto px-4 pb-8 sm:pb-10">
+          <div className="max-w-5xl mx-auto">
             <Card>
               <CardHeader className="px-4 sm:px-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {t('metrics.breakdown')}
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {t('metrics.historicalTVL')}
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  {t('metrics.breakdownDescription')}
+                  {t('metrics.historicalDescription')}
                 </CardDescription>
               </CardHeader>
+              <CardContent className="px-2 sm:px-6">
+                <ChainTVLChart identifier="All" />
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* ── Section 5: MXN Stablecoins ────────────────────────── */}
+        <section className="container mx-auto px-4 pb-8 sm:pb-10">
+          <div className="max-w-5xl mx-auto">
+            <Card>
+              <CardHeader className="px-4 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                      {t('metrics.breakdown')}
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                      {t('metrics.breakdownDescription')}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0">
+                    {t('metrics.lastUpdate')}: {lastUpdated}
+                  </Badge>
+                </div>
+              </CardHeader>
               <CardContent className="px-4 sm:px-6">
-                {/* Bar Chart */}
-                <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+                {/* Total card */}
+                <div className="flex items-center justify-between mb-6 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                  <span className="text-sm font-medium">{t('metrics.mxnTVL')}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-purple-500">{fmt(totalMXNTVL)}</span>
+                </div>
+
+                {/* Bar breakdown */}
+                <div className="space-y-3 mb-6">
                   {mxnStablecoins.map((coin) => (
-                    <div key={coin.symbol} className="space-y-1.5 sm:space-y-2">
+                    <div key={coin.symbol} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs sm:text-sm">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <div
-                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: coin.color }}
-                          />
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: coin.color }} />
                           <span className="font-medium">{coin.symbol}</span>
                           <span className="text-muted-foreground hidden sm:inline">({coin.issuer})</span>
                         </div>
-                        <span className="font-mono text-xs sm:text-sm">{formatCurrency(coin.tvl)}</span>
+                        <span className="font-mono text-xs">{fmt(coin.tvl)}</span>
                       </div>
-                      <div className="h-5 sm:h-6 bg-muted rounded overflow-hidden">
+                      <div className="h-5 bg-muted rounded overflow-hidden">
                         <div
                           className="h-full rounded transition-all duration-500"
-                          style={{
-                            width: `${(coin.tvl / maxTVL) * 100}%`,
-                            backgroundColor: coin.color
-                          }}
+                          style={{ width: `${(coin.tvl / maxMXNTVL) * 100}%`, backgroundColor: coin.color }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Data Table - Mobile scroll */}
+                {/* Data table */}
                 <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
-                  <table className="w-full text-xs sm:text-sm min-w-[360px]">
+                  <table className="w-full text-xs sm:text-sm min-w-[320px]">
                     <thead className="bg-muted/50">
                       <tr>
                         <th className="text-left p-2 sm:p-3 font-medium">{t('metrics.table.stablecoin')}</th>
@@ -306,26 +495,21 @@ export default function MetricsPage() {
                       {mxnStablecoins.map((coin) => (
                         <tr key={coin.symbol} className="hover:bg-muted/30 transition-colors">
                           <td className="p-2 sm:p-3">
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                              <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: coin.color }}
-                              />
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: coin.color }} />
                               <span className="font-medium">{coin.symbol}</span>
                             </div>
                           </td>
                           <td className="p-2 sm:p-3 text-muted-foreground">{coin.issuer}</td>
                           <td className="p-2 sm:p-3 text-muted-foreground hidden sm:table-cell">{coin.chain}</td>
-                          <td className="p-2 sm:p-3 text-right font-mono">{formatCurrency(coin.tvl)}</td>
-                          <td className="p-2 sm:p-3 text-right font-mono">
-                            {((coin.tvl / totalMXNTVL) * 100).toFixed(1)}%
-                          </td>
+                          <td className="p-2 sm:p-3 text-right font-mono">{fmt(coin.tvl)}</td>
+                          <td className="p-2 sm:p-3 text-right font-mono">{((coin.tvl / totalMXNTVL) * 100).toFixed(1)}%</td>
                         </tr>
                       ))}
                       <tr className="bg-muted/30 font-medium">
                         <td className="p-2 sm:p-3" colSpan={2}>Total</td>
-                        <td className="p-2 sm:p-3 hidden sm:table-cell"></td>
-                        <td className="p-2 sm:p-3 text-right font-mono">{formatCurrency(totalMXNTVL)}</td>
+                        <td className="p-2 sm:p-3 hidden sm:table-cell" />
+                        <td className="p-2 sm:p-3 text-right font-mono">{fmt(totalMXNTVL)}</td>
                         <td className="p-2 sm:p-3 text-right font-mono">100%</td>
                       </tr>
                     </tbody>
@@ -336,86 +520,18 @@ export default function MetricsPage() {
           </div>
         </section>
 
-        {/* DefiLlama Embed */}
-        <section className="container mx-auto px-4 pb-8 sm:pb-10 md:pb-12">
-          <div className="max-w-4xl mx-auto">
-            <Card>
-              <CardHeader className="px-4 sm:px-6">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                      <span className="truncate">{t('metrics.historicalTVL')}</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      {t('metrics.historicalDescription')}
-                    </CardDescription>
-                  </div>
-                  <a
-                    href="https://defillama.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
-                  >
-                    <span className="hidden sm:inline">DefiLlama</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0 pb-0">
-                <div className="aspect-[16/9] w-full overflow-hidden bg-muted rounded-b-lg">
-                  <iframe
-                    src="https://defillama.com/chart/chain/All?tvl=true&theme=dark"
-                    title="DefiLlama TVL Chart"
-                    className="w-full h-full border-0"
-                    loading="lazy"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Info Section - Mobile optimized */}
-        <section className="container mx-auto px-4 pb-12 sm:pb-14 md:pb-16">
-          <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4">
-            {/* Data Sources Note */}
+        {/* ── Footer: Data source note ──────────────────────────── */}
+        <section className="container mx-auto px-4 pb-12 sm:pb-16">
+          <div className="max-w-5xl mx-auto">
             <Card className="border-amber-500/20 bg-amber-500/5">
-              <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <Info className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1.5 sm:space-y-2 min-w-0">
-                    <h3 className="font-semibold text-amber-600 dark:text-amber-400 text-sm sm:text-base">
-                      {t('metrics.dataNote')}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      <strong>{t('metrics.globalTVL')}:</strong> {t('metrics.globalTVLNote')}
-                    </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      <strong>{t('metrics.stablecoinsMXN')}:</strong> {t('metrics.mxnNote')}{' '}
-                      {t('metrics.lastUpdate')}: <span className="font-medium text-foreground">{lastUpdated}</span>.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* About Metrics */}
-            <Card className="bg-muted/30">
-              <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <Info className="w-4 h-4 sm:w-5 sm:h-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1.5 sm:space-y-2 min-w-0">
-                    <h3 className="font-semibold text-sm sm:text-base">{t('metrics.aboutMetrics')}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {t('metrics.aboutDescription')}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 sm:pt-2">
-                      <Badge variant="secondary" className="text-[10px] sm:text-xs">MXNB - Bitso</Badge>
-                      <Badge variant="secondary" className="text-[10px] sm:text-xs">MXNe - Brale</Badge>
-                      <Badge variant="secondary" className="text-[10px] sm:text-xs">MXNT - Tether</Badge>
-                      <Badge variant="secondary" className="text-[10px] sm:text-xs">MMXN - Moneta</Badge>
-                    </div>
+              <CardContent className="pt-4 sm:pt-5 px-4 sm:px-6">
+                <div className="flex items-start gap-3">
+                  <Info className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
+                    <p><strong>{t('metrics.dataNote')}</strong></p>
+                    <p>{t('metrics.globalTVLNote')}</p>
+                    <p>{t('metrics.mxnNote')} {t('metrics.lastUpdate')}: <span className="font-medium text-foreground">{lastUpdated}</span>.</p>
+                    <p className="text-[10px] sm:text-xs pt-1 opacity-60">{t('metrics.poweredBy')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -423,6 +539,6 @@ export default function MetricsPage() {
           </div>
         </section>
       </div>
-    </TooltipProvider>
+    </>
   );
 }
