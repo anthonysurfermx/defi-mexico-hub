@@ -275,6 +275,79 @@ const BlogPostPage = () => {
   const [likeBusy, setLikeBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Like logic - cast to any since likes table is not in typed schema
+  const db = supabase as any;
+
+  const loadLikes = useCallback(async () => {
+    if (!post) return;
+    const { count } = await db
+      .from('likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('entity_id', post.id)
+      .eq('entity_type', 'blog_post');
+    setLikeCount(count || 0);
+
+    if (user) {
+      const { data } = await db
+        .from('likes')
+        .select('id')
+        .eq('entity_id', post.id)
+        .eq('entity_type', 'blog_post')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setLiked(!!data);
+    }
+  }, [post?.id, user]);
+
+  useEffect(() => {
+    if (post) loadLikes();
+  }, [loadLikes, post]);
+
+  const toggleLike = async () => {
+    if (!user) {
+      toast.error('Inicia sesión para dar like');
+      return;
+    }
+    if (likeBusy || !post) return;
+    setLikeBusy(true);
+
+    if (liked) {
+      await db
+        .from('likes')
+        .delete()
+        .eq('entity_id', post.id)
+        .eq('entity_type', 'blog_post')
+        .eq('user_id', user.id);
+      setLiked(false);
+      setLikeCount(c => Math.max(0, c - 1));
+    } else {
+      await db.from('likes').insert({
+        entity_id: post.id,
+        entity_type: 'blog_post',
+        user_id: user.id,
+      });
+      setLiked(true);
+      setLikeCount(c => c + 1);
+    }
+    setLikeBusy(false);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: post?.title || '', url });
+      } catch {
+        // User cancelled share
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success('Link copiado');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   // Cargar el post
   useEffect(() => {
     const loadPost = async () => {
@@ -380,78 +453,6 @@ const BlogPostPage = () => {
 
   const readTime = post.reading_time_minutes || calculateReadTime(post.content);
   const publishedDate = post.published_at || post.created_at;
-
-  // Like logic - cast to any since likes table is not in typed schema
-  const db = supabase as any;
-
-  const loadLikes = useCallback(async () => {
-    const { count } = await db
-      .from('likes')
-      .select('*', { count: 'exact', head: true })
-      .eq('entity_id', post.id)
-      .eq('entity_type', 'blog_post');
-    setLikeCount(count || 0);
-
-    if (user) {
-      const { data } = await db
-        .from('likes')
-        .select('id')
-        .eq('entity_id', post.id)
-        .eq('entity_type', 'blog_post')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      setLiked(!!data);
-    }
-  }, [post.id, user]);
-
-  useEffect(() => {
-    loadLikes();
-  }, [loadLikes]);
-
-  const toggleLike = async () => {
-    if (!user) {
-      toast.error('Inicia sesión para dar like');
-      return;
-    }
-    if (likeBusy) return;
-    setLikeBusy(true);
-
-    if (liked) {
-      await db
-        .from('likes')
-        .delete()
-        .eq('entity_id', post.id)
-        .eq('entity_type', 'blog_post')
-        .eq('user_id', user.id);
-      setLiked(false);
-      setLikeCount(c => Math.max(0, c - 1));
-    } else {
-      await db.from('likes').insert({
-        entity_id: post.id,
-        entity_type: 'blog_post',
-        user_id: user.id,
-      });
-      setLiked(true);
-      setLikeCount(c => c + 1);
-    }
-    setLikeBusy(false);
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.title, url });
-      } catch {
-        // User cancelled share
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success('Link copiado');
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   const canonicalUrl = `https://defimexico.org/blog/${post.slug}`;
   const metaDescription = post.excerpt || post.subtitle || post.title;
