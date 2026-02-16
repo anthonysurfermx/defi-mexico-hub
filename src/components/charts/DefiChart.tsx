@@ -2,6 +2,9 @@ import { ProtocolTVLChart } from './ProtocolTVLChart';
 import { ChainTVLChart } from './ChainTVLChart';
 import { ProtocolFeesChart } from './ProtocolFeesChart';
 import { KastGrowthChart } from './KastGrowthChart';
+import { TetherDominanceChart } from './TetherDominanceChart';
+import { USDTGrowthChart } from './USDTGrowthChart';
+import { USDTChainsChart } from './USDTChainsChart';
 
 interface Props {
   type: string;
@@ -19,6 +22,12 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <ProtocolFeesChart identifier={identifier} title={title} />;
     case 'kast_growth':
       return <KastGrowthChart />;
+    case 'tether_dominance':
+      return <TetherDominanceChart />;
+    case 'usdt_growth':
+      return <USDTGrowthChart />;
+    case 'usdt_chains':
+      return <USDTChainsChart />;
     default:
       return null;
   }
