@@ -1,5 +1,5 @@
 // src/pages/MetricsPage.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -26,8 +26,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChainTVLChart } from '@/components/charts/ChainTVLChart';
 import { CHART_COLORS } from '@/components/charts/DefiChartTheme';
+
+const LatamExchangesTab = lazy(() => import('@/components/LatamExchangesTab'));
 
 // ── Types ───────────────────────────────────────────────────────────
 interface KPIData {
@@ -264,6 +267,26 @@ export default function MetricsPage() {
           </div>
         </section>
 
+        {/* Tabs */}
+        <Tabs defaultValue="global" className="container mx-auto px-4 max-w-5xl">
+          <TabsList className="mb-6 w-full sm:w-auto">
+            <TabsTrigger value="global" className="flex-1 sm:flex-initial">
+              <Globe className="w-3.5 h-3.5 mr-1.5" />
+              {t('metrics.tabs.global')}
+            </TabsTrigger>
+            <TabsTrigger value="latam" className="flex-1 sm:flex-initial">
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+              {t('metrics.tabs.latam')}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="latam">
+            <Suspense fallback={<div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>}>
+              <LatamExchangesTab />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="global">
         {/* ── Section 1: KPI Cards ──────────────────────────────── */}
         <section className="container mx-auto px-4 -mt-4 sm:-mt-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
@@ -538,6 +561,8 @@ export default function MetricsPage() {
             </Card>
           </div>
         </section>
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );
