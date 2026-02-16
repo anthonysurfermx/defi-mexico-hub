@@ -5,6 +5,7 @@ import { KastGrowthChart } from './KastGrowthChart';
 import { TetherDominanceChart } from './TetherDominanceChart';
 import { USDTGrowthChart } from './USDTGrowthChart';
 import { USDTChainsChart } from './USDTChainsChart';
+import { MXNStablecoinsChart } from './MXNStablecoinsChart';
 
 interface Props {
   type: string;
@@ -28,6 +29,8 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <USDTGrowthChart />;
     case 'usdt_chains':
       return <USDTChainsChart />;
+    case 'mxn_stablecoins':
+      return <MXNStablecoinsChart />;
     default:
       return null;
   }
