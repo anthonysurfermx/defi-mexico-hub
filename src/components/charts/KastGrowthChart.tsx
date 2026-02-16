@@ -37,7 +37,7 @@ const KAST_DATA = [
     users: 3645,
     volume: 5458427,
     moveDistributed: 8733484,
-    note: 'first 14 days',
+    note: 'first 15 days',
     projected: false,
   },
   {
@@ -136,7 +136,7 @@ export function KastGrowthChart() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h4 className="text-sm font-semibold text-foreground">
-            Kast Card Growth. Unique Wallets vs Estimated Card Spend
+            Kast Card Growth: Unique Wallets vs Estimated Card Spend
           </h4>
           <p className="text-xs mt-1" style={{ color: CHART_COLORS.textMuted }}>
             On-chain data from Movement Network. Based on 4% MOVE cashback distributions.
@@ -217,7 +217,7 @@ export function KastGrowthChart() {
 
       <div className="flex justify-between items-center mt-1">
         <p className="text-[10px]" style={{ color: CHART_COLORS.textMuted }}>
-          * Projected: extrapolated from first 14 days at current daily rate
+          * Projected: extrapolated from first 15 days at current daily rate
         </p>
         <p className="text-[10px]" style={{ color: CHART_COLORS.textMuted }}>
           On-chain verified · Movement Network Indexer · DeFi México

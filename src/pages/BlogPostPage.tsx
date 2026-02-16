@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -370,8 +371,43 @@ const BlogPostPage = () => {
   const readTime = post.reading_time_minutes || calculateReadTime(post.content);
   const publishedDate = post.published_at || post.created_at;
 
+  const canonicalUrl = `https://defimexico.org/blog/${post.slug}`;
+  const metaDescription = post.excerpt || post.subtitle || post.title;
+
   return (
     <div className="min-h-screen py-8">
+      <Helmet>
+        <title>{post.title} - DeFi México Blog</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        {post.image_url && <meta property="og:image" content={post.image_url} />}
+        <meta property="article:published_time" content={post.published_at || post.created_at} />
+        <meta property="article:author" content={post.author} />
+        {post.tags?.map(tag => <meta key={tag} property="article:tag" content={tag} />)}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={metaDescription} />
+        {post.image_url && <meta name="twitter:image" content={post.image_url} />}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            "headline": post.title,
+            "description": metaDescription,
+            "image": post.image_url || undefined,
+            "author": { "@type": "Person", "name": post.author },
+            "datePublished": post.published_at || post.created_at,
+            "dateModified": post.updated_at,
+            "publisher": { "@type": "Organization", "name": "DeFi México" },
+            "mainEntityOfPage": canonicalUrl,
+          })}
+        </script>
+      </Helmet>
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs */}
         <Breadcrumbs title={post.title} />
