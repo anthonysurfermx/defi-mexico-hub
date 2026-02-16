@@ -7,6 +7,8 @@ import { USDTGrowthChart } from './USDTGrowthChart';
 import { USDTChainsChart } from './USDTChainsChart';
 import { MXNStablecoinsChart } from './MXNStablecoinsChart';
 import { TetherGrowthThesisChart } from './TetherGrowthThesisChart';
+import { LatamExchangeHeatChart } from './LatamExchangeHeatChart';
+import { LatamAdoptionChart } from './LatamAdoptionChart';
 
 interface Props {
   type: string;
@@ -34,6 +36,10 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <MXNStablecoinsChart />;
     case 'tether_growth_thesis':
       return <TetherGrowthThesisChart />;
+    case 'latam_exchange_heat':
+      return <LatamExchangeHeatChart />;
+    case 'latam_adoption':
+      return <LatamAdoptionChart />;
     default:
       return null;
   }
