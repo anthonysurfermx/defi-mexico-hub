@@ -52,6 +52,8 @@ const HackathonProjectsPage = lazy(() => import('@/pages/HackathonProjectsPage')
 // Agentic World
 const AgenticWorldPage = lazy(() => import('@/pages/AgenticWorldPage'));
 const AgenticLeaderboardPage = lazy(() => import('@/pages/AgenticLeaderboardPage'));
+const PolymarketTrackerPage = lazy(() => import('@/pages/PolymarketTrackerPage'));
+
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -483,6 +485,14 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            {
+              path: 'agentic-world/polymarket',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <PolymarketTrackerPage />
+                </Suspense>
+              ),
+            },
 
             // ==========================================
             // RUTA ESPECIAL PARA STARTUP OWNERS CON MAIN LAYOUT
@@ -676,7 +686,7 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
-            
+
             // ==========================================
             // RUTAS ADMIN - STARTUPS
             // ==========================================

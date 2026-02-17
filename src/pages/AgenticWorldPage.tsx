@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from 'react-router-dom';
 import { Bot, Zap, Sparkles } from 'lucide-react';
 import { PixelSearch, PixelFilter } from '@/components/ui/pixel-icons';
 import { AGENTIC_PROJECTS, AGENTIC_CATEGORIES } from '@/data/agentic-projects';
@@ -57,6 +58,14 @@ export default function AgenticWorldPage() {
                 <Badge className="bg-cyan-500/10 text-cyan-500 border-cyan-500/20 text-xs">
                   {t('agenticWorld.badge')}
                 </Badge>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/agentic-world/leaderboard">DefiLlama Leaderboard</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/agentic-world/polymarket">Polymarket Agents</Link>
+                </Button>
               </div>
             </div>
           </div>
