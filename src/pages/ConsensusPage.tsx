@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Link2, Star, StarOff } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Link2, Star, StarOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { PixelTarget, PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
@@ -88,6 +88,81 @@ const STRATEGY_STYLES: Record<StrategyType, { border: string; bg: string; text: 
   UNCLASSIFIED: { border: 'border-cyan-400/20', bg: 'bg-cyan-500/5', text: 'text-cyan-400/60', glow: '' },
 };
 
+const STRATEGY_ARCHETYPES: Record<StrategyType, { title: string; aka: string; behavior: string[]; signals: string[]; risk: string }> = {
+  MARKET_MAKER: {
+    title: 'The House',
+    aka: 'Market Maker / Liquidity Provider',
+    behavior: [
+      'Buys YES and NO on the same market to collect the spread (YES + NO < $1.00)',
+      'Uses merge operations to recombine token pairs back into collateral',
+      'Consistent position sizing (low coefficient of variation)',
+      'Active 24/7 with regular interval trades',
+    ],
+    signals: [
+      'Both-sides trading >= 45%',
+      'Merge ratio >= 15%',
+      'Size CV < 0.8 (consistent bet sizes)',
+    ],
+    risk: 'Low risk per trade but exposed to sudden market moves that widen spreads. Profits erode in low-volume markets.',
+  },
+  SNIPER: {
+    title: 'Latency Arb',
+    aka: 'Sniper / Information Trader',
+    behavior: [
+      'Exploits lag between real-world events and Polymarket odds updates',
+      'Takes one-directional bets with high conviction',
+      'High ROI per trade, acts on information faster than the market',
+      'Rarely hedges or trades both sides of a market',
+    ],
+    signals: [
+      'Both-sides trading <= 10%',
+      'Average ROI > 30%',
+      'Directional bias >= 70%',
+    ],
+    risk: 'High variance. When the information edge disappears or the market adapts, returns drop sharply.',
+  },
+  HYBRID: {
+    title: 'Spread + Alpha',
+    aka: 'Hybrid / Dual Strategy',
+    behavior: [
+      'Combines market-making (both-sides spreads) with directional bets when model detects mispricing',
+      'Entry prices show bimodal distribution: one cluster near 0.50 (spread) and another at extremes (conviction)',
+      'Uses merges from the market-making side to fund directional overlays',
+    ],
+    signals: [
+      'Bimodal entry price distribution',
+      'Both-sides trading >= 15%',
+      'Merge ratio >= 5%',
+    ],
+    risk: 'Medium risk. The directional component can lose if the thesis is wrong, but the spread income provides a buffer.',
+  },
+  MOMENTUM: {
+    title: 'Trend Rider',
+    aka: 'Momentum / Directional Trader',
+    behavior: [
+      'Scales into one direction with rhythmic intervals',
+      'Follows short-term momentum signals and news catalysts',
+      'High directional bias with consistent timing between entries',
+    ],
+    signals: [
+      'Both-sides trading <= 15%',
+      'Interval regularity >= 70',
+      'Directional bias >= 80%',
+    ],
+    risk: 'Vulnerable to reversals. Strong in trending markets but can accumulate losses during choppy conditions.',
+  },
+  UNCLASSIFIED: {
+    title: 'Mixed Strategy',
+    aka: 'Unclassified / Insufficient Data',
+    behavior: [
+      'Does not clearly fit any known archetype',
+      'May be a manual trader or using a unique strategy',
+    ],
+    signals: ['No strong signal pattern detected'],
+    risk: 'Unknown risk profile. Requires more data or manual review.',
+  },
+};
+
 function StrategyBadge({ type, label, confidence }: { type: StrategyType; label: string; confidence: number }) {
   const s = STRATEGY_STYLES[type];
   if (type === 'UNCLASSIFIED' && confidence === 0) return null;
@@ -143,6 +218,7 @@ export default function ConsensusPage() {
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<'loading' | 'analyzing' | 'done'>('loading');
   const [showAllPositions, setShowAllPositions] = useState(false);
+  const [strategyExpanded, setStrategyExpanded] = useState(false);
 
   const runAnalysis = useCallback(async () => {
     if (!walletAddress) return;
@@ -391,26 +467,74 @@ export default function ConsensusPage() {
                 </div>
               )}
 
-              {/* Strategy Classification */}
-              {botResult && botResult.strategy.confidence > 0 && (
-                <div className="pt-2 border-t border-cyan-500/10 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold ${STRATEGY_STYLES[botResult.strategy.type].text}`}>
-                      {'>'} STRATEGY: {botResult.strategy.label.toUpperCase()}
-                    </span>
-                    <span className="text-cyan-400/30 text-[9px]">{botResult.strategy.confidence}% conf</span>
+              {/* Strategy Classification (collapsible) */}
+              {botResult && botResult.strategy.confidence > 0 && (() => {
+                const strat = botResult.strategy;
+                const archetype = STRATEGY_ARCHETYPES[strat.type];
+                const sStyle = STRATEGY_STYLES[strat.type];
+                return (
+                  <div className="pt-2 border-t border-cyan-500/10">
+                    <button
+                      onClick={() => setStrategyExpanded(prev => !prev)}
+                      className="w-full flex items-center gap-2 group cursor-pointer"
+                    >
+                      <span className={`text-[10px] font-bold ${sStyle.text}`}>
+                        {'>'} STRATEGY: {strat.label.toUpperCase()}
+                      </span>
+                      <span className="text-cyan-400/30 text-[9px]">{strat.confidence}% conf</span>
+                      <span className="ml-auto text-cyan-400/30 group-hover:text-cyan-400 transition-colors">
+                        {strategyExpanded
+                          ? <ChevronUp className="w-3 h-3" />
+                          : <ChevronDown className="w-3 h-3" />
+                        }
+                      </span>
+                    </button>
+
+                    {/* Collapsed: just metrics row */}
+                    <div className="flex gap-3 text-[9px] text-cyan-400/30 mt-1">
+                      <span>ROI: {strat.avgROI}%</span>
+                      <span>sizeCV: {strat.sizeCV}</span>
+                      <span>bias: {strat.directionalBias}%</span>
+                      {strat.bimodal && <span className="text-violet-400/60">BIMODAL</span>}
+                    </div>
+
+                    {/* Expanded: full archetype details */}
+                    {strategyExpanded && (
+                      <div className={`mt-3 border ${sStyle.border} ${sStyle.bg} p-3 space-y-2.5`}>
+                        <div>
+                          <div className={`text-[11px] font-bold ${sStyle.text}`}>{archetype.title}</div>
+                          <div className="text-[9px] text-cyan-400/40">{archetype.aka}</div>
+                        </div>
+
+                        <div>
+                          <div className="text-[9px] text-cyan-400/50 uppercase tracking-wider mb-1">Behavior Pattern</div>
+                          {archetype.behavior.map((b, i) => (
+                            <div key={i} className="text-[10px] text-cyan-300/70 leading-relaxed">
+                              {'>'} {b}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <div className="text-[9px] text-cyan-400/50 uppercase tracking-wider mb-1">Detection Signals</div>
+                          {archetype.signals.map((s, i) => (
+                            <div key={i} className="text-[10px] text-cyan-300/50">
+                              {'>'} {s}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <div className="text-[9px] text-cyan-400/50 uppercase tracking-wider mb-1">Risk Profile</div>
+                          <div className="text-[10px] text-amber-400/70 leading-relaxed">
+                            {'>'} {archetype.risk}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-cyan-400/50 text-[10px] leading-relaxed">
-                    {'>'} {botResult.strategy.description}
-                  </div>
-                  <div className="flex gap-3 text-[9px] text-cyan-400/30">
-                    <span>ROI: {botResult.strategy.avgROI}%</span>
-                    <span>sizeCV: {botResult.strategy.sizeCV}</span>
-                    <span>bias: {botResult.strategy.directionalBias}%</span>
-                    {botResult.strategy.bimodal && <span className="text-violet-400/60">BIMODAL</span>}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 
