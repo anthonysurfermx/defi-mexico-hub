@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/hooks/useAuth';
+import { EntityComments } from '@/components/BlogComments';
 
 export default function ReferentesPage() {
   const { t } = useTranslation();
@@ -30,14 +31,13 @@ export default function ReferentesPage() {
   };
 
   const trackFilters = [
-    { value: 'all', label: t('advocates.categories.all') },
-    { value: 'developer', label: t('advocates.categories.developer') },
-    { value: 'founder', label: t('advocates.categories.founder') },
-    { value: 'investor', label: t('advocates.categories.investor') },
-    { value: 'educator', label: t('advocates.categories.educator') },
-    { value: 'researcher', label: t('advocates.categories.researcher') },
-    { value: 'community', label: t('advocates.categories.community') },
-    { value: 'other', label: t('advocates.categories.other') },
+    { value: 'all', label: 'Todos' },
+    { value: 'developer', label: 'Programador' },
+    { value: 'financial', label: 'Financiero' },
+    { value: 'lawyer', label: 'Abogado' },
+    { value: 'designer', label: 'Diseñador' },
+    { value: 'marketer', label: 'Marketer' },
+    { value: 'other', label: 'Otro' },
   ];
 
   useEffect(() => {
@@ -155,9 +155,10 @@ export default function ReferentesPage() {
         )}
 
         {/* Advocates Grid */}
-        {!loading && !error && (
-          <>
-            {filteredAdvocates.length === 0 ? (
+        {!loading && !error && (() => {
+          const nonFeatured = filteredAdvocates.filter((adv) => !adv.is_featured);
+          if (filteredAdvocates.length === 0) {
+            return (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-xl font-semibold mb-2">{t('advocates.noResults')}</h3>
@@ -165,17 +166,17 @@ export default function ReferentesPage() {
                   Intenta seleccionar otra categoría o revisa más tarde.
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredAdvocates
-                  .filter((adv) => !adv.is_featured) // Excluir los destacados ya mostrados
-                  .map((advocate) => (
-                    <AdvocateCard key={advocate.id} advocate={advocate} />
-                  ))}
-              </div>
-            )}
-          </>
-        )}
+            );
+          }
+          if (nonFeatured.length === 0) return null;
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {nonFeatured.map((advocate) => (
+                <AdvocateCard key={advocate.id} advocate={advocate} />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* CTA Section */}
         <div className="mt-16 text-center bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 rounded-2xl p-8 md:p-12">
@@ -190,6 +191,9 @@ export default function ReferentesPage() {
             Postúlate Ahora
           </Button>
         </div>
+
+        {/* Comments Section */}
+        <EntityComments entityId="referentes" entityType="referentes" />
       </div>
     </>
   );
