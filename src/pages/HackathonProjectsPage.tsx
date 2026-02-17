@@ -17,7 +17,7 @@ import {
 import { startupsService } from '@/services/startups.service';
 import { useAuth } from '@/hooks/useAuth';
 import { EntityComments } from '@/components/BlogComments';
-import { Trophy, Github, Calendar } from 'lucide-react';
+import { Trophy, Github, Calendar, Zap, Rocket } from 'lucide-react';
 
 interface HackathonProject {
   id: string;
@@ -101,17 +101,29 @@ export default function HackathonProjectsPage() {
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Trophy className="w-10 h-10 text-yellow-500" />
-              <h1 className="text-4xl font-bold">MVPs Hackathon</h1>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                <Rocket className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-4xl font-bold">MVPs Hackathon</h1>
+                  <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-xs">
+                    Proyectos MVP
+                  </Badge>
+                </div>
+                <p className="text-sm text-violet-400 font-medium">
+                  Esto NO es un directorio de startups
+                </p>
+              </div>
             </div>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-lg mt-2">
               Proyectos MVP creados por la comunidad crypto de LATAM en hackathones alrededor del mundo
             </p>
           </div>
           <Button
             size="lg"
             onClick={handleRegisterProject}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
+            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
           >
             <PixelPlus size={20} className="mr-2" />
             Registrar tu MVP
@@ -119,14 +131,14 @@ export default function HackathonProjectsPage() {
         </div>
 
         {/* Info Banner */}
-        <Card className="mb-8 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
+        <Card className="mb-8 bg-gradient-to-r from-violet-500/10 to-purple-600/10 border-violet-500/20">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <Trophy className="w-5 h-5 text-yellow-500 mt-0.5" />
+              <Zap className="w-5 h-5 text-violet-500 mt-0.5" />
               <div>
-                <p className="font-medium">Registro de Ideas Ganadoras</p>
+                <p className="font-medium text-violet-300">Registro de Ideas de Hackathon</p>
                 <p className="text-sm text-muted-foreground">
-                  Aquí encontrarás un registro único de todas las ideas en las que miembros de comunidades crypto de LATAM han participado en hackathones. Al registrar tu MVP, selecciona "MVP (Hackathon)" en el campo Stage.
+                  Estos son prototipos y MVPs creados en hackathones, no startups establecidas. Aquí encontrarás ideas en las que miembros de comunidades crypto de LATAM han participado. Al registrar tu MVP, selecciona "MVP (Hackathon)" en el campo Stage.
                 </p>
               </div>
             </div>
@@ -169,11 +181,11 @@ export default function HackathonProjectsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
-          <Card>
+          <Card className="border-violet-500/20">
             <CardHeader className="pb-2">
               <CardDescription>Total Proyectos MVP</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
+                <Rocket className="w-5 h-5 text-violet-500" />
                 {filteredProjects.length}
               </CardTitle>
             </CardHeader>
@@ -188,7 +200,7 @@ export default function HackathonProjectsPage() {
         ) : filteredProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
-              <Card key={project.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-yellow-500/20">
+              <Card key={project.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-violet-500/20">
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-3">
@@ -199,8 +211,8 @@ export default function HackathonProjectsPage() {
                           className="w-12 h-12 rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
-                          <Trophy size={24} className="text-yellow-500" />
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center">
+                          <Rocket size={24} className="text-violet-500" />
                         </div>
                       )}
                       <div>
@@ -213,11 +225,16 @@ export default function HackathonProjectsPage() {
                         )}
                       </div>
                     </div>
-                    {project.is_featured && (
-                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600">
-                        Destacado
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-violet-500/10 text-violet-400 border-violet-500/20 text-[10px]">
+                        MVP
                       </Badge>
-                    )}
+                      {project.is_featured && (
+                        <Badge variant="secondary" className="bg-purple-500/10 text-purple-400">
+                          Destacado
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <CardDescription className="line-clamp-3">
                     {project.description || 'Proyecto ganador de hackathon'}
@@ -260,7 +277,7 @@ export default function HackathonProjectsPage() {
                       </Button>
                     )}
                     {project.website && (
-                      <Button asChild variant="default" size="icon" className="bg-yellow-500 hover:bg-yellow-600">
+                      <Button asChild variant="default" size="icon" className="bg-violet-500 hover:bg-violet-600">
                         <a href={project.website} target="_blank" rel="noopener noreferrer">
                           <PixelGlobe size={16} />
                         </a>
@@ -272,15 +289,15 @@ export default function HackathonProjectsPage() {
             ))}
           </div>
         ) : (
-          <Card className="p-12 text-center">
-            <Trophy size={48} className="mx-auto mb-4 text-yellow-500/50" />
+          <Card className="p-12 text-center border-violet-500/20">
+            <Rocket size={48} className="mx-auto mb-4 text-violet-500/50" />
             <h3 className="text-lg font-semibold mb-2">No se encontraron proyectos MVP</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery || selectedCategory !== 'all'
                 ? 'Intenta ajustar los filtros o buscar con otros términos'
                 : 'Sé el primero en registrar tu proyecto de hackathon'}
             </p>
-            <Button onClick={handleRegisterProject} className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
+            <Button onClick={handleRegisterProject} className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
               <PixelPlus size={16} className="mr-2" />
               Registrar MVP
             </Button>

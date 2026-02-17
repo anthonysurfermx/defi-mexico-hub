@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, ExternalLink, Calendar, Users, BarChart3, Twitter, Linkedin, MessageCircle, Github, Globe, Building2, MapPin, Loader2, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Users, BarChart3, Twitter, Linkedin, MessageCircle, Github, Globe, Building2, MapPin, Loader2, Star, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,15 +140,31 @@ const StartupDetailPage = () => {
           transition={{ duration: 0.6 }}
           className="mb-6"
         >
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/startups")}
+          <Button
+            variant="ghost"
+            onClick={() => navigate(startup.stage === 'MVP' ? "/hackathon-projects" : "/startups")}
             className="hover:bg-primary/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver a Startups
+            {startup.stage === 'MVP' ? 'Volver a MVPs Hackathon' : 'Volver a Startups'}
           </Button>
         </motion.div>
+
+        {/* MVP Banner */}
+        {startup.stage === 'MVP' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-6 flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-purple-600/10 border border-violet-500/20"
+          >
+            <Rocket className="w-5 h-5 text-violet-500 shrink-0" />
+            <p className="text-sm">
+              <span className="font-semibold text-violet-400">Proyecto MVP de Hackathon</span>
+              <span className="text-muted-foreground"> — Este es un prototipo creado en un hackathon, no una startup establecida.</span>
+            </p>
+          </motion.div>
+        )}
 
         {/* Hero Section */}
         <motion.div
