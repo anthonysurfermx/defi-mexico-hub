@@ -18,7 +18,7 @@ function highlightLine(line: string): JSX.Element {
   const clean = line.startsWith('>') ? line.slice(1).trimStart() : line;
 
   // Split by patterns and colorize
-  const parts = clean.split(/(\$[\d,.]+[KMB]?|[\d,.]+%|\b(?:AGENT|BOT|HUMAN|MIXED|LIKELY|PROXY|VAULT|HIGH|LOW|SNIPER|WHALE)\b)/gi);
+  const parts = clean.split(/(\$[\d,.]+[KMB]?|[\d,.]+%|\b(?:AGENT|BOT|HUMAN|MIXED|LIKELY|PROXY|VAULT|HIGH|LOW|SNIPER|WHALE|MARKET.MAKER|HYBRID|MOMENTUM|LATENCY|SPREAD|DIRECTIONAL|BIMODAL)\b)/gi);
 
   return (
     <span>
@@ -41,8 +41,11 @@ function highlightLine(line: string): JSX.Element {
         if (/^HUMAN$/i.test(part)) {
           return <span key={i} className="text-green-400 font-bold">{part}</span>;
         }
-        if (/^(MIXED|HIGH|LOW|SNIPER|WHALE)$/i.test(part)) {
+        if (/^(MIXED|HIGH|LOW|SNIPER|WHALE|MOMENTUM|LATENCY|DIRECTIONAL)$/i.test(part)) {
           return <span key={i} className="text-amber-400 font-bold">{part}</span>;
+        }
+        if (/^(MARKET.MAKER|HYBRID|SPREAD|BIMODAL)$/i.test(part)) {
+          return <span key={i} className="text-violet-400 font-bold">{part}</span>;
         }
         return <span key={i}>{part}</span>;
       })}

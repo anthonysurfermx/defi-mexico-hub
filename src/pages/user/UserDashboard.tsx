@@ -1,12 +1,27 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Calendar, Globe, Users, FileText, Plus, Clock, CheckCircle, XCircle, Briefcase } from "lucide-react";
+import { Building2, Calendar, Globe, Users, FileText, Plus, Clock, CheckCircle, XCircle, Briefcase, Star, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProposals } from "@/hooks/useProposals";
 import { useAuth } from "@/hooks/useAuth";
+import { useFollowedWallets } from "@/hooks/useFollowedWallets";
+import { polymarketService, type AgentMetrics } from "@/services/polymarket.service";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+function formatUsd(n: number): string {
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+function shortAddr(addr: string): string {
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -16,6 +31,25 @@ export default function UserDashboard() {
     userId: user?.id,
     autoFetch: true
   });
+
+  const { wallets: followedWallets, loading: walletsLoading, unfollow } = useFollowedWallets();
+  const [walletMetrics, setWalletMetrics] = useState<Record<string, AgentMetrics>>({});
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  useEffect(() => {
+    if (followedWallets.length === 0) return;
+    setMetricsLoading(true);
+    Promise.all(
+      followedWallets.map(async (w) => {
+        const m = await polymarketService.getAgentMetrics(w.wallet_address);
+        return { address: w.wallet_address, metrics: m };
+      })
+    ).then((results) => {
+      const map: Record<string, AgentMetrics> = {};
+      results.forEach(r => { map[r.address] = r.metrics; });
+      setWalletMetrics(map);
+    }).finally(() => setMetricsLoading(false));
+  }, [followedWallets]);
 
   const proposalCards = [
     {
@@ -85,6 +119,122 @@ export default function UserDashboard() {
         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
         Rol: {role === 'editor' ? 'Editor' : 'Usuario'}
       </div>
+
+      {/* Followed Wallets */}
+      <Card className="border-cyan-200 dark:border-cyan-800/40">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500" />
+                Followed Wallets
+              </CardTitle>
+              <CardDescription>
+                Polymarket wallets you're tracking
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/agentic-world/polymarket')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Find Wallets
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {walletsLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Loading wallets...
+            </div>
+          ) : followedWallets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No followed wallets yet</p>
+              <p className="text-sm mt-2">
+                Analyze a wallet in the{' '}
+                <button
+                  onClick={() => navigate('/agentic-world/polymarket')}
+                  className="text-cyan-500 hover:underline"
+                >
+                  Polymarket Agent Radar
+                </button>
+                {' '}and click Follow
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {followedWallets.map((w) => {
+                const m = walletMetrics[w.wallet_address];
+                return (
+                  <div
+                    key={w.id}
+                    className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-medium">
+                          {w.label || shortAddr(w.wallet_address)}
+                        </span>
+                        {w.label && (
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {shortAddr(w.wallet_address)}
+                          </span>
+                        )}
+                      </div>
+                      {metricsLoading ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : m ? (
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>Portfolio: <span className="font-medium text-foreground">{formatUsd(m.portfolioValue)}</span></span>
+                          <span>
+                            PnL:{' '}
+                            <span className={`font-medium ${m.profitPnL != null && m.profitPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {m.profitPnL != null ? `${m.profitPnL >= 0 ? '+' : ''}${formatUsd(m.profitPnL)}` : 'N/A'}
+                            </span>
+                          </span>
+                          <span>{m.openPositions} positions</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => navigate(`/agentic-world/consensus?wallet=${w.wallet_address}`)}
+                        title="Analyze"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                        onClick={async () => {
+                          try {
+                            await unfollow(w.wallet_address);
+                            toast.success('Wallet unfollowed');
+                          } catch {
+                            toast.error('Failed to unfollow');
+                          }
+                        }}
+                        title="Unfollow"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Proposals Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

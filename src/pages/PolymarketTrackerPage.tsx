@@ -20,7 +20,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster, PixelTarget } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
-import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext } from '@/services/polymarket-detector';
+import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { toast } from 'sonner';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
@@ -77,6 +77,24 @@ function SignalBar({ label, value, maxLabel }: { label: string; value: number; m
       <span className="font-mono w-8 text-right">{value}</span>
       {maxLabel && <span className="text-muted-foreground text-[10px]">{maxLabel}</span>}
     </div>
+  );
+}
+
+const STRATEGY_STYLES: Record<StrategyType, { border: string; bg: string; text: string }> = {
+  MARKET_MAKER: { border: 'border-blue-400/40', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+  HYBRID:       { border: 'border-violet-400/40', bg: 'bg-violet-500/10', text: 'text-violet-400' },
+  SNIPER:       { border: 'border-red-400/40', bg: 'bg-red-500/10', text: 'text-red-400' },
+  MOMENTUM:     { border: 'border-amber-400/40', bg: 'bg-amber-500/10', text: 'text-amber-400' },
+  UNCLASSIFIED: { border: 'border-muted', bg: 'bg-muted/30', text: 'text-muted-foreground' },
+};
+
+function StrategyTag({ type, label }: { type: StrategyType; label: string }) {
+  if (type === 'UNCLASSIFIED') return null;
+  const s = STRATEGY_STYLES[type];
+  return (
+    <Badge className={`${s.border} ${s.bg} ${s.text} text-[9px] font-mono`}>
+      {label.toUpperCase()}
+    </Badge>
   );
 }
 
@@ -864,7 +882,10 @@ export default function PolymarketTrackerPage() {
                               </td>
                               <td className="px-3 py-2 text-center">
                                 {holder.bot ? (
-                                  <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />
+                                  <div className="flex items-center gap-1.5 justify-center flex-wrap">
+                                    <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />
+                                    <StrategyTag type={holder.bot.strategy.type} label={holder.bot.strategy.label} />
+                                  </div>
                                 ) : marketScanning ? (
                                   <span className="text-cyan-400/40 text-[10px] animate-pulse">scanning...</span>
                                 ) : (
@@ -917,6 +938,25 @@ export default function PolymarketTrackerPage() {
                                     {holder.bot.signals.bothSidesBonus > 0 && (
                                       <div className="text-red-400 text-[10px] pt-1 border-t border-cyan-500/10">
                                         {'>'} BOTH_SIDES_BONUS: +{holder.bot.signals.bothSidesBonus}
+                                      </div>
+                                    )}
+
+                                    {/* Strategy classification */}
+                                    {holder.bot.strategy.confidence > 0 && (
+                                      <div className="pt-1.5 border-t border-cyan-500/10 space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`text-[10px] font-bold ${STRATEGY_STYLES[holder.bot.strategy.type].text}`}>
+                                            {'>'} {holder.bot.strategy.label.toUpperCase()}
+                                          </span>
+                                          <span className="text-cyan-400/30 text-[9px]">{holder.bot.strategy.confidence}%</span>
+                                        </div>
+                                        <div className="text-cyan-400/40 text-[9px]">{holder.bot.strategy.description}</div>
+                                        <div className="flex gap-3 text-[8px] text-cyan-400/25">
+                                          <span>ROI:{holder.bot.strategy.avgROI}%</span>
+                                          <span>sizeCV:{holder.bot.strategy.sizeCV}</span>
+                                          <span>bias:{holder.bot.strategy.directionalBias}%</span>
+                                          {holder.bot.strategy.bimodal && <span className="text-violet-400/50">BIMODAL</span>}
+                                        </div>
                                       </div>
                                     )}
 
@@ -1045,6 +1085,7 @@ export default function PolymarketTrackerPage() {
                               {holder.outcome}
                             </span>
                             {holder.bot && <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />}
+                            {holder.bot && <StrategyTag type={holder.bot.strategy.type} label={holder.bot.strategy.label} />}
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-1.5">

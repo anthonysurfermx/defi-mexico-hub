@@ -11,11 +11,25 @@ export interface BotSignals {
   bothSidesBonus: number;       // Bonus modifier
 }
 
+export type StrategyType = 'MARKET_MAKER' | 'HYBRID' | 'SNIPER' | 'MOMENTUM' | 'UNCLASSIFIED';
+
+export interface StrategyProfile {
+  type: StrategyType;
+  label: string;           // Human-readable name
+  confidence: number;      // 0-100 how sure we are
+  description: string;     // One-line explanation
+  avgROI: number;          // Average ROI per resolved position
+  sizeCV: number;          // Coefficient of variation of trade sizes
+  bimodal: boolean;        // Whether entry price distribution is bimodal
+  directionalBias: number; // 0-100, how one-sided the positions are
+}
+
 export interface BotDetectionResult {
   address: string;
   botScore: number;             // 0-100 final score
   signals: BotSignals;
   classification: 'bot' | 'likely-bot' | 'mixed' | 'human';
+  strategy: StrategyProfile;
   tradeCount: number;
   mergeCount: number;
   activeHours: number;
@@ -61,6 +75,166 @@ export type SignalProgress = {
   tradeCount?: number;
   mergeCount?: number;
 };
+
+// --- Strategy Classification Utilities ---
+
+/**
+ * Lightweight bimodality detector using histogram bins.
+ * Divides price range [0, 1] into 20 bins (0.05 each).
+ * Returns true if two non-adjacent bins each hold >15% of trades.
+ * O(N) single pass, zero dependencies.
+ */
+function isBimodal(
+  prices: number[],
+  minPeakVolumePct = 0.15,
+  minBinSeparation = 2,
+): boolean {
+  if (prices.length < 20) return false;
+
+  const BINS = 20;
+  const histogram = new Array(BINS).fill(0);
+
+  for (let i = 0; i < prices.length; i++) {
+    const binIndex = Math.floor(Math.max(0, Math.min(0.9999, prices[i])) * BINS);
+    histogram[binIndex]++;
+  }
+
+  const minPeakThreshold = prices.length * minPeakVolumePct;
+  const peaks: number[] = [];
+
+  for (let i = 0; i < BINS; i++) {
+    if (histogram[i] < minPeakThreshold) continue;
+    const left = i === 0 ? 0 : histogram[i - 1];
+    const right = i === BINS - 1 ? 0 : histogram[i + 1];
+    if (histogram[i] > left && (i === BINS - 1 || histogram[i] > right)) {
+      peaks.push(i);
+    }
+  }
+
+  if (peaks.length < 2) return false;
+  for (let i = 0; i < peaks.length - 1; i++) {
+    for (let j = i + 1; j < peaks.length; j++) {
+      if (Math.abs(peaks[j] - peaks[i]) >= minBinSeparation) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Compute average ROI from resolved positions.
+ * ROI = (payout - cost) / cost. For binary markets, payout is $1 for winners.
+ * Uses avgPrice as entry cost. Only counts positions with nonzero PnL.
+ */
+function computeAvgROI(positions: any[]): number {
+  const resolved = positions.filter((p: any) => {
+    const pnl = parseFloat(p.cashPnl || 0);
+    const avg = parseFloat(p.avgPrice || 0);
+    return pnl !== 0 && avg > 0;
+  });
+  if (resolved.length === 0) return 0;
+
+  let totalROI = 0;
+  for (const p of resolved) {
+    const cost = parseFloat(p.avgPrice);
+    const pnl = parseFloat(p.cashPnl);
+    const size = parseFloat(p.size) || 1;
+    // ROI = profit / invested capital
+    totalROI += pnl / (cost * size);
+  }
+  return totalROI / resolved.length;
+}
+
+/**
+ * Compute directional bias: how one-sided is this wallet?
+ * Returns 0-100 where 100 = all positions on one side (YES or NO).
+ */
+function computeDirectionalBias(positions: any[]): number {
+  if (positions.length === 0) return 0;
+  const yesCount = positions.filter((p: any) => (p.outcome || '').toLowerCase() === 'yes').length;
+  const noCount = positions.length - yesCount;
+  const dominant = Math.max(yesCount, noCount);
+  return Math.round((dominant / positions.length) * 100);
+}
+
+/**
+ * Classify wallet trading strategy based on behavioral signals.
+ * Uses refined heuristics from whale research:
+ *   - MARKET_MAKER: both sides + low size variance + high merge activity
+ *   - HYBRID: bimodal entries + moderate both-sides + some merges
+ *   - SNIPER: directional + high ROI + low both-sides
+ *   - MOMENTUM: directional + regular intervals + high concentration
+ */
+function classifyStrategy(
+  trades: any[],
+  positions: any[],
+  mergeCount: number,
+  bothSidesPercent: number,
+  intervalRegularity: number,
+  sizeCV: number,
+): StrategyProfile {
+  const entryPrices = trades
+    .map((t: any) => parseFloat(t.price))
+    .filter((p: number) => !isNaN(p) && p > 0 && p < 1);
+
+  const bimodal = isBimodal(entryPrices);
+  const avgROI = computeAvgROI(positions);
+  const directionalBias = computeDirectionalBias(positions);
+  const tradeCount = trades.length;
+  const mergeRatio = tradeCount > 0 ? (mergeCount / (tradeCount + mergeCount)) * 100 : 0;
+
+  const base = { avgROI: Math.round(avgROI * 100), sizeCV: Math.round(sizeCV * 100) / 100, bimodal, directionalBias };
+
+  // Not enough data to classify
+  if (tradeCount < 10 && positions.length < 5) {
+    return { type: 'UNCLASSIFIED', label: 'Insufficient Data', confidence: 0, description: 'Not enough trade history to classify strategy', ...base };
+  }
+
+  // 1. MARKET MAKER: both sides >= 45%, merge ratio >= 15%, consistent sizing
+  if (bothSidesPercent >= 45 && mergeRatio >= 15 && sizeCV < 0.8) {
+    const conf = Math.min(95,
+      Math.round((bothSidesPercent / 100) * 40 + (mergeRatio / 50) * 30 + (1 - Math.min(sizeCV, 1)) * 30)
+    );
+    return { type: 'MARKET_MAKER', label: 'The House', confidence: conf, description: 'Provides liquidity on both sides, collects spread. Consistent sizing, high merge activity.', ...base };
+  }
+
+  // 2. HYBRID: bimodal entry prices + moderate both-sides + some merge activity
+  if (bimodal && bothSidesPercent >= 15 && mergeRatio >= 5) {
+    const conf = Math.min(90,
+      Math.round(40 + (bothSidesPercent > 30 ? 20 : 10) + (mergeRatio > 15 ? 20 : 10) + (bimodal ? 10 : 0))
+    );
+    return { type: 'HYBRID', label: 'Spread + Alpha', confidence: conf, description: 'Market-making base with directional overlays when model detects mispricing.', ...base };
+  }
+
+  // 3. SNIPER: directional, high ROI, low both-sides
+  if (bothSidesPercent <= 10 && avgROI > 0.3 && directionalBias >= 70) {
+    const conf = Math.min(90,
+      Math.round((directionalBias / 100) * 30 + Math.min(avgROI * 40, 40) + (bothSidesPercent < 5 ? 20 : 10))
+    );
+    return { type: 'SNIPER', label: 'Latency Arb', confidence: conf, description: 'Directional bets capturing oracle lag. High ROI per trade, reacts to spot price moves.', ...base };
+  }
+
+  // 4. MOMENTUM: directional, regular intervals, high market concentration
+  if (bothSidesPercent <= 15 && intervalRegularity >= 70 && directionalBias >= 80) {
+    const conf = Math.min(85,
+      Math.round((intervalRegularity / 100) * 40 + (directionalBias / 100) * 30 + 20)
+    );
+    return { type: 'MOMENTUM', label: 'Trend Rider', confidence: conf, description: 'Scales into one direction with rhythmic intervals. Follows short-term momentum.', ...base };
+  }
+
+  // 5. Softer fallbacks: check partial matches
+
+  // Near-SNIPER: directional + decent ROI but intervals might be irregular
+  if (bothSidesPercent <= 15 && avgROI > 0.15 && directionalBias >= 65) {
+    return { type: 'SNIPER', label: 'Latency Arb', confidence: 45, description: 'Likely directional trader exploiting price lag. Moderate confidence.', ...base };
+  }
+
+  // Near-MARKET_MAKER: both sides but less merge activity
+  if (bothSidesPercent >= 35 && sizeCV < 1.0) {
+    return { type: 'MARKET_MAKER', label: 'The House', confidence: 40, description: 'Shows market-making behavior with both-sides positions. Moderate confidence.', ...base };
+  }
+
+  return { type: 'UNCLASSIFIED', label: 'Mixed Strategy', confidence: 20, description: 'Trading pattern does not match known archetypes clearly.', ...base };
+}
 
 export async function detectBot(
   address: string,
@@ -244,6 +418,13 @@ export async function detectBot(
 
   emitSignal('GHOST', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), activity24h: Math.round(s4), winRateExtreme: Math.round(s5), marketConcentration: Math.round(s6), ghostWhale: Math.round(s7), bothSidesBonus: Math.round(bothSidesBonus) });
 
+  // Compute sizeCV for strategy classification (reuse trades data)
+  let sizeCV = 1;
+  if (trades.length > 10) {
+    const usdSizes = trades.map((t: any) => parseFloat(t.size) * parseFloat(t.price)).filter((v: number) => !isNaN(v));
+    sizeCV = coefficientOfVariation(usdSizes);
+  }
+
   // Final score: if ghost whale is active, use alternate weighting
   let rawScore: number;
   if (s7 > 0 && trades.length <= 5) {
@@ -267,6 +448,16 @@ export async function detectBot(
   else if (botScore >= 40) classification = 'mixed';
   else classification = 'human';
 
+  // Strategy classification: what TYPE of bot/trader is this?
+  const strategy = classifyStrategy(
+    trades,
+    positions,
+    mergeCount,
+    bothSidesPercent,
+    s1,  // intervalRegularity score
+    sizeCV,
+  );
+
   return {
     address,
     botScore,
@@ -281,6 +472,7 @@ export async function detectBot(
       bothSidesBonus: Math.round(bothSidesBonus),
     },
     classification,
+    strategy,
     tradeCount,
     mergeCount,
     activeHours,

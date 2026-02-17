@@ -33,6 +33,12 @@ function buildWalletPrompt(data: any): string {
     .map((p: any) => `${p.outcome} | ${p.title} | $${p.currentValue?.toFixed(2)} | PnL: $${p.cashPnl?.toFixed(2)}`)
     .join('\n');
 
+  const strategy = data.strategy;
+  const strategyBlock = strategy ? `
+STRATEGY CLASSIFICATION: ${strategy.type} ("${strategy.label}") at ${strategy.confidence}% confidence
+STRATEGY DESCRIPTION: ${strategy.description}
+STRATEGY METRICS: avgROI=${strategy.avgROI}%, sizeCV=${strategy.sizeCV}, directionalBias=${strategy.directionalBias}%, bimodal=${strategy.bimodal}` : '';
+
   return `Analyze this Polymarket wallet behavior.
 
 WALLET: ${data.wallet}
@@ -44,13 +50,14 @@ BOT SCORE: ${data.botSignals?.botScore || 0} (${data.botSignals?.classification 
 
 SIGNALS:
 ${signalLines}
+${strategyBlock}
 
 TOP POSITIONS:
 ${topPositions || 'None'}
 
 ${data.marketContext ? `ANALYZING IN CONTEXT OF MARKET: ${data.marketContext}` : ''}
 
-Focus on: What type of trader is this? What patterns stand out? Is this wallet worth following? What risks should a copy-trader consider?`;
+Focus on: Explain the detected strategy type and what it means for this wallet's trading approach. Reference the strategy metrics (ROI, sizing consistency, directional bias, bimodality). What patterns stand out? Is this wallet worth following? What risks should a copy-trader consider?`;
 }
 
 function buildExchangeMetricsPrompt(data: any): string {
@@ -153,7 +160,15 @@ Be direct, use data points, identify patterns.
 Write 4-6 paragraphs max. Keep each line under 100 characters.
 ${language === 'es' ? 'Respond in Spanish.' : 'Respond in English.'}
 Never speculate beyond the data provided. Never hallucinate numbers.
-After your analysis, output a single line starting with "TAGS:" followed by 2-4 comma-separated tags that classify this entity (e.g. "High Conviction, Sniper, 24/7 Operator" or "Growing Exchange, Stablecoin Hub").`;
+
+When analyzing wallets with a STRATEGY CLASSIFICATION, explain what the strategy archetype means:
+- MARKET_MAKER ("The House"): provides liquidity on both sides, collects the spread between YES+NO < $1.00, uses merges to recombine tokens. Consistent sizing, low risk per trade.
+- SNIPER ("Latency Arb"): exploits oracle lag between spot exchanges and Polymarket odds. Buys underpriced directional bets, high ROI per trade. Reacts to price information faster than the market.
+- HYBRID ("Spread + Alpha"): combines market-making base (both-sides, spreads) with directional overlays when model detects mispricing. Bimodal entry prices reveal the dual strategy.
+- MOMENTUM ("Trend Rider"): scales into one direction with rhythmic intervals, follows short-term momentum signals.
+Reference the specific metrics (avgROI, sizeCV, directionalBias, bimodal) to support your analysis.
+
+After your analysis, output a single line starting with "TAGS:" followed by 2-4 comma-separated tags that classify this entity (e.g. "Market Maker, The House, 24/7 Operator" or "Sniper, Latency Arb, High ROI").`;
 
   const userPrompt = builder(data);
 

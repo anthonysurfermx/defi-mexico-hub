@@ -1,14 +1,16 @@
 // src/pages/ConsensusPage.tsx - Wallet X-Ray Analyzer
 import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Link2 } from 'lucide-react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, Link2, Star, StarOff } from 'lucide-react';
 import { PixelTarget, PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { polymarketService, type AgentMetrics, type PolymarketPosition } from '@/services/polymarket.service';
-import { detectBot, type BotDetectionResult, type SignalProgress } from '@/services/polymarket-detector';
+import { detectBot, type BotDetectionResult, type SignalProgress, type StrategyType } from '@/services/polymarket-detector';
+import { useAuth } from '@/hooks/useAuth';
+import { useFollowedWallets } from '@/hooks/useFollowedWallets';
 import { toast } from 'sonner';
 
 function formatUSD(n: number): string {
@@ -78,10 +80,58 @@ function StatBox({ label, value, variant = 'cyan' }: { label: string; value: str
   );
 }
 
+const STRATEGY_STYLES: Record<StrategyType, { border: string; bg: string; text: string; glow: string }> = {
+  MARKET_MAKER: { border: 'border-blue-400/50', bg: 'bg-blue-500/10', text: 'text-blue-400', glow: 'shadow-[0_0_8px_rgba(96,165,250,0.3)]' },
+  HYBRID:       { border: 'border-violet-400/50', bg: 'bg-violet-500/10', text: 'text-violet-400', glow: 'shadow-[0_0_8px_rgba(167,139,250,0.3)]' },
+  SNIPER:       { border: 'border-red-400/50', bg: 'bg-red-500/10', text: 'text-red-400', glow: 'shadow-[0_0_8px_rgba(248,113,113,0.3)]' },
+  MOMENTUM:     { border: 'border-amber-400/50', bg: 'bg-amber-500/10', text: 'text-amber-400', glow: 'shadow-[0_0_8px_rgba(251,191,36,0.3)]' },
+  UNCLASSIFIED: { border: 'border-cyan-400/20', bg: 'bg-cyan-500/5', text: 'text-cyan-400/60', glow: '' },
+};
+
+function StrategyBadge({ type, label, confidence }: { type: StrategyType; label: string; confidence: number }) {
+  const s = STRATEGY_STYLES[type];
+  if (type === 'UNCLASSIFIED' && confidence === 0) return null;
+  return (
+    <div className={`px-2.5 py-1 border font-mono text-[10px] tracking-wider ${s.border} ${s.bg} ${s.text} ${s.glow}`}>
+      {label.toUpperCase()}
+      {confidence > 0 && <span className="opacity-50 ml-1">{confidence}%</span>}
+    </div>
+  );
+}
+
 export default function ConsensusPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const walletAddress = searchParams.get('wallet') || '';
   const marketId = searchParams.get('market') || '';
+
+  const { isAuthenticated } = useAuth();
+  const { follow, unfollow, isFollowing } = useFollowedWallets();
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const following = walletAddress ? isFollowing(walletAddress) : false;
+
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      toast.info('Sign in to follow wallets');
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
+      return;
+    }
+    setFollowLoading(true);
+    try {
+      if (following) {
+        await unfollow(walletAddress);
+        toast.success('Wallet unfollowed');
+      } else {
+        await follow(walletAddress, metrics?.pseudonym || undefined);
+        toast.success('Wallet followed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   // Data states
   const [metrics, setMetrics] = useState<AgentMetrics | null>(null);
@@ -208,7 +258,14 @@ export default function ConsensusPage() {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            {botResult && (
+              <StrategyBadge
+                type={botResult.strategy.type}
+                label={botResult.strategy.label}
+                confidence={botResult.strategy.confidence}
+              />
+            )}
             {botResult && (
               <div className={`px-3 py-1.5 border font-mono text-xs flex items-center gap-1.5 ${
                 botResult.classification === 'bot' ? 'border-red-500/40 bg-red-500/10 text-red-400' :
@@ -231,6 +288,20 @@ export default function ConsensusPage() {
                 portfolioValue={metrics?.portfolioValue}
                 profitPnL={metrics?.profitPnL}
               />
+            )}
+            {phase === 'done' && (
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className={`px-3 py-1.5 border font-mono text-xs flex items-center gap-1.5 transition-colors ${
+                  following
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
+                    : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400/60 hover:text-cyan-400 hover:bg-cyan-500/10'
+                }`}
+              >
+                {following ? <StarOff className="w-3 h-3" /> : <Star className="w-3 h-3" />}
+                {followLoading ? '...' : following ? 'UNFOLLOW' : 'FOLLOW'}
+              </button>
             )}
           </div>
         </div>
@@ -316,6 +387,27 @@ export default function ConsensusPage() {
                 <div className="pt-2 border-t border-cyan-500/10 space-y-1">
                   <div className="text-cyan-400/40 text-[10px]">
                     {'>'} {botResult.tradeCount} trades | {botResult.mergeCount} merges | {botResult.activeHours}/24h active | {botResult.bothSidesPercent}% both-sides
+                  </div>
+                </div>
+              )}
+
+              {/* Strategy Classification */}
+              {botResult && botResult.strategy.confidence > 0 && (
+                <div className="pt-2 border-t border-cyan-500/10 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold ${STRATEGY_STYLES[botResult.strategy.type].text}`}>
+                      {'>'} STRATEGY: {botResult.strategy.label.toUpperCase()}
+                    </span>
+                    <span className="text-cyan-400/30 text-[9px]">{botResult.strategy.confidence}% conf</span>
+                  </div>
+                  <div className="text-cyan-400/50 text-[10px] leading-relaxed">
+                    {'>'} {botResult.strategy.description}
+                  </div>
+                  <div className="flex gap-3 text-[9px] text-cyan-400/30">
+                    <span>ROI: {botResult.strategy.avgROI}%</span>
+                    <span>sizeCV: {botResult.strategy.sizeCV}</span>
+                    <span>bias: {botResult.strategy.directionalBias}%</span>
+                    {botResult.strategy.bimodal && <span className="text-violet-400/60">BIMODAL</span>}
                   </div>
                 </div>
               )}
@@ -422,6 +514,16 @@ export default function ConsensusPage() {
                   botScore: botResult.botScore,
                   classification: botResult.classification,
                   signals: botResult.signals,
+                },
+                strategy: {
+                  type: botResult.strategy.type,
+                  label: botResult.strategy.label,
+                  confidence: botResult.strategy.confidence,
+                  description: botResult.strategy.description,
+                  avgROI: botResult.strategy.avgROI,
+                  sizeCV: botResult.strategy.sizeCV,
+                  bimodal: botResult.strategy.bimodal,
+                  directionalBias: botResult.strategy.directionalBias,
                 },
                 marketContext: marketId || undefined,
               }}

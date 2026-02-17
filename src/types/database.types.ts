@@ -1099,6 +1099,30 @@ export type Database = {
           },
         ]
       }
+      followed_wallets: {
+        Row: {
+          id: string
+          user_id: string
+          wallet_address: string
+          label: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          wallet_address: string
+          label?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          wallet_address?: string
+          label?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       active_user_roles: {
