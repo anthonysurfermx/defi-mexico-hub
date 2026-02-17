@@ -14,13 +14,14 @@ import {
   Bot, TrendingUp, TrendingDown, ExternalLink,
   RefreshCw, Plus, Trash2, Wallet, ArrowLeft,
   DollarSign, ScanSearch, ChevronDown, ChevronUp,
-  Link2, Search, Users, AlertTriangle, Sparkles
+  Link2, Search, Sparkles
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster, PixelTarget } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext } from '@/services/polymarket-detector';
+import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { toast } from 'sonner';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -107,6 +108,10 @@ export default function PolymarketTrackerPage() {
   const [holderPositions, setHolderPositions] = useState<Record<string, PolymarketPosition[]>>({});
   const [loadingPositions, setLoadingPositions] = useState<string | null>(null);
   const [scanLimit, setScanLimit] = useState(50);
+
+  // Scanner mode toggle
+  const [scanMode, setScanMode] = useState<'market' | 'wallet'>('market');
+  const [walletSearch, setWalletSearch] = useState('');
 
   const loadAgents = () => {
     const list = polymarketService.getAgents();
@@ -298,6 +303,15 @@ export default function PolymarketTrackerPage() {
     setLoadingPositions(null);
   };
 
+  const handleWalletXRay = () => {
+    const addr = walletSearch.trim().toLowerCase();
+    if (!addr || !addr.startsWith('0x')) {
+      toast.error('Enter a valid wallet address (0x...)');
+      return;
+    }
+    navigate(`/agentic-world/consensus?wallet=${addr}`);
+  };
+
   const totalPortfolio = Object.values(metrics).reduce(
     (acc, m) => acc + (m?.portfolioValue || 0), 0
   );
@@ -426,18 +440,79 @@ export default function PolymarketTrackerPage() {
           ))}
         </div>
 
-        {/* Market URL Scanner */}
+        {/* Scanner Card with Toggle */}
         <Card className="mb-8 border-cyan-500/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Link2 className="w-5 h-5 text-cyan-500" />
-              Scan Market by URL
-            </CardTitle>
-            <CardDescription>
-              Paste a Polymarket event URL to scan all holders and detect agents
-            </CardDescription>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={() => setScanMode('market')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
+                  scanMode === 'market'
+                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                Scan Market
+              </button>
+              <button
+                onClick={() => setScanMode('wallet')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
+                  scanMode === 'wallet'
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                Wallet X-Ray
+              </button>
+            </div>
+            {scanMode === 'market' ? (
+              <>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-cyan-500" />
+                  Scan Market by URL
+                </CardTitle>
+                <CardDescription>
+                  Paste a Polymarket event URL to scan all holders and detect agents
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-amber-500" />
+                  Wallet X-Ray
+                </CardTitle>
+                <CardDescription>
+                  Paste any Polymarket wallet address for a full behavioral scan
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
           <CardContent>
+            {/* Wallet X-Ray Tab */}
+            {scanMode === 'wallet' && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Input
+                  placeholder="0x..."
+                  value={walletSearch}
+                  onChange={(e) => setWalletSearch(e.target.value)}
+                  className="flex-1 font-mono"
+                  onKeyDown={(e) => e.key === 'Enter' && handleWalletXRay()}
+                />
+                <Button
+                  onClick={handleWalletXRay}
+                  disabled={!walletSearch}
+                  className="bg-amber-600 hover:bg-amber-700 shrink-0"
+                >
+                  <ScanSearch className="w-4 h-4 mr-2" />
+                  X-Ray Wallet
+                </Button>
+              </div>
+            )}
+
+            {/* Market Scanner Tab */}
+            {scanMode === 'market' && (<>
             <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 placeholder="https://polymarket.com/event/..."
@@ -857,6 +932,16 @@ export default function PolymarketTrackerPage() {
                                       {loadingPositions === holder.address && (
                                         <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                                       )}
+                                      <span onClick={(e) => e.stopPropagation()}>
+                                        <ShareScoreCard
+                                          address={holder.address}
+                                          pseudonym={holder.pseudonym}
+                                          botScore={holder.bot.botScore}
+                                          classification={holder.bot.classification}
+                                          signals={holder.bot.signals}
+                                          tradeCount={holder.bot.tradeCount}
+                                        />
+                                      </span>
                                       <div className="relative group/analyzer">
                                         <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
                                         <button
@@ -1026,6 +1111,14 @@ export default function PolymarketTrackerPage() {
                               {loadingPositions === holder.address && (
                                 <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                               )}
+                              <ShareScoreCard
+                                address={holder.address}
+                                pseudonym={holder.pseudonym}
+                                botScore={holder.bot.botScore}
+                                classification={holder.bot.classification}
+                                signals={holder.bot.signals}
+                                tradeCount={holder.bot.tradeCount}
+                              />
                               <div className="relative group/analyzer">
                                 <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
                                 <button
@@ -1090,6 +1183,7 @@ export default function PolymarketTrackerPage() {
                 </div>
               </div>
             )}
+            </>)}
           </CardContent>
         </Card>
 

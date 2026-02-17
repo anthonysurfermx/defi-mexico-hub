@@ -2,10 +2,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Link2 } from 'lucide-react';
 import { PixelTarget, PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
+import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { polymarketService, type AgentMetrics, type PolymarketPosition } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
@@ -195,19 +196,43 @@ export default function ConsensusPage() {
               >
                 <ExternalLink className="w-3 h-3" />
               </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success('URL copied to clipboard');
+                }}
+                className="text-cyan-400/30 hover:text-cyan-400 transition-colors"
+                title="Copy share URL"
+              >
+                <Link2 className="w-3 h-3" />
+              </button>
             </div>
           </div>
-          {botResult && (
-            <div className={`px-3 py-1.5 border font-mono text-xs flex items-center gap-1.5 ${
-              botResult.classification === 'bot' ? 'border-red-500/40 bg-red-500/10 text-red-400' :
-              botResult.classification === 'likely-bot' ? 'border-orange-500/40 bg-orange-500/10 text-orange-400' :
-              botResult.classification === 'mixed' ? 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' :
-              'border-green-500/40 bg-green-500/10 text-green-400'
-            }`}>
-              {(botResult.classification === 'bot' || botResult.classification === 'likely-bot') && <PixelLobster size={12} />}
-              {botResult.classification.toUpperCase()} {botResult.botScore}
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {botResult && (
+              <div className={`px-3 py-1.5 border font-mono text-xs flex items-center gap-1.5 ${
+                botResult.classification === 'bot' ? 'border-red-500/40 bg-red-500/10 text-red-400' :
+                botResult.classification === 'likely-bot' ? 'border-orange-500/40 bg-orange-500/10 text-orange-400' :
+                botResult.classification === 'mixed' ? 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' :
+                'border-green-500/40 bg-green-500/10 text-green-400'
+              }`}>
+                {(botResult.classification === 'bot' || botResult.classification === 'likely-bot') && <PixelLobster size={12} />}
+                {botResult.classification.toUpperCase()} {botResult.botScore}
+              </div>
+            )}
+            {botResult && (
+              <ShareScoreCard
+                address={walletAddress}
+                pseudonym={metrics?.pseudonym}
+                botScore={botResult.botScore}
+                classification={botResult.classification}
+                signals={botResult.signals}
+                tradeCount={botResult.tradeCount}
+                portfolioValue={metrics?.portfolioValue}
+                profitPnL={metrics?.profitPnL}
+              />
+            )}
+          </div>
         </div>
 
         {/* Stats Grid */}
