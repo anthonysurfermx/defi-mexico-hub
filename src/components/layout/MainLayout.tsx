@@ -6,7 +6,6 @@ import {
   PixelHome,
   PixelGithub,
   PixelMail,
-  PixelChevronRight,
   PixelSettings,
   PixelBook,
   PixelChevronDown,
@@ -347,8 +346,8 @@ export default function MainLayout() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t">
-            <div className="container mx-auto px-4 py-4 space-y-1">
+          <div className="md:hidden border-t max-h-[80vh] overflow-y-auto">
+            <div className="container mx-auto px-4 py-3 space-y-0.5">
               {/* Main Navigation */}
               {mainNavigation.map((item) => {
                 const Icon = item.Icon;
@@ -357,7 +356,7 @@ export default function MainLayout() {
                     key={item.name}
                     to={item.href}
                     className={`
-                      flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
                       ${isActive(item.href)
                         ? 'bg-accent text-accent-foreground'
@@ -365,18 +364,15 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon size={20} />
+                    <Icon size={18} />
                     {item.name}
-                    {isActive(item.href) && (
-                      <PixelChevronRight size={16} className="ml-auto" />
-                    )}
                   </Link>
                 );
               })}
 
               {/* Aprende Section */}
-              <div className="pt-2 pb-1 px-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="pt-2 pb-0.5 px-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('nav.learn')}
                 </p>
               </div>
@@ -387,7 +383,7 @@ export default function MainLayout() {
                     key={item.name}
                     to={item.href}
                     className={`
-                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
                       ${isActive(item.href)
                         ? 'bg-accent text-accent-foreground'
@@ -395,23 +391,15 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon size={20} className="mt-0.5" />
-                    <div className="flex-1">
-                      <div>{item.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
-                    </div>
-                    {isActive(item.href) && (
-                      <PixelChevronRight size={16} className="ml-auto mt-1" />
-                    )}
+                    <Icon size={18} />
+                    {item.name}
                   </Link>
                 );
               })}
 
               {/* Ecosistema Section */}
-              <div className="pt-2 pb-1 px-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="pt-2 pb-0.5 px-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('nav.ecosystem')}
                 </p>
               </div>
@@ -422,7 +410,7 @@ export default function MainLayout() {
                     key={item.name}
                     to={item.href}
                     className={`
-                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
                       ${isActive(item.href)
                         ? 'bg-accent text-accent-foreground'
@@ -430,30 +418,22 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon size={20} className="mt-0.5" />
-                    <div className="flex-1">
-                      <div>{item.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
-                    </div>
-                    {isActive(item.href) && (
-                      <PixelChevronRight size={16} className="ml-auto mt-1" />
-                    )}
+                    <Icon size={18} />
+                    {item.name}
                   </Link>
                 );
               })}
 
-              {/* NFT & Métricas */}
-              <div className="pt-2 pb-1 px-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {/* Mas */}
+              <div className="pt-2 pb-0.5 px-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('nav.more')}
                 </p>
               </div>
               <Link
                 to="/nft-gallery"
                 className={`
-                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                  flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                   transition-colors hover:bg-accent hover:text-accent-foreground
                   ${isActive('/nft-gallery')
                     ? 'bg-accent text-accent-foreground'
@@ -461,16 +441,13 @@ export default function MainLayout() {
                   }
                 `}
               >
-                <PixelTrophy size={20} />
+                <PixelTrophy size={18} />
                 {t('nav.nftCollection')}
-                {isActive('/nft-gallery') && (
-                  <PixelChevronRight size={16} className="ml-auto" />
-                )}
               </Link>
               <Link
                 to="/metricas"
                 className={`
-                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                  flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                   transition-colors hover:bg-accent hover:text-accent-foreground
                   ${isActive('/metricas')
                     ? 'bg-accent text-accent-foreground'
@@ -478,15 +455,13 @@ export default function MainLayout() {
                   }
                 `}
               >
-                <PixelBarChart size={20} />
+                <PixelBarChart size={18} />
                 {t('nav.metrics')}
-                {isActive('/metricas') && (
-                  <PixelChevronRight size={16} className="ml-auto" />
-                )}
               </Link>
+
               {/* Agentic World Section */}
-              <div className="pt-2 pb-1 px-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="pt-2 pb-0.5 px-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('nav.agenticWorld')}
                 </p>
               </div>
@@ -497,7 +472,7 @@ export default function MainLayout() {
                     key={item.name}
                     to={item.href}
                     className={`
-                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
                       transition-colors hover:bg-accent hover:text-accent-foreground
                       ${isActive(item.href)
                         ? 'bg-accent text-accent-foreground'
@@ -505,22 +480,14 @@ export default function MainLayout() {
                       }
                     `}
                   >
-                    <Icon size={20} className="mt-0.5" />
-                    <div className="flex-1">
-                      <div>{item.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
-                    </div>
-                    {isActive(item.href) && (
-                      <PixelChevronRight size={16} className="ml-auto mt-1" />
-                    )}
+                    <Icon size={18} />
+                    {item.name}
                   </Link>
                 );
               })}
 
               {/* Mobile Actions */}
-              <div className="pt-4">
+              <div className="pt-3 pb-1">
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
                   <Link to="/user">
                     <PixelSparkles size={16} className="mr-2" />
