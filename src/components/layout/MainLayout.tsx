@@ -73,6 +73,7 @@ export default function MainLayout() {
   const agenticNavigation = [
     { name: t('agenticWorld.navDirectorio'), href: '/agentic-world', Icon: PixelZap, description: t('agenticWorld.navDirectorioDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
+    { name: 'Polymarket Bot Detector', href: '/agentic-world/polymarket', Icon: PixelSearch, description: 'Detect bots in prediction markets' },
   ];
 
   const isActive = (path: string) => {
