@@ -34,18 +34,23 @@ const BASE_URL = 'https://data-api.polymarket.com';
 
 const DEFAULT_AGENTS: PolymarketAgent[] = [
   {
-    address: '0x56687bf447db6ffa42ffe2204a05edaa20f55839',
-    name: 'Theo4',
-    description: 'High-volume prediction trader',
+    address: '0x6031b6eed1c97e853c6e0f03ad3ce3529351f96d',
+    name: 'gabagool22',
+    description: 'Confirmed arbitrage bot. 27K+ trades, $142M volume. Exploits crypto 15-min mispricings.',
     isVerified: true,
-    tags: ['Whale']
+    tags: ['Bot', 'Arbitrage']
   },
   {
     address: '0x777d9f00c2b4f7b829c9de0049ca3e707db05143',
     name: 'CarlosMC',
     description: 'Sports & politics markets',
-    isVerified: true,
-    tags: ['Active']
+    tags: ['Human', 'Active']
+  },
+  {
+    address: '0x56687bf447db6ffa42ffe2204a05edaa20f55839',
+    name: 'Theo4',
+    description: 'French whale. $48M+ profit from 2024 US election bets using quantitative polling.',
+    tags: ['Whale']
   }
 ];
 

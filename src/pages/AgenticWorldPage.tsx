@@ -1,13 +1,12 @@
 // src/pages/AgenticWorldPage.tsx
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from 'react-router-dom';
 import { Bot, Zap, Sparkles } from 'lucide-react';
 import { PixelSearch, PixelFilter } from '@/components/ui/pixel-icons';
 import { AGENTIC_PROJECTS, AGENTIC_CATEGORIES } from '@/data/agentic-projects';
@@ -16,6 +15,7 @@ import { EntityComments } from '@/components/BlogComments';
 
 export default function AgenticWorldPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -59,14 +59,22 @@ export default function AgenticWorldPage() {
                   {t('agenticWorld.badge')}
                 </Badge>
               </div>
-              <div className="flex gap-2 mt-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/agentic-world/leaderboard">DefiLlama Leaderboard</Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/agentic-world/polymarket">Polymarket Agents</Link>
-                </Button>
-              </div>
+              <Select
+                value="directory"
+                onValueChange={(val) => {
+                  if (val === 'leaderboard') navigate('/agentic-world/leaderboard');
+                  else if (val === 'polymarket') navigate('/agentic-world/polymarket');
+                }}
+              >
+                <SelectTrigger className="w-[220px] mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="directory">Directory</SelectItem>
+                  <SelectItem value="leaderboard">DefiLlama Leaderboard</SelectItem>
+                  <SelectItem value="polymarket">Polymarket Bot Detector</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <p className="text-muted-foreground text-lg mt-2">
