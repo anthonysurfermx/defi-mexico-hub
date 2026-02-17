@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/pixel-icons';
 import { startupsService } from '@/services/startups.service';
 import { useAuth } from '@/hooks/useAuth';
+import { EntityComments } from '@/components/BlogComments';
 import { Trophy, Github, Calendar } from 'lucide-react';
 
 interface HackathonProject {
@@ -285,6 +286,9 @@ export default function HackathonProjectsPage() {
             </Button>
           </Card>
         )}
+
+        {/* Comments Section */}
+        <EntityComments entityId="hackathon-mvps" entityType="hackathon" />
       </div>
     </div>
   );
