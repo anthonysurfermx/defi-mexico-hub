@@ -69,6 +69,7 @@ const AdminCommunities = lazy(() => import('@/pages/admin/AdminCommunities'));
 const AdminAdvocates = lazy(() => import('@/pages/admin/AdminAdvocates'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+const AdminShortUrls = lazy(() => import('@/pages/admin/AdminShortUrls'));
 
 // User pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard'));
@@ -804,6 +805,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminJobForm />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'short-urls',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AdminShortUrls />
                 </Suspense>
               ),
             },
