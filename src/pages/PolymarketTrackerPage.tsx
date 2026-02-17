@@ -14,7 +14,7 @@ import {
   Bot, TrendingUp, TrendingDown, ExternalLink,
   RefreshCw, Plus, Trash2, Wallet, ArrowLeft,
   DollarSign, ScanSearch, ChevronDown, ChevronUp,
-  Link2, Search, Users, AlertTriangle
+  Link2, Search, Users, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster, PixelTarget } from '@/components/ui/pixel-icons';
@@ -857,16 +857,19 @@ export default function PolymarketTrackerPage() {
                                       {loadingPositions === holder.address && (
                                         <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                                       )}
-                                      <button
-                                        className="text-[10px] px-2 py-1 border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
-                                        }}
-                                      >
-                                        <PixelTarget size={10} />
-                                        ACTIVATE DeFi MEXICO ANALYZER
-                                      </button>
+                                      <div className="relative group/analyzer">
+                                        <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
+                                        <button
+                                          className="relative text-[10px] px-3 py-1.5 bg-gradient-to-r from-amber-900/90 to-amber-800/90 border border-amber-400/60 text-amber-300 hover:text-amber-100 flex items-center gap-1.5 transition-all font-bold tracking-wide hover:scale-[1.02]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
+                                          }}
+                                        >
+                                          <Sparkles className="w-3 h-3" />
+                                          ACTIVATE DeFi MEXICO ANALYZER
+                                        </button>
+                                      </div>
                                       <a
                                         href={`https://polymarket.com/portfolio/${holder.address}`}
                                         target="_blank"
@@ -1023,16 +1026,19 @@ export default function PolymarketTrackerPage() {
                               {loadingPositions === holder.address && (
                                 <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                               )}
-                              <button
-                                className="text-[10px] px-2 py-1 border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 flex items-center gap-1.5 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
-                                }}
-                              >
-                                <PixelTarget size={10} />
-                                ANALYZER
-                              </button>
+                              <div className="relative group/analyzer">
+                                <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
+                                <button
+                                  className="relative text-[10px] px-2.5 py-1.5 bg-gradient-to-r from-amber-900/90 to-amber-800/90 border border-amber-400/60 text-amber-300 hover:text-amber-100 flex items-center gap-1.5 transition-all font-bold"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
+                                  }}
+                                >
+                                  <Sparkles className="w-3 h-3" />
+                                  ANALYZER
+                                </button>
+                              </div>
                               <a
                                 href={`https://polymarket.com/portfolio/${holder.address}`}
                                 target="_blank"
@@ -1495,6 +1501,15 @@ export default function PolymarketTrackerPage() {
           </div>
         </div>
       </div>
+
+      {/* Glow animation for ANALYZER buttons */}
+      <style>{`
+        @keyframes glow-spin {
+          0% { filter: hue-rotate(0deg) blur(2px); }
+          50% { filter: hue-rotate(15deg) blur(3px); }
+          100% { filter: hue-rotate(0deg) blur(2px); }
+        }
+      `}</style>
     </div>
   );
 }
