@@ -195,8 +195,11 @@ export const polymarketService = {
       if (!u.hostname.includes('polymarket.com')) return null;
       // URL formats:
       // /event/slug-name OR /event/slug-name/sub-market-slug
+      // /es/event/slug-name (with locale prefix)
       const parts = u.pathname.split('/').filter(Boolean);
-      if (parts[0] === 'event' && parts.length >= 2) {
+      // Find the 'event' segment (could be at index 0 or after a locale like /es/)
+      const eventIdx = parts.indexOf('event');
+      if (eventIdx !== -1 && parts.length > eventIdx + 1) {
         return parts[parts.length - 1]; // last segment is the market slug
       }
       return null;
