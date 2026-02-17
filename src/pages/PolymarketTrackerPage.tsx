@@ -406,32 +406,17 @@ export default function PolymarketTrackerPage() {
               </div>
             )}
 
-            {/* Market Info */}
+            {/* Market Embed */}
             {marketInfo && (
-              <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-muted">
-                <div className="flex items-start gap-3">
-                  {marketInfo.image && (
-                    <img
-                      src={marketInfo.image}
-                      alt=""
-                      className="w-12 h-12 rounded-lg object-cover shrink-0"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm">{marketInfo.question}</h3>
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>Volume: {formatUSD(marketInfo.volume)}</span>
-                      {marketInfo.outcomes.map((outcome, i) => (
-                        <span key={outcome} className="font-mono">
-                          {outcome}: {(parseFloat(marketInfo.outcomePrices[i] || '0') * 100).toFixed(0)}%
-                        </span>
-                      ))}
-                      {marketInfo.endDate && (
-                        <span>Ends: {new Date(marketInfo.endDate).toLocaleDateString()}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-4 rounded-lg overflow-hidden border border-muted">
+                <iframe
+                  title="polymarket-market-iframe"
+                  src={`https://embed.polymarket.com/market.html?market=${marketInfo.slug}&features=volume&theme=dark`}
+                  width="100%"
+                  height="180"
+                  frameBorder="0"
+                  className="w-full"
+                />
               </div>
             )}
 
