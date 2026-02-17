@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, ExternalLink, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, ShieldCheck } from 'lucide-react';
 import { PixelTrophy, PixelCoins, PixelBarChart, PixelLayers } from '@/components/ui/pixel-icons';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { defillamaService, type AIAgentProtocol, type TVLHistoryPoint } from '@/services/defillama.service';
 import { EntityComments } from '@/components/BlogComments';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
@@ -185,56 +186,51 @@ export default function AgenticLeaderboardPage() {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats - Terminal Style */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="border-amber-500/20">
-              <CardHeader className="pb-2">
-                <CardDescription>{t('agenticWorld.leaderboard.totalTVL')}</CardDescription>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <PixelCoins size={20} className="text-amber-500" />
-                  {formatUSD(totalTVL)}
-                </CardTitle>
-                {avgTVLChange24h !== null && (
-                  <div className="mt-1">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium ${avgTVLChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {avgTVLChange24h >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {avgTVLChange24h >= 0 ? '+' : ''}{avgTVLChange24h.toFixed(2)}% 24h
-                    </span>
-                  </div>
-                )}
-              </CardHeader>
-            </Card>
-            <Card className="border-amber-500/20">
-              <CardHeader className="pb-2">
-                <CardDescription>{t('agenticWorld.leaderboard.totalFees')}</CardDescription>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <PixelBarChart size={20} className="text-amber-500" />
-                  {formatUSD(totalFees)}
-                </CardTitle>
-                {totalFees24h > 0 && (
-                  <div className="mt-1">
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                      +{formatUSD(totalFees24h)} 24h
-                    </span>
-                  </div>
-                )}
-              </CardHeader>
-            </Card>
-            <Card className="border-amber-500/20">
-              <CardHeader className="pb-2">
-                <CardDescription>{t('agenticWorld.leaderboard.totalProtocols')}</CardDescription>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <PixelLayers size={20} className="text-amber-500" />
-                  {protocols.length}
-                </CardTitle>
-                <div className="mt-1">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    {protocols.filter(p => p.tvl > 0).length} con TVL activo
-                  </span>
+          <div className="grid grid-cols-3 gap-2 mb-8">
+            <div className="border border-amber-500/30 bg-black/60 p-3 font-mono">
+              <div className="text-[10px] text-amber-400/60 mb-1">{'>'} TOTAL_TVL</div>
+              <div className="text-xl font-bold text-amber-400">
+                <ScrambleText text={formatUSD(totalTVL)} />
+              </div>
+              {avgTVLChange24h !== null && (
+                <div className={`text-[10px] mt-1 ${avgTVLChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {avgTVLChange24h >= 0 ? '+' : ''}{avgTVLChange24h.toFixed(2)}% 24h
                 </div>
-              </CardHeader>
-            </Card>
+              )}
+              <div className="flex gap-[2px] mt-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className={`w-1.5 h-1 ${i < 6 ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                ))}
+              </div>
+            </div>
+            <div className="border border-amber-500/30 bg-black/60 p-3 font-mono">
+              <div className="text-[10px] text-amber-400/60 mb-1">{'>'} TOTAL_FEES</div>
+              <div className="text-xl font-bold text-amber-400">
+                <ScrambleText text={formatUSD(totalFees)} />
+              </div>
+              {totalFees24h > 0 && (
+                <div className="text-[10px] text-amber-300/50 mt-1">+{formatUSD(totalFees24h)} 24h</div>
+              )}
+              <div className="flex gap-[2px] mt-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className={`w-1.5 h-1 ${i < 4 ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                ))}
+              </div>
+            </div>
+            <div className="border border-amber-500/30 bg-black/60 p-3 font-mono">
+              <div className="text-[10px] text-amber-400/60 mb-1">{'>'} PROTOCOLS</div>
+              <div className="text-xl font-bold text-amber-400">
+                <ScrambleText text={`${protocols.length}`} />
+              </div>
+              <div className="text-[10px] text-amber-300/50 mt-1">{protocols.filter(p => p.tvl > 0).length} active TVL</div>
+              <div className="flex gap-[2px] mt-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className={`w-1.5 h-1 ${i < 3 ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -46,5 +46,17 @@ export default defineConfig({
   server: {
     port: 8080,
     host: true,
+    proxy: {
+      '/api/polymarket-gamma': {
+        target: 'https://gamma-api.polymarket.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/polymarket-gamma/, ''),
+      },
+      '/api/polymarket-data': {
+        target: 'https://data-api.polymarket.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/polymarket-data/, ''),
+      },
+    },
   },
 })

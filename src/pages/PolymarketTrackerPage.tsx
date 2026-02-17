@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster } from '@/components/ui/pixel-icons';
+import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
@@ -54,8 +55,10 @@ function BotScoreBadge({ score, classification }: { score: number; classificatio
     'mixed': 'MIXED',
     'human': 'HUMAN',
   };
+  const isAgent = classification === 'bot' || classification === 'likely-bot';
   return (
-    <Badge className={`${colors[classification] || colors.mixed} text-[10px] font-mono`}>
+    <Badge className={`${colors[classification] || colors.mixed} text-[10px] font-mono flex items-center gap-1`}>
+      {isAgent && <PixelLobster size={12} className="shrink-0" />}
       {labels[classification] || 'UNKNOWN'} {score}
     </Badge>
   );
@@ -330,43 +333,45 @@ export default function PolymarketTrackerPage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Tracked</CardDescription>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Bot className="w-5 h-5 text-blue-500" />
-                {agents.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Agents Detected</CardDescription>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <ScanSearch className="w-5 h-5 text-red-500" />
-                {Object.keys(botResults).length > 0 ? botsDetected : '-'}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Portfolio</CardDescription>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-green-500" />
-                {loading ? '...' : formatUSD(totalPortfolio)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Volume (100 trades)</CardDescription>
-              <CardTitle className="text-2xl">
-                {loading ? '...' : formatUSD(totalVolume)}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        {/* Stats Grid - Terminal Style */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+          {[
+            { label: 'TRACKED', value: `${agents.length}`, color: 'green' as const },
+            { label: 'AGENTS', value: Object.keys(botResults).length > 0 ? `${botsDetected}` : '-', color: 'red' as const },
+            { label: 'PORTFOLIO', value: loading ? '...' : formatUSD(totalPortfolio), color: 'green' as const },
+            { label: 'VOLUME', value: loading ? '...' : formatUSD(totalVolume), color: 'green' as const },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className={`border bg-black/60 p-3 font-mono ${
+                stat.color === 'red' ? 'border-red-500/30' : 'border-green-500/30'
+              }`}
+            >
+              <div className={`text-[10px] mb-1 ${
+                stat.color === 'red' ? 'text-red-400/60' : 'text-green-400/60'
+              }`}>
+                {'>'} {stat.label}
+              </div>
+              <div className={`text-xl font-bold ${
+                stat.color === 'red' ? 'text-red-400' : 'text-green-400'
+              }`}>
+                <ScrambleText text={stat.value} />
+              </div>
+              <div className={`flex gap-[2px] mt-1.5`}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 h-1 ${
+                      i < Math.min(8, parseInt(stat.value) || 0)
+                        ? stat.color === 'red' ? 'bg-red-500' : 'bg-green-500'
+                        : stat.color === 'red' ? 'bg-red-500/15' : 'bg-green-500/15'
+                    }`}
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Market URL Scanner */}
@@ -865,6 +870,127 @@ export default function PolymarketTrackerPage() {
               );
             })
           )}
+        </div>
+
+        {/* Methodology Section */}
+        <div className="mt-8 rounded-lg border border-green-500/30 bg-black/60 overflow-hidden" style={{ imageRendering: 'auto' }}>
+          {/* Terminal header */}
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border-b border-green-500/20">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+            </div>
+            <span className="text-green-400 text-xs font-mono ml-2 flex items-center gap-2">
+              <PixelLobster size={14} className="text-green-400" />
+              openclaw --methodology
+            </span>
+          </div>
+
+          <div className="p-4 md:p-6 font-mono text-sm space-y-5">
+            {/* How it works */}
+            <div>
+              <div className="text-green-400 text-xs mb-2">{'>'} SYSTEM.OVERVIEW</div>
+              <p className="text-green-300/70 text-xs leading-relaxed">
+                OpenClaw reads on-chain behavior from Polymarket's public API:
+                500 trades, 500 merges, 200 positions per wallet.
+                Six signals run through a weighted model. Final score: 0 to 100.
+              </p>
+            </div>
+
+            {/* Signal weights as pixel bars */}
+            <div>
+              <div className="text-green-400 text-xs mb-3">{'>'} SIGNAL.WEIGHTS</div>
+              <div className="space-y-3">
+                {[
+                  { name: 'SPLIT/MERGE', weight: 25, blocks: 5, desc: 'Merge/redeem ratio. Arbitrage bots split and recombine conditional tokens.' },
+                  { name: 'INTERVAL', weight: 20, blocks: 4, desc: 'Trade timing regularity. Sub-30s avg = machine speed.' },
+                  { name: 'SIZING', weight: 15, blocks: 3, desc: 'Position size variance. Identical orders = automated.' },
+                  { name: '24/7 ACTIVE', weight: 15, blocks: 3, desc: '22+ UTC hours covered = never sleeps.' },
+                  { name: 'WIN RATE', weight: 15, blocks: 3, desc: '85%+ win rate = algorithmic edge.' },
+                  { name: 'FOCUS', weight: 10, blocks: 2, desc: 'Category concentration. Bots specialize in one vertical.' },
+                ].map((s) => (
+                  <div key={s.name}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-400 text-[10px] w-24 shrink-0">{s.name}</span>
+                      <div className="flex gap-[2px]">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-3 h-3 ${i < s.blocks ? 'bg-green-500' : 'bg-green-500/15'}`}
+                            style={{ imageRendering: 'pixelated' }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-green-300/50 text-[10px] ml-1">{s.weight}%</span>
+                    </div>
+                    <div className="text-green-300/40 text-[10px] ml-[6.5rem] mt-0.5">{s.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Both-sides bonus */}
+            <div>
+              <div className="text-red-400 text-xs mb-2">{'>'} BONUS.BOTH_SIDES</div>
+              <div className="flex flex-wrap gap-2 text-[10px]">
+                <span className="px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400">{'>'}10% = +8pts</span>
+                <span className="px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400">{'>'}30% = +15pts</span>
+                <span className="px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400">{'>'}50% = +20pts</span>
+              </div>
+              <div className="text-green-300/40 text-[10px] mt-1">YES + NO on same market = market-making / arb signal</div>
+            </div>
+
+            {/* Classification tiers as pixel blocks */}
+            <div>
+              <div className="text-green-400 text-xs mb-3">{'>'} CLASSIFICATION</div>
+              <div className="grid grid-cols-4 gap-1">
+                <div className="p-2 border border-green-500/30 bg-green-500/5 text-center">
+                  <div className="text-green-400 font-bold text-sm">0-39</div>
+                  <div className="flex justify-center mt-1 gap-[1px]">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="w-1.5 h-1.5 bg-green-500" style={{ imageRendering: 'pixelated' }} />
+                    ))}
+                  </div>
+                  <div className="text-green-300/50 text-[9px] mt-1">HUMAN</div>
+                </div>
+                <div className="p-2 border border-yellow-500/30 bg-yellow-500/5 text-center">
+                  <div className="text-yellow-400 font-bold text-sm">40-59</div>
+                  <div className="flex justify-center mt-1 gap-[1px]">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="w-1.5 h-1.5 bg-yellow-500" style={{ imageRendering: 'pixelated' }} />
+                    ))}
+                  </div>
+                  <div className="text-yellow-300/50 text-[9px] mt-1">MIXED</div>
+                </div>
+                <div className="p-2 border border-orange-500/30 bg-orange-500/5 text-center">
+                  <div className="text-orange-400 font-bold text-sm">60-79</div>
+                  <div className="flex justify-center mt-1 gap-[1px]">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="w-1.5 h-1.5 bg-orange-500" style={{ imageRendering: 'pixelated' }} />
+                    ))}
+                  </div>
+                  <div className="text-orange-300/50 text-[9px] mt-1">LIKELY</div>
+                </div>
+                <div className="p-2 border border-red-500/30 bg-red-500/5 text-center">
+                  <div className="text-red-400 font-bold text-sm flex items-center justify-center gap-1">
+                    <PixelLobster size={12} /> 80+
+                  </div>
+                  <div className="flex justify-center mt-1 gap-[1px]">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="w-1.5 h-1.5 bg-red-500" style={{ imageRendering: 'pixelated' }} />
+                    ))}
+                  </div>
+                  <div className="text-red-300/50 text-[9px] mt-1">AGENT</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="text-green-300/30 text-[10px] pt-2 border-t border-green-500/10">
+              src: polymarket data-api + gamma-api | runs client-side | no data stored
+            </div>
+          </div>
         </div>
       </div>
     </div>

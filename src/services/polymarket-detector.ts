@@ -1,4 +1,4 @@
-const BASE_URL = 'https://data-api.polymarket.com';
+const BASE_URL = '/api/polymarket-data';
 
 export interface BotSignals {
   intervalRegularity: number;   // S1: 0-100

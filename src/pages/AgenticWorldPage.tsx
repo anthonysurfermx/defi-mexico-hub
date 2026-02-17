@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bot, Zap, Sparkles } from 'lucide-react';
 import { PixelSearch, PixelFilter } from '@/components/ui/pixel-icons';
+import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { AGENTIC_PROJECTS, AGENTIC_CATEGORIES } from '@/data/agentic-projects';
 import AgentCard from '@/components/agentic/AgentCard';
 import { EntityComments } from '@/components/BlogComments';
@@ -64,20 +65,23 @@ export default function AgenticWorldPage() {
           </p>
         </div>
 
-        {/* Info Banner */}
-        <Card className="mb-8 bg-gradient-to-r from-cyan-500/10 to-teal-600/10 border-cyan-500/20">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <Zap className="w-5 h-5 text-cyan-500 mt-0.5" />
-              <div>
-                <p className="font-medium text-cyan-400">{t('agenticWorld.infoBannerTitle')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t('agenticWorld.infoBannerDescription')}
-                </p>
-              </div>
+        {/* Info Banner - Terminal Style */}
+        <div className="mb-8 border border-cyan-500/30 bg-black/60 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border-b border-cyan-500/20">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-red-500/60" />
+              <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+              <div className="w-2 h-2 rounded-full bg-green-500/60" />
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-cyan-400 text-[10px] font-mono ml-1">system.info</span>
+          </div>
+          <div className="px-4 py-3 font-mono">
+            <p className="text-cyan-400 text-xs">{t('agenticWorld.infoBannerTitle')}</p>
+            <p className="text-cyan-300/50 text-[11px] mt-1">
+              {t('agenticWorld.infoBannerDescription')}
+            </p>
+          </div>
+        </div>
 
         {/* Featured Projects */}
         {featuredProjects.length > 0 && (
@@ -122,17 +126,30 @@ export default function AgenticWorldPage() {
           </Select>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
-          <Card className="border-cyan-500/20">
-            <CardHeader className="pb-2">
-              <CardDescription>{t('agenticWorld.totalProjects')}</CardDescription>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Bot className="w-5 h-5 text-cyan-500" />
-                {filteredProjects.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        {/* Stats - Terminal Style */}
+        <div className="grid grid-cols-2 gap-2 mb-8">
+          <div className="border border-cyan-500/30 bg-black/60 p-3 font-mono">
+            <div className="text-[10px] text-cyan-400/60 mb-1">{'>'} TOTAL_PROJECTS</div>
+            <div className="text-xl font-bold text-cyan-400">
+              <ScrambleText text={`${filteredProjects.length}`} />
+            </div>
+            <div className="flex gap-[2px] mt-1.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className={`w-1.5 h-1 ${i < 5 ? 'bg-cyan-500' : 'bg-cyan-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+              ))}
+            </div>
+          </div>
+          <div className="border border-cyan-500/30 bg-black/60 p-3 font-mono">
+            <div className="text-[10px] text-cyan-400/60 mb-1">{'>'} FEATURED</div>
+            <div className="text-xl font-bold text-cyan-400">
+              <ScrambleText text={`${featuredProjects.length}`} />
+            </div>
+            <div className="flex gap-[2px] mt-1.5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className={`w-1.5 h-1 ${i < 3 ? 'bg-cyan-500' : 'bg-cyan-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Projects Grid */}
