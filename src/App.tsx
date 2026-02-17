@@ -49,6 +49,9 @@ const Web3JobsPage = lazy(() => import('@/pages/Web3JobsPage'));
 // Hackathon Projects
 const HackathonProjectsPage = lazy(() => import('@/pages/HackathonProjectsPage'));
 
+// Agentic World
+const AgenticWorldPage = lazy(() => import('@/pages/AgenticWorldPage'));
+
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
@@ -459,6 +462,15 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <HackathonProjectsPage />
+                </Suspense>
+              ),
+            },
+            // Agentic World
+            {
+              path: 'agentic-world',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AgenticWorldPage />
                 </Suspense>
               ),
             },

@@ -23,7 +23,8 @@ import {
   PixelTrophy,
   PixelLogo,
   PixelBriefcase,
-  PixelFileText
+  PixelFileText,
+  PixelZap
 } from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -84,6 +85,14 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Skip to content - Accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
+      >
+        Saltar al contenido principal
+      </a>
+
       {/* Global Search */}
       <GlobalSearch />
 
@@ -134,7 +143,7 @@ export default function MainLayout() {
                     `}
                   >
                     <PixelBook size={16} />
-                    Learn
+                    {t('nav.learn')}
                     <PixelChevronDown size={12} className="opacity-50" />
                   </button>
                 </DropdownMenuTrigger>
@@ -215,7 +224,7 @@ export default function MainLayout() {
                 `}
               >
                 <PixelTrophy size={16} />
-                NFT Collection
+                {t('nav.nftCollection')}
               </Link>
 
               {/* Métricas Link */}
@@ -231,7 +240,23 @@ export default function MainLayout() {
                 `}
               >
                 <PixelBarChart size={16} />
-                Métricas
+                {t('nav.metrics')}
+              </Link>
+
+              {/* Agentic World Link */}
+              <Link
+                to="/agentic-world"
+                className={`
+                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/agentic-world')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <PixelZap size={16} />
+                {t('nav.agenticWorld')}
               </Link>
             </div>
 
@@ -273,6 +298,8 @@ export default function MainLayout() {
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg hover:bg-accent"
+                aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? (
                   <PixelX size={24} />
@@ -316,7 +343,7 @@ export default function MainLayout() {
               {/* Aprende Section */}
               <div className="pt-2 pb-1 px-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Learn
+                  {t('nav.learn')}
                 </p>
               </div>
               {aprendeNavigation.map((item) => {
@@ -386,7 +413,7 @@ export default function MainLayout() {
               {/* NFT & Métricas */}
               <div className="pt-2 pb-1 px-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Más
+                  {t('nav.more')}
                 </p>
               </div>
               <Link
@@ -401,7 +428,7 @@ export default function MainLayout() {
                 `}
               >
                 <PixelTrophy size={20} />
-                NFT Collection
+                {t('nav.nftCollection')}
                 {isActive('/nft-gallery') && (
                   <PixelChevronRight size={16} className="ml-auto" />
                 )}
@@ -418,8 +445,25 @@ export default function MainLayout() {
                 `}
               >
                 <PixelBarChart size={20} />
-                Métricas
+                {t('nav.metrics')}
                 {isActive('/metricas') && (
+                  <PixelChevronRight size={16} className="ml-auto" />
+                )}
+              </Link>
+              <Link
+                to="/agentic-world"
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                  transition-colors hover:bg-accent hover:text-accent-foreground
+                  ${isActive('/agentic-world')
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground'
+                  }
+                `}
+              >
+                <PixelZap size={20} />
+                {t('nav.agenticWorld')}
+                {isActive('/agentic-world') && (
                   <PixelChevronRight size={16} className="ml-auto" />
                 )}
               </Link>
@@ -439,7 +483,7 @@ export default function MainLayout() {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
 
@@ -454,14 +498,15 @@ export default function MainLayout() {
                 <PixelLogo size="sm" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Impulsando el ecosistema DeFi en México a través de la innovación y colaboración.
+                {t('footer.tagline')}
               </p>
               <div className="flex space-x-3">
-                <a 
-                  href="https://github.com/anthonysurfermx/defi-mexico-hub" 
-                  target="_blank" 
+                <a
+                  href="https://github.com/anthonysurfermx/defi-mexico-hub"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="GitHub del proyecto"
                 >
                   <PixelGithub size={20} />
                 </a>
@@ -470,7 +515,7 @@ export default function MainLayout() {
 
             {/* Quick Links */}
             <div>
-              <h3 className="font-semibold mb-4">Enlaces Rápidos</h3>
+              <h3 className="font-semibold mb-4">{t('footer.quickLinks')}</h3>
               <ul className="space-y-2">
                 <li>
                   <Link to="/startups" className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -514,7 +559,7 @@ export default function MainLayout() {
                 </li>
                 <li>
                   <Link to="/nft-gallery" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    NFT Collection
+                    {t('nav.nftCollection')}
                   </Link>
                 </li>
               </ul>
@@ -522,9 +567,9 @@ export default function MainLayout() {
 
             {/* Newsletter */}
             <div>
-              <h3 className="font-semibold mb-4">Newsletter</h3>
+              <h3 className="font-semibold mb-4">{t('footer.newsletter')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Recibe las últimas noticias del ecosistema DeFi mexicano.
+                {t('footer.newsletterDesc')}
               </p>
               <form className="space-y-2" onSubmit={(e) => e.preventDefault()}>
                 <input
@@ -533,7 +578,7 @@ export default function MainLayout() {
                   className="w-full px-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <Button type="submit" className="w-full">
-                  Suscribirse
+                  {t('footer.subscribe')}
                 </Button>
               </form>
             </div>
@@ -543,18 +588,18 @@ export default function MainLayout() {
           <div className="mt-8 pt-8 border-t">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <p className="text-sm text-muted-foreground">
-                © 2024 DeFi México Hub. Todos los derechos reservados.
+                {t('footer.copyright', { year: new Date().getFullYear() })}
               </p>
               <div className="flex items-center space-x-6">
                 <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Términos
+                  {t('footer.terms')}
                 </a>
                 <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Privacidad
+                  {t('footer.privacy')}
                 </a>
                 <a href="mailto:hola@defimexico.com" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
                   <PixelMail size={12} />
-                  Contacto
+                  {t('footer.contact')}
                 </a>
                 
                 {/* Botón Admin movido aquí - discreto */}

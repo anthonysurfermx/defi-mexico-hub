@@ -12,6 +12,8 @@
     "jobs": "Trabajos Web3",
     "metrics": "Métricas",
     "nftCollection": "NFT Collection",
+    "agenticWorld": "Agentic World",
+    "agenticWorldDesc": "Agentes AI para DeFi",
     "contribute": "Contribuye",
     "admin": "Admin"
   },
@@ -1216,5 +1218,43 @@
     },
     "footer": "NFT Collection by",
     "deployedOn": "Deployed on"
+  },
+  "agenticWorld": {
+    "title": "Agentic World",
+    "description": "Directorio de agentes autónomos de AI aplicados a finanzas descentralizadas",
+    "badge": "NUEVO",
+    "infoBannerTitle": "¿Qué son los agentes financieros AI?",
+    "infoBannerDescription": "Agentes autónomos que ejecutan operaciones financieras: trading, yield farming, predicción de mercados y más. Inspirado por el ecosistema OpenClaw.",
+    "searchPlaceholder": "Buscar agentes...",
+    "totalProjects": "Total de agentes",
+    "noResults": "No se encontraron agentes",
+    "noResultsFilterHint": "Intenta cambiar los filtros o la búsqueda",
+    "noResultsEmptyHint": "Aún no hay agentes registrados",
+    "categories": {
+      "all": "Todos",
+      "trading": "Trading",
+      "prediction": "Predicción",
+      "yield": "Yield",
+      "infrastructure": "Infraestructura",
+      "privacy": "Privacidad",
+      "analytics": "Analytics"
+    },
+    "status": {
+      "active": "Activo",
+      "beta": "Beta",
+      "development": "En desarrollo"
+    },
+    "riskLevel": {
+      "label": "Riesgo",
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto"
+    },
+    "card": {
+      "viewMore": "Ver más",
+      "highlights": "Características",
+      "links": "Enlaces",
+      "website": "Sitio web"
+    }
   }
 }
