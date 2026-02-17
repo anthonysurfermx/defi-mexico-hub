@@ -19,9 +19,10 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
-import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder } from '@/services/polymarket.service';
-import { detectBot, type BotDetectionResult } from '@/services/polymarket-detector';
+import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
+import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
 function formatUSD(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -99,6 +100,11 @@ export default function PolymarketTrackerPage() {
   const [marketScanning, setMarketScanning] = useState(false);
   const [marketScanProgress, setMarketScanProgress] = useState('');
   const [expandedHolder, setExpandedHolder] = useState<string | null>(null);
+  const [liveAnalysis, setLiveAnalysis] = useState<{ address: string; progress: SignalProgress } | null>(null);
+  const [eventInfo, setEventInfo] = useState<EventInfo | null>(null);
+  const [priceHistory, setPriceHistory] = useState<OutcomePriceHistory[]>([]);
+  const [holderPositions, setHolderPositions] = useState<Record<string, PolymarketPosition[]>>({});
+  const [loadingPositions, setLoadingPositions] = useState<string | null>(null);
 
   const loadAgents = () => {
     const list = polymarketService.getAgents();
@@ -200,9 +206,19 @@ export default function PolymarketTrackerPage() {
     setMarketInfo(null);
     setMarketHolders([]);
     setExpandedHolder(null);
+    setEventInfo(null);
+    setPriceHistory([]);
+    setHolderPositions({});
     setMarketScanProgress('Looking up market...');
 
-    const info = await polymarketService.getMarketBySlug(slug);
+    // Event slug might differ from market slug in sub-market URLs
+    const eventSlug = polymarketService.parseEventSlug(marketUrl) || slug;
+
+    // Fetch both market and event data in parallel
+    const [info, eventData] = await Promise.all([
+      polymarketService.getMarketBySlug(slug),
+      polymarketService.getEventBySlug(eventSlug),
+    ]);
     if (!info) {
       toast.error('Market not found. Check the URL and try again.');
       setMarketScanning(false);
@@ -211,6 +227,11 @@ export default function PolymarketTrackerPage() {
     }
 
     setMarketInfo(info);
+    if (eventData) {
+      setEventInfo(eventData);
+      // Fetch price history in parallel (don't block scan)
+      polymarketService.getEventPriceHistory(eventData.markets).then(setPriceHistory);
+    }
     setMarketScanProgress('Fetching holders...');
 
     const holders = await polymarketService.getMarketHolders(info.conditionId);
@@ -225,15 +246,23 @@ export default function PolymarketTrackerPage() {
     const holdersWithBot: (MarketHolder & { bot?: BotDetectionResult })[] = holders.map(h => ({ ...h }));
     setMarketHolders(holdersWithBot);
 
-    // Run bot detection on top holders sequentially
-    const toScan = holdersWithBot.slice(0, 20); // Top 20 holders
+    // Run bot detection on top holders sequentially with live signal streaming
+    const toScan = holdersWithBot.slice(0, 100); // Top 100 holders
     for (let i = 0; i < toScan.length; i++) {
+      const addr = toScan[i].address;
       setMarketScanProgress(`Scanning wallet ${i + 1}/${toScan.length}...`);
+      setLiveAnalysis({ address: addr, progress: { phase: 'fetching', signals: {} } });
+      const ctx: MarketContext = {
+        holderAmount: toScan[i].amount,
+        totalMarketVolume: info.volume,
+      };
       try {
-        const result = await detectBot(toScan[i].address);
+        const result = await detectBot(addr, (p) => {
+          setLiveAnalysis({ address: addr, progress: p });
+        }, ctx);
         setMarketHolders(prev =>
           prev.map(h =>
-            h.address === toScan[i].address ? { ...h, bot: result } : h
+            h.address === addr ? { ...h, bot: result } : h
           )
         );
       } catch {
@@ -241,9 +270,30 @@ export default function PolymarketTrackerPage() {
       }
     }
 
+    setLiveAnalysis(null);
     setMarketScanning(false);
     setMarketScanProgress('');
     toast.success(`Scanned ${toScan.length} holders in "${info.question}"`);
+  };
+
+  const handleViewPositions = async (address: string) => {
+    if (holderPositions[address]) {
+      // Toggle off
+      setHolderPositions(prev => {
+        const next = { ...prev };
+        delete next[address];
+        return next;
+      });
+      return;
+    }
+    setLoadingPositions(address);
+    try {
+      const positions = await polymarketService.getAgentPositions(address);
+      setHolderPositions(prev => ({ ...prev, [address]: positions }));
+    } catch {
+      toast.error('Failed to load positions');
+    }
+    setLoadingPositions(null);
   };
 
   const totalPortfolio = Object.values(metrics).reduce(
@@ -411,112 +461,432 @@ export default function PolymarketTrackerPage() {
               </div>
             )}
 
-            {/* Market Embed */}
-            {marketInfo && (
-              <div className="mt-4 rounded-lg overflow-hidden border border-muted">
-                <iframe
-                  title="polymarket-market-iframe"
-                  src={`https://embed.polymarket.com/market.html?market=${marketInfo.slug}&features=volume&theme=dark`}
-                  width="100%"
-                  height="180"
-                  frameBorder="0"
-                  className="w-full"
-                />
+            {/* Live Analysis Terminal */}
+            {liveAnalysis && (
+              <div className="mt-3 border border-green-500/30 bg-black/80 overflow-hidden font-mono">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border-b border-green-500/20">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                  </div>
+                  <span className="text-green-400 text-[10px] ml-1">
+                    openclaw --analyze {liveAnalysis.address.slice(0, 6)}...{liveAnalysis.address.slice(-4)}
+                  </span>
+                  <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                </div>
+                <div className="px-3 py-2 space-y-1.5">
+                  {liveAnalysis.progress.phase === 'fetching' ? (
+                    <div className="text-green-400/70 text-[11px] animate-pulse">
+                      {'>'} Fetching trades, merges, positions...
+                    </div>
+                  ) : (
+                    <>
+                      {liveAnalysis.progress.tradeCount !== undefined && (
+                        <div className="text-green-300/40 text-[10px]">
+                          {'>'} loaded {liveAnalysis.progress.tradeCount} trades, {liveAnalysis.progress.mergeCount} merges
+                        </div>
+                      )}
+                      {[
+                        { key: 'intervalRegularity' as const, name: 'INTERVAL' },
+                        { key: 'splitMergeRatio' as const, name: 'SPLIT/MERGE' },
+                        { key: 'sizingConsistency' as const, name: 'SIZING' },
+                        { key: 'activity24h' as const, name: '24/7' },
+                        { key: 'winRateExtreme' as const, name: 'WIN_RATE' },
+                        { key: 'marketConcentration' as const, name: 'FOCUS' },
+                        { key: 'ghostWhale' as const, name: 'GHOST' },
+                      ].map((s) => {
+                        const val = liveAnalysis.progress.signals[s.key];
+                        const isActive = liveAnalysis.progress.signal === s.name || liveAnalysis.progress.signal === s.name.replace('_', ' ');
+                        const isDone = val !== undefined;
+                        return (
+                          <div key={s.key} className="flex items-center gap-2">
+                            <span className={`text-[10px] w-20 shrink-0 ${isDone ? 'text-green-400' : isActive ? 'text-green-400 animate-pulse' : 'text-green-500/20'}`}>
+                              {s.name}
+                            </span>
+                            <div className="flex gap-[2px] flex-1">
+                              {Array.from({ length: 20 }).map((_, i) => {
+                                const filled = isDone ? Math.round((val / 100) * 20) : 0;
+                                const barColor = (val ?? 0) >= 80 ? 'bg-red-500' : (val ?? 0) >= 60 ? 'bg-orange-500' : (val ?? 0) >= 40 ? 'bg-yellow-500' : 'bg-green-500';
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`w-1.5 h-2.5 transition-all duration-150 ${i < filled ? barColor : 'bg-green-500/10'}`}
+                                    style={{ imageRendering: 'pixelated' }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <span className={`text-[10px] w-6 text-right ${isDone ? (val >= 70 ? 'text-red-400' : 'text-green-400') : 'text-green-500/20'}`}>
+                              {isDone ? val : '--'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {(liveAnalysis.progress.signals.bothSidesBonus ?? 0) > 0 && (
+                        <div className="text-red-400 text-[10px] pt-1 border-t border-green-500/10">
+                          {'>'} BOTH_SIDES_BONUS: +{liveAnalysis.progress.signals.bothSidesBonus}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Market Holders Results */}
+            {/* Event Overview Terminal */}
+            {eventInfo && eventInfo.markets.length > 0 && (
+              <div className="mt-4 border border-cyan-500/30 bg-black/60 overflow-hidden font-mono">
+                {/* Terminal header */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border-b border-cyan-500/20">
+                  <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                  </div>
+                  <span className="text-cyan-400 text-[10px] ml-1">
+                    market --overview {eventInfo.markets.length} outcomes
+                  </span>
+                  <span className="ml-auto text-cyan-400/40 text-[10px]">
+                    vol: {formatUSD(eventInfo.volume)} | 24h: {formatUSD(eventInfo.volume24hr)}
+                  </span>
+                </div>
+
+                {/* Event title + image */}
+                <div className="flex items-center gap-3 px-3 py-2.5 border-b border-cyan-500/10">
+                  {eventInfo.image && (
+                    <img src={eventInfo.image} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-cyan-300 text-xs truncate">{eventInfo.title}</p>
+                    <p className="text-cyan-400/40 text-[10px]">
+                      ends {new Date(eventInfo.endDate).toLocaleDateString()} | liq: {formatUSD(eventInfo.liquidity)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Outcome cards grid */}
+                <div className="p-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
+                  {eventInfo.markets
+                    .sort((a, b) => b.yesPrice - a.yesPrice)
+                    .filter(m => m.yesPrice > 0.005 || m.active)
+                    .slice(0, 12)
+                    .map((m) => {
+                      const pct = Math.round(m.yesPrice * 100);
+                      const barColor = pct >= 50 ? 'bg-green-500' : pct >= 10 ? 'bg-yellow-500' : 'bg-red-500/60';
+                      const filled = Math.round((pct / 100) * 10);
+                      return (
+                        <div
+                          key={m.conditionId}
+                          className={`border px-2 py-1.5 ${
+                            m.active
+                              ? 'border-cyan-500/20 bg-cyan-500/5'
+                              : 'border-cyan-500/10 bg-black/40 opacity-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-cyan-300 text-[11px] truncate flex-1">{m.groupItemTitle}</span>
+                            <span className={`text-[11px] font-bold ml-1 ${
+                              pct >= 50 ? 'text-green-400' : pct >= 10 ? 'text-yellow-400' : 'text-red-400/60'
+                            }`}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="flex gap-[1px] mt-1">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className={`flex-1 h-1 ${i < filled ? barColor : 'bg-cyan-500/10'}`}
+                                style={{ imageRendering: 'pixelated' as const }}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-cyan-400/30 text-[9px]">{formatUSD(m.volume)}</span>
+                            {!m.active && <span className="text-red-400/50 text-[9px]">closed</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Show remaining count */}
+                {eventInfo.markets.filter(m => m.yesPrice > 0.005 || m.active).length > 12 && (
+                  <div className="px-3 py-1 text-cyan-400/30 text-[9px] border-t border-cyan-500/10">
+                    {'>'} +{eventInfo.markets.filter(m => m.yesPrice > 0.005 || m.active).length - 12} more outcomes
+                  </div>
+                )}
+
+                {/* Price history chart */}
+                {priceHistory.length > 0 && (() => {
+                  const CHART_COLORS = ['#22d3ee', '#a78bfa', '#f59e0b', '#ef4444', '#10b981', '#f472b6'];
+                  // Build unified time series: merge all timestamps, then for each timestamp find closest price per outcome
+                  const allTimestamps = new Set<number>();
+                  priceHistory.forEach(o => o.history.forEach(h => allTimestamps.add(h.t)));
+                  const sortedTs = Array.from(allTimestamps).sort((a, b) => a - b);
+                  // Sample to ~120 points for performance
+                  const step = Math.max(1, Math.floor(sortedTs.length / 120));
+                  const sampledTs = sortedTs.filter((_, i) => i % step === 0);
+
+                  const chartData = sampledTs.map(t => {
+                    const point: Record<string, number> = { t };
+                    priceHistory.forEach(o => {
+                      // Find closest price at or before this timestamp
+                      let closest = 0;
+                      for (const h of o.history) {
+                        if (h.t <= t) closest = h.p;
+                        else break;
+                      }
+                      point[o.label] = Math.round(closest * 100);
+                    });
+                    return point;
+                  });
+
+                  return (
+                    <div className="border-t border-cyan-500/10 px-2 pt-3 pb-1">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 mb-2">
+                        {priceHistory.map((o, i) => {
+                          const lastPrice = o.history[o.history.length - 1]?.p || 0;
+                          return (
+                            <div key={o.label} className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                              <span className="text-cyan-300 text-[10px]">{o.label}</span>
+                              <span className="text-cyan-400/50 text-[10px]">{Math.round(lastPrice * 100)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={chartData}>
+                          <XAxis
+                            dataKey="t"
+                            type="number"
+                            domain={['dataMin', 'dataMax']}
+                            tickFormatter={(t: number) => {
+                              const d = new Date(t * 1000);
+                              return `${d.getMonth() + 1}/${d.getDate()}`;
+                            }}
+                            tick={{ fill: '#22d3ee', fontSize: 9, opacity: 0.4 }}
+                            axisLine={{ stroke: '#22d3ee', strokeOpacity: 0.1 }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            domain={[0, 100]}
+                            tickFormatter={(v: number) => `${v}%`}
+                            tick={{ fill: '#22d3ee', fontSize: 9, opacity: 0.4 }}
+                            axisLine={false}
+                            tickLine={false}
+                            width={35}
+                          />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid rgba(34,211,238,0.2)', fontSize: 11, fontFamily: 'monospace' }}
+                            labelFormatter={(t: number) => new Date(t * 1000).toLocaleDateString()}
+                            formatter={(value: number, name: string) => [`${value}%`, name]}
+                          />
+                          {priceHistory.map((o, i) => (
+                            <Line
+                              key={o.label}
+                              type="stepAfter"
+                              dataKey={o.label}
+                              stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                              strokeWidth={1.5}
+                              dot={false}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Market Holders Results - Terminal Style */}
             {marketHolders.length > 0 && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    Top Holders ({marketHolders.length})
-                  </h3>
+              <div className="mt-4 border border-cyan-500/30 bg-black/60 overflow-hidden font-mono">
+                {/* Terminal header */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border-b border-cyan-500/20">
+                  <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                  </div>
+                  <span className="text-cyan-400 text-[10px] ml-1">
+                    holders --top {marketHolders.length}
+                  </span>
                   {marketHolders.some(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')) && (
-                    <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-xs flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
+                    <span className="ml-auto text-red-400 text-[10px] flex items-center gap-1">
+                      <PixelLobster size={10} />
                       {marketHolders.filter(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')).length} agents detected
-                    </Badge>
+                    </span>
                   )}
                 </div>
 
                 {/* Desktop table */}
-                <div className="hidden md:block rounded-lg border overflow-hidden">
+                <div className="hidden md:block">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 text-xs font-medium text-muted-foreground">Holder</th>
-                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Side</th>
-                        <th className="text-right p-3 text-xs font-medium text-muted-foreground">Amount</th>
-                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Agent Score</th>
-                        <th className="p-3 w-8"></th>
+                      <tr className="border-b border-cyan-500/15">
+                        <th className="text-left px-3 py-2 text-[10px] text-cyan-400/60">{'>'} HOLDER</th>
+                        <th className="text-center px-3 py-2 text-[10px] text-cyan-400/60">SIDE</th>
+                        <th className="text-right px-3 py-2 text-[10px] text-cyan-400/60">AMOUNT</th>
+                        <th className="text-center px-3 py-2 text-[10px] text-cyan-400/60">AGENT_SCORE</th>
+                        <th className="px-3 py-2 w-6"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {marketHolders.map((holder) => {
+                      {marketHolders.map((holder, idx) => {
                         const isExp = expandedHolder === holder.address;
                         return (
                           <>
                             <tr
                               key={holder.address}
-                              className="border-b hover:bg-muted/20 cursor-pointer"
+                              className={`border-b border-cyan-500/10 hover:bg-cyan-500/5 cursor-pointer transition-colors ${
+                                holder.bot?.classification === 'bot' ? 'bg-red-500/5' :
+                                holder.bot?.classification === 'likely-bot' ? 'bg-orange-500/5' : ''
+                              }`}
                               onClick={() => holder.bot && setExpandedHolder(isExp ? null : holder.address)}
                             >
-                              <td className="p-3">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-sm">
-                                    {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
-                                  </span>
-                                  {holder.pseudonym && (
-                                    <span className="text-xs text-muted-foreground font-mono">
-                                      {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400/40 text-[10px] w-4">{String(idx + 1).padStart(2, '0')}</span>
+                                  <div className="flex flex-col">
+                                    <span className="text-cyan-300 text-xs">
+                                      {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
                                     </span>
-                                  )}
+                                    {holder.pseudonym && (
+                                      <span className="text-cyan-400/30 text-[10px]">
+                                        {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
-                              <td className="p-3 text-center">
-                                <Badge variant="outline" className={`text-[10px] ${
-                                  holder.outcome === 'Yes' ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'
+                              <td className="px-3 py-2 text-center">
+                                <span className={`text-[10px] px-1.5 py-0.5 border ${
+                                  holder.outcome === 'Yes'
+                                    ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                    : 'text-red-400 border-red-500/30 bg-red-500/10'
                                 }`}>
                                   {holder.outcome}
-                                </Badge>
+                                </span>
                               </td>
-                              <td className="p-3 text-right font-mono text-sm">
+                              <td className="px-3 py-2 text-right text-xs text-cyan-300">
                                 {formatUSD(holder.amount)}
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {holder.bot ? (
                                   <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />
                                 ) : marketScanning ? (
-                                  <LoadingSpinner size="sm" className="mx-auto" />
+                                  <span className="text-cyan-400/40 text-[10px] animate-pulse">scanning...</span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">-</span>
+                                  <span className="text-cyan-400/20 text-[10px]">--</span>
                                 )}
                               </td>
-                              <td className="p-3">
+                              <td className="px-3 py-2">
                                 {holder.bot && (
-                                  isExp ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                                  isExp ? <ChevronUp className="w-3 h-3 text-cyan-400/40" /> : <ChevronDown className="w-3 h-3 text-cyan-400/40" />
                                 )}
                               </td>
                             </tr>
                             {isExp && holder.bot && (
                               <tr key={`${holder.address}-signals`}>
                                 <td colSpan={5} className="p-0">
-                                  <div className="bg-muted/30 px-4 py-3 border-b space-y-1.5">
-                                    <div className="text-xs text-muted-foreground mb-2">
-                                      {holder.bot.tradeCount} trades | {holder.bot.mergeCount} merges | {holder.bot.activeHours}/24h active | {holder.bot.bothSidesPercent}% both-sides
+                                  <div className="bg-black/40 px-4 py-3 border-b border-cyan-500/10 space-y-1.5">
+                                    <div className="text-cyan-400/40 text-[10px] mb-2">
+                                      {'>'} {holder.bot.tradeCount} trades | {holder.bot.mergeCount} merges | {holder.bot.activeHours}/24h | {holder.bot.bothSidesPercent}% both-sides
                                     </div>
-                                    <SignalBar label="Interval (20%)" value={holder.bot.signals.intervalRegularity} />
-                                    <SignalBar label="SPLIT/MERGE (25%)" value={holder.bot.signals.splitMergeRatio} />
-                                    <SignalBar label="Sizing (15%)" value={holder.bot.signals.sizingConsistency} />
-                                    <SignalBar label="24/7 Activity (15%)" value={holder.bot.signals.activity24h} />
-                                    <SignalBar label="Win Rate (15%)" value={holder.bot.signals.winRateExtreme} />
-                                    <SignalBar label="Concentration (10%)" value={holder.bot.signals.marketConcentration} />
+                                    {[
+                                      { name: 'INTERVAL', weight: '20%', val: holder.bot.signals.intervalRegularity },
+                                      { name: 'SPLIT/MERGE', weight: '25%', val: holder.bot.signals.splitMergeRatio },
+                                      { name: 'SIZING', weight: '15%', val: holder.bot.signals.sizingConsistency },
+                                      { name: '24/7', weight: '15%', val: holder.bot.signals.activity24h },
+                                      { name: 'WIN_RATE', weight: '15%', val: holder.bot.signals.winRateExtreme },
+                                      { name: 'FOCUS', weight: '10%', val: holder.bot.signals.marketConcentration },
+                                      ...(holder.bot.signals.ghostWhale > 0 ? [{ name: 'GHOST', weight: '50%', val: holder.bot.signals.ghostWhale }] : []),
+                                    ].map((s) => {
+                                      const barColor = s.val >= 80 ? 'bg-red-500' : s.val >= 60 ? 'bg-orange-500' : s.val >= 40 ? 'bg-yellow-500' : 'bg-green-500';
+                                      const filled = Math.round((s.val / 100) * 16);
+                                      return (
+                                        <div key={s.name} className="flex items-center gap-2">
+                                          <span className="text-cyan-400 text-[10px] w-20 shrink-0">{s.name}</span>
+                                          <div className="flex gap-[2px] flex-1">
+                                            {Array.from({ length: 16 }).map((_, i) => (
+                                              <div
+                                                key={i}
+                                                className={`w-1.5 h-2 ${i < filled ? barColor : 'bg-cyan-500/10'}`}
+                                                style={{ imageRendering: 'pixelated' }}
+                                              />
+                                            ))}
+                                          </div>
+                                          <span className={`text-[10px] w-6 text-right ${s.val >= 70 ? 'text-red-400' : 'text-cyan-400'}`}>
+                                            {s.val}
+                                          </span>
+                                          <span className="text-cyan-400/20 text-[9px] w-6">{s.weight}</span>
+                                        </div>
+                                      );
+                                    })}
                                     {holder.bot.signals.bothSidesBonus > 0 && (
-                                      <div className="flex items-center gap-2 text-xs pt-1 border-t border-muted">
-                                        <span className="text-red-400 w-28 shrink-0">Both-Sides Bonus</span>
-                                        <span className="font-mono text-red-400">+{holder.bot.signals.bothSidesBonus}</span>
+                                      <div className="text-red-400 text-[10px] pt-1 border-t border-cyan-500/10">
+                                        {'>'} BOTH_SIDES_BONUS: +{holder.bot.signals.bothSidesBonus}
+                                      </div>
+                                    )}
+
+                                    {/* View Positions button */}
+                                    <div className="pt-2 border-t border-cyan-500/10 flex items-center gap-2">
+                                      <button
+                                        className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                                        onClick={(e) => { e.stopPropagation(); handleViewPositions(holder.address); }}
+                                      >
+                                        <Wallet className="w-3 h-3" />
+                                        {holderPositions[holder.address] ? 'HIDE POSITIONS' : 'VIEW POSITIONS'}
+                                      </button>
+                                      {loadingPositions === holder.address && (
+                                        <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
+                                      )}
+                                      <a
+                                        href={`https://polymarket.com/portfolio/${holder.address}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] text-cyan-400/40 hover:text-cyan-400 flex items-center gap-1 ml-auto transition-colors"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <ExternalLink className="w-3 h-3" /> polymarket.com
+                                      </a>
+                                    </div>
+
+                                    {/* Positions list */}
+                                    {holderPositions[holder.address] && (
+                                      <div className="mt-2 space-y-1">
+                                        <div className="text-cyan-400/40 text-[10px]">
+                                          {'>'} {holderPositions[holder.address].length} open positions
+                                        </div>
+                                        {holderPositions[holder.address].slice(0, 15).map((pos, pi) => {
+                                          const pnlColor = pos.cashPnl > 0 ? 'text-green-400' : pos.cashPnl < 0 ? 'text-red-400' : 'text-cyan-400/40';
+                                          return (
+                                            <div key={pi} className="flex items-center gap-2 text-[10px]">
+                                              <span className="text-cyan-400/30 w-3">{String(pi + 1).padStart(2, '0')}</span>
+                                              <span className={`px-1 py-0.5 border text-[9px] ${
+                                                pos.outcome === 'Yes'
+                                                  ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                                  : 'text-red-400 border-red-500/30 bg-red-500/10'
+                                              }`}>
+                                                {pos.outcome}
+                                              </span>
+                                              <span className="text-cyan-300 truncate flex-1" title={pos.title}>{pos.title}</span>
+                                              <span className="text-cyan-400 shrink-0">{formatUSD(pos.currentValue)}</span>
+                                              <span className={`${pnlColor} shrink-0 w-16 text-right`}>
+                                                {pos.cashPnl > 0 ? '+' : ''}{formatUSD(pos.cashPnl)}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                        {holderPositions[holder.address].length > 15 && (
+                                          <div className="text-cyan-400/30 text-[9px]">
+                                            {'>'} +{holderPositions[holder.address].length - 15} more positions
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -531,62 +901,154 @@ export default function PolymarketTrackerPage() {
                 </div>
 
                 {/* Mobile cards */}
-                <div className="md:hidden space-y-3">
-                  {marketHolders.map((holder) => {
+                <div className="md:hidden divide-y divide-cyan-500/10">
+                  {marketHolders.map((holder, idx) => {
                     const isExp = expandedHolder === holder.address;
                     return (
-                      <Card key={holder.address} className="p-3">
+                      <div
+                        key={holder.address}
+                        className={`px-3 py-2.5 ${
+                          holder.bot?.classification === 'bot' ? 'bg-red-500/5' :
+                          holder.bot?.classification === 'likely-bot' ? 'bg-orange-500/5' : ''
+                        }`}
+                      >
                         <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium text-sm">
-                              {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
-                            </p>
-                            {holder.pseudonym && (
-                              <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                                {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                          <div className="flex items-center gap-2">
+                            <span className="text-cyan-400/40 text-[10px]">{String(idx + 1).padStart(2, '0')}</span>
+                            <div>
+                              <p className="text-cyan-300 text-xs">
+                                {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
                               </p>
-                            )}
+                              {holder.pseudonym && (
+                                <p className="text-cyan-400/30 text-[10px]">
+                                  {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                                </p>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={`text-[10px] ${
-                              holder.outcome === 'Yes' ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'
+                            <span className={`text-[10px] px-1.5 py-0.5 border ${
+                              holder.outcome === 'Yes'
+                                ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                : 'text-red-400 border-red-500/30 bg-red-500/10'
                             }`}>
                               {holder.outcome}
-                            </Badge>
+                            </span>
                             {holder.bot && <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />}
                           </div>
                         </div>
-                        <div className="mt-2 text-sm font-mono">Position: {formatUSD(holder.amount)}</div>
-                        {holder.bot && (
-                          <div className="mt-2 pt-2 border-t">
+                        <div className="flex items-center justify-between mt-1.5">
+                          <span className="text-cyan-300 text-xs">{formatUSD(holder.amount)}</span>
+                          {holder.bot && !marketScanning && (
                             <button
-                              className="flex items-center gap-2 text-xs text-muted-foreground w-full"
+                              className="flex items-center gap-1 text-[10px] text-cyan-400/40"
                               onClick={() => setExpandedHolder(isExp ? null : holder.address)}
                             >
-                              <ScanSearch className="w-3 h-3" />
-                              <span>Signal breakdown</span>
-                              {isExp ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                              signals
+                              {isExp ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
                             </button>
-                            {isExp && (
-                              <div className="mt-2 space-y-1.5">
-                                <SignalBar label="Interval" value={holder.bot.signals.intervalRegularity} />
-                                <SignalBar label="SPLIT/MERGE" value={holder.bot.signals.splitMergeRatio} />
-                                <SignalBar label="Sizing" value={holder.bot.signals.sizingConsistency} />
-                                <SignalBar label="24/7" value={holder.bot.signals.activity24h} />
-                                <SignalBar label="Win Rate" value={holder.bot.signals.winRateExtreme} />
-                                <SignalBar label="Concentration" value={holder.bot.signals.marketConcentration} />
-                                {holder.bot.signals.bothSidesBonus > 0 && (
-                                  <div className="text-xs text-red-400 pt-1 border-t border-muted">
-                                    Both-Sides Bonus: +{holder.bot.signals.bothSidesBonus}
+                          )}
+                          {!holder.bot && marketScanning && (
+                            <span className="text-cyan-400/40 text-[10px] animate-pulse">scanning...</span>
+                          )}
+                        </div>
+                        {isExp && holder.bot && (
+                          <div className="mt-2 pt-2 border-t border-cyan-500/10 space-y-1">
+                            {[
+                              { name: 'INTERVAL', val: holder.bot.signals.intervalRegularity },
+                              { name: 'SPLIT/MERGE', val: holder.bot.signals.splitMergeRatio },
+                              { name: 'SIZING', val: holder.bot.signals.sizingConsistency },
+                              { name: '24/7', val: holder.bot.signals.activity24h },
+                              { name: 'WIN_RATE', val: holder.bot.signals.winRateExtreme },
+                              { name: 'FOCUS', val: holder.bot.signals.marketConcentration },
+                              ...(holder.bot.signals.ghostWhale > 0 ? [{ name: 'GHOST', val: holder.bot.signals.ghostWhale }] : []),
+                            ].map((s) => {
+                              const barColor = s.val >= 80 ? 'bg-red-500' : s.val >= 60 ? 'bg-orange-500' : s.val >= 40 ? 'bg-yellow-500' : 'bg-green-500';
+                              const filled = Math.round((s.val / 100) * 12);
+                              return (
+                                <div key={s.name} className="flex items-center gap-2">
+                                  <span className="text-cyan-400 text-[10px] w-16 shrink-0">{s.name}</span>
+                                  <div className="flex gap-[2px] flex-1">
+                                    {Array.from({ length: 12 }).map((_, i) => (
+                                      <div
+                                        key={i}
+                                        className={`w-1.5 h-2 ${i < filled ? barColor : 'bg-cyan-500/10'}`}
+                                        style={{ imageRendering: 'pixelated' }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className={`text-[10px] w-5 text-right ${s.val >= 70 ? 'text-red-400' : 'text-cyan-400'}`}>
+                                    {s.val}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {holder.bot.signals.bothSidesBonus > 0 && (
+                              <div className="text-red-400 text-[10px] pt-1 border-t border-cyan-500/10">
+                                {'>'} BONUS: +{holder.bot.signals.bothSidesBonus}
+                              </div>
+                            )}
+
+                            {/* View Positions - Mobile */}
+                            <div className="pt-2 border-t border-cyan-500/10 flex items-center gap-2">
+                              <button
+                                className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                                onClick={(e) => { e.stopPropagation(); handleViewPositions(holder.address); }}
+                              >
+                                <Wallet className="w-3 h-3" />
+                                {holderPositions[holder.address] ? 'HIDE' : 'POSITIONS'}
+                              </button>
+                              {loadingPositions === holder.address && (
+                                <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
+                              )}
+                              <a
+                                href={`https://polymarket.com/portfolio/${holder.address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-cyan-400/40 hover:text-cyan-400 flex items-center gap-1 ml-auto"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+
+                            {holderPositions[holder.address] && (
+                              <div className="mt-1.5 space-y-1">
+                                {holderPositions[holder.address].slice(0, 10).map((pos, pi) => {
+                                  const pnlColor = pos.cashPnl > 0 ? 'text-green-400' : pos.cashPnl < 0 ? 'text-red-400' : 'text-cyan-400/40';
+                                  return (
+                                    <div key={pi} className="flex items-center gap-1.5 text-[10px]">
+                                      <span className={`px-1 border text-[9px] ${
+                                        pos.outcome === 'Yes'
+                                          ? 'text-green-400 border-green-500/30'
+                                          : 'text-red-400 border-red-500/30'
+                                      }`}>
+                                        {pos.outcome}
+                                      </span>
+                                      <span className="text-cyan-300 truncate flex-1">{pos.title}</span>
+                                      <span className={`${pnlColor} shrink-0`}>
+                                        {pos.cashPnl > 0 ? '+' : ''}{formatUSD(pos.cashPnl)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                                {holderPositions[holder.address].length > 10 && (
+                                  <div className="text-cyan-400/30 text-[9px]">
+                                    +{holderPositions[holder.address].length - 10} more
                                   </div>
                                 )}
                               </div>
                             )}
                           </div>
                         )}
-                      </Card>
+                      </div>
                     );
                   })}
+                </div>
+
+                {/* Terminal footer */}
+                <div className="px-3 py-1.5 border-t border-cyan-500/15 text-cyan-400/30 text-[9px]">
+                  {'>'} {marketHolders.length} holders loaded | all scanned for agent behavior
                 </div>
               </div>
             )}
@@ -732,6 +1194,9 @@ export default function PolymarketTrackerPage() {
                                 <SignalBar label="24/7 Activity (15%)" value={bot.signals.activity24h} />
                                 <SignalBar label="Win Rate (15%)" value={bot.signals.winRateExtreme} />
                                 <SignalBar label="Concentration (10%)" value={bot.signals.marketConcentration} />
+                                {bot.signals.ghostWhale > 0 && (
+                                  <SignalBar label="Ghost Whale (50%)" value={bot.signals.ghostWhale} />
+                                )}
                                 {bot.signals.bothSidesBonus > 0 && (
                                   <div className="flex items-center gap-2 text-xs pt-1 border-t border-muted">
                                     <span className="text-red-400 w-28 shrink-0">Both-Sides Bonus</span>
@@ -849,6 +1314,9 @@ export default function PolymarketTrackerPage() {
                             <SignalBar label="24/7 Activity" value={bot.signals.activity24h} />
                             <SignalBar label="Win Rate" value={bot.signals.winRateExtreme} />
                             <SignalBar label="Concentration" value={bot.signals.marketConcentration} />
+                            {bot.signals.ghostWhale > 0 && (
+                              <SignalBar label="Ghost Whale" value={bot.signals.ghostWhale} />
+                            )}
                             {bot.signals.bothSidesBonus > 0 && (
                               <div className="text-xs text-red-400 pt-1 border-t border-muted">
                                 Both-Sides Bonus: +{bot.signals.bothSidesBonus} ({bot.bothSidesPercent}%)
@@ -894,7 +1362,8 @@ export default function PolymarketTrackerPage() {
               <p className="text-green-300/70 text-xs leading-relaxed">
                 OpenClaw reads on-chain behavior from Polymarket's public API:
                 500 trades, 500 merges, 200 positions per wallet.
-                Six signals run through a weighted model. Final score: 0 to 100.
+                Seven signals run through a weighted model. Ghost Whale mode activates
+                for wallets with no trade history but large positions. Final score: 0 to 100.
               </p>
             </div>
 
@@ -909,6 +1378,7 @@ export default function PolymarketTrackerPage() {
                   { name: '24/7 ACTIVE', weight: 15, blocks: 3, desc: '22+ UTC hours covered = never sleeps.' },
                   { name: 'WIN RATE', weight: 15, blocks: 3, desc: '85%+ win rate = algorithmic edge.' },
                   { name: 'FOCUS', weight: 10, blocks: 2, desc: 'Category concentration. Bots specialize in one vertical.' },
+                  { name: 'GHOST', weight: 50, blocks: 10, desc: 'No trade history but large positions. Alternate weighting mode activates.' },
                 ].map((s) => (
                   <div key={s.name}>
                     <div className="flex items-center gap-2">

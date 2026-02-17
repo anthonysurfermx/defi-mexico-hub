@@ -57,6 +57,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/polymarket-data/, ''),
       },
+      '/api/polymarket-clob': {
+        target: 'https://clob.polymarket.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/polymarket-clob/, ''),
+      },
     },
   },
 })

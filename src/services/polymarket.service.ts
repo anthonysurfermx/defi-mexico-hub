@@ -44,6 +44,39 @@ export interface MarketInfo {
   endDate: string;
 }
 
+export interface SubMarket {
+  conditionId: string;
+  question: string;
+  slug: string;
+  groupItemTitle: string;
+  volume: number;
+  yesPrice: number;
+  active: boolean;
+  closed: boolean;
+  clobTokenId: string;
+}
+
+export interface PricePoint {
+  t: number;
+  p: number;
+}
+
+export interface OutcomePriceHistory {
+  label: string;
+  history: PricePoint[];
+}
+
+export interface EventInfo {
+  title: string;
+  slug: string;
+  image: string;
+  volume: number;
+  volume24hr: number;
+  liquidity: number;
+  endDate: string;
+  markets: SubMarket[];
+}
+
 export interface MarketHolder {
   address: string;
   pseudonym: string;
@@ -188,6 +221,21 @@ export const polymarketService = {
     }
   },
 
+  parseEventSlug(url: string): string | null {
+    try {
+      const u = new URL(url);
+      if (!u.hostname.includes('polymarket.com')) return null;
+      const parts = u.pathname.split('/').filter(Boolean);
+      const eventIdx = parts.indexOf('event');
+      if (eventIdx !== -1 && parts.length > eventIdx + 1) {
+        return parts[eventIdx + 1]; // event slug is always right after 'event'
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
   async getMarketBySlug(slug: string): Promise<MarketInfo | null> {
     try {
       const res = await fetch(`${GAMMA_URL}/markets?slug=${slug}&limit=1`);
@@ -230,9 +278,46 @@ export const polymarketService = {
     }
   },
 
+  async getEventBySlug(slug: string): Promise<EventInfo | null> {
+    try {
+      const res = await fetch(`${GAMMA_URL}/events?slug=${slug}&limit=1`);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const event = data[0];
+      const rawMarkets = event.markets || [];
+      const markets: SubMarket[] = rawMarkets.map((m: any) => {
+        const prices = JSON.parse(m.outcomePrices || '[]');
+        const tokenIds = JSON.parse(m.clobTokenIds || '[]');
+        return {
+          conditionId: m.conditionId || '',
+          question: m.question || '',
+          slug: m.slug || '',
+          groupItemTitle: m.groupItemTitle || m.question || '',
+          volume: parseFloat(m.volume) || 0,
+          yesPrice: parseFloat(prices[0]) || 0,
+          active: m.acceptingOrders ?? m.active ?? false,
+          closed: m.closed ?? false,
+          clobTokenId: tokenIds[0] || '',
+        };
+      });
+      return {
+        title: event.title || '',
+        slug: event.slug || slug,
+        image: event.image || '',
+        volume: event.volume || 0,
+        volume24hr: event.volume24hr || 0,
+        liquidity: event.liquidity || 0,
+        endDate: event.endDate || '',
+        markets,
+      };
+    } catch {
+      return null;
+    }
+  },
+
   async getMarketHolders(conditionId: string): Promise<MarketHolder[]> {
     try {
-      const res = await fetch(`${BASE_URL}/holders?market=${conditionId}&limit=50`);
+      const res = await fetch(`${BASE_URL}/holders?market=${conditionId}&limit=100`);
       const data = await res.json();
       if (!Array.isArray(data)) return [];
 
@@ -281,5 +366,34 @@ export const polymarketService = {
     } catch {
       return [];
     }
+  },
+
+  async getEventPriceHistory(markets: SubMarket[], maxOutcomes = 6): Promise<OutcomePriceHistory[]> {
+    const CLOB_URL = '/api/polymarket-clob';
+    // Pick top outcomes by current price, only active ones with tokens
+    const topMarkets = markets
+      .filter(m => m.clobTokenId)
+      .sort((a, b) => b.yesPrice - a.yesPrice)
+      .slice(0, maxOutcomes);
+
+    const results = await Promise.all(
+      topMarkets.map(async (m) => {
+        try {
+          const res = await fetch(
+            `${CLOB_URL}/prices-history?market=${m.clobTokenId}&interval=all&fidelity=60`
+          );
+          const data = await res.json();
+          const history: PricePoint[] = (data.history || []).map((h: any) => ({
+            t: h.t,
+            p: h.p,
+          }));
+          return { label: m.groupItemTitle, history };
+        } catch {
+          return { label: m.groupItemTitle, history: [] };
+        }
+      })
+    );
+
+    return results.filter(r => r.history.length > 0);
   },
 };

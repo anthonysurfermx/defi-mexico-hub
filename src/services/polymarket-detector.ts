@@ -7,6 +7,7 @@ export interface BotSignals {
   activity24h: number;          // S4: 0-100
   winRateExtreme: number;       // S5: 0-100
   marketConcentration: number;  // S6: 0-100
+  ghostWhale: number;           // S7: 0-100 (no trades but large positions)
   bothSidesBonus: number;       // Bonus modifier
 }
 
@@ -48,7 +49,26 @@ function scoreFromCV(cv: number, inverted: boolean): number {
   return cv < 0.3 ? 90 : cv < 0.7 ? 50 : 10;
 }
 
-export async function detectBot(address: string): Promise<BotDetectionResult> {
+export interface MarketContext {
+  holderAmount?: number;       // this wallet's position size in the scanned market
+  totalMarketVolume?: number;  // total market volume for relative sizing
+}
+
+export type SignalProgress = {
+  phase: 'fetching' | 'analyzing';
+  signal?: string;
+  signals: Partial<BotSignals>;
+  tradeCount?: number;
+  mergeCount?: number;
+};
+
+export async function detectBot(
+  address: string,
+  onProgress?: (p: SignalProgress) => void,
+  marketCtx?: MarketContext,
+): Promise<BotDetectionResult> {
+  onProgress?.({ phase: 'fetching', signals: {} });
+
   const [tradesData, mergeData, positionsData] = await Promise.all([
     fetchJSON(`${BASE_URL}/trades?user=${address}&limit=500`),
     fetchJSON(`${BASE_URL}/activity?user=${address}&type=MERGE&limit=500`),
@@ -58,6 +78,11 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
   const trades: any[] = Array.isArray(tradesData) ? tradesData : [];
   const merges: any[] = Array.isArray(mergeData) ? mergeData : [];
   const positions: any[] = Array.isArray(positionsData) ? positionsData : [];
+
+  const emitSignal = (name: string, signals: Partial<BotSignals>) => {
+    onProgress?.({ phase: 'analyzing', signal: name, signals, tradeCount: trades.length, mergeCount: merges.length });
+  };
+  const tick = () => new Promise<void>(r => setTimeout(r, 80));
 
   // S1: Interval Regularity
   let s1 = 0;
@@ -79,6 +104,9 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
       }
     }
   }
+
+  emitSignal('INTERVAL', { intervalRegularity: Math.round(s1) });
+  await tick();
 
   // S2: SPLIT/MERGE Activity
   let s2 = 0;
@@ -109,6 +137,9 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
   // Both-sides bonus: if >30% of positions are on both sides, boost S2
   const bothSidesBonus = bothSidesPercent > 50 ? 20 : bothSidesPercent > 30 ? 15 : bothSidesPercent > 10 ? 8 : 0;
 
+  emitSignal('SPLIT/MERGE', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), bothSidesBonus: Math.round(bothSidesBonus) });
+  await tick();
+
   // S3: Position Sizing Consistency
   let s3 = 0;
   if (trades.length > 10) {
@@ -116,6 +147,9 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
     const cv = coefficientOfVariation(usdSizes);
     s3 = scoreFromCV(cv, true);
   }
+
+  emitSignal('SIZING', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), bothSidesBonus: Math.round(bothSidesBonus) });
+  await tick();
 
   // S4: 24/7 Activity
   let s4 = 0;
@@ -135,6 +169,9 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
     else s4 = Math.max(0, (activeHours / 16) * 20);
   }
 
+  emitSignal('24/7', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), activity24h: Math.round(s4), bothSidesBonus: Math.round(bothSidesBonus) });
+  await tick();
+
   // S5: Win Rate (from positions PnL)
   let s5 = 0;
   if (positions.length > 5) {
@@ -151,6 +188,9 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
       }
     }
   }
+
+  emitSignal('WIN_RATE', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), activity24h: Math.round(s4), winRateExtreme: Math.round(s5), bothSidesBonus: Math.round(bothSidesBonus) });
+  await tick();
 
   // S6: Market Concentration
   let s6 = 0;
@@ -179,14 +219,45 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
     else s6 = Math.max(0, concentration * 40);
   }
 
-  // Final score with both-sides bonus (capped at 100)
-  const rawScore =
-    s1 * WEIGHTS.intervalRegularity +
-    s2 * WEIGHTS.splitMergeRatio +
-    s3 * WEIGHTS.sizingConsistency +
-    s4 * WEIGHTS.activity24h +
-    s5 * WEIGHTS.winRateExtreme +
-    s6 * WEIGHTS.marketConcentration;
+  emitSignal('CONCENTRATION', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), activity24h: Math.round(s4), winRateExtreme: Math.round(s5), marketConcentration: Math.round(s6), bothSidesBonus: Math.round(bothSidesBonus) });
+  await tick();
+
+  // S7: Ghost Whale Detection
+  // Wallets with no/few trades but large positions = likely smart contract or programmatic
+  let s7 = 0;
+  if (trades.length <= 5) {
+    // No trade history is suspicious if they hold positions
+    if (positions.length > 0) {
+      const totalPositionValue = positions.reduce((acc: number, p: any) => acc + (parseFloat(p.currentValue) || 0), 0);
+      if (totalPositionValue > 50000) s7 = 95;
+      else if (totalPositionValue > 10000) s7 = 80;
+      else if (totalPositionValue > 1000) s7 = 60;
+      else s7 = 30;
+    }
+    // If we have market context, use holder amount
+    if (marketCtx?.holderAmount) {
+      if (marketCtx.holderAmount > 50000) s7 = Math.max(s7, 95);
+      else if (marketCtx.holderAmount > 10000) s7 = Math.max(s7, 80);
+      else if (marketCtx.holderAmount > 1000) s7 = Math.max(s7, 60);
+    }
+  }
+
+  emitSignal('GHOST', { intervalRegularity: Math.round(s1), splitMergeRatio: Math.round(s2), sizingConsistency: Math.round(s3), activity24h: Math.round(s4), winRateExtreme: Math.round(s5), marketConcentration: Math.round(s6), ghostWhale: Math.round(s7), bothSidesBonus: Math.round(bothSidesBonus) });
+
+  // Final score: if ghost whale is active, use alternate weighting
+  let rawScore: number;
+  if (s7 > 0 && trades.length <= 5) {
+    // Ghost whale mode: heavy weight on ghost signal since other signals have no data
+    rawScore = s7 * 0.50 + s5 * 0.20 + s2 * 0.15 + bothSidesPercent * 0.15;
+  } else {
+    rawScore =
+      s1 * WEIGHTS.intervalRegularity +
+      s2 * WEIGHTS.splitMergeRatio +
+      s3 * WEIGHTS.sizingConsistency +
+      s4 * WEIGHTS.activity24h +
+      s5 * WEIGHTS.winRateExtreme +
+      s6 * WEIGHTS.marketConcentration;
+  }
 
   const botScore = Math.min(100, Math.round(rawScore + bothSidesBonus));
 
@@ -206,6 +277,7 @@ export async function detectBot(address: string): Promise<BotDetectionResult> {
       activity24h: Math.round(s4),
       winRateExtreme: Math.round(s5),
       marketConcentration: Math.round(s6),
+      ghostWhale: Math.round(s7),
       bothSidesBonus: Math.round(bothSidesBonus),
     },
     classification,
