@@ -139,6 +139,47 @@ export default function MainLayout() {
                 );
               })}
 
+              {/* Dropdown Agentic World - FIRST */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`
+                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isAgenticActive()
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <PixelZap size={16} />
+                    {t('nav.agenticWorld')}
+                    <PixelChevronDown size={12} className="opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {agenticNavigation.map((item) => {
+                    const Icon = item.Icon;
+                    return (
+                      <DropdownMenuItem key={item.name} asChild>
+                        <Link
+                          to={item.href}
+                          className="flex items-start gap-3 cursor-pointer"
+                        >
+                          <Icon size={16} className="mt-0.5 text-cyan-500" />
+                          <div className="flex-1">
+                            <div className="font-medium">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {/* Dropdown Aprende */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -252,47 +293,6 @@ export default function MainLayout() {
                 <PixelBarChart size={16} />
                 {t('nav.metrics')}
               </Link>
-
-              {/* Dropdown Agentic World */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`
-                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
-                      transition-colors hover:bg-accent hover:text-accent-foreground
-                      ${isAgenticActive()
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground'
-                      }
-                    `}
-                  >
-                    <PixelZap size={16} />
-                    {t('nav.agenticWorld')}
-                    <PixelChevronDown size={12} className="opacity-50" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {agenticNavigation.map((item) => {
-                    const Icon = item.Icon;
-                    return (
-                      <DropdownMenuItem key={item.name} asChild>
-                        <Link
-                          to={item.href}
-                          className="flex items-start gap-3 cursor-pointer"
-                        >
-                          <Icon size={16} className="mt-0.5 text-cyan-500" />
-                          <div className="flex-1">
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {item.description}
-                            </div>
-                          </div>
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
 
             {/* Desktop Actions */}
@@ -352,6 +352,33 @@ export default function MainLayout() {
             <div className="container mx-auto px-4 py-3 space-y-0.5">
               {/* Main Navigation */}
               {mainNavigation.map((item) => {
+                const Icon = item.Icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`
+                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <Icon size={18} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+
+              {/* Agentic World Section - FIRST */}
+              <div className="pt-2 pb-0.5 px-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('nav.agenticWorld')}
+                </p>
+              </div>
+              {agenticNavigation.map((item) => {
                 const Icon = item.Icon;
                 return (
                   <Link
@@ -460,33 +487,6 @@ export default function MainLayout() {
                 <PixelBarChart size={18} />
                 {t('nav.metrics')}
               </Link>
-
-              {/* Agentic World Section */}
-              <div className="pt-2 pb-0.5 px-3">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  {t('nav.agenticWorld')}
-                </p>
-              </div>
-              {agenticNavigation.map((item) => {
-                const Icon = item.Icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`
-                      flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
-                      transition-colors hover:bg-accent hover:text-accent-foreground
-                      ${isActive(item.href)
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground'
-                      }
-                    `}
-                  >
-                    <Icon size={18} />
-                    {item.name}
-                  </Link>
-                );
-              })}
 
               {/* Mobile Actions */}
               <div className="pt-3 pb-1">

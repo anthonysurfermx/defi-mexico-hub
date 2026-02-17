@@ -16,16 +16,19 @@ import {
   PixelTarget,
   PixelZap,
 } from '@/components/ui/pixel-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
 import { jobsService, type Job } from '@/services/jobs.service';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { startupsService } from '@/services/startups.service';
+import { defillamaService, type AIAgentProtocol, type TVLHistoryPoint } from '@/services/defillama.service';
 import { useAuth } from '@/hooks/useAuth';
 import { getTwitterAvatar } from '@/lib/utils';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Sparkles } from 'lucide-react';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -87,6 +90,9 @@ export default function HomePage() {
   const [recentPosts, setRecentPosts] = useState<DomainPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [hackathonCount, setHackathonCount] = useState(0);
+  const [agentProtocols, setAgentProtocols] = useState<AIAgentProtocol[]>([]);
+  const [tvlHistory, setTvlHistory] = useState<TVLHistoryPoint[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(true);
 
   const handleContributeClick = () => {
     if (!user) return '/login';
@@ -155,6 +161,21 @@ export default function HomePage() {
     } catch {}
   };
 
+  const loadAgentData = async () => {
+    try {
+      setLoadingAgents(true);
+      const protocols = await defillamaService.getAIAgentProtocols();
+      setAgentProtocols(protocols);
+      const history = await defillamaService.getTVLHistory(protocols, 90);
+      setTvlHistory(history);
+    } catch {
+      setAgentProtocols([]);
+      setTvlHistory([]);
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
   useEffect(() => {
     Promise.all([
       loadOfficialCommunities(),
@@ -162,6 +183,7 @@ export default function HomePage() {
       loadFeaturedJobs(),
       loadRecentPosts(),
       loadHackathonCount(),
+      loadAgentData(),
     ]);
   }, []);
 
@@ -181,6 +203,30 @@ export default function HomePage() {
     } finally {
       setLoadingNewsletter(false);
     }
+  };
+
+  // Compute aggregate TVL chart data (sum all protocols per day)
+  const aggregateTVL = useMemo(() => {
+    if (!tvlHistory.length) return [];
+    return tvlHistory.map(point => {
+      let total = 0;
+      for (const [key, val] of Object.entries(point)) {
+        if (key !== 'date' && key !== 'timestamp' && typeof val === 'number') {
+          total += val;
+        }
+      }
+      return { date: point.date, total };
+    });
+  }, [tvlHistory]);
+
+  const totalTVL = useMemo(() => agentProtocols.reduce((sum, p) => sum + p.tvl, 0), [agentProtocols]);
+  const activeProtocols = useMemo(() => agentProtocols.filter(p => p.tvl > 0).length, [agentProtocols]);
+
+  const formatUSD = (val: number) => {
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
+    if (val >= 1e3) return `$${(val / 1e3).toFixed(0)}K`;
+    return `$${val.toFixed(0)}`;
   };
 
   return (
@@ -257,6 +303,164 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ░░░ AGENTIC WORLD HERO ░░░ */}
+      <section className="py-16 px-4 relative overflow-hidden">
+        {/* Subtle amber grid bg */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(245,158,11,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(245,158,11,0.4) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          {/* Terminal window */}
+          <div className="border border-amber-500/30 bg-black/80">
+            {/* Terminal header */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                <div className="w-2 h-2 rounded-full bg-green-500/60" />
+              </div>
+              <span className="text-amber-400 text-[10px] font-mono ml-1">agentic_world.terminal</span>
+              <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] ml-auto font-mono">LIVE</Badge>
+            </div>
+
+            <div className="p-6 md:p-10 space-y-6">
+              {/* Headline */}
+              <div className="space-y-3">
+                <h2 className="font-mono font-bold text-2xl md:text-4xl lg:text-5xl text-foreground leading-tight">
+                  <ScrambleText text="Stop Following Humans." speed={20} iterations={12} />
+                </h2>
+                <h2 className="font-mono font-bold text-2xl md:text-4xl lg:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 leading-tight">
+                  <ScrambleText text="Follow the AI Agents." speed={20} iterations={15} />
+                </h2>
+                <p className="text-amber-300/50 text-sm md:text-base font-mono max-w-2xl">
+                  {'> '}{t('home.agenticHero.description', { defaultValue: 'AI agents are reshaping DeFi. Track their on-chain moves, detect trading patterns, and find alpha before the crowd.' })}
+                </p>
+              </div>
+
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-4 max-w-lg">
+                <div className="border border-amber-500/20 bg-amber-500/5 p-3">
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Total TVL</div>
+                  <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
+                    {loadingAgents ? '...' : <ScrambleText text={formatUSD(totalTVL)} speed={30} iterations={6} />}
+                  </div>
+                </div>
+                <div className="border border-amber-500/20 bg-amber-500/5 p-3">
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Protocols</div>
+                  <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
+                    {loadingAgents ? '...' : <ScrambleText text={String(agentProtocols.length)} speed={30} iterations={6} />}
+                  </div>
+                </div>
+                <div className="border border-amber-500/20 bg-amber-500/5 p-3">
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Active TVL</div>
+                  <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
+                    {loadingAgents ? '...' : <ScrambleText text={String(activeProtocols)} speed={30} iterations={6} />}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mini TVL Chart */}
+              {aggregateTVL.length > 0 && (
+                <div className="border border-amber-500/15 bg-black/40 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-amber-400/60 font-mono uppercase">AI Agent TVL (90d)</span>
+                    <span className="text-[10px] text-amber-300/40 font-mono">Powered by DeFi Llama</span>
+                  </div>
+                  <div className="h-[160px] md:h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={aggregateTVL}>
+                        <defs>
+                          <linearGradient id="tvlGradientHome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: '#f59e0b80', fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v: string) => {
+                            const d = new Date(v);
+                            return `${d.getMonth() + 1}/${d.getDate()}`;
+                          }}
+                          interval="preserveStartEnd"
+                          minTickGap={50}
+                        />
+                        <YAxis
+                          tick={{ fill: '#f59e0b80', fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v: number) => formatUSD(v)}
+                          width={55}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#000',
+                            border: '1px solid rgba(245,158,11,0.3)',
+                            borderRadius: '0',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                          }}
+                          labelFormatter={(label: string) => {
+                            const d = new Date(label);
+                            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          }}
+                          formatter={(value: number) => [formatUSD(value), 'Total TVL']}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="total"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          fill="url(#tvlGradientHome)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading state for chart */}
+              {loadingAgents && (
+                <div className="border border-amber-500/15 bg-black/40 p-4 h-[200px] flex items-center justify-center">
+                  <div className="text-amber-400/40 text-sm font-mono animate-pulse">{'>'} Loading AI agent data...</div>
+                </div>
+              )}
+
+              {/* CTA Button */}
+              <div className="flex items-center gap-4 pt-2">
+                <div className="relative group">
+                  <div className="absolute -inset-[2px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity" style={{ animation: 'glow-spin-home 3s ease-in-out infinite' }} />
+                  <Link
+                    to="/agentic-world"
+                    className="relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-900/80 to-amber-800/80 border border-amber-400/60 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    ENTER AGENTIC WORLD
+                    <PixelArrowRight size={14} className="ml-1" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Glow animation */}
+        <style>{`
+          @keyframes glow-spin-home {
+            0% { filter: hue-rotate(0deg) blur(3px); }
+            50% { filter: hue-rotate(15deg) blur(4px); }
+            100% { filter: hue-rotate(0deg) blur(3px); }
+          }
+        `}</style>
       </section>
 
       {/* ░░░ FEATURES GRID - Terminal Bento ░░░ */}
