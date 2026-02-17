@@ -31,7 +31,6 @@ const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
 // const DeFiAcademyPage = lazy(() => import('@/pages/DeFiAcademyPage'));
 // const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 const VideoTutorialsPage = lazy(() => import('@/pages/VideoTutorialsPage'));
-const ReferentesPage = lazy(() => import('@/pages/ReferentesPage'));
 const MetricsPage = lazy(() => import('@/pages/MetricsPage'));
 
 // Mercado LP Game
@@ -406,14 +405,6 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <NFTGalleryPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'referentes',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <ReferentesPage />
                 </Suspense>
               ),
             },

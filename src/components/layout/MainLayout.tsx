@@ -14,7 +14,6 @@ import {
   PixelCoins,
   PixelCalendar,
   PixelNetwork,
-  PixelUserCheck,
   PixelLayers,
   PixelSearch,
   PixelGamepad,
@@ -66,7 +65,6 @@ export default function MainLayout() {
     { name: t('nav.startups'), href: '/startups', Icon: PixelLayers, description: 'DeFi projects in Mexico' },
     { name: 'MVPs Hackathon', href: '/hackathon-projects', Icon: PixelTrophy, description: 'Hackathon winning projects' },
     { name: t('nav.communities'), href: '/comunidades', Icon: PixelNetwork, description: 'Groups and communities' },
-    { name: t('nav.advocates'), href: '/referentes', Icon: PixelUserCheck, description: 'Ecosystem leaders' },
     { name: t('nav.events'), href: '/eventos', Icon: PixelCalendar, description: 'Events and conferences' },
     { name: 'Trabajos Web3', href: '/ecosistema/trabajos', Icon: PixelBriefcase, description: 'Web3 jobs in Mexico' },
   ];
@@ -577,11 +575,6 @@ export default function MainLayout() {
                 <li>
                   <Link to="/comunidades" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Comunidades
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/referentes" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Referentes
                   </Link>
                 </li>
                 <li>
