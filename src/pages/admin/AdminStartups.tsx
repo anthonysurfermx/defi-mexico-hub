@@ -329,6 +329,7 @@ const AdminStartups = () => {
             linkedin_url: startup.linkedin_url || null,
             tags: startup.tags || [],
             categories: startup.category ? [startup.category] : [],
+            stage: startup.stage || null, // MVP, Grants, Pre-seed, Seed, Series A, Series B, Series C+
             status: startup.status || "draft",
             city: startup.location || null,
             country: startup.location?.includes(',') ? startup.location.split(',').pop()?.trim() : null,
@@ -412,11 +413,21 @@ const AdminStartups = () => {
                           📍 {item.location}
                         </p>
                       )}
-                      {item.category && (
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {item.category}
-                        </Badge>
-                      )}
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {item.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.category}
+                          </Badge>
+                        )}
+                        {item.stage && (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${item.stage === 'MVP' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30' : ''}`}
+                          >
+                            {item.stage}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {item.description && (

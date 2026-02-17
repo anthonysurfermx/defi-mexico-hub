@@ -67,3 +67,7 @@ Thumbs.db
 
 # Cursor IDE (contains sensitive tokens)
 .cursor/
+mcp-config.json
+*.mcp.json
+.env.mcp
+MCP_CONFIGURACION_RAPIDA.md

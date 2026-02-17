@@ -30,6 +30,7 @@ interface StartupFormData {
   linkedin: string;
   github: string;
   category: string;
+  stage: string;
   is_featured: boolean;
 }
 
@@ -70,9 +71,23 @@ const AdminStartupForm = () => {
     linkedin: "",
     github: "",
     category: "",
+    stage: "",
     is_featured: false
   });
 
+  // Categorías disponibles - El valor se usa tanto para display como para guardar
+  // IMPORTANTE: "mvp_hackathon" se guarda así en la BD para filtrar proyectos de hackathon
+  const availableCategories = [
+    { value: "mvp_hackathon", label: "MVP Hackathon" },
+    { value: "DeFi", label: "DeFi" },
+    { value: "NFT", label: "NFT" },
+    { value: "DAO", label: "DAO" },
+    { value: "DEX", label: "DEX" },
+    { value: "Lending", label: "Lending" },
+    { value: "Staking", label: "Staking" },
+    { value: "Gaming", label: "Gaming" },
+    { value: "Infrastructure", label: "Infrastructure" }
+  ];
   const availableTags = ["DeFi", "NFT", "DAO", "DEX", "Lending", "Staking", "Gaming", "Infrastructure"];
   const yearOptions = Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i);
 
@@ -137,6 +152,7 @@ const AdminStartupForm = () => {
           linkedin: data.linkedin_url || "",
           github: data.github_url || "",
           category: data.categories?.[0] || "",
+          stage: data.stage || "",
           is_featured: data.is_featured || false
         });
       }
@@ -288,6 +304,8 @@ const AdminStartupForm = () => {
         // Arrays
         tags: formData.tags.length > 0 ? formData.tags : null,
         categories: formData.category ? [formData.category] : null,
+        // Stage de la startup
+        stage: formData.stage || null,
         // Números
         total_users: parseNumber(formData.users),
         // Campos requeridos por la tabla
@@ -416,6 +434,8 @@ const AdminStartupForm = () => {
         // Arrays
         tags: formData.tags.length > 0 ? formData.tags : null,
         categories: formData.category ? [formData.category] : null,
+        // Stage de la startup
+        stage: formData.stage || null,
         // Números
         total_users: parseNumber(formData.users),
         // Campos requeridos por la tabla
@@ -739,23 +759,49 @@ Revisa la consola para más detalles.
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Categoría</Label>
-                        <Select 
-                          value={formData.category} 
-                          onValueChange={(value) => handleInputChange("category", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona una categoría" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableTags.map(cat => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Categoría</Label>
+                          <Select
+                            value={formData.category}
+                            onValueChange={(value) => handleInputChange("category", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona una categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableCategories.map(cat => (
+                                <SelectItem key={cat.value} value={cat.value}>
+                                  {cat.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Stage *</Label>
+                          <Select
+                            value={formData.stage}
+                            onValueChange={(value) => handleInputChange("stage", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona el stage" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MVP">MVP (Hackathon)</SelectItem>
+                              <SelectItem value="Grants">Grants</SelectItem>
+                              <SelectItem value="Pre-seed">Pre-seed</SelectItem>
+                              <SelectItem value="Seed">Seed</SelectItem>
+                              <SelectItem value="Series A">Series A</SelectItem>
+                              <SelectItem value="Series B">Series B</SelectItem>
+                              <SelectItem value="Series C+">Series C+</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Los proyectos MVP aparecerán en "MVPs Hackathon"
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-2">

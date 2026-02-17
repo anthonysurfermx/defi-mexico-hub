@@ -120,6 +120,19 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
+  /* Focus visible - Accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* Smooth theme transitions */
+  body,
+  .bg-background,
+  .bg-card,
+  .bg-muted {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
   /* Enhanced micro-interactions */
   .card-hover {
     @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;

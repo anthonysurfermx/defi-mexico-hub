@@ -38,9 +38,8 @@ Categorías (track):
     "name": "Nombre de la Startup",
     "tagline": "Frase corta que describe la startup (máx 100 caracteres)",
     "description": "Descripción detallada de 2-3 párrafos sobre qué hace la startup, su propuesta de valor, problema que resuelve y solución que ofrece.",
-    "category": "defi|nft|infrastructure|gaming|social|other",
-    "stage": "idea|mvp|launch|growth|scale",
-    "fundingStage": "pre_seed|seed|series_a|series_b|series_c|bootstrapped",
+    "category": "DeFi|NFT|DAO|DEX|Lending|Staking|Gaming|Infrastructure",
+    "stage": "MVP|Grants|Pre-seed|Seed|Series A|Series B|Series C+",
     "location": "Ciudad, País",
     "founded_year": 2023,
     "team_size": 10,
@@ -50,22 +49,29 @@ Categorías (track):
     "linkedin_url": "https://linkedin.com/company/startup",
     "logo_url": "https://logo.url",
     "tags": ["DeFi", "Ethereum", "Lending"],
-    "is_hiring": false,
     "is_featured": false,
-    "status": "active"
+    "status": "draft"
   }
 ]
 
 Categorías (category):
-- defi: Protocolos DeFi, DEXs, lending
-- nft: NFTs, marketplaces
-- infrastructure: Wallets, nodes, APIs
-- gaming: GameFi, play-to-earn
-- social: SocialFi, DAOs
-- other: Otros
+- DeFi: Protocolos DeFi
+- NFT: NFTs, marketplaces
+- DAO: Organizaciones descentralizadas
+- DEX: Exchanges descentralizados
+- Lending: Préstamos DeFi
+- Staking: Staking protocols
+- Gaming: GameFi, play-to-earn
+- Infrastructure: Wallets, nodes, APIs
 
-Etapas (stage): idea, mvp, launch, growth, scale
-Funding: pre_seed, seed, series_a, series_b, series_c, bootstrapped`,
+Etapas (stage) - IMPORTANTE:
+- MVP: Proyectos MVP de hackathons (aparecerán en sección MVPs Hackathon)
+- Grants: Proyectos con grants
+- Pre-seed: Etapa pre-seed
+- Seed: Etapa seed
+- Series A: Serie A
+- Series B: Serie B
+- Series C+: Serie C o posterior`,
 
   communities: `Busca 50 comunidades DeFi/Web3 en México y América Latina. Para cada una, extrae la siguiente información y genera un archivo JSON con este formato exacto:
 

@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trophy, TrendingUp, TrendingDown, ExternalLink, DollarSign, BarChart3, Layers, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, ExternalLink, RefreshCw } from 'lucide-react';
+import { PixelTrophy, PixelCoins, PixelBarChart, PixelLayers } from '@/components/ui/pixel-icons';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { defillamaService, type AIAgentProtocol } from '@/services/defillama.service';
+import { defillamaService, type AIAgentProtocol, type TVLHistoryPoint } from '@/services/defillama.service';
 import { EntityComments } from '@/components/BlogComments';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
@@ -32,12 +34,25 @@ function ChangeCell({ value }: { value: number | null }) {
 
 type SortField = 'tvl' | 'feesAllTime' | 'fees24h' | 'mcap';
 
+const CHART_COLORS = [
+  '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#f97316',
+];
+
+function formatChartValue(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
 export default function AgenticLeaderboardPage() {
   const { t } = useTranslation();
   const [protocols, setProtocols] = useState<AIAgentProtocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortField>('tvl');
+  const [tvlHistory, setTvlHistory] = useState<TVLHistoryPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -45,6 +60,12 @@ export default function AgenticLeaderboardPage() {
       setError(null);
       const data = await defillamaService.getAIAgentProtocols();
       setProtocols(data);
+      // Load chart data in background
+      setChartLoading(true);
+      defillamaService.getTVLHistory(data, 90)
+        .then(setTvlHistory)
+        .catch(() => {})
+        .finally(() => setChartLoading(false));
     } catch (err) {
       console.error('Error loading DefiLlama data:', err);
       setError(t('agenticWorld.leaderboard.noData'));
@@ -57,6 +78,22 @@ export default function AgenticLeaderboardPage() {
     loadData();
   }, []);
 
+  // Get protocol names that appear in the chart data
+  const chartProtocols = useMemo(() => {
+    if (!tvlHistory.length) return [];
+    const keys = new Set<string>();
+    for (const point of tvlHistory) {
+      for (const key of Object.keys(point)) {
+        if (key !== 'date' && key !== 'timestamp') keys.add(key);
+      }
+    }
+    // Sort by latest TVL value descending
+    const lastPoint = tvlHistory[tvlHistory.length - 1];
+    return Array.from(keys).sort((a, b) => {
+      return ((lastPoint[b] as number) || 0) - ((lastPoint[a] as number) || 0);
+    });
+  }, [tvlHistory]);
+
   const sorted = useMemo(() => {
     return [...protocols].sort((a, b) => {
       const aVal = a[sortBy] || 0;
@@ -67,6 +104,16 @@ export default function AgenticLeaderboardPage() {
 
   const totalTVL = useMemo(() => protocols.reduce((sum, p) => sum + p.tvl, 0), [protocols]);
   const totalFees = useMemo(() => protocols.reduce((sum, p) => sum + p.feesAllTime, 0), [protocols]);
+  const totalFees24h = useMemo(() => protocols.reduce((sum, p) => sum + p.fees24h, 0), [protocols]);
+
+  // Weighted average 24h TVL change (weighted by TVL)
+  const avgTVLChange24h = useMemo(() => {
+    const withChange = protocols.filter(p => p.change_1d !== null && p.tvl > 0);
+    if (!withChange.length) return null;
+    const totalW = withChange.reduce((s, p) => s + p.tvl, 0);
+    if (totalW === 0) return null;
+    return withChange.reduce((s, p) => s + (p.change_1d! * p.tvl), 0) / totalW;
+  }, [protocols]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +127,7 @@ export default function AgenticLeaderboardPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Trophy className="w-7 h-7 text-white" />
+              <PixelTrophy size={28} className="text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -103,30 +150,126 @@ export default function AgenticLeaderboardPage() {
               <CardHeader className="pb-2">
                 <CardDescription>{t('agenticWorld.leaderboard.totalTVL')}</CardDescription>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-amber-500" />
+                  <PixelCoins size={20} className="text-amber-500" />
                   {formatUSD(totalTVL)}
                 </CardTitle>
+                {avgTVLChange24h !== null && (
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium ${avgTVLChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {avgTVLChange24h >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {avgTVLChange24h >= 0 ? '+' : ''}{avgTVLChange24h.toFixed(2)}% 24h
+                    </span>
+                  </div>
+                )}
               </CardHeader>
             </Card>
             <Card className="border-amber-500/20">
               <CardHeader className="pb-2">
                 <CardDescription>{t('agenticWorld.leaderboard.totalFees')}</CardDescription>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-amber-500" />
+                  <PixelBarChart size={20} className="text-amber-500" />
                   {formatUSD(totalFees)}
                 </CardTitle>
+                {totalFees24h > 0 && (
+                  <div className="mt-1">
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                      +{formatUSD(totalFees24h)} 24h
+                    </span>
+                  </div>
+                )}
               </CardHeader>
             </Card>
             <Card className="border-amber-500/20">
               <CardHeader className="pb-2">
                 <CardDescription>{t('agenticWorld.leaderboard.totalProtocols')}</CardDescription>
                 <CardTitle className="text-2xl flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-amber-500" />
+                  <PixelLayers size={20} className="text-amber-500" />
                   {protocols.length}
                 </CardTitle>
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                    {protocols.filter(p => p.tvl > 0).length} con TVL activo
+                  </span>
+                </div>
               </CardHeader>
             </Card>
           </div>
+        )}
+
+        {/* TVL History Chart */}
+        {!loading && !error && (
+          <Card className="mb-8 border-amber-500/20">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">TVL History (90d)</CardTitle>
+                  <CardDescription>Total Value Locked over time</CardDescription>
+                </div>
+                {chartLoading && <LoadingSpinner size="sm" />}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {tvlHistory.length > 0 ? (
+                <div className="w-full h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={tvlHistory}>
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v);
+                          return `${d.getMonth() + 1}/${d.getDate()}`;
+                        }}
+                        interval="preserveStartEnd"
+                        minTickGap={40}
+                      />
+                      <YAxis
+                        scale="log"
+                        domain={['auto', 'auto']}
+                        allowDataOverflow
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={formatChartValue}
+                        width={70}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                        }}
+                        labelFormatter={(label: string) => {
+                          const d = new Date(label);
+                          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        }}
+                        formatter={(value: number) => [formatChartValue(value), undefined]}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                      />
+                      {chartProtocols.map((name, i) => (
+                        <Line
+                          key={name}
+                          type="monotone"
+                          dataKey={name}
+                          stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                !chartLoading && (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                    No historical data available
+                  </div>
+                )
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Sort Controls */}
@@ -162,7 +305,7 @@ export default function AgenticLeaderboardPage() {
         {/* Error */}
         {error && (
           <Card className="p-12 text-center border-red-500/20">
-            <Trophy size={48} className="mx-auto mb-4 text-red-500/50" />
+            <PixelTrophy size={48} className="mx-auto mb-4 text-red-500/50" />
             <h3 className="text-lg font-semibold mb-2">{error}</h3>
             <Button onClick={loadData} className="mt-4">
               {t('agenticWorld.leaderboard.retry')}

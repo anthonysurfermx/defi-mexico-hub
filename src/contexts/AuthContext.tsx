@@ -13,7 +13,8 @@ import {
   type AuthSubscription
 } from '../services/auth.service';
 import { Session, Provider, AuthError } from '@supabase/supabase-js';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import i18n from '@/i18n/config';
 
 // Interfaces del contexto
 interface AuthContextType extends AuthState {
@@ -113,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setProfile(userProfile);
     } catch (error) {
       console.error('Error loading user profile:', error);
-      toast.error('Error cargando perfil de usuario');
+      toast.error(i18n.t('auth.profileError'));
     } finally {
       setProfileLoading(false);
     }
@@ -129,9 +130,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (response.data.user && !response.data.session) {
-        toast.success('¡Registro exitoso! Verifica tu email para activar tu cuenta.');
+        toast.success(i18n.t('auth.signupSuccess'));
       } else {
-        toast.success('¡Cuenta creada exitosamente!');
+        toast.success(i18n.t('auth.signupCreated'));
         if (enableAutoRedirect) {
           navigate(redirectTo);
         }
@@ -141,14 +142,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       console.error('Error signing up:', authError);
       
       // Manejar errores específicos
-      let errorMessage = 'Error al crear la cuenta';
-      
+      let errorMessage = i18n.t('auth.signupError');
+
       if (authError.message.includes('already registered')) {
-        errorMessage = 'Este email ya está registrado';
+        errorMessage = i18n.t('auth.signupEmailExists');
       } else if (authError.message.includes('Password')) {
-        errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        errorMessage = i18n.t('auth.signupPasswordWeak');
       } else if (authError.message.includes('email')) {
-        errorMessage = 'El email no es válido';
+        errorMessage = i18n.t('auth.signupEmailInvalid');
       }
       
       toast.error(errorMessage);
@@ -164,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw response.error;
       }
 
-      toast.success('¡Bienvenido de vuelta!');
+      toast.success(i18n.t('auth.signinSuccess'));
       
       if (enableAutoRedirect) {
         navigate(redirectTo);
@@ -174,14 +175,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       console.error('Error signing in:', authError);
       
       // Manejar errores específicos
-      let errorMessage = 'Error al iniciar sesión';
-      
+      let errorMessage = i18n.t('auth.signinError');
+
       if (authError.message.includes('Invalid login credentials')) {
-        errorMessage = 'Email o contraseña incorrectos';
+        errorMessage = i18n.t('auth.signinInvalid');
       } else if (authError.message.includes('Email not confirmed')) {
-        errorMessage = 'Debes verificar tu email antes de iniciar sesión';
+        errorMessage = i18n.t('auth.signinNotConfirmed');
       } else if (authError.message.includes('Too many requests')) {
-        errorMessage = 'Demasiados intentos. Intenta más tarde';
+        errorMessage = i18n.t('auth.signinTooMany');
       }
       
       toast.error(errorMessage);
@@ -205,10 +206,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       const authError = error as AuthError;
       console.error(`Error signing in with ${provider}:`, authError);
       
-      let errorMessage = `Error al iniciar sesión con ${provider}`;
-      
+      let errorMessage = i18n.t('auth.oauthError', { provider });
+
       if (authError.message.includes('Unauthorized')) {
-        errorMessage = `No tienes autorización para usar ${provider}`;
+        errorMessage = i18n.t('auth.oauthUnauthorized', { provider });
       }
       
       toast.error(errorMessage);
@@ -227,17 +228,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw response.error;
       }
 
-      toast.success('¡Enlace enviado! Revisa tu email para iniciar sesión.');
+      toast.success(i18n.t('auth.magicLinkSent'));
     } catch (error) {
       const authError = error as AuthError;
       console.error('Error sending magic link:', authError);
       
-      let errorMessage = 'Error enviando enlace mágico';
-      
+      let errorMessage = i18n.t('auth.magicLinkError');
+
       if (authError.message.includes('rate limit')) {
-        errorMessage = 'Demasiados intentos. Espera un momento antes de intentar nuevamente';
+        errorMessage = i18n.t('auth.magicLinkRateLimit');
       } else if (authError.message.includes('invalid email')) {
-        errorMessage = 'Email no válido';
+        errorMessage = i18n.t('auth.magicLinkEmailInvalid');
       }
       
       toast.error(errorMessage);
@@ -253,7 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw error;
       }
 
-      toast.success('Sesión cerrada correctamente');
+      toast.success(i18n.t('auth.signoutSuccess'));
       
       // Limpiar estado local
       setProfile(null);
@@ -263,7 +264,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Error al cerrar sesión');
+      toast.error(i18n.t('auth.signoutError'));
       throw error;
     }
   };
@@ -279,10 +280,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       // Recargar perfil
       await refreshProfile();
-      toast.success('Perfil actualizado correctamente');
+      toast.success(i18n.t('auth.profileUpdated'));
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Error actualizando el perfil');
+      toast.error(i18n.t('auth.profileUpdateError'));
       throw error;
     }
   };
@@ -295,15 +296,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw error;
       }
 
-      toast.success('Contraseña actualizada correctamente');
+      toast.success(i18n.t('auth.passwordUpdated'));
     } catch (error) {
       const authError = error as AuthError;
       console.error('Error updating password:', authError);
       
-      let errorMessage = 'Error actualizando la contraseña';
-      
+      let errorMessage = i18n.t('auth.passwordUpdateError');
+
       if (authError.message.includes('Password should be')) {
-        errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        errorMessage = i18n.t('auth.passwordWeak');
       }
       
       toast.error(errorMessage);
@@ -319,17 +320,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw error;
       }
 
-      toast.success('Email actualizado. Verifica tu nuevo email para confirmarlo.');
+      toast.success(i18n.t('auth.emailUpdated'));
     } catch (error) {
       const authError = error as AuthError;
       console.error('Error updating email:', authError);
       
-      let errorMessage = 'Error actualizando el email';
-      
+      let errorMessage = i18n.t('auth.emailUpdateError');
+
       if (authError.message.includes('already registered')) {
-        errorMessage = 'Este email ya está en uso';
+        errorMessage = i18n.t('auth.emailExists');
       } else if (authError.message.includes('invalid email')) {
-        errorMessage = 'Email no válido';
+        errorMessage = i18n.t('auth.emailInvalid');
       }
       
       toast.error(errorMessage);
@@ -345,10 +346,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         throw error;
       }
 
-      toast.success('Enlace de recuperación enviado. Revisa tu email.');
+      toast.success(i18n.t('auth.resetSent'));
     } catch (error) {
       console.error('Error resetting password:', error);
-      toast.error('Error enviando enlace de recuperación');
+      toast.error(i18n.t('auth.resetError'));
       throw error;
     }
   };
@@ -362,7 +363,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setProfile(userProfile);
     } catch (error) {
       console.error('Error refreshing profile:', error);
-      toast.error('Error recargando perfil');
+      toast.error(i18n.t('auth.refreshError'));
     } finally {
       setProfileLoading(false);
     }
@@ -478,7 +479,7 @@ export const useRequireRole = (
       const hasAccess = auth.canAccessRoute(role);
       if (!hasAccess) {
         navigate(redirectTo);
-        toast.error('No tienes permisos para acceder a esta página');
+        toast.error(i18n.t('auth.noPermission'));
       }
     }
   }, [auth.initialized, auth.user, role, navigate, redirectTo, auth]);

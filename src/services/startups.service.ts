@@ -37,7 +37,7 @@ interface Startup {
 }
 
 export const startupsService = {
-  // Obtener todas las startups publicadas
+  // Obtener todas las startups publicadas (excluyendo MVP stage)
   async getAll(): Promise<Startup[]> {
     try {
       const { data, error } = await supabase
@@ -51,7 +51,12 @@ export const startupsService = {
         return [];
       }
 
-      return data || [];
+      // Excluir proyectos con stage='MVP' del directorio principal
+      const filteredData = (data || []).filter(startup => {
+        return startup.stage !== 'MVP';
+      });
+
+      return filteredData;
     } catch (error) {
       console.error('Error in getAll:', error);
       return [];
@@ -286,6 +291,28 @@ export const startupsService = {
         .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
         .order('created_at', { ascending: false })
     );
+  },
+
+  // Obtener proyectos MVP Hackathon (filtrados por stage='MVP')
+  async getHackathonProjects(): Promise<Startup[]> {
+    try {
+      const { data, error } = await supabase
+        .from('startups')
+        .select('*')
+        .in('status', ['published', 'approved'])
+        .eq('stage', 'MVP')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching hackathon projects:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getHackathonProjects:', error);
+      return [];
+    }
   },
 
   // ========== MÉTODOS LEGACY PARA STARTUP_APPLICATIONS ==========

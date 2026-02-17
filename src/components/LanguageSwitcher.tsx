@@ -19,7 +19,7 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="p-2 rounded-full bg-white/70 backdrop-blur-sm border border-amber-700/30 text-amber-900 hover:bg-white/90 transition-all duration-200 shadow-sm cursor-pointer"
+          className="p-2 rounded-full bg-background/70 backdrop-blur-sm border border-border text-foreground hover:bg-background/90 transition-all duration-200 shadow-sm cursor-pointer"
         >
           <Languages className="h-4 w-4" />
           <span className="sr-only">Change language</span>

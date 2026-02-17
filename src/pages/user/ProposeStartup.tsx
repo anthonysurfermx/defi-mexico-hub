@@ -35,6 +35,7 @@ const startupSchema = z.object({
   twitter_url: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
   linkedin_url: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
   github_url: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
+  stage: z.string().min(1, 'El stage es requerido'),
   funding_stage: z.string().optional(),
   total_funding: z.number().min(0).optional(),
   employee_count: z.number().int().min(0).optional(),
@@ -159,6 +160,7 @@ export default function ProposeStartup() {
                     <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="mvp_hackathon">MVP Hackathon</SelectItem>
                     <SelectItem value="defi">DeFi</SelectItem>
                     <SelectItem value="lending">Lending</SelectItem>
                     <SelectItem value="dex">DEX</SelectItem>
@@ -291,9 +293,33 @@ export default function ProposeStartup() {
 
             {/* Información Empresarial */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Información Empresarial (Opcional)</h3>
+              <h3 className="text-lg font-semibold">Información Empresarial</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stage">Stage de la Startup *</Label>
+                  <Select onValueChange={(value) => setValue('stage', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona el stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MVP">MVP (Hackathon)</SelectItem>
+                      <SelectItem value="Grants">Grants</SelectItem>
+                      <SelectItem value="Pre-seed">Pre-seed</SelectItem>
+                      <SelectItem value="Seed">Seed</SelectItem>
+                      <SelectItem value="Series A">Series A</SelectItem>
+                      <SelectItem value="Series B">Series B</SelectItem>
+                      <SelectItem value="Series C+">Series C+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.stage && (
+                    <p className="text-sm text-destructive">{errors.stage.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Los proyectos MVP aparecerán en la sección "MVPs Hackathon"
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="founded_year">Año de Fundación</Label>
                   <Input
@@ -315,24 +341,6 @@ export default function ProposeStartup() {
                     placeholder="10"
                     {...register('employee_count', { valueAsNumber: true })}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="funding_stage">Etapa de Financiamiento</Label>
-                  <Select onValueChange={(value) => setValue('funding_stage', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una etapa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bootstrap">Bootstrap</SelectItem>
-                      <SelectItem value="pre-seed">Pre-seed</SelectItem>
-                      <SelectItem value="seed">Seed</SelectItem>
-                      <SelectItem value="series-a">Series A</SelectItem>
-                      <SelectItem value="series-b">Series B</SelectItem>
-                      <SelectItem value="series-c">Series C+</SelectItem>
-                      <SelectItem value="none">Sin financiamiento</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-2">

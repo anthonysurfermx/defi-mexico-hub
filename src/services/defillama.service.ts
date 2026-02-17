@@ -17,11 +17,37 @@ export interface AIAgentProtocol {
   feesAllTime: number;
 }
 
+export interface TVLHistoryPoint {
+  date: string; // YYYY-MM-DD
+  timestamp: number;
+  [protocol: string]: string | number; // dynamic keys for each protocol's TVL
+}
+
+// AI-related protocols that DefiLlama categorizes differently (not under 'AI Agents')
+const EXTRA_SLUGS = new Set([
+  'bankr',                // Interface - AI agent trading infra (OpenClaw)
+  'gaib',                 // RWA - Financial layer for AI infrastructure (GPU-backed)
+  'near-intents',         // Cross Chain Bridge - AI intents system
+  'maxshot',              // Onchain Capital Allocator - AI Agent Factory
+  'jpow-ai',             // CDP - AI Agent that manages lending protocol
+  'rank-trading',         // Yield - Marketplace for human & AI agent traders
+  'singularity-finance',  // Yield - DeFi platform of AI Superintelligence Alliance
+  'powerpool',            // Indexes - DePIN layer powering AI Agents
+  'bakerfi',              // Liquid Staking - AI agents for DeFi automation
+  '3jane-lending',        // Uncollateralized Lending - AI agent credit market
+]);
+
 const CACHE_KEY = 'defillama_ai_agents';
+const CACHE_KEY_HISTORY = 'defillama_tvl_history';
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 interface CachedData {
   data: AIAgentProtocol[];
+  timestamp: number;
+}
+
+interface CachedHistory {
+  data: TVLHistoryPoint[];
   timestamp: number;
 }
 
@@ -66,9 +92,9 @@ export const defillamaService = {
     const protocols = await protocolsRes.json();
     const feesData = await feesRes.json();
 
-    // Filter AI Agents category
+    // Filter AI Agents category + extra known slugs
     const aiProtocols = protocols.filter(
-      (p: any) => p.category === 'AI Agents'
+      (p: any) => p.category === 'AI Agents' || EXTRA_SLUGS.has(p.slug)
     );
 
     // Build fees lookup by name (lowercase)
@@ -103,5 +129,56 @@ export const defillamaService = {
 
     setCache(merged);
     return merged;
+  },
+
+  async getTVLHistory(protocols: AIAgentProtocol[], days = 90): Promise<TVLHistoryPoint[]> {
+    // Check cache
+    try {
+      const raw = sessionStorage.getItem(CACHE_KEY_HISTORY);
+      if (raw) {
+        const cached: CachedHistory = JSON.parse(raw);
+        if (Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+        sessionStorage.removeItem(CACHE_KEY_HISTORY);
+      }
+    } catch { /* ignore */ }
+
+    // Fetch top protocols with TVL > 0 (max 8 to limit API calls)
+    const withTVL = protocols.filter(p => p.tvl > 0).slice(0, 8);
+
+    const responses = await Promise.allSettled(
+      withTVL.map(p =>
+        fetch(`https://api.llama.fi/protocol/${p.slug}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => ({ slug: p.slug, name: p.name, tvl: data?.tvl || [] }))
+      )
+    );
+
+    // Build date-indexed map
+    const dateMap = new Map<string, TVLHistoryPoint>();
+    const cutoff = Date.now() / 1000 - days * 86400;
+
+    for (const result of responses) {
+      if (result.status !== 'fulfilled' || !result.value) continue;
+      const { name, tvl } = result.value;
+      for (const entry of tvl) {
+        if (entry.date < cutoff) continue;
+        const d = new Date(entry.date * 1000);
+        const dateStr = d.toISOString().split('T')[0];
+        if (!dateMap.has(dateStr)) {
+          dateMap.set(dateStr, { date: dateStr, timestamp: entry.date });
+        }
+        const point = dateMap.get(dateStr)!;
+        point[name] = Math.round(entry.totalLiquidityUSD || 0);
+      }
+    }
+
+    const history = Array.from(dateMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+
+    // Cache
+    try {
+      sessionStorage.setItem(CACHE_KEY_HISTORY, JSON.stringify({ data: history, timestamp: Date.now() }));
+    } catch { /* ignore */ }
+
+    return history;
   },
 };
