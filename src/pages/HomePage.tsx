@@ -334,32 +334,32 @@ export default function HomePage() {
               {/* Headline */}
               <div className="space-y-3">
                 <h2 className="font-mono font-bold text-2xl md:text-4xl lg:text-5xl text-foreground leading-tight">
-                  <ScrambleText text="Stop Following Humans." speed={20} iterations={12} />
+                  <ScrambleText text={t('home.agenticHero.title1')} speed={20} iterations={12} />
                 </h2>
                 <h2 className="font-mono font-bold text-2xl md:text-4xl lg:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 leading-tight">
-                  <ScrambleText text="Follow the AI Agents." speed={20} iterations={15} />
+                  <ScrambleText text={t('home.agenticHero.title2')} speed={20} iterations={15} />
                 </h2>
                 <p className="text-amber-300/50 text-sm md:text-base font-mono max-w-2xl">
-                  {'> '}{t('home.agenticHero.description', { defaultValue: 'AI agents are reshaping DeFi. Track their on-chain moves, detect trading patterns, and find alpha before the crowd.' })}
+                  {'> '}{t('home.agenticHero.description')}
                 </p>
               </div>
 
               {/* Stats row */}
               <div className="grid grid-cols-3 gap-4 max-w-lg">
                 <div className="border border-amber-500/20 bg-amber-500/5 p-3">
-                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Total TVL</div>
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">{t('home.agenticHero.totalTVL')}</div>
                   <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
                     {loadingAgents ? '...' : <ScrambleText text={formatUSD(totalTVL)} speed={30} iterations={6} />}
                   </div>
                 </div>
                 <div className="border border-amber-500/20 bg-amber-500/5 p-3">
-                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Protocols</div>
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">{t('home.agenticHero.protocols')}</div>
                   <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
                     {loadingAgents ? '...' : <ScrambleText text={String(agentProtocols.length)} speed={30} iterations={6} />}
                   </div>
                 </div>
                 <div className="border border-amber-500/20 bg-amber-500/5 p-3">
-                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">Active TVL</div>
+                  <div className="text-[10px] text-amber-400/60 font-mono uppercase">{t('home.agenticHero.activeTVL')}</div>
                   <div className="text-lg md:text-xl font-mono font-bold text-amber-300">
                     {loadingAgents ? '...' : <ScrambleText text={String(activeProtocols)} speed={30} iterations={6} />}
                   </div>
@@ -370,7 +370,7 @@ export default function HomePage() {
               {aggregateTVL.length > 0 && (
                 <div className="border border-amber-500/15 bg-black/40 p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-amber-400/60 font-mono uppercase">AI Agent TVL (90d)</span>
+                    <span className="text-[10px] text-amber-400/60 font-mono uppercase">{t('home.agenticHero.chartTitle')}</span>
                     <span className="text-[10px] text-amber-300/40 font-mono">Powered by DeFi Llama</span>
                   </div>
                   <div className="h-[160px] md:h-[200px]">
@@ -431,7 +431,7 @@ export default function HomePage() {
               {/* Loading state for chart */}
               {loadingAgents && (
                 <div className="border border-amber-500/15 bg-black/40 p-4 h-[200px] flex items-center justify-center">
-                  <div className="text-amber-400/40 text-sm font-mono animate-pulse">{'>'} Loading AI agent data...</div>
+                  <div className="text-amber-400/40 text-sm font-mono animate-pulse">{'>'} {t('home.agenticHero.loading')}</div>
                 </div>
               )}
 
@@ -440,11 +440,11 @@ export default function HomePage() {
                 <div className="relative group">
                   <div className="absolute -inset-[2px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity" style={{ animation: 'glow-spin-home 3s ease-in-out infinite' }} />
                   <Link
-                    to="/agentic-world"
+                    to="/agentic-world/polymarket"
                     className="relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-900/80 to-amber-800/80 border border-amber-400/60 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
                   >
                     <Sparkles className="w-4 h-4" />
-                    ENTER AGENTIC WORLD
+                    {t('home.agenticHero.cta', { defaultValue: 'ENTER AGENTIC WORLD' })}
                     <PixelArrowRight size={14} className="ml-1" />
                   </Link>
                 </div>

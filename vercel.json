@@ -3,7 +3,7 @@
     { "source": "/api/polymarket-gamma/:path*", "destination": "https://gamma-api.polymarket.com/:path*" },
     { "source": "/api/polymarket-data/:path*", "destination": "https://data-api.polymarket.com/:path*" },
     { "source": "/api/polymarket-clob/:path*", "destination": "https://clob.polymarket.com/:path*" },
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/((?!api/).*)", "destination": "/" }
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",

@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChainTVLChart } from '@/components/charts/ChainTVLChart';
 import { CHART_COLORS } from '@/components/charts/DefiChartTheme';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 
 const LatamExchangesTab = lazy(() => import('@/components/LatamExchangesTab'));
 
@@ -296,6 +297,31 @@ export default function MetricsPage() {
             <KPICard icon={DollarSign} label={t('metrics.stablecoinsMcap')} value={kpi.stablecoinsMcap} change={kpi.stablecoinsMcapChange} color="purple-500" />
           </div>
         </section>
+
+        {/* ── AI Insights ──────────────────────────────────────── */}
+        {!loading && kpi.globalTVL !== null && (
+          <section className="container mx-auto px-4 py-6 sm:py-8">
+            <div className="max-w-5xl mx-auto">
+              <AIInsightsTerminal
+                context="exchange-metrics"
+                data={{
+                  globalTVL: kpi.globalTVL,
+                  globalTVLChange: kpi.globalTVLChange,
+                  dexVolume: kpi.dexVolume,
+                  dexVolumeChange: kpi.dexVolumeChange,
+                  totalFees: kpi.totalFees,
+                  totalFeesChange: kpi.totalFeesChange,
+                  stablecoinsMcap: kpi.stablecoinsMcap,
+                  stablecoinsMcapChange: kpi.stablecoinsMcapChange,
+                  topChains: chains.slice(0, 5).map(c => ({ name: c.name, tvl: c.tvl })),
+                  topProtocols: protocols.slice(0, 5).map(p => ({ name: p.name, tvl: p.tvl, change_1d: p.change_1d })),
+                }}
+                commandLabel="openclaw --explain defi-metrics"
+                buttonLabel="EXPLAIN WITH AI"
+              />
+            </div>
+          </section>
+        )}
 
         {/* ── Section 2: Top Chains by TVL ──────────────────────── */}
         <section className="container mx-auto px-4 py-8 sm:py-10">

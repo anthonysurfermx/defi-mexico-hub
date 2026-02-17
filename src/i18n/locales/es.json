@@ -143,6 +143,17 @@
     "metrics": {
       "title": "Métricas del Ecosistema",
       "description": "Datos en tiempo real sobre exchanges, DeFi y adopción crypto en México y LATAM."
+    },
+    "agenticHero": {
+      "title1": "Deja de Seguir Humanos.",
+      "title2": "Sigue a los Agentes AI.",
+      "description": "Los agentes AI estan transformando DeFi. Rastrea sus movimientos on-chain, detecta patrones de trading y encuentra alpha antes que el resto.",
+      "totalTVL": "TVL Total",
+      "protocols": "Protocolos",
+      "activeTVL": "TVL Activo",
+      "chartTitle": "TVL Agentes AI (90d)",
+      "loading": "Cargando datos de agentes AI...",
+      "cta": "ENTRAR A AGENTIC WORLD"
     }
   },
   "startups": {
@@ -1225,6 +1236,8 @@
     "badge": "NUEVO",
     "navDirectorio": "Directorio",
     "navDirectorioDesc": "Explora agentes AI para finanzas",
+    "navPolymarket": "Polymarket Agent Radar",
+    "navPolymarketDesc": "Detecta agentes AI en mercados de prediccion",
     "navLeaderboard": "Leaderboard",
     "navLeaderboardDesc": "Rankings en vivo de agentes AI",
     "infoBannerTitle": "¿Qué son los agentes financieros AI?",

@@ -70,11 +70,11 @@ export default function MainLayout() {
     { name: 'Trabajos Web3', href: '/ecosistema/trabajos', Icon: PixelBriefcase, description: 'Web3 jobs in Mexico' },
   ];
 
-  // Navegación "Agentic World" (dropdown)
+  // Navegación "Agentic World" (dropdown) - Polymarket Agent Radar first (star feature)
   const agenticNavigation = [
+    { name: t('agenticWorld.navPolymarket'), href: '/agentic-world/polymarket', Icon: PixelLobster, description: t('agenticWorld.navPolymarketDesc') },
     { name: t('agenticWorld.navDirectorio'), href: '/agentic-world', Icon: PixelZap, description: t('agenticWorld.navDirectorioDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
-    { name: 'Polymarket Agent Radar', href: '/agentic-world/polymarket', Icon: PixelLobster, description: 'Detect AI agents in prediction markets' },
   ];
 
   const isActive = (path: string) => {

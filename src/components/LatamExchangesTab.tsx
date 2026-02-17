@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CHART_COLORS } from '@/components/charts/DefiChartTheme';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 
 // ── Types ───────────────────────────────────────────────────────────
 interface LatamPair {
@@ -51,15 +52,6 @@ interface CountryData {
   exchangeCount: number;
   pairCount: number;
   hasPresence: boolean;
-}
-
-interface LatamStablecoin {
-  name: string;
-  symbol: string;
-  pegLabel: string;
-  chains: string[];
-  circulating: number;
-  color: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -601,8 +593,6 @@ export default function LatamExchangesTab() {
   const [results, setResults] = useState<ExchangeResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanProgress, setScanProgress] = useState({ current: 0, total: EXCHANGES.length });
-  const [stablecoins, setStablecoins] = useState<LatamStablecoin[]>([]);
-
   const fetchLatamData = useCallback(async () => {
     if (latamCache && Date.now() - latamCache.ts < CACHE_TTL) {
       setResults(latamCache.data);
@@ -642,33 +632,7 @@ export default function LatamExchangesTab() {
     setLoading(false);
   }, []);
 
-  const fetchStablecoins = useCallback(async () => {
-    try {
-      const res = await fetch('https://stablecoins.llama.fi/stablecoins?includePrices=true');
-      if (!res.ok) return;
-      const data = await res.json();
-      const latamPegs = ['peggedMXN', 'peggedREAL', 'peggedARS'];
-      const pegLabels: Record<string, string> = { peggedMXN: 'MXN', peggedREAL: 'BRL', peggedARS: 'ARS' };
-      const pegColors: Record<string, string> = { peggedMXN: '#006847', peggedREAL: '#009739', peggedARS: '#75AADB' };
-
-      const found: LatamStablecoin[] = data.peggedAssets
-        .filter((a: { pegType: string }) => latamPegs.includes(a.pegType))
-        .map((a: { name: string; symbol: string; pegType: string; chains: string[]; circulating: Record<string, number> }) => ({
-          name: a.name, symbol: a.symbol,
-          pegLabel: pegLabels[a.pegType] || a.pegType,
-          chains: a.chains || [],
-          circulating: Object.values(a.circulating || {}).reduce(
-            (sum: number, v) => sum + (typeof v === 'number' ? v : 0), 0
-          ),
-          color: pegColors[a.pegType] || '#6B7280',
-        }))
-        .filter((s: LatamStablecoin) => s.circulating > 0)
-        .sort((a: LatamStablecoin, b: LatamStablecoin) => b.circulating - a.circulating);
-      setStablecoins(found);
-    } catch (err) { console.error('Error fetching LATAM stablecoins:', err); }
-  }, []);
-
-  useEffect(() => { fetchLatamData(); fetchStablecoins(); }, [fetchLatamData, fetchStablecoins]);
+  useEffect(() => { fetchLatamData(); }, [fetchLatamData]);
 
   // ── Computed data ──────────────────────────────────────────────────
   const allPairs = results.flatMap(r => r.latamPairs);
@@ -885,6 +849,29 @@ export default function LatamExchangesTab() {
         </Card>
       </div>
 
+      {/* ── AI Insights ──────────────────────────────────────────── */}
+      {!loading && results.length > 0 && (
+        <AIInsightsTerminal
+          context="latam-exchanges"
+          data={{
+            totalActivePairs,
+            exchangesWithPairs,
+            totalExchanges: results.length,
+            currenciesWithPresence: currenciesWithPairs.length,
+            totalCurrencies: LATAM_CURRENCIES.length,
+            currenciesWithNoPairs,
+            topExchanges: heatmapData.slice(0, 8).map(e => ({
+              name: e.name, type: e.type, pairCount: e.totalActive,
+            })),
+            currencyBreakdown: countryData.filter(c => c.hasPresence).map(c => ({
+              code: c.code, flag: c.flag, pairs: c.pairCount, exchanges: c.exchangeCount,
+            })),
+          }}
+          commandLabel="openclaw --explain latam-exchanges"
+          buttonLabel="EXPLAIN WITH AI"
+        />
+      )}
+
       {/* ── Insight: Missing Currencies ───────────────────────────── */}
       {currenciesWithNoPairs.length > 0 && results.length > 5 && (
         <Card className="border-amber-500/20 bg-amber-500/5">
@@ -1082,53 +1069,6 @@ export default function LatamExchangesTab() {
                           ))}
                         </div>
                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── LATAM Stablecoins ─────────────────────────────────────── */}
-      {stablecoins.length > 0 && (
-        <Card>
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
-              {t('metrics.latam.latamStablecoins')}
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              {t('metrics.latam.latamStablecoinsDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-xs sm:text-sm min-w-[400px]">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-2 sm:p-3 font-medium">{t('metrics.latam.pair')}</th>
-                    <th className="text-left p-2 sm:p-3 font-medium">{t('metrics.latam.peg')}</th>
-                    <th className="text-left p-2 sm:p-3 font-medium hidden sm:table-cell">{t('metrics.latam.chains')}</th>
-                    <th className="text-right p-2 sm:p-3 font-medium">{t('metrics.latam.circulating')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {stablecoins.map(s => (
-                    <tr key={s.symbol} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-2 sm:p-3">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                          <span className="font-medium">{s.symbol}</span>
-                          <span className="text-muted-foreground text-xs">{s.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-2 sm:p-3"><Badge variant="secondary" className="text-[10px]">{s.pegLabel}</Badge></td>
-                      <td className="p-2 sm:p-3 text-muted-foreground hidden sm:table-cell">
-                        {s.chains.length} {t('metrics.latam.chains').toLowerCase()}
-                      </td>
-                      <td className="p-2 sm:p-3 text-right font-mono">${fmt(s.circulating)}</td>
                     </tr>
                   ))}
                 </tbody>

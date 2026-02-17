@@ -54,27 +54,27 @@ Focus on: What type of trader is this? What patterns stand out? Is this wallet w
 }
 
 function buildExchangeMetricsPrompt(data: any): string {
-  const exchanges = (data.exchanges || [])
-    .map((e: any) => `${e.name} | Vol: $${e.volume} | Users: ${e.users} | Growth: ${e.growth}%`)
+  const topChains = (data.topChains || [])
+    .map((c: any) => `${c.name}: $${(c.tvl / 1e9).toFixed(2)}B`)
+    .join(', ');
+
+  const topProtocols = (data.topProtocols || [])
+    .map((p: any) => `${p.name}: $${(p.tvl / 1e9).toFixed(2)}B (${p.change_1d >= 0 ? '+' : ''}${(p.change_1d || 0).toFixed(2)}% 24h)`)
     .join('\n');
 
-  const trends = (data.trends || [])
-    .map((t: string) => `- ${t}`)
-    .join('\n');
+  return `Analyze global DeFi metrics snapshot.
 
-  return `Analyze LATAM crypto exchange data.
+GLOBAL TVL: $${((data.globalTVL || 0) / 1e9).toFixed(2)}B (${data.globalTVLChange >= 0 ? '+' : ''}${(data.globalTVLChange || 0).toFixed(2)}% 24h)
+24H DEX VOLUME: $${((data.dexVolume || 0) / 1e9).toFixed(2)}B (${data.dexVolumeChange >= 0 ? '+' : ''}${(data.dexVolumeChange || 0).toFixed(2)}% 24h)
+24H PROTOCOL FEES: $${((data.totalFees || 0) / 1e6).toFixed(1)}M (${data.totalFeesChange >= 0 ? '+' : ''}${(data.totalFeesChange || 0).toFixed(2)}% 24h)
+STABLECOINS MARKET CAP: $${((data.stablecoinsMcap || 0) / 1e9).toFixed(2)}B (${data.stablecoinsMcapChange >= 0 ? '+' : ''}${(data.stablecoinsMcapChange || 0).toFixed(2)}% 24h)
 
-REGION: ${data.region || 'LATAM'}
-PERIOD: ${data.period || 'current'}
-TOTAL VOLUME: $${data.totalVolume || 0}
+TOP CHAINS BY TVL: ${topChains || 'N/A'}
 
-EXCHANGES:
-${exchanges || 'No data'}
+TOP PROTOCOLS:
+${topProtocols || 'N/A'}
 
-KEY TRENDS:
-${trends || 'None provided'}
-
-Identify which exchanges are growing fastest, what is driving adoption, and what this means for the LATAM DeFi landscape.`;
+Identify key trends: Is DeFi growing or contracting? Which chains/protocols are gaining share? What does fee revenue vs TVL tell us? What should traders and builders pay attention to right now?`;
 }
 
 function buildMarketPrompt(data: any): string {
@@ -93,9 +93,35 @@ HOLDER DISTRIBUTION:
 Explain what the smart money is doing and what the holder composition tells us about market conviction.`;
 }
 
+function buildLatamExchangesPrompt(data: any): string {
+  const topExchanges = (data.topExchanges || [])
+    .map((e: any) => `${e.name} (${e.type}): ${e.pairCount} LATAM pairs`)
+    .join('\n');
+
+  const currencyBreakdown = (data.currencyBreakdown || [])
+    .map((c: any) => `${c.flag} ${c.code}: ${c.pairs} pairs across ${c.exchanges} exchanges`)
+    .join('\n');
+
+  return `Analyze LATAM exchange coverage data from live API scans.
+
+TOTAL ACTIVE PAIRS: ${data.totalActivePairs || 0}
+EXCHANGES WITH LATAM PAIRS: ${data.exchangesWithPairs || 0} / ${data.totalExchanges || 0}
+CURRENCIES WITH PRESENCE: ${data.currenciesWithPresence || 0} / ${data.totalCurrencies || 0}
+CURRENCIES WITH ZERO PAIRS: ${(data.currenciesWithNoPairs || []).join(', ') || 'None'}
+
+TOP EXCHANGES BY LATAM COVERAGE:
+${topExchanges || 'N/A'}
+
+CURRENCY BREAKDOWN:
+${currencyBreakdown || 'N/A'}
+
+Analyze: Which countries have the best exchange coverage? Where are the biggest gaps? What does this mean for LATAM crypto adoption? Which exchanges are best positioned for LATAM growth?`;
+}
+
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,
   'exchange-metrics': buildExchangeMetricsPrompt,
+  'latam-exchanges': buildLatamExchangesPrompt,
   'market': buildMarketPrompt,
 };
 
