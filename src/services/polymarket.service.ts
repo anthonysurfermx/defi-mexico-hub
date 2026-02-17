@@ -31,6 +31,25 @@ export interface PolymarketPosition {
 }
 
 const BASE_URL = 'https://data-api.polymarket.com';
+const GAMMA_URL = 'https://gamma-api.polymarket.com';
+
+export interface MarketInfo {
+  conditionId: string;
+  question: string;
+  slug: string;
+  volume: number;
+  outcomePrices: string[];
+  outcomes: string[];
+  image: string;
+  endDate: string;
+}
+
+export interface MarketHolder {
+  address: string;
+  pseudonym: string;
+  amount: number;
+  outcome: string;
+}
 
 const DEFAULT_AGENTS: PolymarketAgent[] = [
   {
@@ -167,6 +186,92 @@ export const polymarketService = {
         lastTradeTitle: null,
         pseudonym: null,
       };
+    }
+  },
+
+  parseMarketUrl(url: string): string | null {
+    try {
+      const u = new URL(url);
+      if (!u.hostname.includes('polymarket.com')) return null;
+      // URL formats:
+      // /event/slug-name OR /event/slug-name/sub-market-slug
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'event' && parts.length >= 2) {
+        return parts[parts.length - 1]; // last segment is the market slug
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  async getMarketBySlug(slug: string): Promise<MarketInfo | null> {
+    try {
+      const res = await fetch(`${GAMMA_URL}/markets?slug=${slug}&limit=1`);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        // Try as event slug
+        const eventRes = await fetch(`${GAMMA_URL}/events?slug=${slug}&limit=1`);
+        const eventData = await eventRes.json();
+        if (Array.isArray(eventData) && eventData.length > 0) {
+          const markets = eventData[0].markets || [];
+          if (markets.length > 0) {
+            const m = markets[0];
+            return {
+              conditionId: m.conditionId || '',
+              question: m.question || eventData[0].title || '',
+              slug: m.slug || slug,
+              volume: parseFloat(m.volume) || 0,
+              outcomePrices: JSON.parse(m.outcomePrices || '[]'),
+              outcomes: JSON.parse(m.outcomes || '[]'),
+              image: m.image || eventData[0].image || '',
+              endDate: m.endDate || '',
+            };
+          }
+        }
+        return null;
+      }
+      const m = data[0];
+      return {
+        conditionId: m.conditionId || '',
+        question: m.question || '',
+        slug: m.slug || slug,
+        volume: parseFloat(m.volume) || 0,
+        outcomePrices: JSON.parse(m.outcomePrices || '[]'),
+        outcomes: JSON.parse(m.outcomes || '[]'),
+        image: m.image || '',
+        endDate: m.endDate || '',
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  async getMarketHolders(conditionId: string): Promise<MarketHolder[]> {
+    try {
+      const res = await fetch(`${BASE_URL}/holders?market=${conditionId}&limit=50`);
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+
+      const holders: MarketHolder[] = [];
+      for (const group of data) {
+        const outcomeIndex = group.holders?.[0]?.outcomeIndex ?? 0;
+        const outcome = outcomeIndex === 0 ? 'Yes' : 'No';
+        for (const h of group.holders || []) {
+          holders.push({
+            address: h.proxyWallet || '',
+            pseudonym: h.pseudonym || h.name || '',
+            amount: parseFloat(h.amount) || 0,
+            outcome,
+          });
+        }
+      }
+
+      // Sort by amount descending
+      holders.sort((a, b) => b.amount - a.amount);
+      return holders;
+    } catch {
+      return [];
     }
   },
 

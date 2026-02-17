@@ -13,10 +13,11 @@ import {
 import {
   Bot, TrendingUp, TrendingDown, ExternalLink,
   RefreshCw, Plus, Trash2, Wallet, ArrowLeft,
-  DollarSign, ScanSearch, ChevronDown, ChevronUp
+  DollarSign, ScanSearch, ChevronDown, ChevronUp,
+  Link2, Search, Users, AlertTriangle
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { polymarketService, type PolymarketAgent, type AgentMetrics } from '@/services/polymarket.service';
+import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
 
@@ -86,6 +87,14 @@ export default function PolymarketTrackerPage() {
   const [newName, setNewName] = useState('');
   const [newAddr, setNewAddr] = useState('');
   const [newDesc, setNewDesc] = useState('');
+
+  // Market scanner state
+  const [marketUrl, setMarketUrl] = useState('');
+  const [marketInfo, setMarketInfo] = useState<MarketInfo | null>(null);
+  const [marketHolders, setMarketHolders] = useState<(MarketHolder & { bot?: BotDetectionResult })[]>([]);
+  const [marketScanning, setMarketScanning] = useState(false);
+  const [marketScanProgress, setMarketScanProgress] = useState('');
+  const [expandedHolder, setExpandedHolder] = useState<string | null>(null);
 
   const loadAgents = () => {
     const list = polymarketService.getAgents();
@@ -174,6 +183,63 @@ export default function PolymarketTrackerPage() {
     delete newBotResults[address];
     setBotResults(newBotResults);
     toast.success('Agent removed');
+  };
+
+  const handleMarketScan = async () => {
+    const slug = polymarketService.parseMarketUrl(marketUrl);
+    if (!slug) {
+      toast.error('Invalid Polymarket URL. Paste a link like polymarket.com/event/...');
+      return;
+    }
+
+    setMarketScanning(true);
+    setMarketInfo(null);
+    setMarketHolders([]);
+    setExpandedHolder(null);
+    setMarketScanProgress('Looking up market...');
+
+    const info = await polymarketService.getMarketBySlug(slug);
+    if (!info) {
+      toast.error('Market not found. Check the URL and try again.');
+      setMarketScanning(false);
+      setMarketScanProgress('');
+      return;
+    }
+
+    setMarketInfo(info);
+    setMarketScanProgress('Fetching holders...');
+
+    const holders = await polymarketService.getMarketHolders(info.conditionId);
+    if (holders.length === 0) {
+      toast.error('No holders found for this market.');
+      setMarketScanning(false);
+      setMarketScanProgress('');
+      return;
+    }
+
+    // Show holders immediately, then scan each for bot behavior
+    const holdersWithBot: (MarketHolder & { bot?: BotDetectionResult })[] = holders.map(h => ({ ...h }));
+    setMarketHolders(holdersWithBot);
+
+    // Run bot detection on top holders sequentially
+    const toScan = holdersWithBot.slice(0, 20); // Top 20 holders
+    for (let i = 0; i < toScan.length; i++) {
+      setMarketScanProgress(`Scanning wallet ${i + 1}/${toScan.length}...`);
+      try {
+        const result = await detectBot(toScan[i].address);
+        setMarketHolders(prev =>
+          prev.map(h =>
+            h.address === toScan[i].address ? { ...h, bot: result } : h
+          )
+        );
+      } catch {
+        // Skip failed scans
+      }
+    }
+
+    setMarketScanning(false);
+    setMarketScanProgress('');
+    toast.success(`Scanned ${toScan.length} holders in "${info.question}"`);
   };
 
   const totalPortfolio = Object.values(metrics).reduce(
@@ -301,6 +367,240 @@ export default function PolymarketTrackerPage() {
             </CardHeader>
           </Card>
         </div>
+
+        {/* Market URL Scanner */}
+        <Card className="mb-8 border-cyan-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-cyan-500" />
+              Scan Market by URL
+            </CardTitle>
+            <CardDescription>
+              Paste a Polymarket event URL to scan all holders and detect bots
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="https://polymarket.com/event/..."
+                value={marketUrl}
+                onChange={(e) => setMarketUrl(e.target.value)}
+                className="flex-1"
+                onKeyDown={(e) => e.key === 'Enter' && !marketScanning && handleMarketScan()}
+              />
+              <Button
+                onClick={handleMarketScan}
+                disabled={marketScanning || !marketUrl}
+                className="bg-cyan-600 hover:bg-cyan-700 shrink-0"
+              >
+                <Search className={`w-4 h-4 mr-2 ${marketScanning ? 'animate-pulse' : ''}`} />
+                {marketScanning ? 'Scanning...' : 'Scan Market'}
+              </Button>
+            </div>
+
+            {marketScanProgress && (
+              <div className="flex items-center gap-2 mt-3 text-sm text-cyan-400">
+                <LoadingSpinner size="sm" />
+                {marketScanProgress}
+              </div>
+            )}
+
+            {/* Market Info */}
+            {marketInfo && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-muted">
+                <div className="flex items-start gap-3">
+                  {marketInfo.image && (
+                    <img
+                      src={marketInfo.image}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm">{marketInfo.question}</h3>
+                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                      <span>Volume: {formatUSD(marketInfo.volume)}</span>
+                      {marketInfo.outcomes.map((outcome, i) => (
+                        <span key={outcome} className="font-mono">
+                          {outcome}: {(parseFloat(marketInfo.outcomePrices[i] || '0') * 100).toFixed(0)}%
+                        </span>
+                      ))}
+                      {marketInfo.endDate && (
+                        <span>Ends: {new Date(marketInfo.endDate).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Market Holders Results */}
+            {marketHolders.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    Top Holders ({marketHolders.length})
+                  </h3>
+                  {marketHolders.some(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')) && (
+                    <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-xs flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {marketHolders.filter(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')).length} bots detected
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block rounded-lg border overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 text-xs font-medium text-muted-foreground">Holder</th>
+                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Side</th>
+                        <th className="text-right p-3 text-xs font-medium text-muted-foreground">Amount</th>
+                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Bot Score</th>
+                        <th className="p-3 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {marketHolders.map((holder) => {
+                        const isExp = expandedHolder === holder.address;
+                        return (
+                          <>
+                            <tr
+                              key={holder.address}
+                              className="border-b hover:bg-muted/20 cursor-pointer"
+                              onClick={() => holder.bot && setExpandedHolder(isExp ? null : holder.address)}
+                            >
+                              <td className="p-3">
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm">
+                                    {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
+                                  </span>
+                                  {holder.pseudonym && (
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                      {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <Badge variant="outline" className={`text-[10px] ${
+                                  holder.outcome === 'Yes' ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'
+                                }`}>
+                                  {holder.outcome}
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-right font-mono text-sm">
+                                {formatUSD(holder.amount)}
+                              </td>
+                              <td className="p-3 text-center">
+                                {holder.bot ? (
+                                  <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />
+                                ) : marketScanning ? (
+                                  <LoadingSpinner size="sm" className="mx-auto" />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                {holder.bot && (
+                                  isExp ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                                )}
+                              </td>
+                            </tr>
+                            {isExp && holder.bot && (
+                              <tr key={`${holder.address}-signals`}>
+                                <td colSpan={5} className="p-0">
+                                  <div className="bg-muted/30 px-4 py-3 border-b space-y-1.5">
+                                    <div className="text-xs text-muted-foreground mb-2">
+                                      {holder.bot.tradeCount} trades | {holder.bot.mergeCount} merges | {holder.bot.activeHours}/24h active | {holder.bot.bothSidesPercent}% both-sides
+                                    </div>
+                                    <SignalBar label="Interval (20%)" value={holder.bot.signals.intervalRegularity} />
+                                    <SignalBar label="SPLIT/MERGE (25%)" value={holder.bot.signals.splitMergeRatio} />
+                                    <SignalBar label="Sizing (15%)" value={holder.bot.signals.sizingConsistency} />
+                                    <SignalBar label="24/7 Activity (15%)" value={holder.bot.signals.activity24h} />
+                                    <SignalBar label="Win Rate (15%)" value={holder.bot.signals.winRateExtreme} />
+                                    <SignalBar label="Concentration (10%)" value={holder.bot.signals.marketConcentration} />
+                                    {holder.bot.signals.bothSidesBonus > 0 && (
+                                      <div className="flex items-center gap-2 text-xs pt-1 border-t border-muted">
+                                        <span className="text-red-400 w-28 shrink-0">Both-Sides Bonus</span>
+                                        <span className="font-mono text-red-400">+{holder.bot.signals.bothSidesBonus}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {marketHolders.map((holder) => {
+                    const isExp = expandedHolder === holder.address;
+                    return (
+                      <Card key={holder.address} className="p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-sm">
+                              {holder.pseudonym || `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
+                            </p>
+                            {holder.pseudonym && (
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                                {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={`text-[10px] ${
+                              holder.outcome === 'Yes' ? 'text-green-400 border-green-500/30' : 'text-red-400 border-red-500/30'
+                            }`}>
+                              {holder.outcome}
+                            </Badge>
+                            {holder.bot && <BotScoreBadge score={holder.bot.botScore} classification={holder.bot.classification} />}
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm font-mono">Position: {formatUSD(holder.amount)}</div>
+                        {holder.bot && (
+                          <div className="mt-2 pt-2 border-t">
+                            <button
+                              className="flex items-center gap-2 text-xs text-muted-foreground w-full"
+                              onClick={() => setExpandedHolder(isExp ? null : holder.address)}
+                            >
+                              <ScanSearch className="w-3 h-3" />
+                              <span>Signal breakdown</span>
+                              {isExp ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                            </button>
+                            {isExp && (
+                              <div className="mt-2 space-y-1.5">
+                                <SignalBar label="Interval" value={holder.bot.signals.intervalRegularity} />
+                                <SignalBar label="SPLIT/MERGE" value={holder.bot.signals.splitMergeRatio} />
+                                <SignalBar label="Sizing" value={holder.bot.signals.sizingConsistency} />
+                                <SignalBar label="24/7" value={holder.bot.signals.activity24h} />
+                                <SignalBar label="Win Rate" value={holder.bot.signals.winRateExtreme} />
+                                <SignalBar label="Concentration" value={holder.bot.signals.marketConcentration} />
+                                {holder.bot.signals.bothSidesBonus > 0 && (
+                                  <div className="text-xs text-red-400 pt-1 border-t border-muted">
+                                    Both-Sides Bonus: +{holder.bot.signals.bothSidesBonus}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Desktop Table */}
         <Card className="overflow-hidden hidden md:block">
