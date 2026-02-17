@@ -5,6 +5,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { PixelTarget, PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 import { polymarketService, type AgentMetrics, type PolymarketPosition } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
@@ -373,6 +374,37 @@ export default function ConsensusPage() {
             </div>
           </div>
         </div>
+
+        {/* AI Insights Terminal */}
+        {phase === 'done' && botResult && metrics && (
+          <div className="mb-6">
+            <AIInsightsTerminal
+              context="wallet"
+              data={{
+                wallet: walletAddress,
+                metrics: {
+                  portfolioValue: metrics.portfolioValue,
+                  profitPnL: metrics.profitPnL,
+                },
+                positions: positions.slice(0, 10).map(p => ({
+                  outcome: p.outcome,
+                  title: p.title,
+                  currentValue: p.currentValue,
+                  cashPnl: p.cashPnl,
+                })),
+                winRate,
+                botSignals: {
+                  botScore: botResult.botScore,
+                  classification: botResult.classification,
+                  signals: botResult.signals,
+                },
+                marketContext: marketId || undefined,
+              }}
+              commandLabel={`openclaw --explain ${shortAddr(walletAddress)}`}
+              buttonLabel="EXPLAIN WALLET WITH AI"
+            />
+          </div>
+        )}
 
         {/* Positions Table */}
         {positions.length > 0 && (
