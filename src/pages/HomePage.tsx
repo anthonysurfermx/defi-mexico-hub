@@ -12,10 +12,15 @@ import {
   PixelMail,
   PixelSparkles
 } from '@/components/ui/pixel-icons';
+import { Rocket, Briefcase, FileText, UserCheck, BarChart3 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { communitiesService, type Community } from '@/services/communities.service';
 import { eventsService, type Event } from '@/services/events.service';
+import { jobsService, type Job } from '@/services/jobs.service';
+import { blogService, type DomainPost } from '@/services/blog.service';
+import { advocatesService, type DeFiAdvocate } from '@/services/advocates.service';
+import { startupsService } from '@/services/startups.service';
 import { useAuth } from '@/hooks/useAuth';
 import { getTwitterAvatar } from '@/lib/utils';
 
@@ -39,6 +44,13 @@ export default function HomePage() {
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [featuredJobs, setFeaturedJobs] = useState<Job[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [recentPosts, setRecentPosts] = useState<DomainPost[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [featuredAdvocates, setFeaturedAdvocates] = useState<DeFiAdvocate[]>([]);
+  const [loadingAdvocates, setLoadingAdvocates] = useState(true);
+  const [hackathonCount, setHackathonCount] = useState(0);
 
   // Función para manejar el clic en "Contribuye"
   const handleContributeClick = () => {
@@ -83,29 +95,86 @@ export default function HomePage() {
   const loadFeaturedEvents = async () => {
     try {
       setLoadingEvents(true);
-      console.log('🔍 Cargando eventos destacados para HomePage...');
-      
       const result = await eventsService.getFeatured(4);
-      
       if (result.data) {
         setFeaturedEvents(result.data);
-        console.log('✅ Eventos destacados cargados:', result.data.length);
-      } else if (result.error) {
-        console.error('❌ Error loading featured events:', result.error);
+      } else {
         setFeaturedEvents([]);
       }
     } catch (error) {
-      console.error('❌ Error in loadFeaturedEvents:', error);
+      console.error('Error loading featured events:', error);
       setFeaturedEvents([]);
     } finally {
       setLoadingEvents(false);
     }
   };
 
-  // Cargar comunidades y eventos
+  // FUNCIÓN PARA CARGAR TRABAJOS DESTACADOS
+  const loadFeaturedJobs = async () => {
+    try {
+      setLoadingJobs(true);
+      const result = await jobsService.getFeatured(4);
+      if (result.data) {
+        setFeaturedJobs(result.data);
+      } else {
+        setFeaturedJobs([]);
+      }
+    } catch (error) {
+      console.error('Error loading featured jobs:', error);
+      setFeaturedJobs([]);
+    } finally {
+      setLoadingJobs(false);
+    }
+  };
+
+  // FUNCIÓN PARA CARGAR POSTS RECIENTES
+  const loadRecentPosts = async () => {
+    try {
+      setLoadingPosts(true);
+      const posts = await blogService.getRecent(3);
+      setRecentPosts(posts);
+    } catch (error) {
+      console.error('Error loading recent posts:', error);
+      setRecentPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  // FUNCIÓN PARA CARGAR REFERENTES DESTACADOS
+  const loadFeaturedAdvocates = async () => {
+    try {
+      setLoadingAdvocates(true);
+      const data = await advocatesService.getFeaturedAdvocates();
+      setFeaturedAdvocates(data?.slice(0, 4) || []);
+    } catch (error) {
+      console.error('Error loading advocates:', error);
+      setFeaturedAdvocates([]);
+    } finally {
+      setLoadingAdvocates(false);
+    }
+  };
+
+  // FUNCIÓN PARA CARGAR CONTEO DE HACKATHON MVPs
+  const loadHackathonCount = async () => {
+    try {
+      const data = await startupsService.getHackathonProjects();
+      setHackathonCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error loading hackathon count:', error);
+    }
+  };
+
+  // Cargar todo en paralelo
   useEffect(() => {
-    loadOfficialCommunities();
-    loadFeaturedEvents();
+    Promise.all([
+      loadOfficialCommunities(),
+      loadFeaturedEvents(),
+      loadFeaturedJobs(),
+      loadRecentPosts(),
+      loadFeaturedAdvocates(),
+      loadHackathonCount(),
+    ]);
   }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -170,7 +239,7 @@ export default function HomePage() {
       {/* Features Grid - Bento Box Style */}
       <section className="py-24 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card grande (span 2) - Startups */}
             <div className="md:col-span-2 bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
@@ -190,7 +259,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Card normal - Comunidades */}
+            {/* Comunidades */}
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -209,7 +278,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Card normal - Eventos */}
+            {/* Eventos */}
             <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -222,6 +291,67 @@ export default function HomePage() {
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/eventos">
                     {t('home.events.viewAll')}
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Trabajos Web3 */}
+            <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Briefcase className="text-blue-500" size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Trabajos Web3</h3>
+                <p className="text-muted-foreground line-clamp-2">
+                  Vacantes crypto y blockchain en México y LATAM remoto.
+                </p>
+                <Button variant="ghost" className="group" asChild>
+                  <Link to="/ecosistema/trabajos">
+                    Ver trabajos
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Blog */}
+            <div className="bg-card border rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                  <FileText className="text-orange-500" size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Blog</h3>
+                <p className="text-muted-foreground line-clamp-2">
+                  Análisis, guías y noticias del ecosistema DeFi.
+                </p>
+                <Button variant="ghost" className="group" asChild>
+                  <Link to="/blog">
+                    Leer artículos
+                    <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* MVPs Hackathon (span 2) */}
+            <div className="md:col-span-2 bg-gradient-to-br from-violet-500/5 to-purple-600/5 border border-violet-500/20 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <Rocket className="text-violet-500" size={24} />
+                  </div>
+                  <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20">MVP</Badge>
+                </div>
+                <h3 className="text-2xl font-bold">MVPs Hackathon</h3>
+                <p className="text-muted-foreground">
+                  Prototipos creados por la comunidad crypto de LATAM en hackathones.
+                  {hackathonCount > 0 && <span className="text-violet-400 font-medium"> {hackathonCount} proyectos registrados.</span>}
+                </p>
+                <Button variant="ghost" className="group text-violet-500 hover:text-violet-400" asChild>
+                  <Link to="/hackathon-projects">
+                    Ver proyectos MVP
                     <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
@@ -282,6 +412,7 @@ export default function HomePage() {
                         <img
                           src={displayImage}
                           alt={community.name}
+                          loading="lazy"
                           className="w-12 h-12 rounded-xl object-cover"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -312,7 +443,7 @@ export default function HomePage() {
               <div className="col-span-full text-center py-12">
                 <PixelUsers className="text-muted-foreground mx-auto mb-4" size={48} />
                 <h3 className="text-lg font-medium mb-2">
-                  No hay comunidades oficiales disponibles
+                  {t('common.noCommunities')}
                 </h3>
               </div>
             )}
@@ -351,11 +482,11 @@ export default function HomePage() {
                   <div className="p-6 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="rounded-full">
-                        {event.event_type === 'presencial' ? 'Presencial' :
-                         event.event_type === 'online' ? 'Online' : 'Híbrido'}
+                        {event.event_type === 'presencial' ? t('common.presencial') :
+                         event.event_type === 'online' ? t('common.online') : t('common.hibrido')}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {event.start_date ? formatDate(event.start_date) : 'Fecha TBD'}
+                        {event.start_date ? formatDate(event.start_date) : t('common.dateTBD')}
                       </span>
                     </div>
                     <h3 className="text-xl font-semibold group-hover:text-primary transition-colors line-clamp-2">
@@ -365,7 +496,7 @@ export default function HomePage() {
                       {event.description || 'Evento del ecosistema DeFi mexicano'}
                     </p>
                     <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
-                      Ver detalles <PixelArrowRight className="ml-2" size={16} />
+                      {t('common.viewDetails')} <PixelArrowRight className="ml-2" size={16} />
                     </Button>
                   </div>
                 </Link>
@@ -373,9 +504,9 @@ export default function HomePage() {
             ) : (
               <div className="col-span-full text-center py-12">
                 <PixelCalendar className="text-muted-foreground mx-auto mb-4" size={48} />
-                <h4 className="font-semibold mb-2">Próximos eventos en camino</h4>
+                <h4 className="font-semibold mb-2">{t('common.upcomingEvents')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Estamos preparando increíbles eventos para la comunidad
+                  {t('common.upcomingEventsDesc')}
                 </p>
               </div>
             )}
@@ -383,6 +514,256 @@ export default function HomePage() {
         </div>
       </section>
 
+
+      {/* Featured Jobs Section */}
+      <section className="py-24 px-4 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Trabajos Web3</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Oportunidades laborales en crypto, blockchain y DeFi para México y LATAM.
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link to="/ecosistema/trabajos">
+                {t('common.viewMore')}
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loadingJobs ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card border rounded-2xl p-6 animate-pulse">
+                  <div className="h-4 bg-muted rounded w-24 mb-3"></div>
+                  <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                </div>
+              ))
+            ) : featuredJobs.length > 0 ? (
+              featuredJobs.slice(0, 4).map((job) => (
+                <Link
+                  key={job.id}
+                  to={`/ecosistema/trabajos`}
+                  className="block bg-card border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
+                >
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="rounded-full text-blue-500 border-blue-500/30">
+                        {job.job_type === 'remote' ? 'Remoto' : job.job_type === 'hybrid' ? 'Híbrido' : 'Presencial'}
+                      </Badge>
+                      {job.is_featured && (
+                        <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-full">
+                          Destacado
+                        </Badge>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-1">
+                      {job.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span className="font-medium">{job.company}</span>
+                      <span>-</span>
+                      <span>{job.location}</span>
+                    </div>
+                    {job.tags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {job.tags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h4 className="font-semibold mb-2">Próximamente más vacantes</h4>
+                <p className="text-sm text-muted-foreground">
+                  Estamos agregando nuevas oportunidades constantemente.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Blog Section */}
+      <section className="py-24 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Blog</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Análisis, guías y noticias del ecosistema DeFi y crypto en LATAM.
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link to="/blog">
+                {t('common.viewMore')}
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {loadingPosts ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-card border rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-40 bg-muted"></div>
+                  <div className="p-6">
+                    <div className="h-4 bg-muted rounded w-20 mb-3"></div>
+                    <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-muted rounded w-full"></div>
+                  </div>
+                </div>
+              ))
+            ) : recentPosts.length > 0 ? (
+              recentPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  to={`/blog/${post.slug}`}
+                  className="bg-card border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
+                >
+                  {post.image_url && (
+                    <div className="h-40 overflow-hidden">
+                      <img
+                        src={post.image_url}
+                        alt={post.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center gap-2">
+                      {post.categories?.[0] && (
+                        <Badge variant="outline" className="rounded-full text-orange-500 border-orange-500/30">
+                          {post.categories[0]}
+                        </Badge>
+                      )}
+                      {post.reading_time_minutes && (
+                        <span className="text-xs text-muted-foreground">{post.reading_time_minutes} min</span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {post.excerpt}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h4 className="font-semibold mb-2">Próximamente más artículos</h4>
+                <p className="text-sm text-muted-foreground">
+                  Estamos preparando contenido para la comunidad.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Referentes Section */}
+      <section className="py-24 px-4 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Referentes</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Líderes y voces influyentes del ecosistema DeFi y crypto en México y LATAM.
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link to="/referentes">
+                {t('common.viewMore')}
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {loadingAdvocates ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card border rounded-2xl p-6 animate-pulse text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-4"></div>
+                  <div className="h-5 bg-muted rounded w-3/4 mx-auto mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+                </div>
+              ))
+            ) : featuredAdvocates.length > 0 ? (
+              featuredAdvocates.map((advocate) => (
+                <Link
+                  key={advocate.id}
+                  to="/referentes"
+                  className="bg-card border rounded-2xl p-6 hover:shadow-lg transition-all group text-center"
+                >
+                  {advocate.avatar_url ? (
+                    <img
+                      src={advocate.avatar_url}
+                      alt={advocate.name}
+                      loading="lazy"
+                      className="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full mx-auto mb-4 bg-primary/10 flex items-center justify-center">
+                      <UserCheck className="w-8 h-8 text-primary" />
+                    </div>
+                  )}
+                  <h3 className="font-semibold group-hover:text-primary transition-colors line-clamp-1">
+                    {advocate.name}
+                  </h3>
+                  {advocate.expertise && (
+                    <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{advocate.expertise}</p>
+                  )}
+                  {advocate.track && (
+                    <Badge variant="outline" className="mt-2 text-xs">{advocate.track}</Badge>
+                  )}
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h4 className="font-semibold mb-2">Referentes del ecosistema</h4>
+                <p className="text-sm text-muted-foreground">
+                  Conoce a los líderes que impulsan DeFi en LATAM.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Métricas CTA */}
+      <section className="py-16 px-4">
+        <div className="max-w-4xl mx-auto">
+          <Link
+            to="/metricas"
+            className="block bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl p-8 hover:shadow-lg transition-all group"
+          >
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="w-16 h-16 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-8 h-8 text-emerald-500" />
+              </div>
+              <div className="text-center md:text-left flex-1">
+                <h3 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
+                  Métricas del Ecosistema
+                </h3>
+                <p className="text-muted-foreground">
+                  Datos en tiempo real sobre exchanges, DeFi y adopción crypto en México y LATAM.
+                </p>
+              </div>
+              <PixelArrowRight className="text-emerald-500 group-hover:translate-x-2 transition-transform" size={24} />
+            </div>
+          </Link>
+        </div>
+      </section>
 
       {/* Newsletter Section - Simplified */}
       <section className="py-24 px-4">
