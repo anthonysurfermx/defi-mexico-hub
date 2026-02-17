@@ -31,13 +31,13 @@ export default function ReferentesPage() {
   };
 
   const trackFilters = [
-    { value: 'all', label: 'Todos' },
-    { value: 'developer', label: 'Programador' },
-    { value: 'financial', label: 'Financiero' },
-    { value: 'lawyer', label: 'Abogado' },
-    { value: 'designer', label: 'Diseñador' },
-    { value: 'marketer', label: 'Marketer' },
-    { value: 'other', label: 'Otro' },
+    { value: 'all', label: t('advocates.tracks.all') },
+    { value: 'developer', label: t('advocates.tracks.developer') },
+    { value: 'financial', label: t('advocates.tracks.financial') },
+    { value: 'lawyer', label: t('advocates.tracks.lawyer') },
+    { value: 'designer', label: t('advocates.tracks.designer') },
+    { value: 'marketer', label: t('advocates.tracks.marketer') },
+    { value: 'other', label: t('advocates.tracks.other') },
   ];
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function ReferentesPage() {
       setFilteredAdvocates(data || []);
     } catch (err) {
       console.error('Error loading advocates:', err);
-      setError('Error al cargar los referentes');
+      setError(t('advocates.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function ReferentesPage() {
           <div className="mb-16">
             <div className="flex items-center gap-2 mb-6">
               <Sparkles className="w-6 h-6 text-yellow-500" />
-              <h2 className="text-2xl font-bold">Destacados</h2>
+              <h2 className="text-2xl font-bold">{t('advocates.featured')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,7 +163,7 @@ export default function ReferentesPage() {
                 <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-xl font-semibold mb-2">{t('advocates.noResults')}</h3>
                 <p className="text-muted-foreground">
-                  Intenta seleccionar otra categoría o revisa más tarde.
+                  {t('advocates.noResultsHint')}
                 </p>
               </div>
             );
@@ -181,14 +181,13 @@ export default function ReferentesPage() {
         {/* CTA Section */}
         <div className="mt-16 text-center bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 rounded-2xl p-8 md:p-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            ¿Quieres ser parte de los referentes?
+            {t('advocates.ctaTitle')}
           </h2>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Si eres un experto en DeFi, educador, desarrollador o líder comunitario en México,
-            nos encantaría conocerte y destacar tu contribución al ecosistema.
+            {t('advocates.ctaDescription')}
           </p>
           <Button size="lg" onClick={handleProposeReferent}>
-            Postúlate Ahora
+            {t('advocates.ctaButton')}
           </Button>
         </div>
 

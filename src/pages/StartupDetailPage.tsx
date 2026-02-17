@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ExternalLink, Calendar, Users, BarChart3, Twitter, Linkedin, MessageCircle, Github, Globe, Building2, MapPin, Loader2, Star, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Startup {
 }
 
 const StartupDetailPage = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [startup, setStartup] = useState<Startup | null>(null);
@@ -93,11 +95,11 @@ const StartupDetailPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <Building2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h1 className="text-2xl font-bold text-foreground mb-4">Startup no encontrada</h1>
-            <p className="text-muted-foreground mb-6">La startup que buscas no existe o ha sido eliminada.</p>
+            <h1 className="text-2xl font-bold text-foreground mb-4">{t('startupDetail.notFound')}</h1>
+            <p className="text-muted-foreground mb-6">{t('startupDetail.notFoundDescription')}</p>
             <Button onClick={() => navigate("/startups")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a Startups
+              {t('startupDetail.backToStartups')}
             </Button>
           </div>
         </div>
@@ -146,7 +148,7 @@ const StartupDetailPage = () => {
             className="hover:bg-primary/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {startup.stage === 'MVP' ? 'Volver a MVPs Hackathon' : 'Volver a Startups'}
+            {startup.stage === 'MVP' ? t('startupDetail.backToMVPs') : t('startupDetail.backToStartups')}
           </Button>
         </motion.div>
 
@@ -160,8 +162,8 @@ const StartupDetailPage = () => {
           >
             <Rocket className="w-5 h-5 text-violet-500 shrink-0" />
             <p className="text-sm">
-              <span className="font-semibold text-violet-400">Proyecto MVP de Hackathon</span>
-              <span className="text-muted-foreground"> — Este es un prototipo creado en un hackathon, no una startup establecida.</span>
+              <span className="font-semibold text-violet-400">{t('startupDetail.mvpBannerTitle')}</span>
+              <span className="text-muted-foreground"> {t('startupDetail.mvpBannerDescription')}</span>
             </p>
           </motion.div>
         )}
@@ -196,7 +198,7 @@ const StartupDetailPage = () => {
                 {foundedYear && (
                   <div className="flex items-center text-muted-foreground mb-2">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Fundada en {foundedYear}
+                    {t('common.foundedIn')} {foundedYear}
                   </div>
                 )}
                 {(startup.city || startup.country) && (
@@ -223,7 +225,7 @@ const StartupDetailPage = () => {
           </div>
 
           <p className="text-lg text-muted-foreground mt-6 leading-relaxed">
-            {startup.description || 'Innovando en el ecosistema DeFi de México'}
+            {startup.description || t('startupDetail.defaultDescription')}
           </p>
 
           <div className="flex flex-wrap gap-4 mt-6">
@@ -231,7 +233,7 @@ const StartupDetailPage = () => {
               <Button asChild>
                 <a href={startup.website} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Sitio Web
+                  {t('startupDetail.website')}
                 </a>
               </Button>
             )}
@@ -262,7 +264,7 @@ const StartupDetailPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <BarChart3 className="w-5 h-5 mr-2" />
-                  Métricas Principales
+                  {t('startupDetail.mainMetrics')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -272,13 +274,13 @@ const StartupDetailPage = () => {
                       <div className="text-2xl font-bold text-primary">
                         {startup.total_users.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Usuarios Totales</div>
+                      <div className="text-sm text-muted-foreground">{t('startupDetail.totalUsers')}</div>
                     </div>
                   )}
                   {startup.stage && (
                     <div className="text-center p-4 bg-secondary/10 rounded-lg">
                       <div className="text-xl font-bold text-secondary capitalize">{startup.stage}</div>
-                      <div className="text-sm text-muted-foreground">Etapa</div>
+                      <div className="text-sm text-muted-foreground">{t('startupDetail.stage')}</div>
                     </div>
                   )}
                   {startup.funding_stage && (
@@ -286,13 +288,13 @@ const StartupDetailPage = () => {
                       <div className="text-xl font-bold text-accent capitalize">
                         {startup.funding_stage.replace('-', ' ')}
                       </div>
-                      <div className="text-sm text-muted-foreground">Ronda de Inversión</div>
+                      <div className="text-sm text-muted-foreground">{t('startupDetail.fundingRound')}</div>
                     </div>
                   )}
                   {startup.employee_range && (
                     <div className="text-center p-4 bg-primary/5 rounded-lg">
                       <div className="text-xl font-bold text-primary">{startup.employee_range}</div>
-                      <div className="text-sm text-muted-foreground">Empleados</div>
+                      <div className="text-sm text-muted-foreground">{t('startupDetail.employees')}</div>
                     </div>
                   )}
                 </div>
@@ -302,19 +304,19 @@ const StartupDetailPage = () => {
             {/* Additional Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Información Adicional</CardTitle>
+                <CardTitle>{t('startupDetail.additionalInfo')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span className="text-muted-foreground">Estado</span>
+                    <span className="text-muted-foreground">{t('startupDetail.status')}</span>
                     <Badge variant={startup.status === 'published' || startup.status === 'approved' ? 'default' : 'secondary'}>
                       {startup.status}
                     </Badge>
                   </div>
                   {startup.verification_status && (
                     <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <span className="text-muted-foreground">Verificación</span>
+                      <span className="text-muted-foreground">{t('startupDetail.verification')}</span>
                       <Badge variant={startup.verification_status === 'verified' ? 'default' : 'outline'}>
                         {startup.verification_status}
                       </Badge>
@@ -322,7 +324,7 @@ const StartupDetailPage = () => {
                   )}
                   {startup.created_at && (
                     <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                      <span className="text-muted-foreground">Registrada</span>
+                      <span className="text-muted-foreground">{t('common.registeredOn')}</span>
                       <span className="font-semibold text-foreground">
                         {new Date(startup.created_at).toLocaleDateString('es-MX', {
                           year: 'numeric',
@@ -346,30 +348,30 @@ const StartupDetailPage = () => {
             {/* Company Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Información de la Empresa</CardTitle>
+                <CardTitle>{t('startupDetail.companyInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {foundedYear && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Año de Fundación</span>
+                    <span className="text-muted-foreground">{t('startupDetail.foundedYear')}</span>
                     <span className="font-medium">{foundedYear}</span>
                   </div>
                 )}
                 {startup.city && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ciudad</span>
+                    <span className="text-muted-foreground">{t('startupDetail.city')}</span>
                     <span className="font-medium">{startup.city}</span>
                   </div>
                 )}
                 {startup.country && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">País</span>
+                    <span className="text-muted-foreground">{t('startupDetail.country')}</span>
                     <span className="font-medium">{startup.country}</span>
                   </div>
                 )}
                 {(startup.categories && startup.categories.length > 0) && (
                   <div>
-                    <span className="text-muted-foreground block mb-2">Categorías</span>
+                    <span className="text-muted-foreground block mb-2">{t('startupDetail.categories')}</span>
                     <div className="flex flex-wrap gap-1">
                       {startup.categories.map(cat => (
                         <Badge key={cat} variant="outline" className="text-xs">
@@ -381,7 +383,7 @@ const StartupDetailPage = () => {
                 )}
                 {(startup.tags && startup.tags.length > 0) && (
                   <div>
-                    <span className="text-muted-foreground block mb-2">Tags</span>
+                    <span className="text-muted-foreground block mb-2">{t('startupDetail.tags')}</span>
                     <div className="flex flex-wrap gap-1">
                       {startup.tags.map(tag => (
                         <Badge key={tag} variant="secondary" className="text-xs">
@@ -397,14 +399,14 @@ const StartupDetailPage = () => {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Acciones Rápidas</CardTitle>
+                <CardTitle>{t('startupDetail.quickActions')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {startup.website && (
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <a href={startup.website} target="_blank" rel="noopener noreferrer">
                       <Globe className="w-4 h-4 mr-2" />
-                      Visitar Sitio Web
+                      {t('startupDetail.visitWebsite')}
                     </a>
                   </Button>
                 )}
@@ -412,7 +414,7 @@ const StartupDetailPage = () => {
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <a href={startup.twitter_url} target="_blank" rel="noopener noreferrer">
                       <Twitter className="w-4 h-4 mr-2" />
-                      Seguir en Twitter
+                      {t('startupDetail.followTwitter')}
                     </a>
                   </Button>
                 )}
@@ -420,7 +422,7 @@ const StartupDetailPage = () => {
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <a href={startup.linkedin_url} target="_blank" rel="noopener noreferrer">
                       <Linkedin className="w-4 h-4 mr-2" />
-                      Ver en LinkedIn
+                      {t('startupDetail.viewLinkedIn')}
                     </a>
                   </Button>
                 )}
@@ -428,7 +430,7 @@ const StartupDetailPage = () => {
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <a href={startup.github_url} target="_blank" rel="noopener noreferrer">
                       <Github className="w-4 h-4 mr-2" />
-                      Ver en GitHub
+                      {t('startupDetail.viewGitHub')}
                     </a>
                   </Button>
                 )}

@@ -111,6 +111,36 @@
       "button": "Suscribirse",
       "success": "¡Gracias por suscribirte!",
       "error": "Error al suscribirse"
+    },
+    "jobs": {
+      "title": "Trabajos Web3",
+      "description": "Vacantes crypto y blockchain en México y LATAM remoto.",
+      "viewJobs": "Ver trabajos",
+      "comingSoon": "Próximamente más vacantes",
+      "comingSoonDesc": "Estamos agregando nuevas oportunidades constantemente."
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Análisis, guías y noticias del ecosistema DeFi y crypto en LATAM.",
+      "readArticles": "Leer artículos",
+      "comingSoon": "Próximamente más artículos",
+      "comingSoonDesc": "Estamos preparando contenido para la comunidad."
+    },
+    "hackathon": {
+      "title": "MVPs Hackathon",
+      "description": "Prototipos creados por la comunidad crypto de LATAM en hackathones.",
+      "viewProjects": "Ver proyectos MVP",
+      "projectsRegistered": "{{count}} proyectos registrados."
+    },
+    "advocates": {
+      "title": "Referentes",
+      "description": "Líderes y voces influyentes del ecosistema DeFi y crypto en México y LATAM.",
+      "comingSoon": "Referentes del ecosistema",
+      "comingSoonDesc": "Conoce a los líderes que impulsan DeFi en LATAM."
+    },
+    "metrics": {
+      "title": "Métricas del Ecosistema",
+      "description": "Datos en tiempo real sobre exchanges, DeFi y adopción crypto en México y LATAM."
     }
   },
   "startups": {
@@ -199,6 +229,31 @@
     "title": "Referentes DeFi",
     "description": "Conecta con los expertos y líderes del ecosistema DeFi mexicano",
     "noResults": "No se encontraron referentes",
+    "featured": "Destacados",
+    "filterByTrack": "Filtrar por track",
+    "noResultsHint": "Intenta seleccionar otra categoría o revisa más tarde.",
+    "ctaTitle": "¿Quieres ser parte de los referentes?",
+    "ctaDescription": "Si eres un experto en DeFi, educador, desarrollador o líder comunitario en México, nos encantaría conocerte y destacar tu contribución al ecosistema.",
+    "ctaButton": "Postúlate Ahora",
+    "errorLoading": "Error al cargar los referentes",
+    "tracks": {
+      "all": "Todos",
+      "developer": "Programador",
+      "financial": "Financiero",
+      "lawyer": "Abogado",
+      "designer": "Diseñador",
+      "marketer": "Marketer",
+      "other": "Otro"
+    },
+    "card": {
+      "viewMore": "Ver más",
+      "specialty": "Especialidad",
+      "biography": "Biografía",
+      "specializations": "Especializaciones",
+      "achievements": "Logros",
+      "links": "Enlaces",
+      "website": "Sitio Web"
+    },
     "categories": {
       "all": "Todos",
       "developer": "Desarrollador",
@@ -268,7 +323,15 @@
     "viewDetails": "Ver detalles",
     "noCommunities": "No hay comunidades oficiales disponibles",
     "upcomingEvents": "Próximos eventos en camino",
-    "upcomingEventsDesc": "Estamos preparando increíbles eventos para la comunidad"
+    "upcomingEventsDesc": "Estamos preparando increíbles eventos para la comunidad",
+    "all": "Todas",
+    "category": "Categoría",
+    "moreFilters": "Más filtros",
+    "featured": "Destacado",
+    "users": "usuarios",
+    "backTo": "Volver a",
+    "foundedIn": "Fundada en",
+    "registeredOn": "Registrada"
   },
   "search": {
     "search": "Buscar",
@@ -1065,6 +1128,50 @@
       "enter": "Entrar",
       "close": "Cerrar"
     }
+  },
+  "hackathonProjects": {
+    "badge": "Proyectos MVP",
+    "title": "MVPs Hackathon",
+    "notStartups": "Esto NO es un directorio de startups",
+    "description": "Proyectos MVP creados por la comunidad crypto de LATAM en hackathones alrededor del mundo",
+    "registerMVP": "Registrar tu MVP",
+    "infoBannerTitle": "Registro de Ideas de Hackathon",
+    "infoBannerDescription": "Estos son prototipos y MVPs creados en hackathones, no startups establecidas. Aquí encontrarás ideas en las que miembros de comunidades crypto de LATAM han participado. Al registrar tu MVP, selecciona \"MVP (Hackathon)\" en el campo Stage.",
+    "searchPlaceholder": "Buscar proyectos por nombre, descripción o tags...",
+    "totalProjects": "Total Proyectos MVP",
+    "noResults": "No se encontraron proyectos MVP",
+    "noResultsFilterHint": "Intenta ajustar los filtros o buscar con otros términos",
+    "noResultsEmptyHint": "Sé el primero en registrar tu proyecto de hackathon",
+    "hackathonWinner": "Proyecto ganador de hackathon"
+  },
+  "startupDetail": {
+    "notFound": "Startup no encontrada",
+    "notFoundDescription": "La startup que buscas no existe o ha sido eliminada.",
+    "backToStartups": "Volver a Startups",
+    "backToMVPs": "Volver a MVPs Hackathon",
+    "mvpBannerTitle": "Proyecto MVP de Hackathon",
+    "mvpBannerDescription": "— Este es un prototipo creado en un hackathon, no una startup establecida.",
+    "defaultDescription": "Innovando en el ecosistema DeFi de México",
+    "website": "Sitio Web",
+    "mainMetrics": "Métricas Principales",
+    "totalUsers": "Usuarios Totales",
+    "stage": "Etapa",
+    "fundingRound": "Ronda de Inversión",
+    "employees": "Empleados",
+    "additionalInfo": "Información Adicional",
+    "status": "Estado",
+    "verification": "Verificación",
+    "companyInfo": "Información de la Empresa",
+    "foundedYear": "Año de Fundación",
+    "city": "Ciudad",
+    "country": "País",
+    "categories": "Categorías",
+    "tags": "Tags",
+    "quickActions": "Acciones Rápidas",
+    "visitWebsite": "Visitar Sitio Web",
+    "followTwitter": "Seguir en Twitter",
+    "viewLinkedIn": "Ver en LinkedIn",
+    "viewGitHub": "Ver en GitHub"
   },
   "nftGallery": {
     "badge": "Colección Exclusiva en Base",

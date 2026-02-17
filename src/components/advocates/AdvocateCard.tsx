@@ -1,5 +1,6 @@
 // src/components/advocates/AdvocateCard.tsx
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,15 +19,6 @@ interface AdvocateCardProps {
   advocate: DeFiAdvocate;
 }
 
-const trackLabels: Record<string, string> = {
-  developer: 'Programador',
-  lawyer: 'Abogado',
-  financial: 'Financiero',
-  designer: 'Diseñador',
-  marketer: 'Marketer',
-  other: 'Otro',
-};
-
 const trackColors: Record<string, string> = {
   developer: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
   lawyer: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
@@ -37,6 +29,7 @@ const trackColors: Record<string, string> = {
 };
 
 export default function AdvocateCard({ advocate }: AdvocateCardProps) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getInitials = (name: string) => {
@@ -48,8 +41,9 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
       .slice(0, 2);
   };
 
-  const trackLabel = trackLabels[advocate.track || 'other'] || advocate.track;
-  const trackColor = trackColors[advocate.track || 'other'] || 'bg-gray-500/10 text-gray-500';
+  const trackKey = advocate.track || 'other';
+  const trackLabel = t(`advocates.tracks.${trackKey}`, { defaultValue: advocate.track || t('advocates.tracks.other') });
+  const trackColor = trackColors[trackKey] || 'bg-gray-500/10 text-gray-500';
 
   return (
     <>
@@ -195,7 +189,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
             className="w-full"
             onClick={() => setIsModalOpen(true)}
           >
-            Ver más
+            {t('advocates.card.viewMore')}
             <ExternalLink className="h-3 w-3 ml-2" />
           </Button>
         </div>
@@ -235,7 +229,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
             {/* Expertise */}
             {advocate.expertise && (
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Especialidad</h3>
+                <h3 className="font-semibold text-foreground mb-2">{t('advocates.card.specialty')}</h3>
                 <p className="text-sm text-primary font-medium">{advocate.expertise}</p>
               </div>
             )}
@@ -243,7 +237,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
             {/* Bio */}
             {advocate.bio && (
               <div>
-                <h3 className="font-semibold text-foreground mb-2">Biografía</h3>
+                <h3 className="font-semibold text-foreground mb-2">{t('advocates.card.biography')}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{advocate.bio}</p>
               </div>
             )}
@@ -251,7 +245,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
             {/* Specializations */}
             {advocate.specializations && advocate.specializations.length > 0 && (
               <div>
-                <h3 className="font-semibold text-foreground mb-3">Especializaciones</h3>
+                <h3 className="font-semibold text-foreground mb-3">{t('advocates.card.specializations')}</h3>
                 <div className="flex flex-wrap gap-2">
                   {advocate.specializations.map((spec, index) => (
                     <Badge key={index} variant="secondary">
@@ -265,7 +259,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
             {/* Achievements */}
             {advocate.achievements && advocate.achievements.length > 0 && (
               <div>
-                <h3 className="font-semibold text-foreground mb-3">Logros</h3>
+                <h3 className="font-semibold text-foreground mb-3">{t('advocates.card.achievements')}</h3>
                 <ul className="space-y-2">
                   {advocate.achievements.map((achievement, index) => (
                     <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
@@ -279,7 +273,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
 
             {/* Social Links */}
             <div>
-              <h3 className="font-semibold text-foreground mb-3">Enlaces</h3>
+              <h3 className="font-semibold text-foreground mb-3">{t('advocates.card.links')}</h3>
               <div className="flex flex-wrap gap-2">
                 {advocate.twitter_url && (
                   <Button variant="outline" size="sm" asChild>
@@ -309,7 +303,7 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
                   <Button variant="outline" size="sm" asChild>
                     <a href={advocate.website} target="_blank" rel="noopener noreferrer">
                       <Globe className="h-4 w-4 mr-2" />
-                      Sitio Web
+                      {t('advocates.card.website')}
                     </a>
                   </Button>
                 )}

@@ -106,18 +106,18 @@ export default function HackathonProjectsPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-4xl font-bold">MVPs Hackathon</h1>
+                  <h1 className="text-4xl font-bold">{t('hackathonProjects.title')}</h1>
                   <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-xs">
-                    Proyectos MVP
+                    {t('hackathonProjects.badge')}
                   </Badge>
                 </div>
                 <p className="text-sm text-violet-400 font-medium">
-                  Esto NO es un directorio de startups
+                  {t('hackathonProjects.notStartups')}
                 </p>
               </div>
             </div>
             <p className="text-muted-foreground text-lg mt-2">
-              Proyectos MVP creados por la comunidad crypto de LATAM en hackathones alrededor del mundo
+              {t('hackathonProjects.description')}
             </p>
           </div>
           <Button
@@ -126,7 +126,7 @@ export default function HackathonProjectsPage() {
             className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
           >
             <PixelPlus size={20} className="mr-2" />
-            Registrar tu MVP
+            {t('hackathonProjects.registerMVP')}
           </Button>
         </div>
 
@@ -136,9 +136,9 @@ export default function HackathonProjectsPage() {
             <div className="flex items-start gap-3">
               <Zap className="w-5 h-5 text-violet-500 mt-0.5" />
               <div>
-                <p className="font-medium text-violet-300">Registro de Ideas de Hackathon</p>
+                <p className="font-medium text-violet-300">{t('hackathonProjects.infoBannerTitle')}</p>
                 <p className="text-sm text-muted-foreground">
-                  Estos son prototipos y MVPs creados en hackathones, no startups establecidas. Aquí encontrarás ideas en las que miembros de comunidades crypto de LATAM han participado. Al registrar tu MVP, selecciona "MVP (Hackathon)" en el campo Stage.
+                  {t('hackathonProjects.infoBannerDescription')}
                 </p>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function HackathonProjectsPage() {
           <div className="relative flex-1">
             <PixelSearch size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar proyectos por nombre, descripción o tags..."
+              placeholder={t('hackathonProjects.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -160,10 +160,10 @@ export default function HackathonProjectsPage() {
           {allCategories.length > 0 && (
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Categoría" />
+                <SelectValue placeholder={t('common.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
                 {allCategories.map(category => (
                   <SelectItem key={category} value={category}>
                     {category}
@@ -175,7 +175,7 @@ export default function HackathonProjectsPage() {
 
           <Button variant="outline" className="gap-2">
             <PixelFilter size={16} />
-            Más filtros
+            {t('common.moreFilters')}
           </Button>
         </div>
 
@@ -183,7 +183,7 @@ export default function HackathonProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
           <Card className="border-violet-500/20">
             <CardHeader className="pb-2">
-              <CardDescription>Total Proyectos MVP</CardDescription>
+              <CardDescription>{t('hackathonProjects.totalProjects')}</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-2">
                 <Rocket className="w-5 h-5 text-violet-500" />
                 {filteredProjects.length}
@@ -231,13 +231,13 @@ export default function HackathonProjectsPage() {
                       </Badge>
                       {project.is_featured && (
                         <Badge variant="secondary" className="bg-purple-500/10 text-purple-400">
-                          Destacado
+                          {t('common.featured')}
                         </Badge>
                       )}
                     </div>
                   </div>
                   <CardDescription className="line-clamp-3">
-                    {project.description || 'Proyecto ganador de hackathon'}
+                    {project.description || t('hackathonProjects.hackathonWinner')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -256,7 +256,7 @@ export default function HackathonProjectsPage() {
                     {project.total_users && (
                       <div className="flex items-center gap-1">
                         <PixelUsers size={16} />
-                        <span>{project.total_users.toLocaleString()} usuarios</span>
+                        <span>{project.total_users.toLocaleString()} {t('common.users')}</span>
                       </div>
                     )}
                     {project.city && (
@@ -267,7 +267,7 @@ export default function HackathonProjectsPage() {
                 <CardFooter className="pt-0">
                   <div className="flex gap-2 w-full">
                     <Button asChild variant="outline" className="flex-1">
-                      <Link to={`/startups/${project.id}`}>Ver detalles</Link>
+                      <Link to={`/startups/${project.id}`}>{t('common.viewDetails')}</Link>
                     </Button>
                     {project.github_url && (
                       <Button asChild variant="outline" size="icon">
@@ -291,15 +291,15 @@ export default function HackathonProjectsPage() {
         ) : (
           <Card className="p-12 text-center border-violet-500/20">
             <Rocket size={48} className="mx-auto mb-4 text-violet-500/50" />
-            <h3 className="text-lg font-semibold mb-2">No se encontraron proyectos MVP</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('hackathonProjects.noResults')}</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery || selectedCategory !== 'all'
-                ? 'Intenta ajustar los filtros o buscar con otros términos'
-                : 'Sé el primero en registrar tu proyecto de hackathon'}
+                ? t('hackathonProjects.noResultsFilterHint')
+                : t('hackathonProjects.noResultsEmptyHint')}
             </p>
             <Button onClick={handleRegisterProject} className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700">
               <PixelPlus size={16} className="mr-2" />
-              Registrar MVP
+              {t('hackathonProjects.registerMVP')}
             </Button>
           </Card>
         )}

@@ -303,13 +303,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
                   <Briefcase className="text-blue-500" size={24} />
                 </div>
-                <h3 className="text-xl font-bold">Trabajos Web3</h3>
+                <h3 className="text-xl font-bold">{t('home.jobs.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
-                  Vacantes crypto y blockchain en México y LATAM remoto.
+                  {t('home.jobs.description')}
                 </p>
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/ecosistema/trabajos">
-                    Ver trabajos
+                    {t('home.jobs.viewJobs')}
                     <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
@@ -322,13 +322,13 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
                   <FileText className="text-orange-500" size={24} />
                 </div>
-                <h3 className="text-xl font-bold">Blog</h3>
+                <h3 className="text-xl font-bold">{t('home.blog.title')}</h3>
                 <p className="text-muted-foreground line-clamp-2">
-                  Análisis, guías y noticias del ecosistema DeFi.
+                  {t('home.blog.description')}
                 </p>
                 <Button variant="ghost" className="group" asChild>
                   <Link to="/blog">
-                    Leer artículos
+                    {t('home.blog.readArticles')}
                     <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
@@ -344,14 +344,14 @@ export default function HomePage() {
                   </div>
                   <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20">MVP</Badge>
                 </div>
-                <h3 className="text-2xl font-bold">MVPs Hackathon</h3>
+                <h3 className="text-2xl font-bold">{t('home.hackathon.title')}</h3>
                 <p className="text-muted-foreground">
-                  Prototipos creados por la comunidad crypto de LATAM en hackathones.
-                  {hackathonCount > 0 && <span className="text-violet-400 font-medium"> {hackathonCount} proyectos registrados.</span>}
+                  {t('home.hackathon.description')}
+                  {hackathonCount > 0 && <span className="text-violet-400 font-medium"> {t('home.hackathon.projectsRegistered', { count: hackathonCount })}</span>}
                 </p>
                 <Button variant="ghost" className="group text-violet-500 hover:text-violet-400" asChild>
                   <Link to="/hackathon-projects">
-                    Ver proyectos MVP
+                    {t('home.hackathon.viewProjects')}
                     <PixelArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
                   </Link>
                 </Button>
@@ -493,7 +493,7 @@ export default function HomePage() {
                       {event.title}
                     </h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {event.description || 'Evento del ecosistema DeFi mexicano'}
+                      {event.description || t('events.description')}
                     </p>
                     <Button variant="ghost" className="group-hover:translate-x-1 transition-transform p-0">
                       {t('common.viewDetails')} <PixelArrowRight className="ml-2" size={16} />
@@ -520,9 +520,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Trabajos Web3</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('home.jobs.title')}</h2>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                Oportunidades laborales en crypto, blockchain y DeFi para México y LATAM.
+                {t('home.jobs.description')}
               </p>
             </div>
             <Button variant="outline" className="rounded-full" asChild>
@@ -551,11 +551,11 @@ export default function HomePage() {
                   <div className="p-6 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="rounded-full text-blue-500 border-blue-500/30">
-                        {job.job_type === 'remote' ? 'Remoto' : job.job_type === 'hybrid' ? 'Híbrido' : 'Presencial'}
+                        {job.job_type === 'remote' ? t('jobs.types.remote') : job.job_type === 'hybrid' ? t('jobs.types.hybrid') : t('jobs.types.onsite')}
                       </Badge>
                       {job.is_featured && (
                         <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-full">
-                          Destacado
+                          {t('common.featured')}
                         </Badge>
                       )}
                     </div>
@@ -582,9 +582,9 @@ export default function HomePage() {
             ) : (
               <div className="col-span-full text-center py-12">
                 <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h4 className="font-semibold mb-2">Próximamente más vacantes</h4>
+                <h4 className="font-semibold mb-2">{t('home.jobs.comingSoon')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Estamos agregando nuevas oportunidades constantemente.
+                  {t('home.jobs.comingSoonDesc')}
                 </p>
               </div>
             )}
@@ -597,9 +597,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Blog</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('home.blog.title')}</h2>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                Análisis, guías y noticias del ecosistema DeFi y crypto en LATAM.
+                {t('home.blog.description')}
               </p>
             </div>
             <Button variant="outline" className="rounded-full" asChild>
@@ -661,9 +661,9 @@ export default function HomePage() {
             ) : (
               <div className="col-span-full text-center py-12">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h4 className="font-semibold mb-2">Próximamente más artículos</h4>
+                <h4 className="font-semibold mb-2">{t('home.blog.comingSoon')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Estamos preparando contenido para la comunidad.
+                  {t('home.blog.comingSoonDesc')}
                 </p>
               </div>
             )}
@@ -676,9 +676,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Referentes</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('home.advocates.title')}</h2>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                Líderes y voces influyentes del ecosistema DeFi y crypto en México y LATAM.
+                {t('home.advocates.description')}
               </p>
             </div>
             <Button variant="outline" className="rounded-full" asChild>
@@ -730,9 +730,9 @@ export default function HomePage() {
             ) : (
               <div className="col-span-full text-center py-12">
                 <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h4 className="font-semibold mb-2">Referentes del ecosistema</h4>
+                <h4 className="font-semibold mb-2">{t('home.advocates.comingSoon')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  Conoce a los líderes que impulsan DeFi en LATAM.
+                  {t('home.advocates.comingSoonDesc')}
                 </p>
               </div>
             )}
@@ -753,10 +753,10 @@ export default function HomePage() {
               </div>
               <div className="text-center md:text-left flex-1">
                 <h3 className="text-2xl font-bold mb-2 group-hover:text-emerald-500 transition-colors">
-                  Métricas del Ecosistema
+                  {t('home.metrics.title')}
                 </h3>
                 <p className="text-muted-foreground">
-                  Datos en tiempo real sobre exchanges, DeFi y adopción crypto en México y LATAM.
+                  {t('home.metrics.description')}
                 </p>
               </div>
               <PixelArrowRight className="text-emerald-500 group-hover:translate-x-2 transition-transform" size={24} />

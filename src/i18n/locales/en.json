@@ -111,6 +111,36 @@
       "button": "Subscribe",
       "success": "Thanks for subscribing!",
       "error": "Error subscribing"
+    },
+    "jobs": {
+      "title": "Web3 Jobs",
+      "description": "Crypto and blockchain job openings in Mexico and remote LATAM.",
+      "viewJobs": "View jobs",
+      "comingSoon": "More openings coming soon",
+      "comingSoonDesc": "We're constantly adding new opportunities."
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Analysis, guides and news from the DeFi and crypto ecosystem.",
+      "readArticles": "Read articles",
+      "comingSoon": "More articles coming soon",
+      "comingSoonDesc": "We're preparing content for the community."
+    },
+    "hackathon": {
+      "title": "MVPs Hackathon",
+      "description": "Prototypes built by the LATAM crypto community at hackathons.",
+      "viewProjects": "View MVP projects",
+      "projectsRegistered": "{{count}} projects registered."
+    },
+    "advocates": {
+      "title": "Advocates",
+      "description": "Leaders and influential voices of the DeFi and crypto ecosystem in Mexico and LATAM.",
+      "comingSoon": "Ecosystem advocates",
+      "comingSoonDesc": "Meet the leaders driving DeFi in LATAM."
+    },
+    "metrics": {
+      "title": "Ecosystem Metrics",
+      "description": "Real-time data on exchanges, DeFi and crypto adoption in Mexico and LATAM."
     }
   },
   "startups": {
@@ -199,6 +229,31 @@
     "title": "DeFi Advocates",
     "description": "Connect with experts and leaders from the Mexican DeFi ecosystem",
     "noResults": "No advocates found",
+    "featured": "Featured",
+    "filterByTrack": "Filter by track",
+    "noResultsHint": "Try selecting another category or check back later.",
+    "ctaTitle": "Want to be part of the advocates?",
+    "ctaDescription": "If you're a DeFi expert, educator, developer or community leader in Mexico, we'd love to meet you and highlight your contribution to the ecosystem.",
+    "ctaButton": "Apply Now",
+    "errorLoading": "Error loading advocates",
+    "tracks": {
+      "all": "All",
+      "developer": "Developer",
+      "financial": "Financial",
+      "lawyer": "Lawyer",
+      "designer": "Designer",
+      "marketer": "Marketer",
+      "other": "Other"
+    },
+    "card": {
+      "viewMore": "View more",
+      "specialty": "Specialty",
+      "biography": "Biography",
+      "specializations": "Specializations",
+      "achievements": "Achievements",
+      "links": "Links",
+      "website": "Website"
+    },
     "categories": {
       "all": "All",
       "developer": "Developer",
@@ -268,7 +323,15 @@
     "viewDetails": "View details",
     "noCommunities": "No official communities available",
     "upcomingEvents": "Upcoming events on the way",
-    "upcomingEventsDesc": "We're preparing amazing events for the community"
+    "upcomingEventsDesc": "We're preparing amazing events for the community",
+    "all": "All",
+    "category": "Category",
+    "moreFilters": "More filters",
+    "featured": "Featured",
+    "users": "users",
+    "backTo": "Back to",
+    "foundedIn": "Founded in",
+    "registeredOn": "Registered"
   },
   "search": {
     "search": "Search",
@@ -1065,6 +1128,50 @@
       "enter": "Enter",
       "close": "Close"
     }
+  },
+  "hackathonProjects": {
+    "badge": "MVP Projects",
+    "title": "MVPs Hackathon",
+    "notStartups": "This is NOT a startup directory",
+    "description": "MVP projects created by the LATAM crypto community at hackathons around the world",
+    "registerMVP": "Register your MVP",
+    "infoBannerTitle": "Hackathon Ideas Registry",
+    "infoBannerDescription": "These are prototypes and MVPs created at hackathons, not established startups. Here you'll find ideas that members of LATAM crypto communities have participated in. When registering your MVP, select \"MVP (Hackathon)\" in the Stage field.",
+    "searchPlaceholder": "Search projects by name, description or tags...",
+    "totalProjects": "Total MVP Projects",
+    "noResults": "No MVP projects found",
+    "noResultsFilterHint": "Try adjusting the filters or searching with other terms",
+    "noResultsEmptyHint": "Be the first to register your hackathon project",
+    "hackathonWinner": "Hackathon winning project"
+  },
+  "startupDetail": {
+    "notFound": "Startup not found",
+    "notFoundDescription": "The startup you're looking for doesn't exist or has been removed.",
+    "backToStartups": "Back to Startups",
+    "backToMVPs": "Back to MVPs Hackathon",
+    "mvpBannerTitle": "Hackathon MVP Project",
+    "mvpBannerDescription": "— This is a prototype created at a hackathon, not an established startup.",
+    "defaultDescription": "Innovating in Mexico's DeFi ecosystem",
+    "website": "Website",
+    "mainMetrics": "Main Metrics",
+    "totalUsers": "Total Users",
+    "stage": "Stage",
+    "fundingRound": "Funding Round",
+    "employees": "Employees",
+    "additionalInfo": "Additional Information",
+    "status": "Status",
+    "verification": "Verification",
+    "companyInfo": "Company Information",
+    "foundedYear": "Founded Year",
+    "city": "City",
+    "country": "Country",
+    "categories": "Categories",
+    "tags": "Tags",
+    "quickActions": "Quick Actions",
+    "visitWebsite": "Visit Website",
+    "followTwitter": "Follow on Twitter",
+    "viewLinkedIn": "View on LinkedIn",
+    "viewGitHub": "View on GitHub"
   },
   "nftGallery": {
     "badge": "Exclusive Collection on Base",
