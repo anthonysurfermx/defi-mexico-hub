@@ -22,7 +22,8 @@ import {
   PixelLogo,
   PixelBriefcase,
   PixelFileText,
-  PixelZap
+  PixelZap,
+  PixelLobster
 } from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -72,7 +73,7 @@ export default function MainLayout() {
   const agenticNavigation = [
     { name: t('agenticWorld.navDirectorio'), href: '/agentic-world', Icon: PixelZap, description: t('agenticWorld.navDirectorioDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
-    { name: 'Polymarket Bot Detector', href: '/agentic-world/polymarket', Icon: PixelSearch, description: 'Detect bots in prediction markets' },
+    { name: 'Polymarket Agent Radar', href: '/agentic-world/polymarket', Icon: PixelLobster, description: 'Detect AI agents in prediction markets' },
   ];
 
   const isActive = (path: string) => {

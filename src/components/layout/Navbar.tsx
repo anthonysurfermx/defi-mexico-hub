@@ -73,7 +73,7 @@ const Navbar = () => {
   const agenticItems = [
     { label: "Directory", href: "/agentic-world", icon: Bot },
     { label: "DefiLlama Leaderboard", href: "/agentic-world/leaderboard", icon: BarChart3 },
-    { label: "Polymarket Bot Detector", href: "/agentic-world/polymarket", icon: ScanSearch },
+    { label: "Polymarket Agent Radar", href: "/agentic-world/polymarket", icon: ScanSearch },
   ];
 
   const isEcosistemaActive = () => {

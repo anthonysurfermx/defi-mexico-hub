@@ -17,6 +17,7 @@ import {
   Link2, Search, Users, AlertTriangle
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PixelLobster } from '@/components/ui/pixel-icons';
 import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
@@ -48,8 +49,8 @@ function BotScoreBadge({ score, classification }: { score: number; classificatio
     'human': 'bg-green-500/15 text-green-400 border-green-500/30',
   };
   const labels: Record<string, string> = {
-    'bot': 'BOT',
-    'likely-bot': 'LIKELY BOT',
+    'bot': 'AGENT',
+    'likely-bot': 'LIKELY AGENT',
     'mixed': 'MIXED',
     'human': 'HUMAN',
   };
@@ -255,8 +256,8 @@ export default function PolymarketTrackerPage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Polymarket Bot Detector | DeFi Hub Mexico</title>
-        <meta name="description" content="Detect AI agents and bots trading on Polymarket using behavioral analysis" />
+        <title>Polymarket Agent Radar | DeFi Hub Mexico</title>
+        <meta name="description" content="Detect AI agents trading on Polymarket using behavioral analysis" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
@@ -270,10 +271,10 @@ export default function PolymarketTrackerPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
-              <ScanSearch size={28} className="text-white" />
+              <PixelLobster size={28} className="text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Polymarket Bot Detector</h1>
+              <h1 className="text-3xl font-bold">Polymarket Agent Radar</h1>
               <p className="text-muted-foreground">Behavioral analysis of prediction market traders</p>
             </div>
           </div>
@@ -290,7 +291,7 @@ export default function PolymarketTrackerPage() {
               className="bg-red-600 hover:bg-red-700"
             >
               <ScanSearch className={`w-4 h-4 mr-2 ${scanning ? 'animate-pulse' : ''}`} />
-              {scanning ? 'Scanning...' : 'Run Bot Scan'}
+              {scanning ? 'Scanning...' : 'Run Agent Scan'}
             </Button>
 
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -310,7 +311,7 @@ export default function PolymarketTrackerPage() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Name / Alias</Label>
-                    <Input placeholder="e.g. Suspicious Bot" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                    <Input placeholder="e.g. Suspicious Wallet" value={newName} onChange={(e) => setNewName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label>Proxy Wallet Address (0x...)</Label>
@@ -342,7 +343,7 @@ export default function PolymarketTrackerPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Bots Detected</CardDescription>
+              <CardDescription>Agents Detected</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-2">
                 <ScanSearch className="w-5 h-5 text-red-500" />
                 {Object.keys(botResults).length > 0 ? botsDetected : '-'}
@@ -376,7 +377,7 @@ export default function PolymarketTrackerPage() {
               Scan Market by URL
             </CardTitle>
             <CardDescription>
-              Paste a Polymarket event URL to scan all holders and detect bots
+              Paste a Polymarket event URL to scan all holders and detect agents
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -445,7 +446,7 @@ export default function PolymarketTrackerPage() {
                   {marketHolders.some(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')) && (
                     <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-xs flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {marketHolders.filter(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')).length} bots detected
+                      {marketHolders.filter(h => h.bot && (h.bot.classification === 'bot' || h.bot.classification === 'likely-bot')).length} agents detected
                     </Badge>
                   )}
                 </div>
@@ -458,7 +459,7 @@ export default function PolymarketTrackerPage() {
                         <th className="text-left p-3 text-xs font-medium text-muted-foreground">Holder</th>
                         <th className="text-center p-3 text-xs font-medium text-muted-foreground">Side</th>
                         <th className="text-right p-3 text-xs font-medium text-muted-foreground">Amount</th>
-                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Bot Score</th>
+                        <th className="text-center p-3 text-xs font-medium text-muted-foreground">Agent Score</th>
                         <th className="p-3 w-8"></th>
                       </tr>
                     </thead>
@@ -609,7 +610,7 @@ export default function PolymarketTrackerPage() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-4 font-medium text-muted-foreground">Agent</th>
-                  <th className="text-center p-4 font-medium text-muted-foreground">Bot Score</th>
+                  <th className="text-center p-4 font-medium text-muted-foreground">Agent Score</th>
                   <th className="text-right p-4 font-medium text-muted-foreground">Portfolio</th>
                   <th className="text-right p-4 font-medium text-muted-foreground">Positions</th>
                   <th className="text-right p-4 font-medium text-muted-foreground">Volume</th>
