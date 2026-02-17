@@ -96,6 +96,9 @@ const BlogEditPage = lazy(() => import('@/pages/admin/BlogEditPage'));
 // TikTok Feed Page
 const TikTokFeedPage = lazy(() => import('@/pages/TikTokFeedPage'));
 
+// Short URL Redirect
+const ShortRedirect = lazy(() => import('@/pages/ShortRedirect'));
+
 // Error pages
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
@@ -228,6 +231,17 @@ const router = createBrowserRouter(
         </ErrorBoundary>
       ),
       children: [
+        // ==========================================
+        // SHORT URL REDIRECT (sin layout)
+        // ==========================================
+        {
+          path: 's/:code',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <ShortRedirect />
+            </Suspense>
+          ),
+        },
         // ==========================================
         // RUTAS PÚBLICAS CON MAIN LAYOUT
         // ==========================================

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, MapPin, Share2, Download, Clock, Mail } from "lucide-react";
 import { eventsService, type Event } from "@/services/events.service";
+import { EntityComments } from "@/components/BlogComments";
 
 
 export default function EventDetailPage() {
@@ -84,8 +86,47 @@ export default function EventDetailPage() {
     </div>
   );
 
+  const metaTitle = event?.title ? `${event.title} - DeFi México Eventos` : 'Evento - DeFi México';
+  const metaDescription = event?.description || 'Evento del ecosistema DeFi mexicano';
+  const metaImage = event?.image_url || event?.banner_url || 'https://defimexico.org/maincover.jpeg';
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
+      {event && (
+        <Helmet>
+          <title>{metaTitle}</title>
+          <meta name="description" content={metaDescription} />
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content={metaTitle} />
+          <meta property="og:description" content={metaDescription} />
+          <meta property="og:image" content={metaImage} />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={metaTitle} />
+          <meta name="twitter:description" content={metaDescription} />
+          <meta name="twitter:image" content={metaImage} />
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Event",
+              "name": event.title,
+              "description": event.description,
+              "startDate": event.start_date,
+              "endDate": event.end_date || undefined,
+              "location": event.venue_name ? {
+                "@type": "Place",
+                "name": event.venue_name,
+                "address": event.venue_address || undefined,
+              } : undefined,
+              "organizer": event.organizer_name ? {
+                "@type": "Organization",
+                "name": event.organizer_name,
+              } : undefined,
+              "image": event.image_url || event.banner_url || undefined,
+            })}
+          </script>
+        </Helmet>
+      )}
+
       {loading || !event ? (
         <div className="space-y-4">
           <Skeleton className="h-10 w-2/3" />
@@ -276,6 +317,9 @@ export default function EventDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Comentarios */}
+          <EntityComments entityId={event.id} entityType="event" />
         </>
       )}
     </div>

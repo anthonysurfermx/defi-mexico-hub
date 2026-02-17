@@ -1,6 +1,7 @@
 // src/pages/CommunityDetailPage.tsx - CONECTADO CON BASE DE DATOS REAL
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   PixelArrowLeft,
   PixelCalendar,
@@ -25,6 +26,7 @@ import { motion } from "framer-motion";
 // Importar tu servicio existente
 import { communitiesService } from "@/services/communities.service";
 import type { Community } from "@/types";
+import { EntityComments } from "@/components/BlogComments";
 
 // Helper para obtener avatar de Twitter/X usando unavatar.io
 const getTwitterAvatar = (twitterUrl: string): string | null => {
@@ -154,10 +156,26 @@ const CommunityDetailPage = () => {
   const rules = community.rules || {};
   const longDescription = community.long_description || community.description;
 
+  const metaDescription = community.description || `${community.name} - Comunidad DeFi en México`;
+  const metaImage = logoUrl || 'https://defimexico.org/maincover.jpeg';
+
   return (
     <div className="min-h-screen py-8">
+      <Helmet>
+        <title>{community.name} - DeFi México Comunidades</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={`https://defimexico.org/comunidades/${community.slug || community.id}`} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={`${community.name} - DeFi México`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:image" content={metaImage} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`${community.name} - DeFi México`} />
+        <meta name="twitter:description" content={metaDescription} />
+      </Helmet>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -505,6 +523,11 @@ const CommunityDetailPage = () => {
               </CardContent>
             </Card>
           </motion.div>
+        </div>
+
+        {/* Comentarios */}
+        <div className="max-w-4xl mx-auto">
+          <EntityComments entityId={community.id} entityType="community" />
         </div>
       </div>
     </div>

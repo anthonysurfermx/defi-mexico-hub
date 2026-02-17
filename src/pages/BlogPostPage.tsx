@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { blogService, type DomainPost } from '@/services/blog.service';
 import { DefiChart } from '@/components/charts/DefiChart';
-import { BlogComments } from '@/components/BlogComments';
+import { EntityComments } from '@/components/BlogComments';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -645,7 +645,7 @@ const BlogPostPage = () => {
         </motion.article>
 
         {/* Comentarios */}
-        <BlogComments postId={post.id} />
+        <EntityComments entityId={post.id} entityType="blog_post" countTable="blog_posts" />
 
         {/* Posts relacionados */}
         <RelatedPosts

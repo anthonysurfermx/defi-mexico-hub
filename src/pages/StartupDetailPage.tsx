@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ExternalLink, Calendar, Users, BarChart3, Twitter, Linkedin, MessageCircle, Github, Globe, Building2, MapPin, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { startupsService } from "@/services/startups.service";
 import { supabase } from "@/lib/supabase";
+import { EntityComments } from "@/components/BlogComments";
 
 interface Startup {
   id: string;
@@ -112,8 +114,24 @@ const StartupDetailPage = () => {
   // Obtener el año de fundación
   const foundedYear = startup.founded_date ? new Date(startup.founded_date).getFullYear() : null;
 
+  const metaDescription = startup.description || `${startup.name} - Startup DeFi en México`;
+  const metaImage = startup.logo_url || 'https://defimexico.org/maincover.jpeg';
+
   return (
     <div className="min-h-screen py-8">
+      <Helmet>
+        <title>{startup.name} - DeFi México Startups</title>
+        <meta name="description" content={metaDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={`${startup.name} - DeFi México`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:image" content={metaImage} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`${startup.name} - DeFi México`} />
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:image" content={metaImage} />
+      </Helmet>
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <motion.div
@@ -401,6 +419,11 @@ const StartupDetailPage = () => {
               </CardContent>
             </Card>
           </motion.div>
+        </div>
+
+        {/* Comentarios */}
+        <div className="max-w-4xl mx-auto">
+          <EntityComments entityId={startup.id} entityType="startup" />
         </div>
       </div>
     </div>

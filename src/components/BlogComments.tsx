@@ -27,8 +27,15 @@ interface Comment {
 }
 
 interface Props {
-  postId: string;
+  entityId: string;
+  entityType: string;
+  countTable?: string;
   allowComments?: boolean;
+}
+
+/** @deprecated Use EntityComments instead */
+export function BlogComments({ postId, allowComments }: { postId: string; allowComments?: boolean }) {
+  return <EntityComments entityId={postId} entityType="blog_post" countTable="blog_posts" allowComments={allowComments} />;
 }
 
 function timeAgo(dateStr: string): string {
@@ -48,7 +55,7 @@ function getInitials(name: string | null): string {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export function BlogComments({ postId, allowComments = true }: Props) {
+export function EntityComments({ entityId, entityType, countTable, allowComments = true }: Props) {
   const { t } = useTranslation();
   const { user, isAdmin, hasRole } = useAuth();
 
@@ -65,8 +72,8 @@ export function BlogComments({ postId, allowComments = true }: Props) {
     const { data, error } = await supabase
       .from('comments')
       .select('*, profiles:user_id(full_name, avatar_url, role)')
-      .eq('entity_id', postId)
-      .eq('entity_type', 'blog_post')
+      .eq('entity_id', entityId)
+      .eq('entity_type', entityType)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -75,7 +82,7 @@ export function BlogComments({ postId, allowComments = true }: Props) {
     }
     setComments((data as unknown as Comment[]) || []);
     setLoading(false);
-  }, [postId]);
+  }, [entityId, entityType]);
 
   useEffect(() => {
     fetchComments();
@@ -86,8 +93,8 @@ export function BlogComments({ postId, allowComments = true }: Props) {
     setSubmitting(true);
 
     const { error } = await supabase.from('comments').insert({
-      entity_id: postId,
-      entity_type: 'blog_post',
+      entity_id: entityId,
+      entity_type: entityType,
       user_id: user.id,
       content: newComment.trim(),
       parent_id: null,
@@ -110,8 +117,8 @@ export function BlogComments({ postId, allowComments = true }: Props) {
     setSubmitting(true);
 
     const { error } = await supabase.from('comments').insert({
-      entity_id: postId,
-      entity_type: 'blog_post',
+      entity_id: entityId,
+      entity_type: entityType,
       user_id: user.id,
       content: replyContent.trim(),
       parent_id: replyTo,
@@ -190,18 +197,18 @@ export function BlogComments({ postId, allowComments = true }: Props) {
   };
 
   const updateCommentCount = async (delta: number) => {
-    // Fetch current count then update
+    if (!countTable) return;
     const { data } = await supabase
-      .from('blog_posts')
+      .from(countTable)
       .select('comment_count')
-      .eq('id', postId)
+      .eq('id', entityId)
       .single();
 
     if (data) {
       await supabase
-        .from('blog_posts')
-        .update({ comment_count: Math.max(0, (data.comment_count || 0) + delta) })
-        .eq('id', postId);
+        .from(countTable)
+        .update({ comment_count: Math.max(0, ((data as any).comment_count || 0) + delta) })
+        .eq('id', entityId);
     }
   };
 
