@@ -23,7 +23,8 @@ import {
   PixelBriefcase,
   PixelFileText,
   PixelZap,
-  PixelLobster
+  PixelLobster,
+  PixelTarget
 } from '@/components/ui/pixel-icons';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';

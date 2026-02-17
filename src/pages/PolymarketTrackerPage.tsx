@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import {
   Link2, Search, Users, AlertTriangle
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { PixelLobster } from '@/components/ui/pixel-icons';
+import { PixelLobster, PixelTarget } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { polymarketService, type PolymarketAgent, type AgentMetrics, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext } from '@/services/polymarket-detector';
@@ -80,6 +80,7 @@ function SignalBar({ label, value, maxLabel }: { label: string; value: number; m
 }
 
 export default function PolymarketTrackerPage() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<PolymarketAgent[]>([]);
   const [metrics, setMetrics] = useState<Record<string, AgentMetrics>>({});
   const [botResults, setBotResults] = useState<Record<string, BotDetectionResult>>({});
@@ -105,6 +106,7 @@ export default function PolymarketTrackerPage() {
   const [priceHistory, setPriceHistory] = useState<OutcomePriceHistory[]>([]);
   const [holderPositions, setHolderPositions] = useState<Record<string, PolymarketPosition[]>>({});
   const [loadingPositions, setLoadingPositions] = useState<string | null>(null);
+  const [scanLimit, setScanLimit] = useState(50);
 
   const loadAgents = () => {
     const list = polymarketService.getAgents();
@@ -247,7 +249,7 @@ export default function PolymarketTrackerPage() {
     setMarketHolders(holdersWithBot);
 
     // Run bot detection on top holders sequentially with live signal streaming
-    const toScan = holdersWithBot.slice(0, 100); // Top 100 holders
+    const toScan = holdersWithBot.slice(0, scanLimit);
     for (let i = 0; i < toScan.length; i++) {
       const addr = toScan[i].address;
       setMarketScanProgress(`Scanning wallet ${i + 1}/${toScan.length}...`);
@@ -444,6 +446,16 @@ export default function PolymarketTrackerPage() {
                 className="flex-1"
                 onKeyDown={(e) => e.key === 'Enter' && !marketScanning && handleMarketScan()}
               />
+              <select
+                value={scanLimit}
+                onChange={(e) => setScanLimit(Number(e.target.value))}
+                disabled={marketScanning}
+                className="h-9 px-2 rounded-md border bg-background text-sm font-mono shrink-0 text-foreground"
+              >
+                {[10, 25, 50, 100, 200].map(n => (
+                  <option key={n} value={n}>Top {n}</option>
+                ))}
+              </select>
               <Button
                 onClick={handleMarketScan}
                 disabled={marketScanning || !marketUrl}
@@ -845,6 +857,16 @@ export default function PolymarketTrackerPage() {
                                       {loadingPositions === holder.address && (
                                         <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                                       )}
+                                      <button
+                                        className="text-[10px] px-2 py-1 border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
+                                        }}
+                                      >
+                                        <PixelTarget size={10} />
+                                        ACTIVATE DeFi MEXICO ANALYZER
+                                      </button>
                                       <a
                                         href={`https://polymarket.com/portfolio/${holder.address}`}
                                         target="_blank"
@@ -990,7 +1012,7 @@ export default function PolymarketTrackerPage() {
                             )}
 
                             {/* View Positions - Mobile */}
-                            <div className="pt-2 border-t border-cyan-500/10 flex items-center gap-2">
+                            <div className="pt-2 border-t border-cyan-500/10 flex flex-wrap items-center gap-2">
                               <button
                                 className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
                                 onClick={(e) => { e.stopPropagation(); handleViewPositions(holder.address); }}
@@ -1001,6 +1023,16 @@ export default function PolymarketTrackerPage() {
                               {loadingPositions === holder.address && (
                                 <span className="text-cyan-400/40 text-[10px] animate-pulse">loading...</span>
                               )}
+                              <button
+                                className="text-[10px] px-2 py-1 border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 flex items-center gap-1.5 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
+                                }}
+                              >
+                                <PixelTarget size={10} />
+                                ANALYZER
+                              </button>
                               <a
                                 href={`https://polymarket.com/portfolio/${holder.address}`}
                                 target="_blank"

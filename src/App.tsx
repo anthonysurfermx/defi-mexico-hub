@@ -52,6 +52,7 @@ const HackathonProjectsPage = lazy(() => import('@/pages/HackathonProjectsPage')
 const AgenticWorldPage = lazy(() => import('@/pages/AgenticWorldPage'));
 const AgenticLeaderboardPage = lazy(() => import('@/pages/AgenticLeaderboardPage'));
 const PolymarketTrackerPage = lazy(() => import('@/pages/PolymarketTrackerPage'));
+const ConsensusPage = lazy(() => import('@/pages/ConsensusPage'));
 
 
 // Auth pages
@@ -481,6 +482,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <PolymarketTrackerPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/consensus',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ConsensusPage />
                 </Suspense>
               ),
             },
