@@ -34,6 +34,7 @@ export default defineConfig({
             '@radix-ui/react-popover',
           ],
           animation: ['framer-motion'],
+          three: ['three'],
           charts: ['recharts'],
           i18n: ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           supabase: ['@supabase/supabase-js'],

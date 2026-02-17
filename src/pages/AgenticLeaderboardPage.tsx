@@ -5,13 +5,14 @@ import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, ExternalLink, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, ExternalLink, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, ShieldCheck } from 'lucide-react';
 import { PixelTrophy, PixelCoins, PixelBarChart, PixelLayers } from '@/components/ui/pixel-icons';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { defillamaService, type AIAgentProtocol, type TVLHistoryPoint } from '@/services/defillama.service';
 import { EntityComments } from '@/components/BlogComments';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { AgentAvatar3D } from '@/components/agentic/avatar-3d/AgentAvatar3D';
+import { useAvatarRenderer } from '@/components/agentic/avatar-3d/useAvatarRenderer';
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
@@ -32,7 +33,34 @@ function ChangeCell({ value }: { value: number | null }) {
   );
 }
 
-type SortField = 'tvl' | 'feesAllTime' | 'fees24h' | 'mcap';
+type SortField = 'tvl' | 'feesAllTime' | 'fees24h' | 'mcap' | 'change_1d' | 'change_7d';
+type SortDirection = 'desc' | 'asc';
+
+function SortableHeader({ field, label, sortBy, sortDir, onSort, align = 'right' }: {
+  field: SortField;
+  label: string;
+  sortBy: SortField;
+  sortDir: SortDirection;
+  onSort: (field: SortField) => void;
+  align?: 'left' | 'right';
+}) {
+  const isActive = sortBy === field;
+  return (
+    <th
+      className={`p-4 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors ${align === 'right' ? 'text-right' : 'text-left'}`}
+      onClick={() => onSort(field)}
+    >
+      <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        {label}
+        {isActive ? (
+          sortDir === 'desc' ? <ArrowDown className="w-3 h-3 text-amber-500" /> : <ArrowUp className="w-3 h-3 text-amber-500" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
 
 const CHART_COLORS = [
   '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6',
@@ -51,8 +79,18 @@ export default function AgenticLeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortField>('tvl');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [tvlHistory, setTvlHistory] = useState<TVLHistoryPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(field);
+      setSortDir('desc');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -98,9 +136,13 @@ export default function AgenticLeaderboardPage() {
     return [...protocols].sort((a, b) => {
       const aVal = a[sortBy] || 0;
       const bVal = b[sortBy] || 0;
-      return bVal - aVal;
+      return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
-  }, [protocols, sortBy]);
+  }, [protocols, sortBy, sortDir]);
+
+  // 3D Avatar renderer
+  const avatarSlugs = useMemo(() => sorted.map(p => p.slug), [sorted]);
+  const { staticImages, attachLive, detachLive } = useAvatarRenderer(avatarSlugs);
 
   const totalTVL = useMemo(() => protocols.reduce((sum, p) => sum + p.tvl, 0), [protocols]);
   const totalFees = useMemo(() => protocols.reduce((sum, p) => sum + p.feesAllTime, 0), [protocols]);
@@ -272,23 +314,9 @@ export default function AgenticLeaderboardPage() {
           </Card>
         )}
 
-        {/* Sort Controls */}
+        {/* Refresh Button */}
         {!loading && !error && (
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">{t('agenticWorld.leaderboard.sortBy')}:</span>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortField)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tvl">{t('agenticWorld.leaderboard.tvl')}</SelectItem>
-                  <SelectItem value="feesAllTime">{t('agenticWorld.leaderboard.fees')}</SelectItem>
-                  <SelectItem value="fees24h">{t('agenticWorld.leaderboard.fees24h')}</SelectItem>
-                  <SelectItem value="mcap">{t('agenticWorld.leaderboard.mcap')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center justify-end mb-6">
             <Button variant="outline" size="sm" onClick={loadData} className="gap-2">
               <RefreshCw className="w-4 h-4" />
             </Button>
@@ -324,12 +352,12 @@ export default function AgenticLeaderboardPage() {
                       <tr className="border-b bg-muted/50">
                         <th className="text-left p-4 text-sm font-medium text-muted-foreground w-12">{t('agenticWorld.leaderboard.rank')}</th>
                         <th className="text-left p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.name')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.tvl')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.fees')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.fees24h')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.mcap')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.change1d')}</th>
-                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">{t('agenticWorld.leaderboard.change7d')}</th>
+                        <SortableHeader field="tvl" label={t('agenticWorld.leaderboard.tvl')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <SortableHeader field="feesAllTime" label={t('agenticWorld.leaderboard.fees')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <SortableHeader field="fees24h" label={t('agenticWorld.leaderboard.fees24h')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <SortableHeader field="mcap" label={t('agenticWorld.leaderboard.mcap')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <SortableHeader field="change_1d" label={t('agenticWorld.leaderboard.change1d')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <SortableHeader field="change_7d" label={t('agenticWorld.leaderboard.change7d')} sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                         <th className="text-center p-4 text-sm font-medium text-muted-foreground w-12"></th>
                       </tr>
                     </thead>
@@ -338,24 +366,57 @@ export default function AgenticLeaderboardPage() {
                         <tr key={p.slug} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="p-4 text-sm font-bold text-muted-foreground">{i + 1}</td>
                           <td className="p-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{p.name}</span>
-                                {p.symbol && p.symbol !== '-' && (
-                                  <Badge variant="outline" className="text-[10px]">{p.symbol}</Badge>
+                            <div className="flex items-center gap-3">
+                              {p.logo ? (
+                                <img
+                                  src={p.logo}
+                                  alt={p.name}
+                                  className="w-9 h-9 rounded-lg shrink-0 bg-muted object-cover"
+                                  loading="lazy"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : (
+                                <AgentAvatar3D
+                                  slug={p.slug}
+                                  name={p.name}
+                                  size={36}
+                                  staticImage={staticImages.get(p.slug)}
+                                  onHoverAttach={attachLive}
+                                  onHoverDetach={detachLive}
+                                />
+                              )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">{p.name}</span>
+                                  {p.symbol && p.symbol !== '-' && (
+                                    <Badge variant="outline" className="text-[10px]">{p.symbol}</Badge>
+                                  )}
+                                  {p.category && p.category !== 'AI Agents' && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{p.category}</Badge>
+                                  )}
+                                  {p.audits > 0 && (
+                                    <span title={`${p.audits} audit(s)`}>
+                                      <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                                    </span>
+                                  )}
+                                </div>
+                                {p.description && (
+                                  <p className="text-[11px] text-muted-foreground line-clamp-1 max-w-[300px]" title={p.description}>
+                                    {p.description}
+                                  </p>
                                 )}
-                              </div>
-                              <div className="flex gap-1">
-                                {p.chains.slice(0, 3).map((chain) => (
-                                  <Badge key={chain} variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    {chain}
-                                  </Badge>
-                                ))}
-                                {p.chains.length > 3 && (
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    +{p.chains.length - 3}
-                                  </Badge>
-                                )}
+                                <div className="flex gap-1">
+                                  {p.chains.slice(0, 3).map((chain) => (
+                                    <Badge key={chain} variant="secondary" className="text-[10px] px-1.5 py-0">
+                                      {chain}
+                                    </Badge>
+                                  ))}
+                                  {p.chains.length > 3 && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                      +{p.chains.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -393,13 +454,39 @@ export default function AgenticLeaderboardPage() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-muted-foreground">#{i + 1}</span>
+                        {p.logo ? (
+                          <img
+                            src={p.logo}
+                            alt={p.name}
+                            className="w-10 h-10 rounded-lg shrink-0 bg-muted object-cover"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <AgentAvatar3D
+                            slug={p.slug}
+                            name={p.name}
+                            size={40}
+                            staticImage={staticImages.get(p.slug)}
+                            onHoverAttach={attachLive}
+                            onHoverDetach={detachLive}
+                          />
+                        )}
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">{p.name}</span>
                             {p.symbol && p.symbol !== '-' && (
                               <Badge variant="outline" className="text-[10px]">{p.symbol}</Badge>
                             )}
+                            {p.audits > 0 && (
+                              <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                            )}
                           </div>
+                          {p.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                              {p.description}
+                            </p>
+                          )}
                           <div className="flex gap-1 mt-1">
                             {p.chains.slice(0, 2).map((chain) => (
                               <Badge key={chain} variant="secondary" className="text-[10px] px-1.5 py-0">

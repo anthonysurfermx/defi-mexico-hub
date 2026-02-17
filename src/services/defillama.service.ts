@@ -15,6 +15,10 @@ export interface AIAgentProtocol {
   fees7d: number;
   fees30d: number;
   feesAllTime: number;
+  description: string;
+  logo: string;
+  category: string;
+  audits: number;
 }
 
 export interface TVLHistoryPoint {
@@ -121,6 +125,10 @@ export const defillamaService = {
         fees7d: fees?.total7d || 0,
         fees30d: fees?.total30d || 0,
         feesAllTime: fees?.totalAllTime || 0,
+        description: p.description || '',
+        logo: p.logo || '',
+        category: p.category || '',
+        audits: parseInt(p.audits) || 0,
       };
     });
 
