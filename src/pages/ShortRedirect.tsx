@@ -15,7 +15,7 @@ export default function ShortRedirect() {
       const db = supabase as any;
       const { data, error: err } = await db
         .from('short_urls')
-        .select('target_path')
+        .select('target_path, click_count')
         .eq('code', code)
         .eq('is_active', true)
         .maybeSingle();
@@ -26,8 +26,8 @@ export default function ShortRedirect() {
         return;
       }
 
-      // Fire-and-forget click count increment
-      db.rpc('increment_click', { url_code: code }).catch(() => {});
+      // Fire-and-forget click count increment (silently fails if no UPDATE policy)
+      db.from('short_urls').update({ click_count: ((data as any).click_count || 0) + 1 }).eq('code', code).then(() => {});
 
       // Redirect
       if (data.target_path.startsWith('http')) {
