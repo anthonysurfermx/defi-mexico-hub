@@ -71,6 +71,12 @@ export default function MainLayout() {
     { name: 'Trabajos Web3', href: '/ecosistema/trabajos', Icon: PixelBriefcase, description: 'Web3 jobs in Mexico' },
   ];
 
+  // Navegación "Agentic World" (dropdown)
+  const agenticNavigation = [
+    { name: t('agenticWorld.navDirectorio'), href: '/agentic-world', Icon: PixelZap, description: t('agenticWorld.navDirectorioDesc') },
+    { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
+  ];
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
@@ -81,6 +87,10 @@ export default function MainLayout() {
 
   const isAprendeActive = () => {
     return aprendeNavigation.some(item => location.pathname.startsWith(item.href));
+  };
+
+  const isAgenticActive = () => {
+    return agenticNavigation.some(item => location.pathname.startsWith(item.href));
   };
 
   return (
@@ -243,21 +253,46 @@ export default function MainLayout() {
                 {t('nav.metrics')}
               </Link>
 
-              {/* Agentic World Link */}
-              <Link
-                to="/agentic-world"
-                className={`
-                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/agentic-world')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelZap size={16} />
-                {t('nav.agenticWorld')}
-              </Link>
+              {/* Dropdown Agentic World */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`
+                      flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isAgenticActive()
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <PixelZap size={16} />
+                    {t('nav.agenticWorld')}
+                    <PixelChevronDown size={12} className="opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {agenticNavigation.map((item) => {
+                    const Icon = item.Icon;
+                    return (
+                      <DropdownMenuItem key={item.name} asChild>
+                        <Link
+                          to={item.href}
+                          className="flex items-start gap-3 cursor-pointer"
+                        >
+                          <Icon size={16} className="mt-0.5 text-cyan-500" />
+                          <div className="flex-1">
+                            <div className="font-medium">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Desktop Actions */}
@@ -450,23 +485,40 @@ export default function MainLayout() {
                   <PixelChevronRight size={16} className="ml-auto" />
                 )}
               </Link>
-              <Link
-                to="/agentic-world"
-                className={`
-                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/agentic-world')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelZap size={20} />
-                {t('nav.agenticWorld')}
-                {isActive('/agentic-world') && (
-                  <PixelChevronRight size={16} className="ml-auto" />
-                )}
-              </Link>
+              {/* Agentic World Section */}
+              <div className="pt-2 pb-1 px-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('nav.agenticWorld')}
+                </p>
+              </div>
+              {agenticNavigation.map((item) => {
+                const Icon = item.Icon;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`
+                      flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg
+                      transition-colors hover:bg-accent hover:text-accent-foreground
+                      ${isActive(item.href)
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'
+                      }
+                    `}
+                  >
+                    <Icon size={20} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div>{item.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.description}
+                      </div>
+                    </div>
+                    {isActive(item.href) && (
+                      <PixelChevronRight size={16} className="ml-auto mt-1" />
+                    )}
+                  </Link>
+                );
+              })}
 
               {/* Mobile Actions */}
               <div className="pt-4">

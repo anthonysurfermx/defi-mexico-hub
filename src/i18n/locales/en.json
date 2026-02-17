@@ -1223,6 +1223,10 @@
     "title": "Agentic World",
     "description": "Directory of autonomous AI agents applied to decentralized finance",
     "badge": "NEW",
+    "navDirectorio": "Directory",
+    "navDirectorioDesc": "Explore AI agents for finance",
+    "navLeaderboard": "Leaderboard",
+    "navLeaderboardDesc": "Live AI agent rankings",
     "infoBannerTitle": "What are AI financial agents?",
     "infoBannerDescription": "Autonomous agents that execute financial operations: trading, yield farming, market prediction and more. Inspired by the OpenClaw ecosystem.",
     "searchPlaceholder": "Search agents...",
@@ -1255,6 +1259,28 @@
       "highlights": "Features",
       "links": "Links",
       "website": "Website"
+    },
+    "leaderboard": {
+      "title": "AI Agents Leaderboard",
+      "description": "Live rankings of AI agent protocols by TVL, fees and market cap",
+      "badge": "LIVE",
+      "totalTVL": "Total TVL",
+      "totalFees": "Total Fees (All-time)",
+      "totalProtocols": "Protocols",
+      "sortBy": "Sort by",
+      "rank": "#",
+      "name": "Protocol",
+      "tvl": "TVL",
+      "fees": "Fees All-time",
+      "fees24h": "Fees 24h",
+      "mcap": "Market Cap",
+      "change1d": "1d",
+      "change7d": "7d",
+      "chains": "Chains",
+      "noData": "Could not load data",
+      "retry": "Retry",
+      "dataSource": "Data from DefiLlama API",
+      "updatedEvery": "Updates every 10 minutes"
     }
   }
 }

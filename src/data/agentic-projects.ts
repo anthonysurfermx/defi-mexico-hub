@@ -212,4 +212,22 @@ export const AGENTIC_PROJECTS: AgenticProject[] = [
     ],
     risk_level: 'medium',
   },
+  {
+    id: 'stock-market-pro',
+    name: 'Stock Market Pro',
+    description: 'Skill de análisis bursátil con Yahoo Finance. Cotizaciones, fundamentales, charts con RSI/MACD/BB/VWAP/ATR y tendencias ASCII.',
+    longDescription: 'Stock Market Pro es un skill de ClawHub que convierte a tu agente OpenClaw en un analista bursátil completo. Integrado con Yahoo Finance (yfinance), ofrece cotizaciones en tiempo real, análisis fundamental, visualizaciones de tendencias en ASCII y charts de alta resolución con indicadores técnicos avanzados: RSI, MACD, Bandas de Bollinger, VWAP y ATR. Ideal para agentes que necesitan tomar decisiones de trading informadas.',
+    category: 'analytics',
+    website: 'https://clawhub.ai/kys42/stock-market-pro',
+    tags: ['Yahoo Finance', 'Análisis Técnico', 'RSI', 'MACD', 'Bollinger Bands', 'ClawHub'],
+    status: 'active',
+    is_featured: false,
+    highlights: [
+      'Cotizaciones en tiempo real via Yahoo Finance',
+      'Charts con RSI, MACD, Bollinger Bands, VWAP, ATR',
+      'Visualizaciones ASCII en terminal',
+      'Análisis fundamental de acciones',
+    ],
+    risk_level: 'low',
+  },
 ];

@@ -51,6 +51,7 @@ const HackathonProjectsPage = lazy(() => import('@/pages/HackathonProjectsPage')
 
 // Agentic World
 const AgenticWorldPage = lazy(() => import('@/pages/AgenticWorldPage'));
+const AgenticLeaderboardPage = lazy(() => import('@/pages/AgenticLeaderboardPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -471,6 +472,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AgenticWorldPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/leaderboard',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <AgenticLeaderboardPage />
                 </Suspense>
               ),
             },
