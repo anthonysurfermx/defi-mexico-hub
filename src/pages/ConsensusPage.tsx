@@ -226,7 +226,7 @@ export default function ConsensusPage() {
   const [showAllPositions, setShowAllPositions] = useState(false);
   const [strategyExpanded, setStrategyExpanded] = useState(false);
   const [scanBlocked, setScanBlocked] = useState(false);
-  const { canScanWallet, walletScansRemaining, walletScanLimit, consumeWalletScan } = useScanLimit();
+  const { canScanWallet, walletScansRemaining, walletScanLimit, walletCooldownText, consumeWalletScan } = useScanLimit();
 
   const runAnalysis = useCallback(async () => {
     if (!walletAddress) return;
@@ -404,16 +404,16 @@ export default function ConsensusPage() {
         {/* Scan limit reached */}
         {scanBlocked && (
           <div className="border border-amber-500/30 bg-amber-500/5 p-6 mb-6 text-center font-mono">
-            <div className="text-amber-400 text-lg font-bold mb-2">Daily scan limit reached</div>
+            <div className="text-amber-400 text-lg font-bold mb-2">Scan limit reached</div>
             <p className="text-amber-300/60 text-sm mb-4">
-              Free tier: {walletScanLimit} wallet scans per day. Come back tomorrow or upgrade to Pro for unlimited scans.
+              You've used all {walletScanLimit} free scans.
+              {walletCooldownText
+                ? ` Your scans reset in ${walletCooldownText}.`
+                : ' Your scans will reset soon.'}
             </p>
-            <a
-              href="/agentic-world"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm font-bold hover:from-amber-500 hover:to-orange-500 transition-colors"
-            >
-              Join Pro Waitlist
-            </a>
+            <div className="text-amber-500/40 text-xs">
+              Free tier: {walletScanLimit} wallet scans per 12 hours
+            </div>
           </div>
         )}
 

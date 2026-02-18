@@ -95,7 +95,7 @@ function StrategyTag({ type, label }: { type: StrategyType; label: string }) {
 
 export default function PolymarketTrackerPage() {
   const navigate = useNavigate();
-  const { canScanMarket, marketScansRemaining, marketScanLimit, consumeMarketScan } = useScanLimit();
+  const { canScanMarket, marketScansRemaining, marketScanLimit, marketCooldownText, consumeMarketScan } = useScanLimit();
 
   // Market scanner state
   const [marketUrl, setMarketUrl] = useState('');
@@ -117,7 +117,7 @@ export default function PolymarketTrackerPage() {
 
   const handleMarketScan = async () => {
     if (!canScanMarket) {
-      toast.error(`Daily limit: ${marketScanLimit} market scans. Come back tomorrow or upgrade to Pro.`);
+      toast.error(`Limit reached: ${marketScanLimit} market scans per 12 hours.${marketCooldownText ? ` Resets in ${marketCooldownText}.` : ''}`);
       return;
     }
 
@@ -374,7 +374,7 @@ export default function PolymarketTrackerPage() {
               )}
               {!marketScanning && (
                 <div className="text-[10px] text-muted-foreground font-mono ml-auto">
-                  {marketScansRemaining}/{marketScanLimit} scans remaining today
+                  {marketScansRemaining}/{marketScanLimit} scans remaining{marketCooldownText ? ` (resets in ${marketCooldownText})` : ''}
                 </div>
               )}
             </div>
