@@ -440,7 +440,7 @@ export default function HomePage() {
                 <div className="relative group">
                   <div className="absolute -inset-[2px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity" style={{ animation: 'glow-spin-home 3s ease-in-out infinite' }} />
                   <Link
-                    to="/agentic-world/polymarket"
+                    to="/agentic-world"
                     className="relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-900/80 to-amber-800/80 border border-amber-400/60 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
                   >
                     <Sparkles className="w-4 h-4" />
