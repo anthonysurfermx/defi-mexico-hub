@@ -7,6 +7,7 @@ import { PixelTarget, PixelLobster } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
+import { ProWaitlistForm } from '@/components/agentic/ProWaitlistForm';
 import { polymarketService, type AgentMetrics, type PolymarketPosition } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type StrategyType } from '@/services/polymarket-detector';
 import { useAuth } from '@/hooks/useAuth';
@@ -411,8 +412,12 @@ export default function ConsensusPage() {
                 ? ` Your scans reset in ${walletCooldownText}.`
                 : ' Your scans will reset soon.'}
             </p>
-            <div className="text-amber-500/40 text-xs">
+            <div className="text-amber-500/40 text-xs mb-4">
               Free tier: {walletScanLimit} wallet scans per 12 hours
+            </div>
+            <div className="border-t border-amber-500/20 pt-4 mt-2">
+              <p className="text-cyan-400/80 text-xs mb-2">Want unlimited scans? Get early access to Pro.</p>
+              <ProWaitlistForm />
             </div>
           </div>
         )}

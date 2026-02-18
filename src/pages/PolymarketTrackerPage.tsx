@@ -15,6 +15,7 @@ import { PixelLobster } from '@/components/ui/pixel-icons';
 import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
+import { ProWaitlistForm } from '@/components/agentic/ProWaitlistForm';
 import { supabase } from '@/lib/supabase';
 import { useScanLimit } from '@/hooks/useScanLimit';
 import { toast } from 'sonner';
@@ -378,6 +379,19 @@ export default function PolymarketTrackerPage() {
                 </div>
               )}
             </div>
+
+            {!canScanMarket && !marketScanning && (
+              <div className="border border-amber-500/30 bg-amber-500/5 p-4 mt-3 text-center font-mono">
+                <p className="text-amber-400 text-sm mb-1">Scan limit reached</p>
+                <p className="text-amber-300/60 text-xs mb-3">
+                  {marketCooldownText
+                    ? `Resets in ${marketCooldownText}.`
+                    : 'Your scans will reset soon.'}
+                  {' '}Want unlimited scans?
+                </p>
+                <ProWaitlistForm />
+              </div>
+            )}
 
             {/* Live Analysis Terminal */}
             {liveAnalysis && (
