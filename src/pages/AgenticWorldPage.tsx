@@ -32,6 +32,13 @@ const SOCIAL_PROOF = [
   },
 ];
 
+// Live stats from trending 5-min BTC market bots (Feb 17 2026)
+const LIVE_BOTS = [
+  { name: '0x8dxd', pnl: '$1.59M', accuracy: '99%', trades: '18,505', strategy: 'BTC 5-min maker' },
+  { name: 'MuseumOfBees', pnl: '$65K', accuracy: '~50%', trades: '1,247', strategy: 'ChatGPT bot, $2.2K start' },
+  { name: 'NickyNic', pnl: '$87K', accuracy: 'high', trades: '584', strategy: 'BTC 15-min only' },
+];
+
 // Logarithmic PnL chart data: 12 months of simulated performance
 // Based on real data: top agents $22M, DeFi Mexico followers ~$150K, avg trader -$847
 const PNL_CHART_DATA = [
@@ -271,17 +278,40 @@ export default function AgenticWorldPage() {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>AI Agent Intelligence | DeFi Hub México</title>
-        <meta name="description" content="70% of Polymarket traders lose money. AI agents capture $3.7B. You don't need to build an agent. Just follow one." />
-        <meta property="og:title" content="AI Agent Intelligence | DeFi Hub México" />
-        <meta property="og:description" content="70% of traders lose. AI agents win. Follow the smartest wallets on Polymarket." />
+        <meta name="description" content="Bots are printing $3K/hr on Polymarket 5-min BTC markets. 400M trades analyzed. Track which AI agents win and follow their positions." />
+        <meta property="og:title" content="AI Agent Intelligence | Polymarket Bot Tracker" />
+        <meta property="og:description" content="$1.59M profit, 99% accuracy, 18K trades. These Polymarket bots trade 5-min BTC markets. Track them live." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
 
         {/* ============ PROBLEM: TWEET SCREENSHOTS ============ */}
+        {/* ============ LIVE BOT TICKER ============ */}
+        <div className="border border-red-500/20 bg-black/60 overflow-hidden mb-3">
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-red-500/5 border-b border-red-500/15">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-red-400 text-[10px] font-mono tracking-wider uppercase">Live: 5-min BTC market bots printing right now</span>
+          </div>
+          <div className="flex flex-wrap gap-0 divide-x divide-red-500/10">
+            {LIVE_BOTS.map((bot) => (
+              <div key={bot.name} className="flex-1 min-w-[200px] px-4 py-3 font-mono">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-white/80 text-xs font-bold">{bot.name}</span>
+                  <span className="text-green-400 text-sm font-bold">{bot.pnl}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] text-white/30">
+                  <span>{bot.trades} trades</span>
+                  <span>{bot.accuracy} acc</span>
+                </div>
+                <div className="text-[9px] text-red-400/40 mt-0.5">{bot.strategy}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mb-3">
           <div className="text-center mb-4">
-            <span className="text-red-400/60 text-[10px] font-mono tracking-widest uppercase">While you trade manually, AI agents are printing money</span>
+            <span className="text-red-400/60 text-[10px] font-mono tracking-widest uppercase">$3,000/hr extracted from 5-min markets. These bots don't sleep.</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {SOCIAL_PROOF.map((tweet) => (

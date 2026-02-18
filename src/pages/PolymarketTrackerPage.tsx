@@ -1163,6 +1163,13 @@ export default function PolymarketTrackerPage() {
             </div>
           </div>
         </div>
+
+        {/* Disclaimer */}
+        <div className="mt-4 border border-red-500/30 bg-red-500/5 px-4 py-3">
+          <p className="text-red-400 text-[11px] font-mono text-center leading-relaxed">
+            This is NOT investment advice. All data is for educational and research purposes only. You are solely responsible for your own trading decisions. Past performance does not guarantee future results. Trade at your own risk.
+          </p>
+        </div>
       </div>
 
       {/* Glow animation for ANALYZER buttons */}
