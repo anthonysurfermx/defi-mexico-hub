@@ -5,6 +5,9 @@ const CRAWLER_UA = /Twitterbot|facebookexternalhit|LinkedInBot|Slackbot|Telegram
 const POLYMARKET_DATA = 'https://data-api.polymarket.com';
 const POLYMARKET_GAMMA = 'https://gamma-api.polymarket.com';
 
+const SUPABASE_URL = 'https://egpixaunlnzauztbrnuz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
+
 const SITE = 'https://defimexico.org';
 const DEFAULT_IMAGE = `${SITE}/maincover.jpeg`;
 
@@ -131,6 +134,25 @@ function buildOgHtml(meta: { title: string; description: string; image: string; 
   });
 }
 
+async function fetchBlogPost(slug: string) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/blog_posts?slug=eq.${encodeURIComponent(slug)}&select=title,excerpt,subtitle,image_url,author,published_at,tags&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) return data[0];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function middleware(request: Request) {
   const ua = request.headers.get('user-agent') || '';
 
@@ -141,6 +163,24 @@ export default async function middleware(request: Request) {
 
   const url = new URL(request.url);
   const { pathname, searchParams } = url;
+
+  // Blog post OG metadata
+  const blogMatch = pathname.match(/^\/blog\/(.+)$/);
+  if (blogMatch) {
+    const slug = blogMatch[1];
+    const post = await fetchBlogPost(slug);
+
+    if (post) {
+      const description = post.excerpt || post.subtitle || post.title;
+      const image = post.image_url || DEFAULT_IMAGE;
+      return buildOgHtml({
+        title: `${post.title} | DeFi Mexico`,
+        description,
+        image,
+        url: `${SITE}/blog/${slug}`,
+      });
+    }
+  }
 
   // Wallet X-Ray (consensus page)
   if (pathname === '/agentic-world/consensus' && searchParams.has('wallet')) {
@@ -217,5 +257,5 @@ export default async function middleware(request: Request) {
 }
 
 export const config = {
-  matcher: ['/agentic-world/:path*'],
+  matcher: ['/agentic-world/:path*', '/blog/:path*'],
 };
