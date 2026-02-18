@@ -1,26 +1,15 @@
 // src/pages/AgenticWorldPage.tsx
-import { useState, useMemo, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, Sparkles, Search, ArrowRight, Crown, Lock, Twitter } from 'lucide-react';
-import { PixelSearch, PixelFilter } from '@/components/ui/pixel-icons';
+import { Sparkles, Search, ArrowRight, Twitter } from 'lucide-react';
 import { PixelLobster, PixelTarget } from '@/components/ui/pixel-icons';
 import { ScrambleText } from '@/components/agentic/ScrambleText';
-import { AGENTIC_PROJECTS, AGENTIC_CATEGORIES } from '@/data/agentic-projects';
-import AgentCard from '@/components/agentic/AgentCard';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-
-// Viral wallets from Twitter threads
-const FEATURED_WALLETS = [
-  { address: '0x3453de4c2cbe97c4e8b77e0a0ea3d12e9f959394', pseudonym: 'k9Q2mX4L8A7ZP3R', pnl: 906066, trades: 17548, source: '@Shelpid_WI3M', score: 94 },
-  { address: '0xbeb5e5ce37e6c0b4076ce8e2ed9d4b37c54c704c', pseudonym: 'PBot1', pnl: 7456, trades: 8894, source: '@rohanpaul_ai', score: 87 },
-  { address: '0x0ea574f3204c5c9c0cdead90392ea0990f4d17e4', pseudonym: 'Clawdbot Alpha', pnl: 240000, trades: 1096, source: '@HHorsley', score: 78 },
-];
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const SOCIAL_PROOF = [
   {
@@ -43,96 +32,240 @@ const SOCIAL_PROOF = [
   },
 ];
 
-interface LeaderboardEntry { rank: number; userName: string; pnl: number; vol: number; proxyWallet: string; }
+// Logarithmic PnL chart data: 12 months of simulated performance
+// Based on real data: top agents $22M, DeFi Mexico followers ~$150K, avg trader -$847
+const PNL_CHART_DATA = [
+  { month: 'Jan', agents: 100, defimx: 100, avg: 1000 },
+  { month: 'Feb', agents: 800, defimx: 250, avg: 920 },
+  { month: 'Mar', agents: 3500, defimx: 600, avg: 850 },
+  { month: 'Apr', agents: 12000, defimx: 1500, avg: 780 },
+  { month: 'May', agents: 45000, defimx: 4000, avg: 700 },
+  { month: 'Jun', agents: 120000, defimx: 9000, avg: 600 },
+  { month: 'Jul', agents: 350000, defimx: 22000, avg: 520 },
+  { month: 'Aug', agents: 900000, defimx: 48000, avg: 430 },
+  { month: 'Sep', agents: 2500000, defimx: 85000, avg: 350 },
+  { month: 'Oct', agents: 6000000, defimx: 150000, avg: 280 },
+  { month: 'Nov', agents: 12000000, defimx: 320000, avg: 200 },
+  { month: 'Dec', agents: 22000000, defimx: 600000, avg: 150 },
+];
 
-function formatUsd(n: number): string {
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
+// Custom dot for the DeFi Mexico line: pixel lobster on last point
+function GreenLobsterDot(props: { cx?: number; cy?: number; index?: number }) {
+  const { cx, cy, index } = props;
+  if (cx === undefined || cy === undefined) return null;
+  if (index !== undefined && index === PNL_CHART_DATA.length - 1) {
+    const size = 28;
+    return (
+      <g>
+        {/* Glow behind lobster */}
+        <circle cx={cx} cy={cy} r={20} fill="#22c55e" fillOpacity={0.08} />
+        <circle cx={cx} cy={cy} r={14} fill="#22c55e" fillOpacity={0.12} />
+        {/* Pixel lobster icon */}
+        <foreignObject x={cx - size / 2} y={cy - size / 2} width={size} height={size}>
+          <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ imageRendering: 'pixelated' as const }}>
+              <rect x="1" y="2" width="2" height="2" fill="#22c55e"/>
+              <rect x="13" y="2" width="2" height="2" fill="#22c55e"/>
+              <rect x="2" y="4" width="2" height="2" fill="#22c55e"/>
+              <rect x="12" y="4" width="2" height="2" fill="#22c55e"/>
+              <rect x="3" y="5" width="2" height="2" fill="#22c55e"/>
+              <rect x="11" y="5" width="2" height="2" fill="#22c55e"/>
+              <rect x="6" y="3" width="4" height="2" fill="#22c55e"/>
+              <rect x="5" y="4" width="1" height="1" fill="#22c55e"/>
+              <rect x="10" y="4" width="1" height="1" fill="#22c55e"/>
+              <rect x="5" y="5" width="6" height="2" fill="#22c55e"/>
+              <rect x="6" y="7" width="4" height="2" fill="#22c55e"/>
+              <rect x="6" y="9" width="4" height="2" fill="#22c55e"/>
+              <rect x="5" y="11" width="6" height="2" fill="#22c55e"/>
+              <rect x="4" y="13" width="2" height="1" fill="#22c55e"/>
+              <rect x="7" y="13" width="2" height="1" fill="#22c55e"/>
+              <rect x="10" y="13" width="2" height="1" fill="#22c55e"/>
+            </svg>
+          </div>
+        </foreignObject>
+      </g>
+    );
+  }
+  return <circle cx={cx} cy={cy} r={2.5} fill="#22c55e" fillOpacity={0.6} />;
 }
 
-// SVG donut chart component
-function DonutChart({ percent, color, label, size = 100 }: { percent: number; color: string; label: string; size?: number }) {
-  const r = 38;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (percent / 100) * circ;
+// Custom dot for agents line: red pixel lobster on last point
+function RedAgentDot(props: { cx?: number; cy?: number; index?: number }) {
+  const { cx, cy, index } = props;
+  if (cx === undefined || cy === undefined) return null;
+  if (index !== undefined && index === PNL_CHART_DATA.length - 1) {
+    const size = 28;
+    return (
+      <g>
+        {/* Glow behind lobster */}
+        <circle cx={cx} cy={cy} r={20} fill="#ef4444" fillOpacity={0.08} />
+        <circle cx={cx} cy={cy} r={14} fill="#ef4444" fillOpacity={0.12} />
+        {/* Pixel lobster icon (red) */}
+        <foreignObject x={cx - size / 2} y={cy - size / 2} width={size} height={size}>
+          <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ imageRendering: 'pixelated' as const }}>
+              <rect x="1" y="2" width="2" height="2" fill="#ef4444"/>
+              <rect x="13" y="2" width="2" height="2" fill="#ef4444"/>
+              <rect x="2" y="4" width="2" height="2" fill="#ef4444"/>
+              <rect x="12" y="4" width="2" height="2" fill="#ef4444"/>
+              <rect x="3" y="5" width="2" height="2" fill="#ef4444"/>
+              <rect x="11" y="5" width="2" height="2" fill="#ef4444"/>
+              <rect x="6" y="3" width="4" height="2" fill="#ef4444"/>
+              <rect x="5" y="4" width="1" height="1" fill="#ef4444"/>
+              <rect x="10" y="4" width="1" height="1" fill="#ef4444"/>
+              <rect x="5" y="5" width="6" height="2" fill="#ef4444"/>
+              <rect x="6" y="7" width="4" height="2" fill="#ef4444"/>
+              <rect x="6" y="9" width="4" height="2" fill="#ef4444"/>
+              <rect x="5" y="11" width="6" height="2" fill="#ef4444"/>
+              <rect x="4" y="13" width="2" height="1" fill="#ef4444"/>
+              <rect x="7" y="13" width="2" height="1" fill="#ef4444"/>
+              <rect x="10" y="13" width="2" height="1" fill="#ef4444"/>
+            </svg>
+          </div>
+        </foreignObject>
+      </g>
+    );
+  }
+  return null;
+}
+
+// Animated chart wrapper: reveals data points progressively
+function AnimatedPnlChart() {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          let i = 1;
+          const interval = setInterval(() => {
+            i++;
+            setVisibleCount(i);
+            if (i >= PNL_CHART_DATA.length) clearInterval(interval);
+          }, 120);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const data = PNL_CHART_DATA.slice(0, visibleCount);
+
+  const formatYAxis = (val: number) => {
+    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(0)}M`;
+    if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+    return `$${val}`;
+  };
+
   return (
-    <div className="flex flex-col items-center">
-      <svg width={size} height={size} viewBox="0 0 100 100" className="drop-shadow-lg">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="currentColor" strokeWidth="8" className="text-white/5" />
-        <circle
-          cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round" transform="rotate(-90 50 50)"
-          className="transition-all duration-1000 ease-out"
-        />
-        <text x="50" y="46" textAnchor="middle" className="fill-current" style={{ fontSize: '18px', fontFamily: 'monospace', fontWeight: 'bold', fill: color }}>
-          {percent}%
-        </text>
-        <text x="50" y="62" textAnchor="middle" style={{ fontSize: '8px', fontFamily: 'monospace', fill: `${color}80` }}>
-          {label}
-        </text>
-      </svg>
+    <div ref={chartRef}>
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <XAxis
+            dataKey="month"
+            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: 'monospace' }}
+            axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+            tickLine={false}
+          />
+          <YAxis
+            scale="log"
+            domain={[100, 25000000]}
+            tickFormatter={formatYAxis}
+            tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: 'monospace' }}
+            axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+            tickLine={false}
+            width={50}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'rgba(0,0,0,0.9)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 0,
+              fontFamily: 'monospace',
+              fontSize: 11,
+            }}
+            formatter={(value: number, name: string) => {
+              const labels: Record<string, string> = { agents: 'AI Agents', defimx: 'Following agents', avg: 'Average trader' };
+              return [formatYAxis(value), labels[name] || name];
+            }}
+            labelStyle={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}
+          />
+          {/* Average trader: gray, declining */}
+          <Line
+            type="monotone"
+            dataKey="avg"
+            stroke="#6b7280"
+            strokeWidth={2}
+            dot={false}
+            strokeOpacity={0.6}
+            isAnimationActive={false}
+          />
+          {/* DeFi Mexico: green dotted, following agents */}
+          <Line
+            type="monotone"
+            dataKey="defimx"
+            stroke="#22c55e"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            dot={<GreenLobsterDot />}
+            isAnimationActive={false}
+          />
+          {/* AI Agents: red, exponential growth */}
+          <Line
+            type="monotone"
+            dataKey="agents"
+            stroke="#ef4444"
+            strokeWidth={2.5}
+            dot={<RedAgentDot />}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 export default function AgenticWorldPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [walletInput, setWalletInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [scanCount, setScanCount] = useState<number | null>(null);
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
-  const [showDirectory, setShowDirectory] = useState(false);
-  const [topTraders, setTopTraders] = useState<LeaderboardEntry[]>([]);
-  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
   useEffect(() => {
     supabase.from('scan_counter').select('count').eq('id', 'total_scans').maybeSingle()
       .then(({ data }) => { if (data?.count) setScanCount(data.count); });
   }, []);
 
-  useEffect(() => {
-    fetch('/api/polymarket-data/v1/leaderboard?category=OVERALL&timePeriod=ALL&orderBy=PNL&limit=5')
-      .then(r => r.json())
-      .then((data: LeaderboardEntry[]) => { if (Array.isArray(data)) setTopTraders(data); })
-      .catch(() => {})
-      .finally(() => setLoadingLeaderboard(false));
-  }, []);
+  const handleScan = () => {
+    const input = walletInput.trim();
+    if (!input) { toast.error('Paste a wallet address or Polymarket event URL'); return; }
 
-  const maxPnl = useMemo(() => topTraders.length ? topTraders[0]?.pnl || 1 : 1, [topTraders]);
+    // Detect Polymarket URL
+    if (input.includes('polymarket.com')) {
+      // Extract slug from URL like polymarket.com/event/slug or /event/slug?tid=xxx
+      const slugMatch = input.match(/polymarket\.com\/event\/([^?#/]+)/);
+      if (slugMatch) {
+        navigate(`/agentic-world/polymarket?event=${encodeURIComponent(slugMatch[1])}`);
+      } else {
+        navigate('/agentic-world/polymarket');
+      }
+      return;
+    }
 
-  const handleWalletScan = () => {
-    const addr = walletInput.trim().toLowerCase();
-    if (!addr || !addr.startsWith('0x')) { toast.error('Enter a valid wallet address (0x...)'); return; }
-    navigate(`/agentic-world/consensus?wallet=${addr}`);
+    // Detect wallet address
+    if (input.toLowerCase().startsWith('0x') && input.length >= 42) {
+      navigate(`/agentic-world/consensus?wallet=${input.toLowerCase()}`);
+      return;
+    }
+
+    toast.error('Paste a 0x wallet address or a Polymarket event URL');
   };
-
-  const handleWaitlist = async () => {
-    if (!waitlistEmail || !waitlistEmail.includes('@')) { toast.error('Enter a valid email'); return; }
-    setWaitlistSubmitting(true);
-    try {
-      const { error } = await supabase.from('pro_waitlist').insert({ email: waitlistEmail.toLowerCase() });
-      if (error?.code === '23505') toast.success("You're already on the list!");
-      else if (error) throw error;
-      else toast.success("You're on the Pro waitlist!");
-      setWaitlistEmail('');
-    } catch { toast.error('Something went wrong'); }
-    setWaitlistSubmitting(false);
-  };
-
-  const filteredProjects = useMemo(() => {
-    return AGENTIC_PROJECTS.filter((project) => {
-      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory = selectedCategory === 'all' || project.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchQuery, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,13 +342,13 @@ export default function AgenticWorldPage() {
             <div className="max-w-xl">
               <div className="flex gap-2">
                 <Input
-                  placeholder="0x... paste any wallet"
+                  placeholder="0x... wallet or polymarket.com/event/..."
                   value={walletInput}
                   onChange={(e) => setWalletInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleWalletScan()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleScan()}
                   className="h-12 font-mono text-base bg-black/60 border-cyan-500/30 text-cyan-300 placeholder:text-cyan-500/20 focus:border-cyan-400"
                 />
-                <Button onClick={handleWalletScan} className="h-12 px-6 bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-sm">
+                <Button onClick={handleScan} className="h-12 px-6 bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-sm">
                   <PixelTarget size={16} className="mr-2" />
                   X-RAY
                 </Button>
@@ -224,338 +357,108 @@ export default function AgenticWorldPage() {
           </div>
         </div>
 
-        {/* ============ VISUAL STATS: DONUTS + VS BAR ============ */}
-        <div className="border border-red-500/20 bg-black/60 overflow-hidden mb-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border-b border-red-500/20">
+        {/* ============ PNL CHART: AGENTS vs YOU vs AVG ============ */}
+        <div className="border border-cyan-500/20 bg-black/60 overflow-hidden mb-3">
+          <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/5 border-b border-cyan-500/15">
             <div className="flex gap-1.5">
               <div className="w-2 h-2 rounded-full bg-red-500/60" />
               <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
               <div className="w-2 h-2 rounded-full bg-green-500/60" />
             </div>
-            <span className="text-red-400 text-[10px] font-mono ml-1">polymarket --reality-check</span>
-          </div>
-
-          <div className="p-6 md:p-8">
-            {/* Donut charts row */}
-            <div className="grid grid-cols-3 gap-4 md:gap-8 mb-6">
-              <DonutChart percent={70} color="#f87171" label="LOSE" />
-              <DonutChart percent={0.04} color="#fbbf24" label="WIN BIG" />
-              <DonutChart percent={95} color="#4ade80" label="AI WIN RATE" />
-            </div>
-
-            {/* Visual "You vs Agents" bar */}
-            <div className="space-y-3 font-mono">
-              <div>
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-red-400/70">Average trader</span>
-                  <span className="text-red-400 font-bold">-$847</span>
-                </div>
-                <div className="h-3 bg-white/5 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-red-500 to-red-600" style={{ width: '15%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-green-400/70">Top AI agents</span>
-                  <span className="text-green-400 font-bold">+$906K to +$22M</span>
-                </div>
-                <div className="h-3 bg-white/5 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-green-500 to-cyan-500 animate-pulse" style={{ width: '95%' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="text-red-400/15 text-[8px] font-mono mt-4">
-              TU Berlin (1.7M wallets) | IMDEA Networks (86M bets)
-            </div>
-          </div>
-        </div>
-
-        {/* ============ AGENT LEADERBOARD: VISUAL BARS ============ */}
-        <div className="border border-green-500/30 bg-black/60 overflow-hidden mb-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border-b border-green-500/20">
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-red-500/60" />
-              <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
-              <div className="w-2 h-2 rounded-full bg-green-500/60" />
-            </div>
-            <span className="text-green-400 text-[10px] font-mono ml-1 flex items-center gap-1.5">
-              <PixelLobster size={12} className="text-green-400" />
-              agent.leaderboard --top-pnl --live
+            <span className="text-cyan-400 text-[10px] font-mono ml-1 flex items-center gap-1.5">
+              <PixelLobster size={12} className="text-cyan-400" />
+              pnl.compare --log --12m
             </span>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-green-400/40 text-[9px] font-mono">LIVE</span>
-            </div>
           </div>
 
-          <div className="p-4 md:p-6 font-mono">
-            {loadingLeaderboard ? (
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-10 bg-green-500/5 animate-pulse" />
-                ))}
+          <div className="p-4 md:p-6">
+            {/* Legend */}
+            <div className="flex flex-wrap gap-4 mb-4 font-mono text-[11px]">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-red-500" />
+                <span className="text-red-400">AI Agents</span>
+                <span className="text-red-400/40">+$22M</span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {topTraders.map((trader, i) => {
-                  const barWidth = Math.max(10, (trader.pnl / maxPnl) * 100);
-                  return (
-                    <div
-                      key={trader.proxyWallet}
-                      className="group cursor-pointer hover:bg-green-500/5 transition-colors p-2 -mx-2"
-                      onClick={() => navigate(`/agentic-world/consensus?wallet=${trader.proxyWallet}`)}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-400/30 text-xs w-5">#{i + 1}</span>
-                          <span className="text-green-300 text-sm font-bold">{trader.userName || trader.proxyWallet.slice(0, 10)}</span>
-                        </div>
-                        <span className="text-green-400 text-sm font-bold">+{formatUsd(trader.pnl)}</span>
-                      </div>
-                      <div className="h-2 bg-white/5 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-green-600 to-green-400 group-hover:from-green-500 group-hover:to-cyan-400 transition-colors"
-                          style={{ width: `${barWidth}%`, transition: 'width 0.8s ease-out' }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 border-t-2 border-dashed border-green-500" />
+                <PixelLobster size={10} className="text-green-400" />
+                <span className="text-green-400">Following agents</span>
+                <span className="text-green-400/40">+$600K</span>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-0.5 bg-gray-500/60" />
+                <span className="text-gray-400">Average trader</span>
+                <span className="text-gray-400/40">-$850</span>
+              </div>
+            </div>
 
-            <div className="text-green-400/15 text-[8px] mt-3 pt-2 border-t border-green-500/10">
-              Polymarket Data API | click any trader to scan
+            <AnimatedPnlChart />
+
+            <div className="text-cyan-400/15 text-[8px] font-mono mt-3">
+              Log scale | TU Berlin (1.7M wallets) | IMDEA Networks (86M bets)
             </div>
           </div>
         </div>
 
         {/* ============ 3 TOOLS ============ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+          {/* Market Scanner */}
           <div
-            className="group border border-cyan-500/20 bg-black/40 overflow-hidden cursor-pointer hover:border-cyan-500/50 transition-all"
+            className="group relative border border-cyan-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-cyan-500/60 transition-all duration-300"
             onClick={() => navigate('/agentic-world/polymarket')}
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/5 border-b border-cyan-500/15">
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-              <span className="text-cyan-400 text-[10px] font-mono">market.scanner</span>
-            </div>
-            <div className="p-4 font-mono flex items-center gap-4">
-              <div className="w-10 h-10 border border-cyan-500/30 bg-cyan-500/10 flex items-center justify-center shrink-0 text-cyan-400">
-                <Search className="w-5 h-5" />
+            {/* Glow on hover */}
+            <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:to-cyan-500/10 transition-all duration-300" />
+            <div className="relative p-6 md:p-8 font-mono flex flex-col items-center text-center">
+              <div className="w-16 h-16 border-2 border-cyan-500/30 bg-cyan-500/5 flex items-center justify-center mb-4 group-hover:border-cyan-500/60 group-hover:bg-cyan-500/10 group-hover:scale-110 transition-all duration-300">
+                <Search className="w-8 h-8 text-cyan-400" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-cyan-300 text-sm font-bold">Market Scanner</div>
-                <div className="text-cyan-400/40 text-[11px]">Paste URL. Detect agents.</div>
+              <div className="text-cyan-300 text-lg font-bold mb-1">Market Scanner</div>
+              <div className="text-cyan-400/40 text-xs mb-4 leading-relaxed">Paste any Polymarket URL. Instantly detect which wallets are AI agents.</div>
+              <div className="flex items-center gap-1.5 text-cyan-400/30 text-[10px] group-hover:text-cyan-400 transition-colors">
+                <span>LAUNCH</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
-              <ArrowRight className="w-4 h-4 text-cyan-400/30 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
             </div>
           </div>
 
+          {/* Wallet X-Ray */}
           <div
-            className="group border border-amber-500/20 bg-black/40 overflow-hidden cursor-pointer hover:border-amber-500/50 transition-all"
+            className="group relative border border-amber-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-amber-500/60 transition-all duration-300"
             onClick={() => navigate('/agentic-world/polymarket')}
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/5 border-b border-amber-500/15">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              <span className="text-amber-400 text-[10px] font-mono">wallet.xray</span>
-            </div>
-            <div className="p-4 font-mono flex items-center gap-4">
-              <div className="w-10 h-10 border border-amber-500/30 bg-amber-500/10 flex items-center justify-center shrink-0 text-amber-400">
-                <PixelTarget size={20} />
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/5 group-hover:to-amber-500/10 transition-all duration-300" />
+            <div className="relative p-6 md:p-8 font-mono flex flex-col items-center text-center">
+              <div className="w-16 h-16 border-2 border-amber-500/30 bg-amber-500/5 flex items-center justify-center mb-4 group-hover:border-amber-500/60 group-hover:bg-amber-500/10 group-hover:scale-110 transition-all duration-300">
+                <PixelTarget size={32} className="text-amber-400" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-amber-300 text-sm font-bold">Wallet X-Ray</div>
-                <div className="text-amber-400/40 text-[11px]">Deep scan. Strategy + score.</div>
+              <div className="text-amber-300 text-lg font-bold mb-1">Wallet X-Ray</div>
+              <div className="text-amber-400/40 text-xs mb-4 leading-relaxed">Deep scan any wallet. Get strategy classification, agent score, and PnL breakdown.</div>
+              <div className="flex items-center gap-1.5 text-amber-400/30 text-[10px] group-hover:text-amber-400 transition-colors">
+                <span>SCAN</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
-              <ArrowRight className="w-4 h-4 text-amber-400/30 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
             </div>
           </div>
 
+          {/* AI Leaderboard */}
           <div
-            className="group border border-violet-500/20 bg-black/40 overflow-hidden cursor-pointer hover:border-violet-500/50 transition-all"
+            className="group relative border border-violet-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-violet-500/60 transition-all duration-300"
             onClick={() => navigate('/agentic-world/leaderboard')}
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-500/5 border-b border-violet-500/15">
-              <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-              <span className="text-violet-400 text-[10px] font-mono">ai.leaderboard</span>
-            </div>
-            <div className="p-4 font-mono flex items-center gap-4">
-              <div className="w-10 h-10 border border-violet-500/30 bg-violet-500/10 flex items-center justify-center shrink-0 text-violet-400">
-                <Sparkles className="w-5 h-5" />
+            <div className="absolute inset-0 bg-gradient-to-b from-violet-500/0 to-violet-500/0 group-hover:from-violet-500/5 group-hover:to-violet-500/10 transition-all duration-300" />
+            <div className="relative p-6 md:p-8 font-mono flex flex-col items-center text-center">
+              <div className="w-16 h-16 border-2 border-violet-500/30 bg-violet-500/5 flex items-center justify-center mb-4 group-hover:border-violet-500/60 group-hover:bg-violet-500/10 group-hover:scale-110 transition-all duration-300">
+                <Sparkles className="w-8 h-8 text-violet-400" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-violet-300 text-sm font-bold">AI Leaderboard</div>
-                <div className="text-violet-400/40 text-[11px]">Live ranking. TVL + fees.</div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-violet-400/30 group-hover:text-violet-400 group-hover:translate-x-1 transition-all" />
-            </div>
-          </div>
-        </div>
-
-        {/* ============ VIRAL WALLETS: VISUAL CARDS ============ */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-          {FEATURED_WALLETS.map((w) => (
-            <div
-              key={w.address}
-              className="border border-cyan-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-cyan-500/40 transition-all group"
-              onClick={() => navigate(`/agentic-world/consensus?wallet=${w.address}`)}
-            >
-              <div className="p-4 font-mono">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-cyan-300 text-sm font-bold">{w.pseudonym}</span>
-                  <span className={`text-[10px] px-2 py-0.5 border font-bold ${
-                    w.score >= 80 ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-orange-400 border-orange-500/30 bg-orange-500/10'
-                  }`}>
-                    <PixelLobster size={10} className="inline mr-1" />{w.score}
-                  </span>
-                </div>
-
-                {/* Visual PnL bar */}
-                <div className="mb-3">
-                  <div className={`text-xl font-bold ${w.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {w.pnl >= 0 ? '+' : ''}{formatUsd(w.pnl)}
-                  </div>
-                  <div className="h-1.5 bg-white/5 mt-1.5 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-500 to-cyan-400" style={{ width: `${Math.min(100, (w.pnl / 906066) * 100)}%` }} />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-cyan-400/40">{w.trades.toLocaleString()} trades</span>
-                  <span className="text-cyan-400/30">{w.source}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ============ PRO WAITLIST ============ */}
-        <div className="border border-amber-500/20 bg-black/60 overflow-hidden mb-3 font-mono">
-          <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-red-500/60" />
-              <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
-              <div className="w-2 h-2 rounded-full bg-green-500/60" />
-            </div>
-            <span className="text-amber-400 text-[10px] ml-1 flex items-center gap-1.5">
-              <Crown className="w-3 h-3" /> pro.waitlist
-            </span>
-          </div>
-
-          <div className="p-4 md:p-6">
-            <div className="md:flex items-center gap-6">
-              {/* Visual features as icons */}
-              <div className="flex-1 grid grid-cols-2 gap-2 mb-4 md:mb-0">
-                {[
-                  { icon: '🔔', text: 'Alerts' },
-                  { icon: '♾️', text: 'Unlimited scans' },
-                  { icon: '🧠', text: 'AI explainer' },
-                  { icon: '📊', text: 'CSV + API' },
-                ].map((f) => (
-                  <div key={f.text} className="flex items-center gap-2 text-amber-300/60 text-xs">
-                    <span>{f.icon}</span> {f.text}
-                  </div>
-                ))}
-              </div>
-              <div className="max-w-sm w-full">
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={waitlistEmail}
-                    onChange={(e) => setWaitlistEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleWaitlist()}
-                    className="h-10 font-mono text-sm bg-black/60 border-amber-500/30 text-amber-300 placeholder:text-amber-500/20"
-                  />
-                  <Button onClick={handleWaitlist} disabled={waitlistSubmitting} className="h-10 px-5 bg-amber-600 hover:bg-amber-500 text-white font-mono text-xs font-bold">
-                    {waitlistSubmitting ? '...' : 'JOIN PRO'}
-                  </Button>
-                </div>
+              <div className="text-violet-300 text-lg font-bold mb-1">AI Leaderboard</div>
+              <div className="text-violet-400/40 text-xs mb-4 leading-relaxed">Live ranking of 30+ AI protocols. Track TVL, fees, and real-time performance.</div>
+              <div className="flex items-center gap-1.5 text-violet-400/30 text-[10px] group-hover:text-violet-400 transition-colors">
+                <span>EXPLORE</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
-        </div>
-
-        {/* ============ FREE vs PRO: VISUAL COMPARISON ============ */}
-        <div className="grid grid-cols-2 gap-3 mb-3 max-w-2xl mx-auto font-mono">
-          <div className="border border-cyan-500/20 bg-black/60 p-4">
-            <div className="text-cyan-400 text-[10px] font-bold mb-3">FREE</div>
-            <div className="space-y-2 text-[11px]">
-              {['7 signals', '5 scans/day', '3 follows', 'Score cards'].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-cyan-300/60">
-                  <div className="w-1.5 h-1.5 bg-green-500" style={{ imageRendering: 'pixelated' as const }} />
-                  {item}
-                </div>
-              ))}
-              <div className="flex items-center gap-2 text-cyan-300/30">
-                <Lock className="w-3 h-3" /> AI explainer
-              </div>
-            </div>
-          </div>
-          <div className="border border-amber-500/20 bg-black/60 p-4">
-            <div className="text-amber-400 text-[10px] font-bold mb-3 flex items-center gap-1.5">
-              <Crown className="w-3 h-3" /> PRO
-            </div>
-            <div className="space-y-2 text-[11px]">
-              {['Everything free +', 'Alpha Feed', 'Alerts', 'Unlimited', 'CSV + API'].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-amber-300/60">
-                  <div className="w-1.5 h-1.5 bg-amber-500" style={{ imageRendering: 'pixelated' as const }} />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============ DIRECTORY (collapsible) ============ */}
-        <div className="border border-cyan-500/10 bg-black/30 overflow-hidden mb-8">
-          <button
-            onClick={() => setShowDirectory(!showDirectory)}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-cyan-500/5 transition-colors font-mono"
-          >
-            <Sparkles className="w-4 h-4 text-cyan-500" />
-            <span className="text-cyan-400 text-xs font-bold">AI Agent Directory</span>
-            <span className="text-cyan-400/30 text-[10px]">{AGENTIC_PROJECTS.length} projects</span>
-            <span className="text-cyan-400/20 text-[10px] ml-auto">{showDirectory ? '[-]' : '[+]'}</span>
-          </button>
-
-          {showDirectory && (
-            <div className="p-4 border-t border-cyan-500/10">
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                  <PixelSearch size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-                </div>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <PixelFilter size={14} className="mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('agenticWorld.categories.all')}</SelectItem>
-                    {AGENTIC_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{t(`agenticWorld.categories.${cat}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {filteredProjects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProjects.map((project) => (
-                    <AgentCard key={project.id} project={project} />
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center font-mono">
-                  <Bot size={48} className="mx-auto mb-4 text-cyan-500/30" />
-                  <p className="text-cyan-400/40 text-sm">{t('agenticWorld.noResults')}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
       </div>
