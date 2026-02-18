@@ -32,7 +32,7 @@ export default function UserDashboard() {
     autoFetch: true
   });
 
-  const { wallets: followedWallets, loading: walletsLoading, unfollow } = useFollowedWallets();
+  const { wallets: followedWallets, loading: walletsLoading, unfollow, followsRemaining, followLimit } = useFollowedWallets();
   const [walletMetrics, setWalletMetrics] = useState<Record<string, AgentMetrics>>({});
   const [metricsLoading, setMetricsLoading] = useState(false);
 
@@ -130,7 +130,7 @@ export default function UserDashboard() {
                 Followed Wallets
               </CardTitle>
               <CardDescription>
-                Polymarket wallets you're tracking
+                Polymarket wallets you're tracking ({followedWallets.length}/{followLimit} free)
               </CardDescription>
             </div>
             <Button

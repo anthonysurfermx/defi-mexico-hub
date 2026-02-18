@@ -15,6 +15,8 @@ import { PixelLobster } from '@/components/ui/pixel-icons';
 import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
+import { supabase } from '@/lib/supabase';
+import { useScanLimit } from '@/hooks/useScanLimit';
 import { toast } from 'sonner';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -93,6 +95,7 @@ function StrategyTag({ type, label }: { type: StrategyType; label: string }) {
 
 export default function PolymarketTrackerPage() {
   const navigate = useNavigate();
+  const { canScanMarket, marketScansRemaining, marketScanLimit, consumeMarketScan } = useScanLimit();
 
   // Market scanner state
   const [marketUrl, setMarketUrl] = useState('');
@@ -113,12 +116,18 @@ export default function PolymarketTrackerPage() {
   const [walletSearch, setWalletSearch] = useState('');
 
   const handleMarketScan = async () => {
+    if (!canScanMarket) {
+      toast.error(`Daily limit: ${marketScanLimit} market scans. Come back tomorrow or upgrade to Pro.`);
+      return;
+    }
+
     const slug = polymarketService.parseMarketUrl(marketUrl);
     if (!slug) {
       toast.error('Invalid Polymarket URL. Paste a link like polymarket.com/event/...');
       return;
     }
 
+    consumeMarketScan();
     setMarketScanning(true);
     setMarketInfo(null);
     setMarketHolders([]);
@@ -191,6 +200,11 @@ export default function PolymarketTrackerPage() {
     setMarketScanning(false);
     setMarketScanProgress('');
     toast.success(`Scanned ${toScan.length} holders in "${info.question}"`);
+
+    // Increment scan counter for each holder scanned (fire-and-forget)
+    for (let i = 0; i < toScan.length; i++) {
+      supabase.rpc('increment_scan_count').catch(() => {});
+    }
   };
 
   const handleViewPositions = async (address: string) => {
@@ -351,12 +365,19 @@ export default function PolymarketTrackerPage() {
               </Button>
             </div>
 
-            {marketScanProgress && (
-              <div className="flex items-center gap-2 mt-3 text-sm text-cyan-400">
-                <LoadingSpinner size="sm" />
-                {marketScanProgress}
-              </div>
-            )}
+            <div className="flex items-center gap-2 mt-2">
+              {marketScanProgress && (
+                <div className="flex items-center gap-2 text-sm text-cyan-400">
+                  <LoadingSpinner size="sm" />
+                  {marketScanProgress}
+                </div>
+              )}
+              {!marketScanning && (
+                <div className="text-[10px] text-muted-foreground font-mono ml-auto">
+                  {marketScansRemaining}/{marketScanLimit} scans remaining today
+                </div>
+              )}
+            </div>
 
             {/* Live Analysis Terminal */}
             {liveAnalysis && (

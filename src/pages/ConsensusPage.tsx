@@ -11,6 +11,8 @@ import { polymarketService, type AgentMetrics, type PolymarketPosition } from '@
 import { detectBot, type BotDetectionResult, type SignalProgress, type StrategyType } from '@/services/polymarket-detector';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowedWallets } from '@/hooks/useFollowedWallets';
+import { useScanLimit } from '@/hooks/useScanLimit';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 function formatUSD(n: number): string {
@@ -181,7 +183,7 @@ export default function ConsensusPage() {
   const marketId = searchParams.get('market') || '';
 
   const { isAuthenticated } = useAuth();
-  const { follow, unfollow, isFollowing } = useFollowedWallets();
+  const { follow, unfollow, isFollowing, canFollow, followsRemaining, followLimit } = useFollowedWallets();
   const [followLoading, setFollowLoading] = useState(false);
 
   const following = walletAddress ? isFollowing(walletAddress) : false;
@@ -192,6 +194,10 @@ export default function ConsensusPage() {
       navigate('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
       return;
     }
+    if (!following && !canFollow) {
+      toast.info(`Free limit: ${followLimit} wallets. Pro coming soon with unlimited follows.`);
+      return;
+    }
     setFollowLoading(true);
     try {
       if (following) {
@@ -199,7 +205,7 @@ export default function ConsensusPage() {
         toast.success('Wallet unfollowed');
       } else {
         await follow(walletAddress, metrics?.pseudonym || undefined);
-        toast.success('Wallet followed');
+        toast.success(`Wallet followed (${followsRemaining - 1} follows remaining)`);
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to update');
@@ -219,10 +225,20 @@ export default function ConsensusPage() {
   const [phase, setPhase] = useState<'loading' | 'analyzing' | 'done'>('loading');
   const [showAllPositions, setShowAllPositions] = useState(false);
   const [strategyExpanded, setStrategyExpanded] = useState(false);
+  const [scanBlocked, setScanBlocked] = useState(false);
+  const { canScanWallet, walletScansRemaining, walletScanLimit, consumeWalletScan } = useScanLimit();
 
   const runAnalysis = useCallback(async () => {
     if (!walletAddress) return;
 
+    if (!canScanWallet) {
+      setScanBlocked(true);
+      setLoading(false);
+      setPhase('done');
+      return;
+    }
+
+    consumeWalletScan();
     setLoading(true);
     setPhase('loading');
 
@@ -248,6 +264,9 @@ export default function ConsensusPage() {
 
     setLoading(false);
     setPhase('done');
+
+    // Increment global scan counter (fire-and-forget)
+    supabase.rpc('increment_scan_count').catch(() => {});
   }, [walletAddress]);
 
   useEffect(() => {
@@ -381,6 +400,22 @@ export default function ConsensusPage() {
             )}
           </div>
         </div>
+
+        {/* Scan limit reached */}
+        {scanBlocked && (
+          <div className="border border-amber-500/30 bg-amber-500/5 p-6 mb-6 text-center font-mono">
+            <div className="text-amber-400 text-lg font-bold mb-2">Daily scan limit reached</div>
+            <p className="text-amber-300/60 text-sm mb-4">
+              Free tier: {walletScanLimit} wallet scans per day. Come back tomorrow or upgrade to Pro for unlimited scans.
+            </p>
+            <a
+              href="/agentic-world"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm font-bold hover:from-amber-500 hover:to-orange-500 transition-colors"
+            >
+              Join Pro Waitlist
+            </a>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">

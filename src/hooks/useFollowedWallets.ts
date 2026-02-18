@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { followedWalletsService, FollowedWallet } from '@/services/followed-wallets.service';
 
+const FREE_FOLLOW_LIMIT = 3;
+
 export function useFollowedWallets() {
   const { isAuthenticated } = useAuth();
   const [wallets, setWallets] = useState<FollowedWallet[]>([]);
@@ -42,5 +44,8 @@ export function useFollowedWallets() {
     return wallets.some(w => w.wallet_address === address.toLowerCase());
   }, [wallets]);
 
-  return { wallets, loading, follow, unfollow, isFollowing, refresh };
+  const canFollow = wallets.length < FREE_FOLLOW_LIMIT;
+  const followsRemaining = Math.max(0, FREE_FOLLOW_LIMIT - wallets.length);
+
+  return { wallets, loading, follow, unfollow, isFollowing, refresh, canFollow, followsRemaining, followLimit: FREE_FOLLOW_LIMIT };
 }
