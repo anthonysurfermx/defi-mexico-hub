@@ -9,6 +9,10 @@ import { MXNStablecoinsChart } from './MXNStablecoinsChart';
 import { TetherGrowthThesisChart } from './TetherGrowthThesisChart';
 import { LatamExchangeHeatChart } from './LatamExchangeHeatChart';
 import { LatamAdoptionChart } from './LatamAdoptionChart';
+import { LongshotBiasChart } from './LongshotBiasChart';
+import { MakerTakerEdgeChart } from './MakerTakerEdgeChart';
+import { KellyPositionChart } from './KellyPositionChart';
+import { PolymarketFlowChart } from './PolymarketFlowChart';
 
 interface Props {
   type: string;
@@ -40,6 +44,14 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <LatamExchangeHeatChart />;
     case 'latam_adoption':
       return <LatamAdoptionChart />;
+    case 'longshot_bias':
+      return <LongshotBiasChart />;
+    case 'maker_taker_edge':
+      return <MakerTakerEdgeChart />;
+    case 'kelly_position':
+      return <KellyPositionChart />;
+    case 'polymarket_flow':
+      return <PolymarketFlowChart />;
     default:
       return null;
   }
