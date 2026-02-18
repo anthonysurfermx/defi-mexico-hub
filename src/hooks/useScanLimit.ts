@@ -1,6 +1,6 @@
 // Free tier scan limits (per day, stored in localStorage)
-const FREE_WALLET_SCANS = 5;
-const FREE_MARKET_SCANS = 5;
+const FREE_WALLET_SCANS = 10;
+const FREE_MARKET_SCANS = 10;
 const STORAGE_KEY = 'scan_limits';
 
 interface ScanLimits {
