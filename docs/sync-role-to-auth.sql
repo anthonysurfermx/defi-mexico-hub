@@ -75,7 +75,7 @@ BEGIN
   -- Admin
   UPDATE profiles
   SET role = 'admin'
-  WHERE email = 'anthochavez.ra@gmail.com';
+  WHERE email = 'YOUR_ADMIN_EMAIL';
 
   -- Editores
   UPDATE profiles

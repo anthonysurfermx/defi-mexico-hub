@@ -23,7 +23,7 @@ Se eliminaron las listas hardcodeadas de emails en:
 **Antes** (líneas 160-166, 245-254):
 ```typescript
 const adminUsers: Record<string, string> = {
-  'anthochavez.ra@gmail.com': 'admin',
+  'YOUR_ADMIN_EMAIL': 'admin',
   'guillermos22@gmail.com': 'editor',
   'fabiancepeda102@gmail.com': 'editor',
 };
@@ -84,7 +84,7 @@ Si hay usuarios que necesitan ser admin o editor:
 -- Actualizar rol de un usuario específico
 UPDATE profiles
 SET role = 'admin'  -- o 'editor'
-WHERE email = 'anthochavez.ra@gmail.com';
+WHERE email = 'YOUR_ADMIN_EMAIL';
 
 -- Verificar
 SELECT email, role, is_active

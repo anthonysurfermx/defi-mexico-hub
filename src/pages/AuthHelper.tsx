@@ -12,23 +12,16 @@ export default function AuthHelper() {
       try {
         // Si tenemos tokens en la URL (hash fragment), procesarlos
         if (window.location.hash.includes('access_token')) {
-          console.log('🔐 Processing OAuth callback from hash...');
-          
-          // Procesar el callback
           const result = await handleAuthCallback();
-          
+
           if (!result.error) {
-            // Refrescar datos del usuario
             await refreshUser();
-            console.log('✅ OAuth login successful');
             navigate('/', { replace: true });
           } else {
-            console.error('❌ OAuth callback error:', result.error);
             navigate('/login?error=oauth_failed', { replace: true });
           }
         }
-      } catch (error) {
-        console.error('❌ Auth processing error:', error);
+      } catch {
         navigate('/login?error=auth_processing_failed', { replace: true });
       }
     };

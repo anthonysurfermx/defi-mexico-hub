@@ -66,7 +66,7 @@ SELECT
         ELSE 'Not confirmed'
     END as email_status
 FROM auth.users 
-WHERE email = 'anthochavez.ra@gmail.com';
+WHERE email = 'YOUR_ADMIN_EMAIL';
 
 -- 6. Check auth schema permissions
 SELECT 

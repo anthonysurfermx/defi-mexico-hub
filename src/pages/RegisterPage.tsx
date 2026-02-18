@@ -54,9 +54,6 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
-    console.log('📧 Email:', values.email);
-    console.log('👤 Nombre:', values.name);
-    
     setIsLoading(true);
     
     try {

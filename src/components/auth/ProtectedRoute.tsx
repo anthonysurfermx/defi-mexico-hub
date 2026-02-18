@@ -108,12 +108,6 @@ export default function ProtectedRoute({
   if (user && ((requireAllRoles?.length) || (requireAnyRole?.length))) {
     const userRoles = new Set(getRoles?.() || []);
     
-    // Debug logs
-    console.log('🔐 ProtectedRoute - User email:', user.email);
-    console.log('🔐 ProtectedRoute - User roles:', Array.from(userRoles));
-    console.log('🔐 ProtectedRoute - Required any role:', requireAnyRole);
-    console.log('🔐 ProtectedRoute - Required all roles:', requireAllRoles);
-    
     const hasAllRequiredRoles = !requireAllRoles?.length || 
       requireAllRoles.every(role => userRoles.has(role));
     

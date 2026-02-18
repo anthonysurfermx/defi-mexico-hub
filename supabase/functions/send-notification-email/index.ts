@@ -5,7 +5,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "anthochavez.ra@gmail.com";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "";
 const FROM_EMAIL = "DeFi México <noreply@defimexico.org>";
 
 const corsHeaders = {

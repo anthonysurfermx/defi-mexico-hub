@@ -29,11 +29,26 @@ export default function ShortRedirect() {
       // Fire-and-forget click count increment (silently fails if no UPDATE policy)
       db.from('short_urls').update({ click_count: ((data as any).click_count || 0) + 1 }).eq('code', code).then(() => {});
 
-      // Redirect
-      if (data.target_path.startsWith('http')) {
-        window.location.replace(data.target_path);
+      // Redirect (only allow same-origin or relative paths)
+      const target = data.target_path;
+      if (target.startsWith('/')) {
+        navigate(target, { replace: true });
+      } else if (target.startsWith('http')) {
+        try {
+          const url = new URL(target);
+          const allowed = ['defimexico.org', 'www.defimexico.org'];
+          if (allowed.includes(url.hostname)) {
+            window.location.replace(target);
+          } else {
+            setError(true);
+            setTimeout(() => navigate('/', { replace: true }), 2000);
+          }
+        } catch {
+          setError(true);
+          setTimeout(() => navigate('/', { replace: true }), 2000);
+        }
       } else {
-        navigate(data.target_path, { replace: true });
+        navigate(target, { replace: true });
       }
     };
 

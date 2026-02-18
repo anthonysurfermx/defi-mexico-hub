@@ -233,7 +233,7 @@ export default function AuthCallback() {
             
             if (currentUser) {
               const userEmail = currentUser.email?.toLowerCase().trim();
-              console.log(`📧 Checking user email for access: ${userEmail}`);
+              // Check admin access by email
               
               // Lista de usuarios con roles administrativos
               const adminUsers: Record<string, string> = {
@@ -246,7 +246,6 @@ export default function AuthCallback() {
               const adminRole = adminUsers[userEmail || ''];
               
               if (adminRole) {
-                console.log(`🎯 Redirecting ${adminRole} to admin panel`);
                 setTimeout(() => navigate('/admin', { replace: true }), 800);
                 return;
               }

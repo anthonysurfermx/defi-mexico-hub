@@ -287,8 +287,6 @@ const AdminStartupForm = () => {
         return;
       }
 
-      console.log('✅ Usuario autenticado:', user.email);
-
       // Payload adaptado a la estructura real de la tabla
       const payload = {
         name: formData.name.trim(),
@@ -402,10 +400,6 @@ const AdminStartupForm = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.log('❌ Usuario no autenticado');
-        const { data: session } = await supabase.auth.getSession();
-        console.log('🔐 Sesión actual:', session);
-        
         toast({
           title: "Error de autenticación",
           description: "Debes estar logueado para publicar",
@@ -413,11 +407,6 @@ const AdminStartupForm = () => {
         });
         return;
       }
-
-      console.log('✅ Usuario autenticado:', {
-        id: user.id,
-        email: user.email
-      });
 
       // Payload adaptado a la estructura real de la tabla
       const payload = {

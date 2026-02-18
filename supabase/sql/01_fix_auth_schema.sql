@@ -147,7 +147,7 @@ END $$;
 -- This is normally done by Supabase Auth, but we'll try manually
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'anthochavez.ra@gmail.com') THEN
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'YOUR_EMAIL_HERE') THEN
         INSERT INTO auth.users (
             email,
             encrypted_password,
@@ -158,8 +158,8 @@ BEGIN
             created_at,
             updated_at
         ) VALUES (
-            'anthochavez.ra@gmail.com',
-            crypt('Admin2025!', gen_salt('bf')), -- This might not work without pgcrypto
+            'YOUR_EMAIL_HERE',
+            crypt('CHANGE_ME_BEFORE_RUNNING', gen_salt('bf')),
             NOW(),
             NOW(),
             '{"provider": "email", "providers": ["email"]}',

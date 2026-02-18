@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
+import DOMPurify from 'dompurify';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -120,7 +121,7 @@ const PostContent = ({ content }: { content: string }) => {
     return (
       <div
         className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'] }) }}
       />
     );
   }
@@ -129,7 +130,7 @@ const PostContent = ({ content }: { content: string }) => {
     <div className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-strong:text-foreground prose-code:text-foreground prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border">
       {segments.map((seg, i) =>
         seg.type === 'html' ? (
-          <div key={i} dangerouslySetInnerHTML={{ __html: `<p class="mb-4">${seg.html}</p>` }} />
+          <div key={i} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p class="mb-4">${seg.html}</p>`, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'] }) }} />
         ) : (
           <DefiChart key={i} type={seg.chartType} identifier={seg.identifier} />
         )
