@@ -27,11 +27,34 @@ function shortAddr(addr: string): string {
 }
 
 // Signal bar component matching the Polymarket Tracker style
-function PixelBar({ label, value, maxLabel }: { label: string; value: number; maxLabel?: string }) {
+function PixelBar({ label, value, maxLabel, delay = 0 }: { label: string; value: number; maxLabel?: string; delay?: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (value === 0) return;
+    const showTimer = setTimeout(() => {
+      setVisible(true);
+      // Step up from 0 to value over ~600ms
+      const steps = 12;
+      const stepMs = 600 / steps;
+      let step = 0;
+      const iv = setInterval(() => {
+        step++;
+        setDisplayValue(Math.round((value / steps) * Math.min(step, steps)));
+        if (step >= steps) clearInterval(iv);
+      }, stepMs);
+    }, delay);
+    return () => clearTimeout(showTimer);
+  }, [value, delay]);
+
   const barColor = value >= 80 ? 'bg-red-500' : value >= 60 ? 'bg-orange-500' : value >= 40 ? 'bg-yellow-500' : 'bg-green-500';
-  const filled = Math.round((value / 100) * 16);
+  const filled = Math.round((displayValue / 100) * 16);
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex items-center gap-2 transition-opacity duration-300"
+      style={{ opacity: visible || value === 0 ? 1 : 0 }}
+    >
       <span className="text-cyan-400 text-[10px] w-24 shrink-0 font-mono">{label}</span>
       <div className="flex gap-[2px] flex-1">
         {Array.from({ length: 16 }).map((_, i) => (
@@ -43,9 +66,30 @@ function PixelBar({ label, value, maxLabel }: { label: string; value: number; ma
         ))}
       </div>
       <span className={`text-[10px] w-6 text-right font-mono ${value >= 70 ? 'text-red-400' : 'text-cyan-400'}`}>
-        {value}
+        {displayValue}
       </span>
       {maxLabel && <span className="text-cyan-400/20 text-[9px] w-6 font-mono">{maxLabel}</span>}
+    </div>
+  );
+}
+
+function DirectionBiasBar({ yesPct, yesCount, noCount }: { yesPct: number; yesCount: number; noCount: number }) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setWidth(yesPct), 200);
+    return () => clearTimeout(t);
+  }, [yesPct]);
+  return (
+    <div className="animate-fadeInUp" style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
+      <div className="text-[10px] text-cyan-400/40 mb-1">DIRECTION BIAS</div>
+      <div className="flex h-2 overflow-hidden" style={{ imageRendering: 'pixelated' }}>
+        <div className="bg-green-500 h-full transition-all duration-700 ease-out" style={{ width: `${width}%` }} />
+        <div className="bg-red-500 h-full transition-all duration-700 ease-out" style={{ width: `${100 - width}%` }} />
+      </div>
+      <div className="flex justify-between mt-0.5">
+        <span className="text-green-400 text-[9px]">YES {yesPct}% ({yesCount})</span>
+        <span className="text-red-400 text-[9px]">NO {100 - yesPct}% ({noCount})</span>
+      </div>
     </div>
   );
 }
@@ -65,7 +109,17 @@ function TerminalHeader({ title, extra }: { title: string; extra?: React.ReactNo
 }
 
 // Stat box that works with Tailwind (no dynamic class names)
-function StatBox({ label, value, variant = 'cyan' }: { label: string; value: string; variant?: 'cyan' | 'green' | 'amber' | 'red' }) {
+function StatBox({ label, value, variant = 'cyan', delay = 0 }: { label: string; value: string; variant?: 'cyan' | 'green' | 'amber' | 'red'; delay?: number }) {
+  const [visible, setVisible] = useState(false);
+  const isLoading = value === '...';
+
+  useEffect(() => {
+    if (!isLoading) {
+      const t = setTimeout(() => setVisible(true), delay);
+      return () => clearTimeout(t);
+    }
+  }, [isLoading, delay]);
+
   const styles = {
     cyan: { border: 'border-cyan-500/30', labelColor: 'text-cyan-400/60', valueColor: 'text-cyan-400' },
     green: { border: 'border-green-500/30', labelColor: 'text-green-400/60', valueColor: 'text-green-400' },
@@ -73,11 +127,19 @@ function StatBox({ label, value, variant = 'cyan' }: { label: string; value: str
     red: { border: 'border-red-500/30', labelColor: 'text-red-400/60', valueColor: 'text-red-400' },
   };
   const s = styles[variant];
+
   return (
-    <div className={`border ${s.border} bg-black/60 p-3`}>
+    <div
+      className={`border ${s.border} bg-black/60 p-3 transition-all duration-500`}
+      style={{ opacity: isLoading ? 0.4 : visible ? 1 : 0.4 }}
+    >
       <div className={`text-[10px] ${s.labelColor} font-mono uppercase`}>{'> '}{label}</div>
       <div className={`text-lg font-bold ${s.valueColor} font-mono mt-1`}>
-        <ScrambleText text={value} speed={25} iterations={6} />
+        {isLoading ? (
+          <span className="animate-pulse">...</span>
+        ) : (
+          <ScrambleText text={value} speed={25} iterations={8} />
+        )}
       </div>
     </div>
   );
@@ -424,10 +486,10 @@ export default function ConsensusPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
-          <StatBox label="PORTFOLIO" value={metrics ? formatUSD(metrics.portfolioValue) : '...'} variant="cyan" />
-          <StatBox label="TOTAL P&L" value={metrics?.profitPnL != null ? `${metrics.profitPnL >= 0 ? '+' : ''}${formatUSD(metrics.profitPnL)}` : '...'} variant={metrics?.profitPnL != null && metrics.profitPnL >= 0 ? 'green' : 'red'} />
-          <StatBox label="WIN RATE" value={positions.length > 0 ? `${winRate}%` : '...'} variant={winRate >= 55 ? 'green' : 'amber'} />
-          <StatBox label="POSITIONS" value={metrics ? String(metrics.openPositions) : '...'} variant="cyan" />
+          <StatBox label="PORTFOLIO" value={metrics ? formatUSD(metrics.portfolioValue) : '...'} variant="cyan" delay={0} />
+          <StatBox label="TOTAL P&L" value={metrics?.profitPnL != null ? `${metrics.profitPnL >= 0 ? '+' : ''}${formatUSD(metrics.profitPnL)}` : '...'} variant={metrics?.profitPnL != null && metrics.profitPnL >= 0 ? 'green' : 'red'} delay={150} />
+          <StatBox label="WIN RATE" value={positions.length > 0 ? `${winRate}%` : '...'} variant={winRate >= 55 ? 'green' : 'amber'} delay={300} />
+          <StatBox label="POSITIONS" value={metrics ? String(metrics.openPositions) : '...'} variant="cyan" delay={450} />
         </div>
 
         {/* Two-column layout: Behavioral Analysis + Position Summary */}
@@ -475,7 +537,7 @@ export default function ConsensusPage() {
                     { key: 'winRateExtreme' as const, name: 'WIN_RATE', weight: '15%' },
                     { key: 'marketConcentration' as const, name: 'FOCUS', weight: '10%' },
                     { key: 'ghostWhale' as const, name: 'GHOST', weight: '50%' },
-                  ].map((s) => {
+                  ].map((s, idx) => {
                     const val = botResult
                       ? botResult.signals[s.key]
                       : liveProgress?.signals[s.key];
@@ -487,6 +549,7 @@ export default function ConsensusPage() {
                         label={isDone || isActive ? s.name : s.name}
                         value={isDone ? val : 0}
                         maxLabel={isDone ? s.weight : undefined}
+                        delay={phase === 'done' ? idx * 120 : 0}
                       />
                     );
                   })}
@@ -494,13 +557,19 @@ export default function ConsensusPage() {
               )}
 
               {botResult && botResult.signals.bothSidesBonus > 0 && (
-                <div className="text-red-400 text-[10px] pt-1 border-t border-cyan-500/10">
+                <div
+                  className="text-red-400 text-[10px] pt-1 border-t border-cyan-500/10 animate-fadeInUp"
+                  style={{ animationDelay: '900ms', animationFillMode: 'both' }}
+                >
                   {'>'} BOTH_SIDES_BONUS: +{botResult.signals.bothSidesBonus}
                 </div>
               )}
 
               {botResult && (
-                <div className="pt-2 border-t border-cyan-500/10 space-y-1">
+                <div
+                  className="pt-2 border-t border-cyan-500/10 space-y-1 animate-fadeInUp"
+                  style={{ animationDelay: '1000ms', animationFillMode: 'both' }}
+                >
                   <div className="text-cyan-400/40 text-[10px]">
                     {'>'} {botResult.tradeCount} trades | {botResult.mergeCount} merges | {botResult.activeHours}/24h active | {botResult.bothSidesPercent}% both-sides
                   </div>
@@ -513,7 +582,10 @@ export default function ConsensusPage() {
                 const archetype = STRATEGY_ARCHETYPES[strat.type];
                 const sStyle = STRATEGY_STYLES[strat.type];
                 return (
-                  <div className="pt-2 border-t border-cyan-500/10">
+                  <div
+                    className="pt-2 border-t border-cyan-500/10 animate-fadeInUp"
+                    style={{ animationDelay: '1100ms', animationFillMode: 'both' }}
+                  >
                     <button
                       onClick={() => setStrategyExpanded(prev => !prev)}
                       className="w-full flex items-center gap-2 group cursor-pointer"
@@ -591,36 +663,23 @@ export default function ConsensusPage() {
                 <>
                   {/* Quick stats */}
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">TOTAL P&L (open)</div>
-                      <div className={`text-sm font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {totalPnl >= 0 ? '+' : ''}{formatUSD(totalPnl)}
+                    {[
+                      { label: 'TOTAL P&L (open)', node: <div className={`text-sm font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>{totalPnl >= 0 ? '+' : ''}{formatUSD(totalPnl)}</div> },
+                      { label: 'WIN / LOSS', node: <div className="text-sm font-bold"><span className="text-green-400">{winningPositions}W</span><span className="text-cyan-400/30"> / </span><span className="text-red-400">{positions.length - winningPositions}L</span></div> },
+                      { label: 'BEST TRADE', node: <div className="text-sm font-bold text-green-400">+{formatUSD(biggestWin)}</div> },
+                      { label: 'WORST TRADE', node: <div className="text-sm font-bold text-red-400">{formatUSD(biggestLoss)}</div> },
+                      { label: 'AVG SIZE', node: <div className="text-sm font-bold text-cyan-400">{formatUSD(avgPositionSize)}</div> },
+                      { label: 'VOLUME', node: <div className="text-sm font-bold text-cyan-400">{metrics ? formatUSD(metrics.volumeTraded) : '...'}</div> },
+                    ].map((item, idx) => (
+                      <div
+                        key={item.label}
+                        className="animate-fadeInUp"
+                        style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'both' }}
+                      >
+                        <div className="text-[10px] text-cyan-400/40">{item.label}</div>
+                        {item.node}
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">WIN / LOSS</div>
-                      <div className="text-sm font-bold">
-                        <span className="text-green-400">{winningPositions}W</span>
-                        <span className="text-cyan-400/30"> / </span>
-                        <span className="text-red-400">{positions.length - winningPositions}L</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">BEST TRADE</div>
-                      <div className="text-sm font-bold text-green-400">+{formatUSD(biggestWin)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">WORST TRADE</div>
-                      <div className="text-sm font-bold text-red-400">{formatUSD(biggestLoss)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">AVG SIZE</div>
-                      <div className="text-sm font-bold text-cyan-400">{formatUSD(avgPositionSize)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-cyan-400/40">VOLUME</div>
-                      <div className="text-sm font-bold text-cyan-400">{metrics ? formatUSD(metrics.volumeTraded) : '...'}</div>
-                    </div>
+                    ))}
                   </div>
 
                   {/* Side distribution bar */}
@@ -629,17 +688,7 @@ export default function ConsensusPage() {
                     const noCount = positions.length - yesCount;
                     const yesPct = Math.round((yesCount / positions.length) * 100);
                     return (
-                      <div>
-                        <div className="text-[10px] text-cyan-400/40 mb-1">DIRECTION BIAS</div>
-                        <div className="flex h-2 overflow-hidden" style={{ imageRendering: 'pixelated' }}>
-                          <div className="bg-green-500 h-full" style={{ width: `${yesPct}%` }} />
-                          <div className="bg-red-500 h-full" style={{ width: `${100 - yesPct}%` }} />
-                        </div>
-                        <div className="flex justify-between mt-0.5">
-                          <span className="text-green-400 text-[9px]">YES {yesPct}% ({yesCount})</span>
-                          <span className="text-red-400 text-[9px]">NO {100 - yesPct}% ({noCount})</span>
-                        </div>
-                      </div>
+                      <DirectionBiasBar yesPct={yesPct} yesCount={yesCount} noCount={noCount} />
                     );
                   })()}
                 </>
