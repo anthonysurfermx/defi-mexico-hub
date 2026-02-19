@@ -6,6 +6,18 @@ export interface PolymarketAgent {
   tags?: string[];
 }
 
+export interface RecentTrade {
+  title: string;
+  outcome: string;
+  side: 'BUY' | 'SELL';
+  size: number;
+  price: number;
+  usdcSize: number;
+  timestamp: number;
+  transactionHash: string;
+  slug: string;
+}
+
 export interface AgentMetrics {
   address: string;
   positionsValue: number;
@@ -16,6 +28,7 @@ export interface AgentMetrics {
   lastActive: string | null;
   lastTradeTitle: string | null;
   pseudonym: string | null;
+  recentTrades: RecentTrade[];
 }
 
 export interface PolymarketPosition {
@@ -164,6 +177,8 @@ export const polymarketService = {
       let lastTradeTitle: string | null = null;
       let pseudonym: string | null = null;
 
+      let recentTrades: RecentTrade[] = [];
+
       if (Array.isArray(tradesData) && tradesData.length > 0) {
         const firstTrade = tradesData[0];
         lastActive = new Date(firstTrade.timestamp * 1000).toISOString();
@@ -173,6 +188,18 @@ export const polymarketService = {
         volume = tradesData.reduce((acc: number, t: any) => {
           return acc + (parseFloat(t.size) * parseFloat(t.price));
         }, 0);
+
+        recentTrades = tradesData.slice(0, 50).map((t: any) => ({
+          title: t.title || '',
+          outcome: t.outcome || '',
+          side: t.side as 'BUY' | 'SELL',
+          size: parseFloat(t.size) || 0,
+          price: parseFloat(t.price) || 0,
+          usdcSize: parseFloat(t.usdcSize) || 0,
+          timestamp: t.timestamp || 0,
+          transactionHash: t.transactionHash || '',
+          slug: t.slug || t.eventSlug || '',
+        }));
       }
 
       return {
@@ -185,6 +212,7 @@ export const polymarketService = {
         lastActive,
         lastTradeTitle,
         pseudonym,
+        recentTrades,
       };
     } catch (error) {
       console.error(`Error fetching metrics for ${address}`, error);
@@ -198,6 +226,7 @@ export const polymarketService = {
         lastActive: null,
         lastTradeTitle: null,
         pseudonym: null,
+        recentTrades: [],
       };
     }
   },

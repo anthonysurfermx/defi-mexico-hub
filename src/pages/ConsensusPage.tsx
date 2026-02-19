@@ -805,6 +805,78 @@ export default function ConsensusPage() {
           </div>
         )}
 
+        {/* Trade History */}
+        {metrics && metrics.recentTrades.length > 0 && (
+          <div className="border border-cyan-500/30 bg-black/60 overflow-hidden font-mono mt-4">
+            <TerminalHeader
+              title={`trades --history ${metrics.recentTrades.length}`}
+              extra={<span className="text-[10px] text-cyan-400/40">last 50 trades</span>}
+            />
+            <div className="hidden md:block">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-cyan-500/15">
+                    <th className="text-left px-3 py-2 text-[10px] text-cyan-400/60">TIME</th>
+                    <th className="text-center px-3 py-2 text-[10px] text-cyan-400/60">SIDE</th>
+                    <th className="text-left px-3 py-2 text-[10px] text-cyan-400/60">MARKET</th>
+                    <th className="text-center px-3 py-2 text-[10px] text-cyan-400/60">OUTCOME</th>
+                    <th className="text-right px-3 py-2 text-[10px] text-cyan-400/60">SIZE</th>
+                    <th className="text-right px-3 py-2 text-[10px] text-cyan-400/60">PRICE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.recentTrades.map((t, i) => {
+                    const time = new Date(t.timestamp * 1000);
+                    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const isBuy = t.side === 'BUY';
+                    const isUp = t.outcome === 'Up' || t.outcome === 'Yes';
+                    return (
+                      <tr key={i} className="border-b border-cyan-500/10 hover:bg-cyan-500/5 transition-colors">
+                        <td className="px-3 py-1.5 text-[10px] text-cyan-400/40 whitespace-nowrap">{dateStr} {timeStr}</td>
+                        <td className="px-3 py-1.5 text-center">
+                          <span className={`text-[10px] px-1.5 py-0.5 border ${isBuy ? 'text-green-400 border-green-500/30 bg-green-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
+                            {t.side}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-cyan-300 text-[11px] max-w-[280px] truncate">{t.title}</td>
+                        <td className="px-3 py-1.5 text-center">
+                          <span className={`text-[10px] ${isUp ? 'text-green-400' : 'text-red-400'}`}>{t.outcome}</span>
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-[11px] text-cyan-300">${t.usdcSize.toFixed(2)}</td>
+                        <td className="px-3 py-1.5 text-right text-[11px] text-cyan-400/60">{(t.price * 100).toFixed(1)}¢</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile */}
+            <div className="md:hidden divide-y divide-cyan-500/10">
+              {metrics.recentTrades.map((t, i) => {
+                const time = new Date(t.timestamp * 1000);
+                const timeStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const isBuy = t.side === 'BUY';
+                const isUp = t.outcome === 'Up' || t.outcome === 'Yes';
+                return (
+                  <div key={i} className="px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`text-[10px] px-1 py-0.5 border shrink-0 ${isBuy ? 'text-green-400 border-green-500/30 bg-green-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>{t.side}</span>
+                        <span className={`text-[10px] shrink-0 ${isUp ? 'text-green-400' : 'text-red-400'}`}>{t.outcome}</span>
+                        <span className="text-cyan-300 text-[11px] truncate">{t.title}</span>
+                      </div>
+                      <span className="text-cyan-300 text-[11px] shrink-0">${t.usdcSize.toFixed(2)}</span>
+                    </div>
+                    <div className="text-cyan-400/30 text-[10px] mt-0.5 pl-0">{timeStr}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Footer info */}
         <div className="mt-6 text-center font-mono">
           <p className="text-cyan-400/20 text-[10px]">
