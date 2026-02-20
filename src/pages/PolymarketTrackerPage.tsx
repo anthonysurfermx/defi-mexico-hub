@@ -15,6 +15,7 @@ import { PixelLobster } from '@/components/ui/pixel-icons';
 import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 import { ProWaitlistForm } from '@/components/agentic/ProWaitlistForm';
 import { supabase } from '@/lib/supabase';
 import { useScanLimit } from '@/hooks/useScanLimit';
@@ -633,6 +634,75 @@ export default function PolymarketTrackerPage() {
                 })()}
               </div>
             )}
+
+            {/* Explain Market with AI */}
+            {marketHolders.length > 0 && !marketScanning && eventInfo && (() => {
+              const scannedHolders = marketHolders.filter(h => h.bot);
+              const classifications = {
+                bot: scannedHolders.filter(h => h.bot?.classification === 'bot').length,
+                likelyBot: scannedHolders.filter(h => h.bot?.classification === 'likely-bot').length,
+                mixed: scannedHolders.filter(h => h.bot?.classification === 'mixed').length,
+                human: scannedHolders.filter(h => h.bot?.classification === 'human').length,
+              };
+              const strategies = {
+                MARKET_MAKER: scannedHolders.filter(h => h.bot?.strategy.type === 'MARKET_MAKER').length,
+                SNIPER: scannedHolders.filter(h => h.bot?.strategy.type === 'SNIPER').length,
+                HYBRID: scannedHolders.filter(h => h.bot?.strategy.type === 'HYBRID').length,
+                MOMENTUM: scannedHolders.filter(h => h.bot?.strategy.type === 'MOMENTUM').length,
+              };
+              const agentCapitalByOutcome: Record<string, number> = {};
+              scannedHolders
+                .filter(h => h.bot?.classification === 'bot' || h.bot?.classification === 'likely-bot')
+                .forEach(h => {
+                  const side = h.outcome || 'Unknown';
+                  agentCapitalByOutcome[side] = (agentCapitalByOutcome[side] || 0) + h.amount;
+                });
+              const topHolders = [...marketHolders]
+                .sort((a, b) => b.amount - a.amount)
+                .slice(0, 5)
+                .map(h => ({
+                  name: h.pseudonym || `${h.address.slice(0, 6)}...${h.address.slice(-4)}`,
+                  side: h.outcome,
+                  amount: Math.round(h.amount),
+                  classification: h.bot?.classification || 'unscanned',
+                  strategy: h.bot?.strategy.label || null,
+                }));
+              const outcomes = eventInfo.markets
+                .sort((a, b) => b.yesPrice - a.yesPrice)
+                .slice(0, 8)
+                .map(m => ({
+                  label: m.groupItemTitle,
+                  probability: Math.round(m.yesPrice * 100),
+                  volume: Math.round(m.volume),
+                }));
+
+              const marketData = {
+                title: eventInfo.title,
+                volume: Math.round(eventInfo.volume),
+                volume24hr: Math.round(eventInfo.volume24hr),
+                liquidity: Math.round(eventInfo.liquidity),
+                endDate: eventInfo.endDate,
+                outcomeCount: eventInfo.markets.length,
+                outcomes,
+                classifications,
+                strategies,
+                topHolders,
+                agentCapitalByOutcome: Object.fromEntries(
+                  Object.entries(agentCapitalByOutcome).map(([k, v]) => [k, Math.round(v)])
+                ),
+              };
+
+              return (
+                <div className="mt-4">
+                  <AIInsightsTerminal
+                    context="market"
+                    data={marketData}
+                    commandLabel={`openclaw --market-intel "${eventInfo.title.slice(0, 30)}..."`}
+                    buttonLabel="EXPLAIN MARKET WITH AI"
+                  />
+                </div>
+              );
+            })()}
 
             {/* Market Holders Results - Terminal Style */}
             {marketHolders.length > 0 && (

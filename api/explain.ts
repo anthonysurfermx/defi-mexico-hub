@@ -85,19 +85,52 @@ Identify key trends: Is DeFi growing or contracting? Which chains/protocols are 
 }
 
 function buildMarketPrompt(data: any): string {
-  return `Analyze this Polymarket prediction market.
+  const outcomes = (data.outcomes || [])
+    .map((o: any) => `${o.label}: ${o.probability}%${o.volume ? ` (vol: $${o.volume})` : ''}`)
+    .join('\n');
 
-MARKET: ${data.title || 'Unknown'}
-VOLUME: $${data.volume || 0}
+  const classifications = data.classifications || {};
+  const totalScanned = (classifications.bot || 0) + (classifications.likelyBot || 0) + (classifications.mixed || 0) + (classifications.human || 0);
+
+  const strategies = data.strategies || {};
+  const strategyLines = Object.entries(strategies)
+    .filter(([, v]) => (v as number) > 0)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(', ');
+
+  const topHolders = (data.topHolders || [])
+    .map((h: any) => `${h.name} | ${h.side} | $${h.amount} | ${h.classification} | ${h.strategy || '-'}`)
+    .join('\n');
+
+  const agentCapital = data.agentCapitalByOutcome || {};
+  const agentCapitalLines = Object.entries(agentCapital)
+    .map(([side, val]) => `${side}: $${val}`)
+    .join(' | ');
+
+  return `Analyze this Polymarket prediction market after a full holder scan.
+
+EVENT: ${data.title || 'Unknown'}
+TOTAL VOLUME: $${data.volume || 0}
+24H VOLUME: $${data.volume24hr || 0}
 LIQUIDITY: $${data.liquidity || 0}
-TOP OUTCOME: ${data.topOutcome || 'N/A'} at ${data.topPrice || 0}%
+END DATE: ${data.endDate || 'N/A'}
+OUTCOMES: ${data.outcomeCount || 0}
 
-HOLDER DISTRIBUTION:
-- Agents: ${data.agentPercent || 0}%
-- Humans: ${data.humanPercent || 0}%
-- Top 10 holders control: ${data.top10Percent || 0}% of volume
+OUTCOME PROBABILITIES:
+${outcomes || 'N/A'}
 
-Explain what the smart money is doing and what the holder composition tells us about market conviction.`;
+HOLDERS SCANNED: ${totalScanned}
+CLASSIFICATIONS: Bot=${classifications.bot || 0}, Likely Bot=${classifications.likelyBot || 0}, Mixed=${classifications.mixed || 0}, Human=${classifications.human || 0}
+AGENT RATE: ${totalScanned > 0 ? Math.round(((classifications.bot || 0) + (classifications.likelyBot || 0)) / totalScanned * 100) : 0}%
+
+STRATEGY DISTRIBUTION: ${strategyLines || 'None detected'}
+
+AGENT CAPITAL BY SIDE: ${agentCapitalLines || 'N/A'}
+
+TOP 5 HOLDERS (by position size):
+${topHolders || 'N/A'}
+
+Analyze: What does the agent-to-human ratio tell us about this market's efficiency? Which side are the bots betting on and why? What strategies dominate and what does that mean for price discovery? Is smart money aligned or divided? What should a human trader pay attention to before entering this market?`;
 }
 
 function buildLatamExchangesPrompt(data: any): string {
@@ -160,6 +193,13 @@ Be direct, use data points, identify patterns.
 Write 4-6 paragraphs max. Keep each line under 100 characters.
 ${language === 'es' ? 'Respond in Spanish.' : 'Respond in English.'}
 Never speculate beyond the data provided. Never hallucinate numbers.
+
+When analyzing a MARKET after a holder scan, focus on:
+- Agent-to-human ratio and what it means for market efficiency
+- Which side (outcome) the bots are concentrated on and capital allocation
+- Dominant strategies (Market Makers = liquidity, Snipers = informed bets, etc.)
+- Whether smart money is aligned (consensus) or divided (uncertain)
+- Red flags or confidence signals for human traders
 
 When analyzing wallets with a STRATEGY CLASSIFICATION, explain what the strategy archetype means:
 - MARKET_MAKER ("The House"): provides liquidity on both sides, collects the spread between YES+NO < $1.00, uses merges to recombine tokens. Consistent sizing, low risk per trade.
