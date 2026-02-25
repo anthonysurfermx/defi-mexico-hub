@@ -5,6 +5,26 @@
     { "source": "/api/polymarket-clob/:path*", "destination": "https://clob.polymarket.com/:path*" },
     { "source": "/((?!api/).*)", "destination": "/" }
   ],
+  "headers": [
+    {
+      "source": "/api/polymarket-data/v1/leaderboard",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=300, stale-while-revalidate=60" }
+      ]
+    },
+    {
+      "source": "/api/polymarket-data/positions",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=120, stale-while-revalidate=60" }
+      ]
+    },
+    {
+      "source": "/api/polymarket-gamma/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=300, stale-while-revalidate=60" }
+      ]
+    }
+  ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite"

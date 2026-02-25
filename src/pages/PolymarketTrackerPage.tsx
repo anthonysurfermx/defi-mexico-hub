@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import {
   ExternalLink, Wallet, ArrowLeft,
   ScanSearch, ChevronDown, ChevronUp,
-  Link2, Search, Sparkles
+  Link2, Search, Sparkles, TrendingUp
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster } from '@/components/ui/pixel-icons';
-import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory } from '@/services/polymarket.service';
+import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory, type LeaderboardEntry, type SmartMoneyMarket, type SmartMoneyTrader, type OutcomeBias, type WhaleSignal, type TraderPortfolio, type RecentTrade, type BondOpportunity, type ClosedPosition, type OrderBook } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { useScanLimit } from '@/hooks/useScanLimit';
 import { toast } from 'sonner';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+import { SmartMoneyFlowChart } from '@/components/charts/SmartMoneyFlowChart';
 
 function formatUSD(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -39,6 +40,141 @@ function formatDate(iso: string | null): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return d.toLocaleDateString();
+}
+
+function aggregateSmartMoney(
+  leaderboard: LeaderboardEntry[],
+  positionsByTrader: Map<string, PolymarketPosition[]>
+): SmartMoneyMarket[] {
+  // Group by conditionId (each conditionId is a unique binary market or sub-market)
+  const marketMap = new Map<string, {
+    conditionId: string;
+    title: string;
+    slug: string;
+    traders: SmartMoneyTrader[];
+    outcomeCapital: Map<string, number>;
+    outcomeHeadcount: Map<string, number>;
+    totalPnl: number;
+    latestPrice: number;
+    // For edge: weighted entry price calculation
+    totalEntryWeighted: number; // sum of (entryPrice * positionValue)
+    totalEntryCapital: number;  // sum of positionValue (for weighting)
+    entryPriceMin: number;
+    entryPriceMax: number;
+  }>();
+
+  for (const trader of leaderboard) {
+    const positions = positionsByTrader.get(trader.proxyWallet) || [];
+    for (const pos of positions) {
+      const key = pos.conditionId || pos.title;
+      if (!key || pos.currentValue < 0.5) continue;
+
+      let entry = marketMap.get(key);
+      if (!entry) {
+        entry = {
+          conditionId: pos.conditionId,
+          title: pos.title,
+          slug: pos.slug || pos.eventSlug,
+          traders: [],
+          outcomeCapital: new Map(),
+          outcomeHeadcount: new Map(),
+          totalPnl: 0,
+          latestPrice: pos.curPrice,
+          totalEntryWeighted: 0,
+          totalEntryCapital: 0,
+          entryPriceMin: Infinity,
+          entryPriceMax: 0,
+        };
+        marketMap.set(key, entry);
+      }
+
+      const side = pos.outcome || 'Unknown';
+      entry.outcomeCapital.set(side, (entry.outcomeCapital.get(side) || 0) + pos.currentValue);
+      entry.outcomeHeadcount.set(side, (entry.outcomeHeadcount.get(side) || 0) + 1);
+      entry.totalPnl += pos.cashPnl;
+      if (pos.curPrice > 0) entry.latestPrice = pos.curPrice;
+      // Accumulate for weighted avg entry price + range
+      if (pos.avgPrice > 0 && pos.currentValue > 0) {
+        entry.totalEntryWeighted += pos.avgPrice * pos.currentValue;
+        entry.totalEntryCapital += pos.currentValue;
+        entry.entryPriceMin = Math.min(entry.entryPriceMin, pos.avgPrice);
+        entry.entryPriceMax = Math.max(entry.entryPriceMax, pos.avgPrice);
+      }
+
+      entry.traders.push({
+        address: trader.proxyWallet,
+        name: trader.userName || `${trader.proxyWallet.slice(0, 6)}...${trader.proxyWallet.slice(-4)}`,
+        profileImage: trader.profileImage,
+        rank: trader.rank,
+        pnl: trader.pnl,
+        volume: trader.volume,
+        outcome: side,
+        positionValue: pos.currentValue,
+        entryPrice: pos.avgPrice,
+        currentPnl: pos.cashPnl,
+        xUsername: trader.xUsername,
+      });
+    }
+  }
+
+  const results: SmartMoneyMarket[] = [];
+  for (const entry of marketMap.values()) {
+    if (entry.traders.length < 2) continue;
+
+    // Build outcome bias array
+    const totalCapital = Array.from(entry.outcomeCapital.values()).reduce((a, b) => a + b, 0);
+    const totalHeads = Array.from(entry.outcomeHeadcount.values()).reduce((a, b) => a + b, 0);
+    const outcomeBias: OutcomeBias[] = [];
+    for (const [outcome, capital] of entry.outcomeCapital) {
+      outcomeBias.push({
+        outcome,
+        capital,
+        headcount: entry.outcomeHeadcount.get(outcome) || 0,
+      });
+    }
+    outcomeBias.sort((a, b) => b.capital - a.capital);
+
+    // Top outcome by capital
+    const top = outcomeBias[0];
+    const topCapitalPct = totalCapital > 0 ? Math.round((top.capital / totalCapital) * 100) : 0;
+    const topHeadPct = totalHeads > 0 ? Math.round((top.headcount / totalHeads) * 100) : 0;
+
+    // Capital consensus: how dominant is the top outcome (0-100)
+    // 100 = all capital on one side, 50 = perfectly split between 2
+    const capitalConsensus = Math.round(Math.abs(topCapitalPct - (100 / outcomeBias.length)) * (outcomeBias.length / (outcomeBias.length - 1)));
+    // Head consensus: how many traders agree on top outcome
+    const headConsensus = Math.round(Math.abs(topHeadPct - (100 / outcomeBias.length)) * (outcomeBias.length / (outcomeBias.length - 1)));
+
+    results.push({
+      conditionId: entry.conditionId,
+      title: entry.title,
+      slug: entry.slug,
+      traderCount: entry.traders.length,
+      totalCapital,
+      topOutcome: top.outcome,
+      topOutcomeCapitalPct: topCapitalPct,
+      topOutcomeHeadPct: topHeadPct,
+      capitalConsensus: Math.min(capitalConsensus, 100),
+      headConsensus: Math.min(headConsensus, 100),
+      outcomeBias,
+      avgPnl: entry.totalPnl / entry.traders.length,
+      currentPrice: entry.latestPrice,
+      traders: entry.traders.sort((a, b) => b.positionValue - a.positionValue),
+      avgEntryPrice: entry.totalEntryCapital > 0 ? entry.totalEntryWeighted / entry.totalEntryCapital : 0,
+      entryPriceMin: entry.entryPriceMin === Infinity ? 0 : entry.entryPriceMin,
+      entryPriceMax: entry.entryPriceMax,
+      marketPrice: entry.latestPrice,
+      edgePercent: 0,
+      edgeDirection: 'NEUTRAL' as const,
+    });
+  }
+
+  results.sort((a, b) => {
+    if (b.traderCount !== a.traderCount) return b.traderCount - a.traderCount;
+    return b.capitalConsensus - a.capitalConsensus;
+  });
+
+  return results;
 }
 
 function BotScoreBadge({ score, classification }: { score: number; classification: string }) {
@@ -114,8 +250,78 @@ export default function PolymarketTrackerPage() {
   const [scanLimit, setScanLimit] = useState(50);
 
   // Scanner mode toggle
-  const [scanMode, setScanMode] = useState<'market' | 'wallet'>('market');
+  const [scanMode, setScanMode] = useState<'market' | 'wallet' | 'smartmoney' | 'bonds'>('market');
   const [walletSearch, setWalletSearch] = useState('');
+
+  // Smart Money state
+  const [smartMoneyMarkets, setSmartMoneyMarkets] = useState<SmartMoneyMarket[]>([]);
+  const [smartMoneyLoading, setSmartMoneyLoading] = useState(false);
+  const [smartMoneyProgress, setSmartMoneyProgress] = useState('');
+  const [smartMoneyLeaderboard, setSmartMoneyLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [expandedSmartMarket, setExpandedSmartMarket] = useState<string | null>(null);
+  const [smartMoneyCategory, setSmartMoneyCategory] = useState('OVERALL');
+  const [smartMoneyTimePeriod, setSmartMoneyTimePeriod] = useState('MONTH');
+  const [smartMoneySort, setSmartMoneySort] = useState<'consensus' | 'capital' | 'traders'>('traders');
+  const [whaleSignals, setWhaleSignals] = useState<WhaleSignal[]>([]);
+  const [traderPortfolios, setTraderPortfolios] = useState<TraderPortfolio[]>([]);
+  const [smartMoneyActivePanel, setSmartMoneyActivePanel] = useState<'flow' | 'signals' | 'edge' | 'portfolios'>('flow');
+  const [smartMoneyWalletCount, setSmartMoneyWalletCount] = useState(50);
+
+  // Bond scanner state
+  const [bondMarkets, setBondMarkets] = useState<BondOpportunity[]>([]);
+  const [bondLoading, setBondLoading] = useState(false);
+  const [bondMinPrice, setBondMinPrice] = useState(90); // as percentage (90 = 90¢)
+  const [bondMinLiquidity, setBondMinLiquidity] = useState(1000);
+  const [bondSort, setBondSort] = useState<'apy' | 'return' | 'liquidity' | 'time'>('apy');
+
+  // CLOB enrichment state
+  const [openInterestMap, setOpenInterestMap] = useState<Map<string, number>>(new Map());
+  const [spreadMap, setSpreadMap] = useState<Map<string, { spread: number; midpoint: number }>>(new Map());
+  const [closedPositionsMap, setClosedPositionsMap] = useState<Map<string, { wins: number; losses: number; totalPnl: number }>>(new Map());
+  const [rewardRates, setRewardRates] = useState<Map<string, number>>(new Map());
+  const [marketOrderBook, setMarketOrderBook] = useState<OrderBook | null>(null);
+  const [orderBookLoading, setOrderBookLoading] = useState(false);
+
+  const handleBondScan = async () => {
+    setBondLoading(true);
+    setBondMarkets([]);
+    try {
+      const [bonds, rewards] = await Promise.all([
+        polymarketService.getBondMarkets({
+          minPrice: bondMinPrice / 100,
+          maxPrice: 0.995,
+          minLiquidity: bondMinLiquidity,
+          minVolume: 500,
+          limit: 200,
+        }),
+        polymarketService.getCurrentRewards(),
+      ]);
+      // Build reward map by conditionId
+      const rMap = new Map<string, number>();
+      for (const r of rewards) {
+        if (r.rewardsApy > 0) rMap.set(r.conditionId, r.rewardsApy);
+      }
+      setRewardRates(rMap);
+      setBondMarkets(bonds);
+      if (bonds.length === 0) {
+        toast.info('No bond opportunities found with current filters. Try lowering the min price.');
+      }
+    } catch {
+      toast.error('Failed to fetch bond markets');
+    } finally {
+      setBondLoading(false);
+    }
+  };
+
+  const sortedBonds = useMemo(() => {
+    return [...bondMarkets].sort((a, b) => {
+      if (bondSort === 'apy') return b.apy - a.apy;
+      if (bondSort === 'return') return b.returnPct - a.returnPct;
+      if (bondSort === 'liquidity') return b.liquidity - a.liquidity;
+      if (bondSort === 'time') return a.hoursToEnd - b.hoursToEnd;
+      return 0;
+    });
+  }, [bondMarkets, bondSort]);
 
   const handleMarketScan = async () => {
     if (!canScanMarket) {
@@ -238,6 +444,251 @@ export default function PolymarketTrackerPage() {
     navigate(`/agentic-world/consensus?wallet=${addr}`);
   };
 
+  const handleSmartMoneyFetch = async () => {
+    setSmartMoneyLoading(true);
+    setSmartMoneyMarkets([]);
+    setWhaleSignals([]);
+    setTraderPortfolios([]);
+    setSmartMoneyProgress('Fetching leaderboard...');
+
+    const cacheKey = `smartmoney_${smartMoneyCategory}_${smartMoneyTimePeriod}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+          setSmartMoneyLeaderboard(parsed.leaderboard);
+          setSmartMoneyMarkets(parsed.markets);
+          setSmartMoneyLoading(false);
+          setSmartMoneyProgress('');
+          return;
+        }
+      }
+    } catch { /* cache miss */ }
+
+    const leaderboard = await polymarketService.getLeaderboard(smartMoneyCategory, smartMoneyTimePeriod, smartMoneyWalletCount);
+    if (leaderboard.length === 0) {
+      toast.error('Failed to fetch leaderboard data');
+      setSmartMoneyLoading(false);
+      setSmartMoneyProgress('');
+      return;
+    }
+    setSmartMoneyLeaderboard(leaderboard);
+
+    // Batched concurrency: chunks of 5 to avoid 429 rate limiting
+    const BATCH_SIZE = 5;
+    const positionsByTrader = new Map<string, PolymarketPosition[]>();
+    let completed = 0;
+
+    for (let i = 0; i < leaderboard.length; i += BATCH_SIZE) {
+      const batch = leaderboard.slice(i, i + BATCH_SIZE);
+      setSmartMoneyProgress(`Scanning wallets ${completed + 1}-${Math.min(completed + batch.length, leaderboard.length)} of ${leaderboard.length}...`);
+
+      const results = await Promise.allSettled(
+        batch.map(async (trader) => {
+          const positions = await polymarketService.getAgentPositions(trader.proxyWallet);
+          // Filter out closed/zero-value positions
+          const active = positions.filter(p => p.currentValue > 0.5);
+          return { wallet: trader.proxyWallet, positions: active };
+        })
+      );
+
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          positionsByTrader.set(r.value.wallet, r.value.positions);
+        }
+      }
+      completed += batch.length;
+      setSmartMoneyProgress(`Scanned ${completed}/${leaderboard.length} traders...`);
+    }
+
+    setSmartMoneyProgress('Aggregating consensus...');
+    const markets = aggregateSmartMoney(leaderboard, positionsByTrader);
+
+    // Fetch market prices for edge tracker
+    setSmartMoneyProgress('Fetching market prices for edge analysis...');
+    const conditionIds = markets.slice(0, 20).map(m => m.conditionId).filter(Boolean);
+    const marketPrices = await polymarketService.getMarketPrices(conditionIds);
+    for (const m of markets) {
+      const mktPrice = marketPrices.get(m.conditionId);
+      if (mktPrice !== undefined && mktPrice > 0) {
+        m.marketPrice = mktPrice;
+        // Edge = current market price vs smart money's weighted avg entry price
+        // Positive edge = SM bought cheap, price went up (SM in profit = trend confirmed)
+        // Negative edge = SM bought high, price dropped (SM underwater = potential opportunity or trap)
+        if (m.avgEntryPrice > 0) {
+          m.edgePercent = Math.round((mktPrice - m.avgEntryPrice) * 100);
+          m.edgeDirection = m.edgePercent > 3 ? 'PROFIT' : m.edgePercent < -3 ? 'UNDERWATER' : 'NEUTRAL';
+        }
+      }
+    }
+
+    // Fetch recent trades for whale signals (top 15 traders, batched)
+    setSmartMoneyProgress('Scanning whale activity...');
+    const signals: WhaleSignal[] = [];
+    const now = Date.now() / 1000;
+    const tradeBatch = leaderboard.slice(0, 15);
+    for (let i = 0; i < tradeBatch.length; i += 5) {
+      const batch = tradeBatch.slice(i, i + 5);
+      const tradeResults = await Promise.allSettled(
+        batch.map(t => polymarketService.getRecentTradesForWallet(t.proxyWallet, 30))
+      );
+      tradeResults.forEach((r, idx) => {
+        if (r.status !== 'fulfilled') return;
+        const trader = batch[idx];
+        const traderPositions = positionsByTrader.get(trader.proxyWallet) || [];
+        const portfolioValue = traderPositions.reduce((a, p) => a + p.currentValue, 0);
+        for (const trade of r.value) {
+          const hoursAgo = (now - trade.timestamp) / 3600;
+          if (hoursAgo > 72) continue; // Only last 72h
+          const conviction = portfolioValue > 0 ? Math.round((trade.usdcSize / portfolioValue) * 100) : 0;
+          signals.push({
+            traderName: trader.userName || `${trader.proxyWallet.slice(0, 6)}...`,
+            traderRank: trader.rank,
+            traderPnl: trader.pnl,
+            address: trader.proxyWallet,
+            marketTitle: trade.title,
+            marketSlug: trade.slug,
+            outcome: trade.outcome,
+            side: trade.side,
+            size: trade.size,
+            price: trade.price,
+            usdcSize: trade.usdcSize,
+            timestamp: trade.timestamp,
+            hoursAgo: Math.round(hoursAgo),
+            conviction,
+          });
+        }
+      });
+    }
+    signals.sort((a, b) => b.timestamp - a.timestamp);
+    setWhaleSignals(signals);
+
+    // Build portfolio analysis
+    setSmartMoneyProgress('Analyzing portfolios...');
+    const portfolios: TraderPortfolio[] = [];
+    for (const trader of leaderboard.slice(0, 30)) {
+      const positions = positionsByTrader.get(trader.proxyWallet) || [];
+      if (positions.length === 0) continue;
+      const totalValue = positions.reduce((a, p) => a + p.currentValue, 0);
+      if (totalValue < 1) continue;
+
+      // Concentration (HHI-based)
+      const shares = positions.map(p => p.currentValue / totalValue);
+      const hhi = shares.reduce((a, s) => a + s * s, 0);
+      const concentration = Math.round(hhi * 100);
+
+      // Top position
+      const sorted = [...positions].sort((a, b) => b.currentValue - a.currentValue);
+      const topPos = sorted[0];
+
+      // Conviction bets (>15% of portfolio)
+      const convictionBets = sorted
+        .filter(p => (p.currentValue / totalValue) > 0.15)
+        .map(p => ({
+          title: p.title,
+          value: p.currentValue,
+          pctOfPortfolio: Math.round((p.currentValue / totalValue) * 100),
+          outcome: p.outcome,
+        }));
+
+      // Detect hedges: same conditionId with different outcomes
+      const byCondition = new Map<string, PolymarketPosition[]>();
+      for (const p of positions) {
+        const key = p.conditionId || p.title;
+        const arr = byCondition.get(key) || [];
+        arr.push(p);
+        byCondition.set(key, arr);
+      }
+      const hedges: TraderPortfolio['hedges'] = [];
+      for (const [, posGroup] of byCondition) {
+        const outcomes = new Set(posGroup.map(p => p.outcome));
+        if (outcomes.size > 1) {
+          const yesCapital = posGroup.filter(p => p.outcome.toLowerCase() === 'yes').reduce((a, p) => a + p.currentValue, 0);
+          const noCapital = posGroup.filter(p => p.outcome.toLowerCase() !== 'yes').reduce((a, p) => a + p.currentValue, 0);
+          hedges.push({ market: posGroup[0].title, yesCapital, noCapital });
+        }
+      }
+
+      portfolios.push({
+        address: trader.proxyWallet,
+        name: trader.userName || `${trader.proxyWallet.slice(0, 6)}...`,
+        rank: trader.rank,
+        pnl: trader.pnl,
+        totalValue,
+        positionCount: positions.length,
+        topPosition: topPos ? { title: topPos.title, value: topPos.currentValue, pctOfPortfolio: Math.round((topPos.currentValue / totalValue) * 100) } : null,
+        concentration,
+        categories: [], // Categories come from gamma API, skip for now
+        hedges,
+        convictionBets,
+      });
+    }
+    portfolios.sort((a, b) => b.totalValue - a.totalValue);
+    setTraderPortfolios(portfolios);
+
+    setSmartMoneyMarkets(markets);
+
+    // ─── CLOB Enrichment: Open Interest + Spreads + Closed Positions (parallel, non-blocking) ───
+    setSmartMoneyProgress('Fetching CLOB data (OI, spreads, win rates)...');
+    try {
+      const conditionIdsForOI = markets.slice(0, 20).map(m => m.conditionId).filter(Boolean);
+      const [oiMap, closedResults] = await Promise.all([
+        polymarketService.getBatchOpenInterest(conditionIdsForOI),
+        // Get closed positions for top 10 traders for real win rate
+        Promise.allSettled(
+          leaderboard.slice(0, 10).map(async (t) => {
+            const closed = await polymarketService.getClosedPositions(t.proxyWallet, 50);
+            const wins = closed.filter(c => c.isWin).length;
+            const losses = closed.filter(c => !c.isWin).length;
+            const totalPnl = closed.reduce((a, c) => a + c.pnl, 0);
+            return { address: t.proxyWallet, wins, losses, totalPnl };
+          })
+        ),
+      ]);
+      setOpenInterestMap(oiMap);
+
+      // Build closed positions map
+      const cpMap = new Map<string, { wins: number; losses: number; totalPnl: number }>();
+      for (const r of closedResults) {
+        if (r.status === 'fulfilled') {
+          cpMap.set(r.value.address, { wins: r.value.wins, losses: r.value.losses, totalPnl: r.value.totalPnl });
+        }
+      }
+      setClosedPositionsMap(cpMap);
+    } catch { /* CLOB enrichment failed, non-critical */ }
+
+    setSmartMoneyLoading(false);
+    setSmartMoneyProgress('');
+
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), leaderboard, markets }));
+    } catch { /* storage full */ }
+  };
+
+  const sortedSmartMoneyMarkets = useMemo(() =>
+    [...smartMoneyMarkets].sort((a, b) => {
+      if (smartMoneySort === 'capital') return b.totalCapital - a.totalCapital;
+      if (smartMoneySort === 'consensus') return b.capitalConsensus - a.capitalConsensus;
+      return b.traderCount - a.traderCount;
+    }),
+    [smartMoneyMarkets, smartMoneySort]
+  );
+
+  // Memoize expensive edge calculations (only recalc when data changes, not on tab switch)
+  const marketsWithEdge = useMemo(() =>
+    sortedSmartMoneyMarkets
+      .filter(m => m.marketPrice > 0 && m.avgEntryPrice > 0 && m.edgePercent !== 0)
+      .sort((a, b) => Math.abs(b.edgePercent) - Math.abs(a.edgePercent)),
+    [sortedSmartMoneyMarkets]
+  );
+
+  // Memoize whale signals for display (already sorted by timestamp in state)
+  const displaySignals = useMemo(() => whaleSignals.slice(0, 50), [whaleSignals]);
+
+  // Memoize portfolio display
+  const displayPortfolios = useMemo(() => traderPortfolios.slice(0, 20), [traderPortfolios]);
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -292,6 +743,28 @@ export default function PolymarketTrackerPage() {
                 <Wallet className="w-3.5 h-3.5" />
                 Wallet X-Ray
               </button>
+              <button
+                onClick={() => setScanMode('smartmoney')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
+                  scanMode === 'smartmoney'
+                    ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Smart Money
+              </button>
+              <button
+                onClick={() => setScanMode('bonds')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
+                  scanMode === 'bonds'
+                    ? 'border-violet-500/40 bg-violet-500/10 text-violet-400'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Bonds / Yield
+              </button>
             </div>
             {scanMode === 'market' ? (
               <>
@@ -303,7 +776,7 @@ export default function PolymarketTrackerPage() {
                   Paste a Polymarket event URL to scan all holders and detect agents
                 </CardDescription>
               </>
-            ) : (
+            ) : scanMode === 'wallet' ? (
               <>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-amber-500" />
@@ -311,6 +784,26 @@ export default function PolymarketTrackerPage() {
                 </CardTitle>
                 <CardDescription>
                   Paste any Polymarket wallet address for a full behavioral scan
+                </CardDescription>
+              </>
+            ) : scanMode === 'bonds' ? (
+              <>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-violet-500" />
+                  Bond Scanner / Yield Finder
+                </CardTitle>
+                <CardDescription>
+                  Find near-certain markets for quick yield — like buying a bond that pays in hours
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  Smart Money Consensus
+                </CardTitle>
+                <CardDescription>
+                  Where are the top Polymarket traders placing their bets?
                 </CardDescription>
               </>
             )}
@@ -632,6 +1125,139 @@ export default function PolymarketTrackerPage() {
                     </div>
                   );
                 })()}
+              </div>
+            )}
+
+            {/* Order Book Depth */}
+            {eventInfo && eventInfo.markets.length > 0 && !marketScanning && (
+              <div className="mt-3 border border-cyan-500/20 bg-black/60 overflow-hidden font-mono">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-cyan-500/5 border-b border-cyan-500/15">
+                  <span className="text-cyan-400/60 text-[10px]">{'>'} ORDER BOOK DEPTH (CLOB)</span>
+                  <button
+                    onClick={async () => {
+                      const firstActive = eventInfo.markets.find(m => m.active && m.clobTokenId);
+                      if (!firstActive?.clobTokenId) { toast.error('No CLOB token ID for this market'); return; }
+                      setOrderBookLoading(true);
+                      setMarketOrderBook(null);
+                      const ob = await polymarketService.getOrderBook(firstActive.clobTokenId);
+                      setMarketOrderBook(ob);
+                      setOrderBookLoading(false);
+                    }}
+                    disabled={orderBookLoading}
+                    className="text-[10px] px-2 py-0.5 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
+                  >
+                    {orderBookLoading ? 'LOADING...' : marketOrderBook ? 'REFRESH' : 'FETCH ORDER BOOK'}
+                  </button>
+                </div>
+                {marketOrderBook && (
+                  <div className="p-3 space-y-2">
+                    {/* Stats row */}
+                    <div className="grid grid-cols-4 gap-[2px] bg-cyan-500/10">
+                      <div className="bg-black/80 p-2 text-center">
+                        <div className="text-cyan-400/40 text-[9px]">SPREAD</div>
+                        <div className="text-cyan-300 text-sm font-bold">{(marketOrderBook.spread * 100).toFixed(1)}¢</div>
+                      </div>
+                      <div className="bg-black/80 p-2 text-center">
+                        <div className="text-cyan-400/40 text-[9px]">MIDPOINT</div>
+                        <div className="text-cyan-300 text-sm font-bold">{(marketOrderBook.midpoint * 100).toFixed(1)}¢</div>
+                      </div>
+                      <div className="bg-black/80 p-2 text-center">
+                        <div className="text-green-400/40 text-[9px]">BID DEPTH</div>
+                        <div className="text-green-400 text-sm font-bold">{formatUSD(marketOrderBook.bidDepth)}</div>
+                      </div>
+                      <div className="bg-black/80 p-2 text-center">
+                        <div className="text-red-400/40 text-[9px]">ASK DEPTH</div>
+                        <div className="text-red-400 text-sm font-bold">{formatUSD(marketOrderBook.askDepth)}</div>
+                      </div>
+                    </div>
+                    {/* Depth visualization: bids vs asks */}
+                    <div className="grid grid-cols-2 gap-[2px]">
+                      {/* Bids (green, left) */}
+                      <div className="bg-black/60 p-2">
+                        <div className="text-green-400/50 text-[9px] mb-1">BIDS ({marketOrderBook.bids.length})</div>
+                        <div className="space-y-[1px]">
+                          {marketOrderBook.bids.slice(0, 8).map((level, i) => {
+                            const maxSize = Math.max(...marketOrderBook!.bids.slice(0, 8).map(l => l.size));
+                            const barWidth = maxSize > 0 ? (level.size / maxSize) * 100 : 0;
+                            return (
+                              <div key={i} className="flex items-center gap-1">
+                                <span className="text-green-400 text-[9px] w-10 text-right">{(level.price * 100).toFixed(1)}¢</span>
+                                <div className="flex-1 h-2 bg-green-500/10 overflow-hidden relative">
+                                  <div className="absolute right-0 top-0 h-full bg-green-500/30" style={{ width: `${barWidth}%` }} />
+                                </div>
+                                <span className="text-green-400/40 text-[8px] w-10 text-right">{level.size > 1000 ? `${(level.size / 1000).toFixed(1)}K` : Math.round(level.size)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Asks (red, right) */}
+                      <div className="bg-black/60 p-2">
+                        <div className="text-red-400/50 text-[9px] mb-1">ASKS ({marketOrderBook.asks.length})</div>
+                        <div className="space-y-[1px]">
+                          {marketOrderBook.asks.slice(0, 8).map((level, i) => {
+                            const maxSize = Math.max(...marketOrderBook!.asks.slice(0, 8).map(l => l.size));
+                            const barWidth = maxSize > 0 ? (level.size / maxSize) * 100 : 0;
+                            return (
+                              <div key={i} className="flex items-center gap-1">
+                                <span className="text-red-400 text-[9px] w-10">{(level.price * 100).toFixed(1)}¢</span>
+                                <div className="flex-1 h-2 bg-red-500/10 overflow-hidden relative">
+                                  <div className="absolute left-0 top-0 h-full bg-red-500/30" style={{ width: `${barWidth}%` }} />
+                                </div>
+                                <span className="text-red-400/40 text-[8px] w-10">{level.size > 1000 ? `${(level.size / 1000).toFixed(1)}K` : Math.round(level.size)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Depth balance bar */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-400/50 text-[9px]">BID</span>
+                      <div className="flex-1 h-2 bg-black/40 overflow-hidden flex">
+                        <div
+                          className="h-full bg-green-500/40"
+                          style={{ width: `${(marketOrderBook.bidDepth / (marketOrderBook.bidDepth + marketOrderBook.askDepth)) * 100}%` }}
+                        />
+                        <div
+                          className="h-full bg-red-500/40"
+                          style={{ width: `${(marketOrderBook.askDepth / (marketOrderBook.bidDepth + marketOrderBook.askDepth)) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-red-400/50 text-[9px]">ASK</span>
+                    </div>
+                  </div>
+                )}
+                {marketOrderBook && !orderBookLoading && (
+                  <div className="px-3 pb-3">
+                    <AIInsightsTerminal
+                      context="market"
+                      data={{
+                        type: 'order_book_analysis',
+                        market: eventInfo.title,
+                        spread: (marketOrderBook.spread * 100).toFixed(2),
+                        midpoint: (marketOrderBook.midpoint * 100).toFixed(2),
+                        bidDepth: Math.round(marketOrderBook.bidDepth),
+                        askDepth: Math.round(marketOrderBook.askDepth),
+                        bidLevels: marketOrderBook.bids.slice(0, 5).map(l => ({ price: (l.price * 100).toFixed(1), size: Math.round(l.size) })),
+                        askLevels: marketOrderBook.asks.slice(0, 5).map(l => ({ price: (l.price * 100).toFixed(1), size: Math.round(l.size) })),
+                        depthRatio: marketOrderBook.bidDepth > 0 ? (marketOrderBook.bidDepth / (marketOrderBook.bidDepth + marketOrderBook.askDepth) * 100).toFixed(1) : '50',
+                      }}
+                      commandLabel="openclaw --analyze-orderbook"
+                      buttonLabel="EXPLAIN ORDER BOOK WITH AI"
+                    />
+                  </div>
+                )}
+                {!marketOrderBook && !orderBookLoading && (
+                  <div className="px-3 py-2 text-cyan-400/25 text-[10px]">
+                    Click "FETCH ORDER BOOK" to see bid/ask depth from the CLOB
+                  </div>
+                )}
+                {orderBookLoading && (
+                  <div className="px-3 py-3 flex items-center gap-2 text-[11px] text-cyan-400/50">
+                    <LoadingSpinner size="sm" /> Fetching order book from CLOB...
+                  </div>
+                )}
               </div>
             )}
 
@@ -1122,6 +1748,1174 @@ export default function PolymarketTrackerPage() {
               </div>
             )}
             </>)}
+
+            {/* Bond Scanner Tab */}
+            {scanMode === 'bonds' && (
+              <div className="border border-violet-500/30 bg-black/60 overflow-hidden font-mono" style={{ imageRendering: 'auto' }}>
+                {/* Terminal header */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-violet-500/10 border-b border-violet-500/20">
+                  <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                    <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                  </div>
+                  <span className="text-violet-400 text-[10px] ml-1 flex items-center gap-2">
+                    <PixelLobster size={12} className="text-violet-400" />
+                    openclaw --bonds --min-price {bondMinPrice}¢
+                  </span>
+                  {bondLoading && <div className="ml-auto w-2 h-2 rounded-full bg-violet-500 animate-pulse" />}
+                </div>
+
+                {/* Filter bar */}
+                <div className="px-3 py-2.5 border-b border-violet-500/10">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      value={bondMinPrice}
+                      onChange={(e) => setBondMinPrice(Number(e.target.value))}
+                      disabled={bondLoading}
+                      className="h-8 px-2 border border-violet-500/20 bg-black text-violet-400 text-[11px] font-mono"
+                    >
+                      <option value={85}>Min: 85¢ (15% return)</option>
+                      <option value={90}>Min: 90¢ (11% return)</option>
+                      <option value={93}>Min: 93¢ (7.5% return)</option>
+                      <option value={95}>Min: 95¢ (5.3% return)</option>
+                      <option value={97}>Min: 97¢ (3.1% return)</option>
+                    </select>
+                    <select
+                      value={bondMinLiquidity}
+                      onChange={(e) => setBondMinLiquidity(Number(e.target.value))}
+                      disabled={bondLoading}
+                      className="h-8 px-2 border border-violet-500/20 bg-black text-violet-400 text-[11px] font-mono"
+                    >
+                      <option value={500}>Liq: $500+</option>
+                      <option value={1000}>Liq: $1K+</option>
+                      <option value={5000}>Liq: $5K+</option>
+                      <option value={10000}>Liq: $10K+</option>
+                      <option value={50000}>Liq: $50K+</option>
+                    </select>
+                    <select
+                      value={bondSort}
+                      onChange={(e) => setBondSort(e.target.value as typeof bondSort)}
+                      disabled={bondLoading}
+                      className="h-8 px-2 border border-violet-500/20 bg-black text-violet-400 text-[11px] font-mono"
+                    >
+                      <option value="apy">Sort: APY</option>
+                      <option value="return">Sort: Return %</option>
+                      <option value="liquidity">Sort: Liquidity</option>
+                      <option value="time">Sort: Time Left</option>
+                    </select>
+                    <button
+                      onClick={handleBondScan}
+                      disabled={bondLoading}
+                      className="h-8 px-4 border border-violet-500/40 bg-violet-500/10 text-violet-400 text-[11px] font-bold hover:bg-violet-500/20 transition-colors disabled:opacity-50 flex items-center gap-2 justify-center"
+                    >
+                      <ScanSearch className={`w-3.5 h-3.5 ${bondLoading ? 'animate-pulse' : ''}`} />
+                      {bondLoading ? 'SCANNING...' : 'SCAN BONDS'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content area */}
+                <div className="px-3 py-3 space-y-3">
+                  {/* How it works explainer (shown before first scan) */}
+                  {bondMarkets.length === 0 && !bondLoading && (
+                    <div className="border border-violet-500/15 bg-violet-500/5 p-3 space-y-2">
+                      <div className="text-violet-400 text-[11px] font-bold">{'>'} HOW POLYMARKET BONDS WORK</div>
+                      <div className="text-violet-300/60 text-[10px] space-y-1">
+                        <p>{'>'} Find markets where one outcome is nearly certain (e.g. 96¢)</p>
+                        <p>{'>'} Buy that outcome → if it resolves to $1, you pocket the difference</p>
+                        <p>{'>'} Example: Buy YES at 96¢ → market resolves YES → you earn 4¢ per share (4.17% return)</p>
+                        <p>{'>'} APY = return annualized by time to resolution. Shorter time = higher APY</p>
+                        <p className="text-amber-400/60">{'>'} RISK: If the "certain" outcome doesn't happen, you lose most of your investment</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary stats */}
+                  {sortedBonds.length > 0 && (
+                    <div className="grid grid-cols-4 gap-[2px] bg-violet-500/10">
+                      <div className="bg-black/80 p-2.5 text-center">
+                        <div className="text-violet-400 text-lg font-bold">{sortedBonds.length}</div>
+                        <div className="flex justify-center gap-[2px] my-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(sortedBonds.length / 20), 5) ? 'bg-violet-500' : 'bg-violet-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                          ))}
+                        </div>
+                        <div className="text-violet-400/40 text-[9px]">BONDS FOUND</div>
+                      </div>
+                      <div className="bg-black/80 p-2.5 text-center">
+                        <div className="text-green-400 text-lg font-bold">
+                          {sortedBonds.length > 0 ? `${Math.max(...sortedBonds.map(b => b.apy)).toLocaleString()}%` : '—'}
+                        </div>
+                        <div className="flex justify-center gap-[2px] my-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(Math.max(...sortedBonds.map(b => b.apy)) / 500), 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                          ))}
+                        </div>
+                        <div className="text-green-400/40 text-[9px]">MAX APY</div>
+                      </div>
+                      <div className="bg-black/80 p-2.5 text-center">
+                        <div className="text-amber-400 text-lg font-bold">
+                          {sortedBonds.length > 0 ? `${Math.max(...sortedBonds.map(b => b.returnPct)).toFixed(1)}%` : '—'}
+                        </div>
+                        <div className="flex justify-center gap-[2px] my-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(Math.max(...sortedBonds.map(b => b.returnPct)) / 4), 5) ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                          ))}
+                        </div>
+                        <div className="text-amber-400/40 text-[9px]">MAX RETURN</div>
+                      </div>
+                      <div className="bg-black/80 p-2.5 text-center">
+                        <div className="text-violet-400 text-lg font-bold">
+                          {sortedBonds.filter(b => b.hoursToEnd <= 48).length}
+                        </div>
+                        <div className="flex justify-center gap-[2px] my-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className={`w-2 h-2 ${i < Math.min(sortedBonds.filter(b => b.hoursToEnd <= 48).length, 5) ? 'bg-violet-500' : 'bg-violet-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                          ))}
+                        </div>
+                        <div className="text-violet-400/40 text-[9px]">ENDS {'<'}48H</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bond list */}
+                  {sortedBonds.length > 0 && (
+                    <div className="border border-violet-500/15 bg-black/40 overflow-hidden">
+                      {/* Table header */}
+                      <div className="grid grid-cols-12 gap-1 px-3 py-1.5 bg-violet-500/5 border-b border-violet-500/10 text-[9px] text-violet-400/40">
+                        <div className="col-span-3">MARKET</div>
+                        <div className="text-center">SIDE</div>
+                        <div className="text-right">PRICE</div>
+                        <div className="text-right">RETURN</div>
+                        <div className="text-right">APY</div>
+                        <div className="text-right" title="Liquidity reward APY (from Polymarket incentives)">+REWARD</div>
+                        <div className="text-right">LIQ</div>
+                        <div className="text-right">VOL</div>
+                        <div className="text-right">TIME</div>
+                        <div className="text-center">LINK</div>
+                      </div>
+
+                      {/* Bond rows */}
+                      <div className="divide-y divide-violet-500/10 max-h-[500px] overflow-y-auto">
+                        {sortedBonds.map((bond, idx) => {
+                          const timeLabel = bond.hoursToEnd < 24
+                            ? `${bond.hoursToEnd}h`
+                            : bond.daysToEnd < 30
+                            ? `${bond.daysToEnd}d`
+                            : `${Math.round(bond.daysToEnd / 30)}mo`;
+                          const apyColor = bond.apy >= 1000 ? 'text-green-400 font-bold' :
+                            bond.apy >= 100 ? 'text-green-400' :
+                            bond.apy >= 20 ? 'text-amber-400' : 'text-violet-300';
+                          const timeColor = bond.hoursToEnd <= 24 ? 'text-red-400' :
+                            bond.hoursToEnd <= 72 ? 'text-amber-400' : 'text-violet-300/60';
+
+                          const rewardApy = rewardRates.get(bond.conditionId) || 0;
+                          const effectiveApy = bond.apy + rewardApy;
+
+                          return (
+                            <div key={bond.conditionId} className="grid grid-cols-12 gap-1 px-3 py-2 hover:bg-violet-500/5 transition-colors items-center text-[10px]">
+                              <div className="col-span-3 truncate text-violet-300" title={bond.question}>
+                                <span className="text-violet-400/30 mr-1">{String(idx + 1).padStart(2, '0')}</span>
+                                {bond.question}
+                              </div>
+                              <div className="text-center">
+                                <span className={`px-1.5 py-0.5 border text-[9px] font-bold ${
+                                  bond.safeSide === 'YES'
+                                    ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                    : 'text-red-400 border-red-500/30 bg-red-500/10'
+                                }`}>
+                                  {bond.safeSide}
+                                </span>
+                              </div>
+                              <div className="text-right text-violet-300 font-bold">{(bond.safePrice * 100).toFixed(1)}¢</div>
+                              <div className="text-right text-amber-400">{bond.returnPct.toFixed(1)}%</div>
+                              <div className={`text-right ${apyColor}`} title={rewardApy > 0 ? `Price APY: ${bond.apy.toFixed(0)}% + Reward: ${rewardApy.toFixed(0)}% = ${effectiveApy.toFixed(0)}%` : undefined}>
+                                {bond.apy >= 1000 ? `${(bond.apy / 1000).toFixed(1)}K` : bond.apy.toFixed(0)}%
+                              </div>
+                              <div className={`text-right ${rewardApy > 0 ? 'text-cyan-400' : 'text-violet-400/20'}`} title="Liquidity incentive reward APY from Polymarket">
+                                {rewardApy > 0 ? `+${rewardApy >= 100 ? rewardApy.toFixed(0) : rewardApy.toFixed(1)}%` : '—'}
+                              </div>
+                              <div className="text-right text-violet-300/60">{formatUSD(bond.liquidity)}</div>
+                              <div className="text-right text-violet-300/40">{formatUSD(bond.volume)}</div>
+                              <div className={`text-right ${timeColor}`}>{timeLabel}</div>
+                              <div className="text-center">
+                                <a
+                                  href={`https://polymarket.com/event/${bond.eventSlug || bond.slug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-violet-400/30 hover:text-violet-400 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3 inline" />
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Explain for Bonds */}
+                  {sortedBonds.length > 0 && !bondLoading && (
+                    <AIInsightsTerminal
+                      context="smartmoney-bonds"
+                      data={{
+                        totalBonds: sortedBonds.length,
+                        topByApy: sortedBonds.slice(0, 10).map(b => ({
+                          market: b.question,
+                          side: b.safeSide,
+                          price: `${(b.safePrice * 100).toFixed(1)}¢`,
+                          returnPct: b.returnPct,
+                          apy: b.apy,
+                          liquidity: Math.round(b.liquidity),
+                          volume: Math.round(b.volume),
+                          timeLeft: b.hoursToEnd < 24 ? `${b.hoursToEnd}h` : `${b.daysToEnd}d`,
+                          holders: b.holdersCount,
+                        })),
+                        shortTerm: sortedBonds.filter(b => b.hoursToEnd <= 48).length,
+                        avgReturn: sortedBonds.length > 0 ? (sortedBonds.reduce((a, b) => a + b.returnPct, 0) / sortedBonds.length).toFixed(2) : '0',
+                        totalLiquidity: Math.round(sortedBonds.reduce((a, b) => a + b.liquidity, 0)),
+                      }}
+                      commandLabel="openclaw --analyze-bonds"
+                      buttonLabel="EXPLAIN BONDS WITH AI"
+                    />
+                  )}
+                </div>
+
+                {/* Terminal footer */}
+                <div className="px-3 py-1.5 border-t border-violet-500/15 text-violet-400/30 text-[9px] flex items-center justify-between">
+                  <span>{'>'} bond scanner v2.0 (CLOB rewards) — not financial advice</span>
+                  <span>{sortedBonds.length > 0 ? `${sortedBonds.length} opportunities · min ${bondMinPrice}¢` : 'ready'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Smart Money Tab */}
+            {scanMode === 'smartmoney' && (
+              <>
+                {/* Terminal-style container */}
+                <div className="border border-green-500/30 bg-black/60 overflow-hidden font-mono" style={{ imageRendering: 'auto' }}>
+                  {/* Terminal header */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border-b border-green-500/20">
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-red-500/60" />
+                      <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                      <div className="w-2 h-2 rounded-full bg-green-500/60" />
+                    </div>
+                    <span className="text-green-400 text-[10px] ml-1 flex items-center gap-2">
+                      <PixelLobster size={12} className="text-green-400" />
+                      openclaw --smart-money --wallets {smartMoneyWalletCount}
+                    </span>
+                    {smartMoneyLoading && <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+                  </div>
+
+                  {/* Filter bar */}
+                  <div className="px-3 py-2.5 border-b border-green-500/10">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        value={smartMoneyCategory}
+                        onChange={(e) => setSmartMoneyCategory(e.target.value)}
+                        disabled={smartMoneyLoading}
+                        className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
+                      >
+                        <option value="OVERALL">All Markets</option>
+                        <option value="POLITICS">Politics</option>
+                        <option value="SPORTS">Sports</option>
+                        <option value="CRYPTO">Crypto</option>
+                      </select>
+                      <select
+                        value={smartMoneyTimePeriod}
+                        onChange={(e) => setSmartMoneyTimePeriod(e.target.value)}
+                        disabled={smartMoneyLoading}
+                        className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
+                      >
+                        <option value="DAY">Top PnL Today</option>
+                        <option value="WEEK">Top PnL This Week</option>
+                        <option value="MONTH">Top PnL This Month</option>
+                        <option value="ALL">Top PnL All Time</option>
+                      </select>
+                      <select
+                        value={smartMoneyWalletCount}
+                        onChange={(e) => setSmartMoneyWalletCount(Number(e.target.value))}
+                        disabled={smartMoneyLoading}
+                        className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
+                      >
+                        {[10, 25, 50, 100, 150, 200].map(n => (
+                          <option key={n} value={n}>Top {n} wallets</option>
+                        ))}
+                      </select>
+                      <select
+                        value={smartMoneySort}
+                        onChange={(e) => setSmartMoneySort(e.target.value as 'consensus' | 'capital' | 'traders')}
+                        disabled={smartMoneyLoading}
+                        className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
+                      >
+                        <option value="traders">Sort: Traders</option>
+                        <option value="consensus">Sort: Consensus</option>
+                        <option value="capital">Sort: Capital</option>
+                      </select>
+                      <button
+                        onClick={handleSmartMoneyFetch}
+                        disabled={smartMoneyLoading}
+                        className="h-8 px-4 border border-green-500/40 bg-green-500/10 text-green-400 text-[11px] font-bold hover:bg-green-500/20 transition-colors disabled:opacity-50 flex items-center gap-2 justify-center"
+                      >
+                        <TrendingUp className={`w-3.5 h-3.5 ${smartMoneyLoading ? 'animate-pulse' : ''}`} />
+                        {smartMoneyLoading ? 'SCANNING...' : `SCAN ${smartMoneyWalletCount} WALLETS`}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Progress */}
+                  {smartMoneyProgress && (
+                    <div className="px-3 py-2 border-b border-green-500/10 flex items-center gap-2 text-[11px] text-green-400">
+                      <span className="animate-pulse">{'>'}</span>
+                      {smartMoneyProgress}
+                    </div>
+                  )}
+
+                  {/* Content area inside terminal */}
+                  <div className="px-3 py-3 space-y-3">
+
+                {/* Layer 1: Quick Stats — pixel style */}
+                {sortedSmartMoneyMarkets.length > 0 && (
+                  <div className="grid grid-cols-3 gap-[2px] bg-green-500/10">
+                    <div className="bg-black/80 p-3 text-center">
+                      <div className="text-green-400/40 text-[9px]">TRADERS</div>
+                      <div className="text-green-300 text-2xl font-bold">{smartMoneyLeaderboard.length}</div>
+                      <div className="flex justify-center gap-[2px] mt-1">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div key={i} className={`w-1.5 h-1.5 ${i < Math.min(Math.round(smartMoneyLeaderboard.length / (smartMoneyWalletCount / 10)), 10) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                        ))}
+                      </div>
+                      <div className="text-green-400/30 text-[9px] mt-1">PnL: {formatUSD(smartMoneyLeaderboard.reduce((a, t) => a + t.pnl, 0))}</div>
+                    </div>
+                    <div className="bg-black/80 p-3 text-center">
+                      <div className="text-green-400/40 text-[9px]">CONSENSUS</div>
+                      <div className="text-green-300 text-2xl font-bold">{sortedSmartMoneyMarkets.length}</div>
+                      <div className="flex justify-center gap-[2px] mt-1">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div key={i} className={`w-1.5 h-1.5 ${i < Math.round(Math.max(...sortedSmartMoneyMarkets.map(m => m.capitalConsensus)) / 10) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                        ))}
+                      </div>
+                      <div className="text-green-400/30 text-[9px] mt-1">Max: {Math.max(...sortedSmartMoneyMarkets.map(m => m.capitalConsensus))}%</div>
+                    </div>
+                    <div className="bg-black/80 p-3 text-center">
+                      <div className="text-amber-400/40 text-[9px]">#1 SIGNAL</div>
+                      <div className="text-amber-300 text-sm font-bold truncate mt-0.5" title={sortedSmartMoneyMarkets[0]?.title}>
+                        {sortedSmartMoneyMarkets[0]?.title?.slice(0, 25) || '—'}
+                      </div>
+                      <div className="flex justify-center gap-[2px] mt-1">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div key={i} className={`w-1.5 h-1.5 ${i < Math.round((sortedSmartMoneyMarkets[0]?.topOutcomeCapitalPct || 0) / 10) ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                        ))}
+                      </div>
+                      <div className="text-amber-400/30 text-[9px] mt-1">{sortedSmartMoneyMarkets[0]?.topOutcome} {sortedSmartMoneyMarkets[0]?.topOutcomeCapitalPct}%</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Intelligence Panel Tabs — pixel grid style */}
+                {sortedSmartMoneyMarkets.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-4 gap-[2px] bg-green-500/10">
+                      {([
+                        { key: 'flow' as const, label: 'FLOW', icon: '◎', count: '' },
+                        { key: 'signals' as const, label: 'SIGNALS', icon: '⚡', count: whaleSignals.length > 0 ? `${whaleSignals.length}` : '' },
+                        { key: 'edge' as const, label: 'EDGE', icon: '◇', count: marketsWithEdge.length > 0 ? `${marketsWithEdge.length}` : '' },
+                        { key: 'portfolios' as const, label: 'PORTFOLIOS', icon: '▦', count: traderPortfolios.length > 0 ? `${traderPortfolios.length}` : '' },
+                      ]).map(tab => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setSmartMoneyActivePanel(tab.key)}
+                          className={`py-2 text-[10px] transition-all text-center ${
+                            smartMoneyActivePanel === tab.key
+                              ? 'bg-green-500/15 text-green-400'
+                              : 'bg-black/60 text-green-400/30 hover:text-green-400/60 hover:bg-green-500/5'
+                          }`}
+                        >
+                          <div className="text-sm">{tab.icon}</div>
+                          <div className="mt-0.5">{tab.label}{tab.count ? ` (${tab.count})` : ''}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-[9px] text-green-400/25 font-mono px-1">
+                      {smartMoneyActivePanel === 'flow' && '> capital_flow: trader → market allocation visualization'}
+                      {smartMoneyActivePanel === 'signals' && '> whale_signals: real-time buy/sell from top PnL traders (72h)'}
+                      {smartMoneyActivePanel === 'edge' && '> edge_tracker: avg entry price vs market price analysis'}
+                      {smartMoneyActivePanel === 'portfolios' && '> portfolios: concentration, hedges & conviction analysis'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Panel: Capital Flow (Sankey) */}
+                {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'flow' && (
+                  <div className="mt-3 space-y-3">
+                    <SmartMoneyFlowChart markets={sortedSmartMoneyMarkets} leaderboard={smartMoneyLeaderboard} />
+                    {!smartMoneyLoading && (
+                      <AIInsightsTerminal
+                        context="smartmoney"
+                        data={{
+                          category: smartMoneyCategory,
+                          timePeriod: smartMoneyTimePeriod,
+                          traderCount: smartMoneyLeaderboard.length,
+                          combinedPnl: Math.round(smartMoneyLeaderboard.reduce((a, t) => a + t.pnl, 0)),
+                          topFlows: sortedSmartMoneyMarkets.slice(0, 8).map(m => ({
+                            market: m.title,
+                            traders: m.traderCount,
+                            capital: Math.round(m.totalCapital),
+                            topOutcome: m.topOutcome,
+                            consensus: m.capitalConsensus,
+                          })),
+                        }}
+                        commandLabel="smartmoney --analyze-flow"
+                        buttonLabel="EXPLAIN CAPITAL FLOW WITH AI"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Panel: Whale Signals */}
+                {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'signals' && (() => {
+                  const buys = displaySignals.filter(s => s.side === 'BUY');
+                  const sells = displaySignals.filter(s => s.side === 'SELL');
+                  const highConviction = displaySignals.filter(s => s.conviction >= 20);
+
+                  // Data for AI
+                  const signalsAIData = {
+                    signals: displaySignals.slice(0, 25).map(s => ({
+                      trader: `#${s.traderRank} ${s.traderName}`,
+                      side: s.side,
+                      outcome: s.outcome,
+                      market: s.marketTitle,
+                      size: Math.round(s.usdcSize),
+                      price: Math.round(s.price * 100),
+                      hoursAgo: s.hoursAgo,
+                      conviction: s.conviction,
+                    })),
+                  };
+
+                  return (
+                    <div className="mt-3 space-y-3">
+                      {/* Summary row — pixel style */}
+                      {displaySignals.length > 0 && (
+                        <div className="grid grid-cols-3 gap-[2px] bg-green-500/10">
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-green-400 text-lg font-bold">{buys.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(buys.length / (displaySignals.length / 5)), 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-green-400/40 text-[9px]">BUYS · {formatUSD(buys.reduce((a, s) => a + s.usdcSize, 0))}</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-red-400 text-lg font-bold">{sells.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(sells.length / (displaySignals.length / 5)), 5) ? 'bg-red-500' : 'bg-red-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-red-400/40 text-[9px]">SELLS · {formatUSD(sells.reduce((a, s) => a + s.usdcSize, 0))}</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-amber-400 text-lg font-bold">{highConviction.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(highConviction.length, 5) ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-amber-400/40 text-[9px]">HIGH CONVICTION ({'>'}20%)</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Signal list */}
+                      <div className="border border-green-500/15 bg-black/40 overflow-hidden font-mono">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-green-500/5 border-b border-green-500/10">
+                          <span className="text-green-400/50 text-[10px]">{'>'} SIGNALS (last 72h)</span>
+                          <span className="text-green-400/25 text-[10px]">{whaleSignals.length} from top 15</span>
+                        </div>
+                        {displaySignals.length === 0 ? (
+                          <div className="p-4 text-green-400/30 text-xs text-center">No recent whale trades detected. Run a scan first.</div>
+                        ) : (
+                          <div className="divide-y divide-green-500/10 max-h-[400px] overflow-y-auto">
+                            {displaySignals.map((sig, i) => (
+                              <div key={i} className="px-3 py-2 hover:bg-green-500/5 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] px-1.5 py-0.5 border font-bold ${
+                                    sig.side === 'BUY'
+                                      ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                      : 'text-red-400 border-red-500/30 bg-red-500/10'
+                                  }`}>
+                                    {sig.side}
+                                  </span>
+                                  <span className="text-green-300 text-xs truncate flex-1">{sig.marketTitle}</span>
+                                  <span className="text-green-400/50 text-[10px] shrink-0">
+                                    {sig.hoursAgo < 1 ? 'just now' : sig.hoursAgo < 24 ? `${sig.hoursAgo}h ago` : `${Math.floor(sig.hoursAgo / 24)}d ago`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-[10px]">
+                                  <span className="text-green-400/70">#{sig.traderRank} {sig.traderName}</span>
+                                  <span className={`px-1 py-0.5 border text-[9px] ${
+                                    sig.outcome.toLowerCase() === 'yes'
+                                      ? 'text-green-400 border-green-500/30'
+                                      : 'text-red-400 border-red-500/30'
+                                  }`}>{sig.outcome}</span>
+                                  <span className="text-green-300">{formatUSD(sig.usdcSize)}</span>
+                                  <span className="text-green-400/40">@ {(sig.price * 100).toFixed(0)}¢</span>
+                                  {sig.conviction > 5 && (
+                                    <span className={`px-1 py-0.5 text-[9px] border ${
+                                      sig.conviction >= 30 ? 'text-red-400 border-red-500/30 bg-red-500/10' :
+                                      sig.conviction >= 15 ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                      'text-green-400/50 border-green-500/20'
+                                    }`}>
+                                      {sig.conviction}% conviction
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Explain for Signals */}
+                      {displaySignals.length > 0 && !smartMoneyLoading && (
+                        <AIInsightsTerminal
+                          context="smartmoney-signals"
+                          data={signalsAIData}
+                          commandLabel="smartmoney --analyze-signals"
+                          buttonLabel="EXPLAIN SIGNALS WITH AI"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Panel: Edge Tracker */}
+                {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'edge' && (() => {
+                  const profitMarkets = marketsWithEdge.filter(m => m.edgeDirection === 'PROFIT');
+                  const underwaterMarkets = marketsWithEdge.filter(m => m.edgeDirection === 'UNDERWATER');
+
+                  // Build cross-reference summary with whale signals
+                  const signalsSummary = whaleSignals.length > 0
+                    ? marketsWithEdge.slice(0, 5).map(m => {
+                        const marketSignals = whaleSignals.filter(s => s.marketTitle === m.title);
+                        if (marketSignals.length === 0) return null;
+                        const buyCount = marketSignals.filter(s => s.side === 'BUY').length;
+                        const sellCount = marketSignals.filter(s => s.side === 'SELL').length;
+                        return `  "${m.title}" (${m.edgeDirection}): ${buyCount} buys, ${sellCount} sells in 72h`;
+                      }).filter(Boolean).join('\n')
+                    : '';
+
+                  // Data for AI
+                  const edgeAIData = {
+                    edges: marketsWithEdge.slice(0, 15).map(m => ({
+                      title: m.title,
+                      avgEntry: Math.round(m.avgEntryPrice * 100),
+                      entryRange: m.entryPriceMin > 0 && m.entryPriceMax > m.entryPriceMin
+                        ? `${Math.round(m.entryPriceMin * 100)}¢-${Math.round(m.entryPriceMax * 100)}¢`
+                        : null,
+                      marketPrice: Math.round(m.marketPrice * 100),
+                      edge: m.edgePercent,
+                      direction: m.edgeDirection,
+                      topOutcome: m.topOutcome,
+                      traders: m.traderCount,
+                      capital: formatUSD(m.totalCapital),
+                    })),
+                    signalsSummary,
+                  };
+
+                  return (
+                    <div className="mt-3 space-y-3">
+                      {/* Summary row — pixel style */}
+                      {marketsWithEdge.length > 0 && (
+                        <div className="grid grid-cols-4 gap-[2px] bg-green-500/10">
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-green-400 text-lg font-bold">{profitMarkets.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(profitMarkets.length, 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-green-400/40 text-[9px]">IN PROFIT</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-red-400 text-lg font-bold">{underwaterMarkets.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(underwaterMarkets.length, 5) ? 'bg-red-500' : 'bg-red-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-red-400/40 text-[9px]">UNDERWATER</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-amber-400 text-lg font-bold">
+                              {marketsWithEdge.length > 0 ? `${Math.max(...marketsWithEdge.map(m => Math.abs(m.edgePercent)))}` : '—'}
+                            </div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => {
+                                const maxEdge = marketsWithEdge.length > 0 ? Math.max(...marketsWithEdge.map(m => Math.abs(m.edgePercent))) : 0;
+                                return <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(maxEdge / 10), 5) ? 'bg-amber-500' : 'bg-amber-500/15'}`} style={{ imageRendering: 'pixelated' }} />;
+                              })}
+                            </div>
+                            <div className="text-amber-400/40 text-[9px]">MAX EDGE pts</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-cyan-400 text-lg font-bold">
+                              {(() => {
+                                const totalOI = marketsWithEdge.reduce((a, m) => a + (openInterestMap.get(m.conditionId) || 0), 0);
+                                return totalOI > 0 ? formatUSD(totalOI) : '—';
+                              })()}
+                            </div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => {
+                                const oiCount = marketsWithEdge.filter(m => openInterestMap.has(m.conditionId)).length;
+                                return <div key={i} className={`w-2 h-2 ${i < Math.min(oiCount, 5) ? 'bg-cyan-500' : 'bg-cyan-500/15'}`} style={{ imageRendering: 'pixelated' }} />;
+                              })}
+                            </div>
+                            <div className="text-cyan-400/40 text-[9px]">OPEN INTEREST</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Edge list */}
+                      <div className="border border-green-500/15 bg-black/40 overflow-hidden font-mono">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-green-500/5 border-b border-green-500/10">
+                          <span className="text-green-400/50 text-[10px]">{'>'} ENTRY vs MARKET PRICE</span>
+                          <span className="text-green-400/25 text-[10px]">{marketsWithEdge.length} markets</span>
+                        </div>
+                        <div className="px-3 py-1 border-b border-green-500/10 flex items-center gap-4 text-[9px] text-green-400/25">
+                          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 bg-amber-400" style={{ imageRendering: 'pixelated' }} /> entry</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 bg-green-400" style={{ imageRendering: 'pixelated' }} /> profit</span>
+                          <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 bg-red-400" style={{ imageRendering: 'pixelated' }} /> underwater</span>
+                        </div>
+                        {marketsWithEdge.length === 0 ? (
+                          <div className="p-4 text-green-400/30 text-xs text-center">No edge data available. Entry prices may not be reported by the API.</div>
+                        ) : (
+                          <div className="divide-y divide-green-500/10">
+                            {marketsWithEdge.slice(0, 15).map(market => {
+                              const absEdge = Math.abs(market.edgePercent);
+                              const isProfit = market.edgeDirection === 'PROFIT';
+                              const isUnderwater = market.edgeDirection === 'UNDERWATER';
+                              const edgeColor = isUnderwater ? 'text-red-400' : isProfit ? 'text-green-400' : 'text-green-400/60';
+                              const edgeBg = isUnderwater
+                                ? 'bg-red-500/10 border-red-500/30'
+                                : absEdge >= 15 ? 'bg-green-500/15 border-green-500/30'
+                                : absEdge >= 8 ? 'bg-green-500/10 border-green-500/20'
+                                : 'bg-green-500/5 border-green-500/10';
+
+                              return (
+                                <div key={market.conditionId} className="px-3 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] px-1.5 py-0.5 border font-bold ${
+                                      isUnderwater ? 'bg-red-500/15 border-red-500/30 text-red-400' :
+                                      isProfit ? 'bg-green-500/15 border-green-500/30 text-green-400' :
+                                      'bg-green-500/5 border-green-500/10 text-green-400/60'
+                                    }`}>
+                                      {market.edgeDirection}
+                                    </span>
+                                    <span className="text-green-300 text-xs truncate flex-1">{market.title}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 border font-bold ${edgeBg} ${edgeColor}`}>
+                                      {market.edgePercent > 0 ? '+' : ''}{market.edgePercent}pts
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                                    <div className="flex items-center gap-2 text-[10px]">
+                                      <span className="text-amber-400/60">Entry:</span>
+                                      <span className="text-amber-300 font-bold">{(market.avgEntryPrice * 100).toFixed(0)}¢</span>
+                                      {market.entryPriceMin > 0 && market.entryPriceMax > 0 && market.entryPriceMin !== market.entryPriceMax && (
+                                        <span className="text-green-400/25" title="Entry price range across all traders">
+                                          ({(market.entryPriceMin * 100).toFixed(0)}¢–{(market.entryPriceMax * 100).toFixed(0)}¢)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[10px]">
+                                      <span className="text-green-400/40">→</span>
+                                      <span className={`font-bold ${isUnderwater ? 'text-red-300' : 'text-green-300'}`}>{(market.marketPrice * 100).toFixed(0)}¢</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px]">
+                                      <span className="text-green-400/40">|</span>
+                                      <span className="text-green-300">{market.topOutcome} {market.topOutcomeCapitalPct}%</span>
+                                    </div>
+                                    {openInterestMap.get(market.conditionId) ? (
+                                      <span className="text-cyan-400/40 text-[10px]">OI: {formatUSD(openInterestMap.get(market.conditionId)!)}</span>
+                                    ) : null}
+                                    <span className="text-green-400/30 text-[10px] ml-auto">{market.traderCount} traders · {formatUSD(market.totalCapital)}</span>
+                                  </div>
+                                  {/* Visual: entry range + avg entry + market price */}
+                                  <div className="mt-1.5 flex items-center gap-2">
+                                    <span className="text-[9px] text-amber-400/50 w-8">entry</span>
+                                    <div className="flex-1 h-2.5 bg-green-500/10 rounded-full overflow-hidden relative">
+                                      {market.entryPriceMin > 0 && market.entryPriceMax > market.entryPriceMin && (
+                                        <div
+                                          className="absolute h-full bg-amber-400/10 rounded-full"
+                                          style={{
+                                            left: `${Math.min(market.entryPriceMin * 100, 100)}%`,
+                                            width: `${Math.min((market.entryPriceMax - market.entryPriceMin) * 100, 100)}%`,
+                                          }}
+                                          title={`Entry range: ${(market.entryPriceMin * 100).toFixed(0)}¢–${(market.entryPriceMax * 100).toFixed(0)}¢`}
+                                        />
+                                      )}
+                                      <div
+                                        className="absolute h-full w-1.5 bg-amber-400 rounded-full z-10"
+                                        style={{ left: `${Math.min(market.avgEntryPrice * 100, 99)}%` }}
+                                        title={`Avg Entry: ${(market.avgEntryPrice * 100).toFixed(0)}¢`}
+                                      />
+                                      <div
+                                        className={`absolute h-full rounded-full ${isUnderwater ? 'bg-red-400/25' : 'bg-green-400/25'}`}
+                                        style={{
+                                          left: `${Math.min(Math.min(market.avgEntryPrice, market.marketPrice) * 100, 100)}%`,
+                                          width: `${Math.min(Math.abs(market.edgePercent), 100)}%`,
+                                        }}
+                                      />
+                                      <div
+                                        className={`absolute h-full w-1.5 rounded-full z-10 ${isUnderwater ? 'bg-red-400' : 'bg-green-400'}`}
+                                        style={{ left: `${Math.min(market.marketPrice * 100, 99)}%` }}
+                                        title={`Market: ${(market.marketPrice * 100).toFixed(0)}¢`}
+                                      />
+                                    </div>
+                                    <span className={`text-[9px] w-8 text-right ${isUnderwater ? 'text-red-400/50' : 'text-green-400/50'}`}>now</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Explain for Edge */}
+                      {marketsWithEdge.length > 0 && !smartMoneyLoading && (
+                        <AIInsightsTerminal
+                          context="smartmoney-edge"
+                          data={edgeAIData}
+                          commandLabel="smartmoney --analyze-edge"
+                          buttonLabel="EXPLAIN EDGE WITH AI"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Panel: Portfolio Analyzer */}
+                {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'portfolios' && (() => {
+                  const concentrated = displayPortfolios.filter(p => p.concentration >= 50);
+                  const diversified = displayPortfolios.filter(p => p.concentration < 25);
+                  const withHedges = displayPortfolios.filter(p => p.hedges.length > 0);
+
+                  // Data for AI
+                  const portfolioAIData = {
+                    combinedValue: Math.round(displayPortfolios.reduce((a, p) => a + p.totalValue, 0)),
+                    portfolios: displayPortfolios.slice(0, 15).map(p => ({
+                      name: `#${p.rank} ${p.name}`,
+                      pnl: Math.round(p.pnl),
+                      totalValue: Math.round(p.totalValue),
+                      positions: p.positionCount,
+                      concentration: p.concentration,
+                      concentrationLabel: p.concentration >= 50 ? 'CONCENTRATED' : p.concentration >= 25 ? 'MODERATE' : 'DIVERSIFIED',
+                      hedges: p.hedges.length,
+                      convictionBets: p.convictionBets.slice(0, 3).map(b => ({
+                        outcome: b.outcome,
+                        title: b.title,
+                        pct: b.pctOfPortfolio,
+                      })),
+                    })),
+                  };
+
+                  return (
+                    <div className="mt-3 space-y-3">
+                      {/* Summary row — pixel style */}
+                      {displayPortfolios.length > 0 && (
+                        <div className="grid grid-cols-3 gap-[2px] bg-green-500/10">
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-red-400 text-lg font-bold">{concentrated.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(concentrated.length, 5) ? 'bg-red-500' : 'bg-red-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-red-400/40 text-[9px]">CONCENTRATED</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-green-400 text-lg font-bold">{diversified.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(diversified.length, 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-green-400/40 text-[9px]">DIVERSIFIED</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-blue-400 text-lg font-bold">{withHedges.length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(withHedges.length, 5) ? 'bg-blue-500' : 'bg-blue-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className="text-blue-400/40 text-[9px]">HEDGED</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Portfolio list */}
+                      <div className="border border-green-500/15 bg-black/40 overflow-hidden font-mono">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-green-500/5 border-b border-green-500/10">
+                          <span className="text-green-400/50 text-[10px]">{'>'} PORTFOLIO CONSTRUCTION</span>
+                          <span className="text-green-400/25 text-[10px]">{traderPortfolios.length} traders</span>
+                        </div>
+                        {displayPortfolios.length === 0 ? (
+                          <div className="p-4 text-green-400/30 text-xs text-center">No portfolio data. Run a scan first.</div>
+                        ) : (
+                          <div className="divide-y divide-green-500/10 max-h-[500px] overflow-y-auto">
+                            {displayPortfolios.map(portfolio => {
+                              const concColor = portfolio.concentration >= 50 ? 'text-red-400' : portfolio.concentration >= 25 ? 'text-amber-400' : 'text-green-400';
+                              return (
+                                <div key={portfolio.address} className="px-3 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-400/50 text-[10px]">#{portfolio.rank}</span>
+                                    <span className="text-green-300 text-xs truncate">{portfolio.name}</span>
+                                    <span className="text-green-400 text-xs ml-auto">{formatUSD(portfolio.totalValue)}</span>
+                                    <span className={`text-[10px] ${portfolio.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      {portfolio.pnl >= 0 ? '+' : ''}{formatUSD(portfolio.pnl)}
+                                    </span>
+                                  </div>
+
+                                  {/* Stats row */}
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[10px]">
+                                    <span className="text-green-400/40">{portfolio.positionCount} positions</span>
+                                    <span className={`px-1.5 py-0.5 border font-bold text-[9px] ${
+                                      portfolio.concentration >= 50 ? 'border-red-500/30 bg-red-500/10 text-red-400' :
+                                      portfolio.concentration >= 25 ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
+                                      'border-green-500/30 bg-green-500/10 text-green-400'
+                                    }`}>
+                                      {portfolio.concentration >= 50 ? 'CONCENTRATED' : portfolio.concentration >= 25 ? 'MODERATE' : 'DIVERSIFIED'} {portfolio.concentration}%
+                                    </span>
+                                    {portfolio.hedges.length > 0 && (
+                                      <span className="text-blue-400/70 px-1 py-0.5 border border-blue-500/30 bg-blue-500/10 text-[9px]">
+                                        {portfolio.hedges.length} hedge{portfolio.hedges.length > 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                    {(() => {
+                                      const cp = closedPositionsMap.get(portfolio.address);
+                                      if (!cp || (cp.wins + cp.losses) === 0) return null;
+                                      const total = cp.wins + cp.losses;
+                                      const winRate = Math.round((cp.wins / total) * 100);
+                                      const wrColor = winRate >= 60 ? 'text-green-400 border-green-500/30 bg-green-500/10' :
+                                        winRate >= 45 ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                        'text-red-400 border-red-500/30 bg-red-500/10';
+                                      return (
+                                        <span className={`px-1 py-0.5 border text-[9px] font-bold ${wrColor}`} title={`${cp.wins}W/${cp.losses}L from resolved bets (PnL: ${formatUSD(cp.totalPnl)})`}>
+                                          {winRate}% WR ({total})
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+
+                                  {/* Conviction bets */}
+                                  {portfolio.convictionBets.length > 0 && (
+                                    <div className="mt-1.5 space-y-0.5">
+                                      {portfolio.convictionBets.slice(0, 3).map((bet, bi) => (
+                                        <div key={bi} className="flex items-center gap-2 text-[10px]">
+                                          <span className={`px-1 border text-[9px] ${
+                                            bet.outcome.toLowerCase() === 'yes'
+                                              ? 'text-green-400 border-green-500/30'
+                                              : 'text-red-400 border-red-500/30'
+                                          }`}>{bet.outcome}</span>
+                                          <span className="text-green-300/70 truncate flex-1">{bet.title}</span>
+                                          <span className="text-green-400 shrink-0">{formatUSD(bet.value)}</span>
+                                          <span className={`shrink-0 px-1 py-0.5 border text-[9px] font-bold ${
+                                            bet.pctOfPortfolio >= 40 ? 'text-red-400 border-red-500/30 bg-red-500/10' :
+                                            bet.pctOfPortfolio >= 20 ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                            'text-green-400/60 border-green-500/20'
+                                          }`}>
+                                            {bet.pctOfPortfolio}%
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Hedges */}
+                                  {portfolio.hedges.length > 0 && (
+                                    <div className="mt-1 space-y-0.5">
+                                      {portfolio.hedges.slice(0, 2).map((hedge, hi) => (
+                                        <div key={hi} className="flex items-center gap-2 text-[10px] text-blue-400/60">
+                                          <span className="text-[9px]">⇄</span>
+                                          <span className="truncate">{hedge.market}</span>
+                                          <span className="shrink-0">YES:{formatUSD(hedge.yesCapital)}</span>
+                                          <span className="shrink-0">NO:{formatUSD(hedge.noCapital)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Concentration bar */}
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="text-green-400/30 text-[9px] w-10">focus</span>
+                                    <div className="flex gap-[2px] flex-1">
+                                      {Array.from({ length: 10 }).map((_, i) => (
+                                        <div
+                                          key={i}
+                                          className={`flex-1 h-1 ${
+                                            i < Math.round(portfolio.concentration / 10)
+                                              ? portfolio.concentration >= 50 ? 'bg-red-500' : portfolio.concentration >= 25 ? 'bg-amber-500' : 'bg-green-500'
+                                              : 'bg-green-500/10'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Explain for Portfolios */}
+                      {displayPortfolios.length > 0 && !smartMoneyLoading && (
+                        <AIInsightsTerminal
+                          context="smartmoney-portfolios"
+                          data={portfolioAIData}
+                          commandLabel="smartmoney --analyze-portfolios"
+                          buttonLabel="EXPLAIN PORTFOLIOS WITH AI"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Layer 3: Simplified Market Cards */}
+                {sortedSmartMoneyMarkets.length > 0 && (
+                  <div className="space-y-[2px] font-mono">
+                    <div className="flex items-center justify-between px-1 py-1">
+                      <span className="text-green-400/30 text-[9px]">{'>'} consensus_markets --sort {smartMoneySort}</span>
+                      <span className="text-green-400/20 text-[9px]">{sortedSmartMoneyMarkets.length} results</span>
+                    </div>
+                    {sortedSmartMoneyMarkets.map((market) => {
+                      const isExp = expandedSmartMarket === market.conditionId;
+                      const consensusFilled = Math.round((market.capitalConsensus / 100) * 16);
+                      const consensusColor = market.capitalConsensus >= 80 ? 'bg-green-500' : market.capitalConsensus >= 50 ? 'bg-yellow-500' : 'bg-green-500/40';
+                      const badgeColor = market.topOutcome.toLowerCase() === 'yes'
+                        ? 'border-green-500/40 bg-green-500/15 text-green-400'
+                        : market.topOutcome.toLowerCase() === 'no'
+                        ? 'border-red-500/40 bg-red-500/15 text-red-400'
+                        : 'border-blue-500/40 bg-blue-500/15 text-blue-400';
+
+                      return (
+                        <div
+                          key={market.conditionId}
+                          className="border border-green-500/15 bg-black/40 overflow-hidden"
+                        >
+                          <div
+                            className="p-3 cursor-pointer hover:bg-green-500/5 transition-colors"
+                            onClick={() => setExpandedSmartMarket(isExp ? null : market.conditionId)}
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* Big outcome badge */}
+                              <div className={`shrink-0 w-14 h-14 flex flex-col items-center justify-center border rounded ${badgeColor}`}>
+                                <span className="text-[10px] font-bold leading-none">{market.topOutcome}</span>
+                                <span className="text-lg font-bold leading-tight">{market.topOutcomeCapitalPct}%</span>
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-green-300 text-xs leading-tight" title={market.title}>
+                                    {market.title}
+                                  </span>
+                                  {isExp ? <ChevronUp className="w-3 h-3 text-green-400/40 shrink-0 mt-0.5" /> : <ChevronDown className="w-3 h-3 text-green-400/40 shrink-0 mt-0.5" />}
+                                </div>
+
+                                {/* Consensus bar */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <div className="flex gap-[2px] flex-1">
+                                    {Array.from({ length: 16 }).map((_, i) => (
+                                      <div
+                                        key={i}
+                                        className={`flex-1 h-1.5 rounded-sm ${i < consensusFilled ? consensusColor : 'bg-green-500/10'}`}
+                                        style={{ imageRendering: 'pixelated' as const }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-green-400/60 text-[10px] w-8 text-right">{market.capitalConsensus}%</span>
+                                </div>
+
+                                {/* Quick stats */}
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px]">
+                                  <span className="text-green-300">{formatUSD(market.totalCapital)}</span>
+                                  <span className="text-green-400/50">{market.traderCount} traders</span>
+                                  <span className={market.avgPnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                    avg {market.avgPnl >= 0 ? '+' : ''}{formatUSD(market.avgPnl)}
+                                  </span>
+                                  {openInterestMap.get(market.conditionId) ? (
+                                    <span className="text-cyan-400/60" title="Open Interest: total capital at risk in this market">
+                                      OI: {formatUSD(openInterestMap.get(market.conditionId)!)}
+                                    </span>
+                                  ) : null}
+                                  {market.outcomeBias.length > 2 && (
+                                    <span className="text-blue-400/50">{market.outcomeBias.length} outcomes</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expanded trader list */}
+                          {isExp && (
+                            <div className="bg-black/40 px-3 py-2 border-t border-green-500/10 space-y-1.5">
+                              <div className="text-green-400/40 text-[10px] mb-1">
+                                {'>'} {market.traders.length} traders in this market
+                              </div>
+                              {market.traders.map((trader, ti) => (
+                                <div key={trader.address} className="flex items-center gap-2 text-[10px]">
+                                  <span className="text-green-400/30 w-4 shrink-0">{String(ti + 1).padStart(2, '0')}</span>
+                                  <span className="text-green-400/50 w-5 shrink-0">#{trader.rank}</span>
+                                  <span className={`px-1 py-0.5 border text-[9px] ${
+                                    trader.outcome.toLowerCase() === 'yes'
+                                      ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                                      : 'text-red-400 border-red-500/30 bg-red-500/10'
+                                  }`}>
+                                    {trader.outcome}
+                                  </span>
+                                  <span className="text-green-300 truncate flex-1">{trader.name}</span>
+                                  <span className="text-green-400 shrink-0">{formatUSD(trader.positionValue)}</span>
+                                  <span className={`shrink-0 w-16 text-right ${trader.currentPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {trader.currentPnl >= 0 ? '+' : ''}{formatUSD(trader.currentPnl)}
+                                  </span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {trader.xUsername && (
+                                      <a href={`https://x.com/${trader.xUsername}`} target="_blank" rel="noopener noreferrer" className="text-green-400/30 hover:text-green-400" onClick={(e) => e.stopPropagation()}>
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                      </a>
+                                    )}
+                                    <a href={`https://polymarket.com/portfolio/${trader.address}`} target="_blank" rel="noopener noreferrer" className="text-green-400/30 hover:text-green-400" onClick={(e) => e.stopPropagation()}>
+                                      <Wallet className="w-2.5 h-2.5" />
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
+                              {market.slug && (
+                                <div className="pt-1.5 border-t border-green-500/10">
+                                  <a href={`https://polymarket.com/event/${market.slug}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-400/40 hover:text-green-400 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <ExternalLink className="w-3 h-3" /> View on Polymarket
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div className="text-green-400/20 text-[9px] font-mono text-center py-1">
+                      {'>'} {smartMoneyLeaderboard.length} wallets scanned · {sortedSmartMoneyMarkets.length} consensus markets · cache: 5min
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Analysis for Smart Money */}
+                {sortedSmartMoneyMarkets.length > 0 && !smartMoneyLoading && (() => {
+                  const topMarkets = sortedSmartMoneyMarkets.slice(0, 10).map(m => ({
+                    title: m.title,
+                    traderCount: m.traderCount,
+                    totalCapital: Math.round(m.totalCapital),
+                    topOutcome: m.topOutcome,
+                    topOutcomeCapitalPct: m.topOutcomeCapitalPct,
+                    capitalConsensus: m.capitalConsensus,
+                    headConsensus: m.headConsensus,
+                    outcomes: m.outcomeBias.map(ob => ({
+                      outcome: ob.outcome,
+                      capitalPct: m.totalCapital > 0 ? Math.round((ob.capital / m.totalCapital) * 100) : 0,
+                      headcount: ob.headcount,
+                    })),
+                    avgPnl: Math.round(m.avgPnl),
+                    topTraders: m.traders.slice(0, 3).map(t => ({
+                      name: t.name,
+                      rank: t.rank,
+                      side: t.outcome,
+                      value: Math.round(t.positionValue),
+                      pnl: Math.round(t.currentPnl),
+                    })),
+                  }));
+
+                  // Edge opportunities (entry price vs market)
+                  const edgeOpportunities = sortedSmartMoneyMarkets
+                    .filter(m => m.marketPrice > 0 && m.avgEntryPrice > 0 && Math.abs(m.edgePercent) >= 5)
+                    .sort((a, b) => Math.abs(b.edgePercent) - Math.abs(a.edgePercent))
+                    .slice(0, 5)
+                    .map(m => ({
+                      title: m.title,
+                      avgEntry: Math.round(m.avgEntryPrice * 100),
+                      entryRange: m.entryPriceMin > 0 && m.entryPriceMax > m.entryPriceMin
+                        ? `${Math.round(m.entryPriceMin * 100)}¢-${Math.round(m.entryPriceMax * 100)}¢`
+                        : null,
+                      marketPrice: Math.round(m.marketPrice * 100),
+                      edge: m.edgePercent,
+                      direction: m.edgeDirection,
+                      topOutcome: m.topOutcome,
+                      traders: m.traderCount,
+                    }));
+
+                  // Recent whale signals summary
+                  const recentSignals = whaleSignals
+                    .slice(0, 10)
+                    .map(s => ({
+                      trader: `#${s.traderRank} ${s.traderName}`,
+                      action: s.side,
+                      market: s.marketTitle,
+                      outcome: s.outcome,
+                      size: Math.round(s.usdcSize),
+                      hoursAgo: s.hoursAgo,
+                      conviction: s.conviction,
+                    }));
+
+                  // Portfolio insights
+                  const portfolioInsights = traderPortfolios
+                    .slice(0, 5)
+                    .map(p => ({
+                      name: `#${p.rank} ${p.name}`,
+                      totalValue: Math.round(p.totalValue),
+                      positions: p.positionCount,
+                      concentration: p.concentration,
+                      hedges: p.hedges.length,
+                      topBet: p.convictionBets[0] ? `${p.convictionBets[0].outcome} ${p.convictionBets[0].title} (${p.convictionBets[0].pctOfPortfolio}%)` : null,
+                    }));
+
+                  const smartMoneyData = {
+                    category: smartMoneyCategory,
+                    timePeriod: smartMoneyTimePeriod,
+                    traderCount: smartMoneyLeaderboard.length,
+                    combinedPnl: Math.round(smartMoneyLeaderboard.reduce((a, t) => a + t.pnl, 0)),
+                    combinedVolume: Math.round(smartMoneyLeaderboard.reduce((a, t) => a + t.volume, 0)),
+                    consensusMarkets: sortedSmartMoneyMarkets.length,
+                    topMarkets,
+                    edgeOpportunities,
+                    recentSignals,
+                    portfolioInsights,
+                  };
+
+                  return (
+                    <AIInsightsTerminal
+                      context="smartmoney"
+                      data={smartMoneyData}
+                      commandLabel={`smartmoney --consensus ${smartMoneyCategory.toLowerCase()} --period ${smartMoneyTimePeriod.toLowerCase()}`}
+                      buttonLabel="ANALYZE ALL WITH AI"
+                    />
+                  );
+                })()}
+
+                  </div>{/* end content area */}
+
+                  {/* Terminal footer */}
+                  <div className="px-3 py-1.5 border-t border-green-500/15 text-green-400/30 text-[9px] flex items-center justify-between">
+                    <span>{'>'} openclaw smart-money engine v3.0 (CLOB enriched)</span>
+                    <span>{sortedSmartMoneyMarkets.length > 0 ? `${smartMoneyLeaderboard.length} traders · ${sortedSmartMoneyMarkets.length} markets · ${whaleSignals.length} signals` : 'ready'}</span>
+                  </div>
+                </div>{/* end terminal container */}
+              </>
+            )}
           </CardContent>
         </Card>
 
