@@ -329,6 +329,36 @@ Focus on:
 6. Rank the top 3 bonds by risk-adjusted return and explain why.`;
 }
 
+function buildSmartMoneyAlphaPrompt(data: any): string {
+  const breakdown = data.signalBreakdown || {};
+  const topSignals = (data.topSignals || [])
+    .map((s: any) => `  [${s.type}] "${s.market}" — confidence: ${s.confidence}%\n    ${s.description}\n    traders: ${(s.traders || []).join(', ')}\n    action: ${s.action}`)
+    .join('\n\n');
+
+  return `Analyze ALPHA SIGNALS — cross-referenced intelligence from multiple data streams.
+
+TOTAL SIGNALS DETECTED: ${data.totalSignals || 0}
+
+SIGNAL BREAKDOWN:
+  WHALE CONVERGENCE: ${breakdown.whale || 0} (3+ traders buying same market in 24h)
+  UNDERWATER ACCUMULATION: ${breakdown.underwater || 0} (SM underwater but still buying)
+  YIELD + MOMENTUM: ${breakdown.yield || 0} (bond opportunity + SM bullish alignment)
+  HIGH CONVICTION CLUSTER: ${breakdown.conviction || 0} (2+ traders with >20% portfolio in same market)
+  OI SURGE + CONSENSUS: ${breakdown.oi || 0} (high open interest + high SM consensus)
+
+TOP SIGNALS (by confidence):
+${topSignals || 'None detected'}
+
+Focus on:
+1. WHALE CONVERGENCE: When 3+ top PnL traders independently buy the same outcome, it's the strongest alpha signal. Are they reacting to the same catalyst?
+2. UNDERWATER ACCUMULATION: This is CONTRARIAN alpha. SM is losing money but still buying — they see value others don't. Which markets show this pattern?
+3. YIELD + MOMENTUM: Double conviction — bond yield + smart money alignment. These are the lowest-risk highest-conviction plays.
+4. HIGH CONVICTION CLUSTER: Multiple traders going all-in on the same bet. What do they know?
+5. OI SURGE: Institutional-level capital entering. Combined with SM consensus, this validates the thesis.
+6. PRIORITY RANKING: Rank the top 3 signals by risk/reward and explain EXACTLY what a trader should do (entry, size, timing).
+7. RED FLAGS: Any signals that contradict each other? Conflicting alpha = uncertainty.`;
+}
+
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,
   'exchange-metrics': buildExchangeMetricsPrompt,
@@ -339,6 +369,7 @@ const promptBuilders: Record<string, (data: any) => string> = {
   'smartmoney-edge': buildSmartMoneyEdgePrompt,
   'smartmoney-portfolios': buildSmartMoneyPortfoliosPrompt,
   'smartmoney-bonds': buildSmartMoneyBondsPrompt,
+  'smartmoney-alpha': buildSmartMoneyAlphaPrompt,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

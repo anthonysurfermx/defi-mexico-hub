@@ -166,9 +166,16 @@ export default function HomePage() {
       setLoadingAgents(true);
       const protocols = await defillamaService.getAIAgentProtocols();
       setAgentProtocols(protocols);
-      const history = await defillamaService.getTVLHistory(protocols, 90);
-      setTvlHistory(history);
-    } catch {
+      // Load history separately so chart failure doesn't lose protocol data
+      try {
+        const history = await defillamaService.getTVLHistory(protocols, 90);
+        setTvlHistory(history);
+      } catch (historyErr) {
+        console.warn('[HomePage] TVL history load failed:', historyErr);
+        setTvlHistory([]);
+      }
+    } catch (err) {
+      console.warn('[HomePage] Agent data load failed:', err);
       setAgentProtocols([]);
       setTvlHistory([]);
     } finally {

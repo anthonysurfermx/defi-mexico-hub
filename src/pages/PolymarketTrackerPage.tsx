@@ -261,10 +261,10 @@ export default function PolymarketTrackerPage() {
   const [expandedSmartMarket, setExpandedSmartMarket] = useState<string | null>(null);
   const [smartMoneyCategory, setSmartMoneyCategory] = useState('OVERALL');
   const [smartMoneyTimePeriod, setSmartMoneyTimePeriod] = useState('MONTH');
-  const [smartMoneySort, setSmartMoneySort] = useState<'consensus' | 'capital' | 'traders'>('traders');
+  const [smartMoneySort, setSmartMoneySort] = useState<'consensus' | 'capital' | 'traders' | 'aiscore'>('traders');
   const [whaleSignals, setWhaleSignals] = useState<WhaleSignal[]>([]);
   const [traderPortfolios, setTraderPortfolios] = useState<TraderPortfolio[]>([]);
-  const [smartMoneyActivePanel, setSmartMoneyActivePanel] = useState<'flow' | 'signals' | 'edge' | 'portfolios'>('flow');
+  const [smartMoneyActivePanel, setSmartMoneyActivePanel] = useState<'flow' | 'signals' | 'edge' | 'portfolios' | 'alpha'>('flow');
   const [smartMoneyWalletCount, setSmartMoneyWalletCount] = useState(50);
 
   // Bond scanner state
@@ -666,13 +666,73 @@ export default function PolymarketTrackerPage() {
     } catch { /* storage full */ }
   };
 
+  // ─── AI CONVERGENCE SCORE: fuses 5 signals into one 0-100 score per market ───
+  const convergenceScoreMap = useMemo(() => {
+    const map = new Map<string, { score: number; tier: 'STRONG' | 'MODERATE' | 'WEAK'; breakdown: { consensus: number; edge: number; momentum: number; validation: number; quality: number } }>();
+    if (smartMoneyMarkets.length === 0) return map;
+
+    for (const market of smartMoneyMarkets) {
+      // 1. Consensus (25 pts)
+      const capitalScore = (market.capitalConsensus / 100) * 12;
+      const headScore = (market.headConsensus / 100) * 8;
+      const capitalBonus = market.totalCapital > 50000 ? 5 : market.totalCapital > 10000 ? 3 : market.totalCapital > 1000 ? 1 : 0;
+      const consensus = Math.min(capitalScore + headScore + capitalBonus, 25);
+
+      // 2. Edge (20 pts)
+      let edge = 10;
+      if (market.edgeDirection === 'PROFIT') edge = Math.min(10 + market.edgePercent * 0.5, 20);
+      else if (market.edgeDirection === 'UNDERWATER') edge = Math.max(0, 5 - Math.abs(market.edgePercent) * 0.3);
+
+      // 3. Momentum (20 pts) — whale signals for this market
+      const marketSignals = whaleSignals.filter(s => s.marketSlug === market.slug || s.marketTitle === market.title);
+      const recentBuys = marketSignals.filter(s => s.side === 'BUY' && s.hoursAgo <= 24);
+      const recentSells = marketSignals.filter(s => s.side === 'SELL' && s.hoursAgo <= 24);
+      const buyVol = recentBuys.reduce((a, s) => a + s.usdcSize, 0);
+      const sellVol = recentSells.reduce((a, s) => a + s.usdcSize, 0);
+      const momentumRatio = buyVol / (buyVol + sellVol + 1);
+      let momentum = 0;
+      if (recentBuys.length >= 2) momentum += 8;
+      if (momentumRatio > 0.7) momentum += 8;
+      else if (momentumRatio > 0.5) momentum += 4;
+      if (recentBuys.some(s => s.conviction >= 15)) momentum += 4;
+      momentum = Math.min(momentum, 20);
+
+      // 4. Validation (15 pts) — OI + trader count
+      const oi = openInterestMap.get(market.conditionId) || 0;
+      const oiScore = oi > 500000 ? 8 : oi > 100000 ? 6 : oi > 10000 ? 4 : oi > 0 ? 2 : 0;
+      const traderScore = market.traderCount >= 8 ? 7 : market.traderCount >= 5 ? 5 : market.traderCount >= 3 ? 3 : 1;
+      const validation = Math.min(oiScore + traderScore, 15);
+
+      // 5. Trader Quality (20 pts) — win rate + PnL
+      const traderWinRates = market.traders.map(t => {
+        const cp = closedPositionsMap.get(t.address);
+        if (!cp || (cp.wins + cp.losses) === 0) return null;
+        return cp.wins / (cp.wins + cp.losses);
+      }).filter((v): v is number => v !== null);
+      const avgWinRate = traderWinRates.length > 0 ? traderWinRates.reduce((a, b) => a + b, 0) / traderWinRates.length : 0.5;
+      const winRateScore = avgWinRate >= 0.65 ? 12 : avgWinRate >= 0.55 ? 8 : avgWinRate >= 0.45 ? 5 : 2;
+      const pnlScore = market.avgPnl > 0 ? Math.min(market.avgPnl / 500, 8) : 0;
+      const quality = Math.min(winRateScore + pnlScore, 20);
+
+      const score = Math.round(consensus + edge + momentum + validation + quality);
+      const tier = score >= 75 ? 'STRONG' as const : score >= 45 ? 'MODERATE' as const : 'WEAK' as const;
+      map.set(market.conditionId, { score, tier, breakdown: { consensus: Math.round(consensus), edge: Math.round(edge), momentum: Math.round(momentum), validation: Math.round(validation), quality: Math.round(quality) } });
+    }
+    return map;
+  }, [smartMoneyMarkets, whaleSignals, openInterestMap, closedPositionsMap]);
+
   const sortedSmartMoneyMarkets = useMemo(() =>
     [...smartMoneyMarkets].sort((a, b) => {
       if (smartMoneySort === 'capital') return b.totalCapital - a.totalCapital;
       if (smartMoneySort === 'consensus') return b.capitalConsensus - a.capitalConsensus;
+      if (smartMoneySort === 'aiscore') {
+        const sa = convergenceScoreMap.get(a.conditionId)?.score || 0;
+        const sb = convergenceScoreMap.get(b.conditionId)?.score || 0;
+        return sb - sa;
+      }
       return b.traderCount - a.traderCount;
     }),
-    [smartMoneyMarkets, smartMoneySort]
+    [smartMoneyMarkets, smartMoneySort, convergenceScoreMap]
   );
 
   // Memoize expensive edge calculations (only recalc when data changes, not on tab switch)
@@ -688,6 +748,164 @@ export default function PolymarketTrackerPage() {
 
   // Memoize portfolio display
   const displayPortfolios = useMemo(() => traderPortfolios.slice(0, 20), [traderPortfolios]);
+
+  // ─── ALPHA SIGNALS: cross-references all data to find actionable opportunities ───
+  const alphaSignals = useMemo(() => {
+    if (smartMoneyMarkets.length === 0) return [];
+    const signals: { id: string; type: string; title: string; description: string; confidence: number; markets: string[]; traders: string[]; suggestedAction: string }[] = [];
+
+    // Signal 1: WHALE CONVERGENCE — 3+ traders bought same market in 24h
+    for (const market of smartMoneyMarkets) {
+      const recentBuys = whaleSignals.filter(s => (s.marketSlug === market.slug || s.marketTitle === market.title) && s.side === 'BUY' && s.hoursAgo <= 24);
+      const uniqueTraders = [...new Set(recentBuys.map(s => s.address))];
+      if (uniqueTraders.length >= 3) {
+        const names = [...new Set(recentBuys.map(s => s.traderName))];
+        const totalUsd = recentBuys.reduce((a, s) => a + s.usdcSize, 0);
+        signals.push({
+          id: `whale-${market.conditionId}`,
+          type: 'WHALE_CONVERGENCE',
+          title: market.title,
+          description: `${uniqueTraders.length} top traders compraron ${market.topOutcome} en las últimas 24h por ${formatUSD(totalUsd)}`,
+          confidence: Math.min(uniqueTraders.length * 20, 100),
+          markets: [market.title],
+          traders: names.slice(0, 5),
+          suggestedAction: `Entrada coordinada de ${uniqueTraders.length} ballenas. Alta probabilidad de movimiento.`,
+        });
+      }
+    }
+
+    // Signal 2: UNDERWATER ACCUMULATION — SM underwater but still buying
+    for (const market of smartMoneyMarkets.filter(m => m.edgeDirection === 'UNDERWATER')) {
+      const recentBuys = whaleSignals.filter(s => (s.marketSlug === market.slug || s.marketTitle === market.title) && s.side === 'BUY' && s.hoursAgo <= 48);
+      if (recentBuys.length >= 1) {
+        const avgConviction = recentBuys.reduce((a, s) => a + s.conviction, 0) / recentBuys.length;
+        const names = [...new Set(recentBuys.map(s => s.traderName))];
+        signals.push({
+          id: `underwater-${market.conditionId}`,
+          type: 'UNDERWATER_ACCUMULATION',
+          title: market.title,
+          description: `Smart money está ${Math.abs(market.edgePercent)}pts underwater pero sigue comprando (${recentBuys.length} compras recientes)`,
+          confidence: Math.min(50 + Math.round(avgConviction), 100),
+          markets: [market.title],
+          traders: names.slice(0, 5),
+          suggestedAction: `Acumulación contrarian. Las ballenas promedian su entrada — señal de convicción fuerte.`,
+        });
+      }
+    }
+
+    // Signal 3: YIELD + MOMENTUM — bond opportunity where SM is also bullish
+    for (const bond of bondMarkets) {
+      const matchingMarket = smartMoneyMarkets.find(m => m.conditionId === bond.conditionId);
+      if (matchingMarket && matchingMarket.capitalConsensus >= 60) {
+        const bondSideMatch = (bond.safeSide === 'YES' && matchingMarket.topOutcome.toLowerCase() === 'yes') ||
+                              (bond.safeSide === 'NO' && matchingMarket.topOutcome.toLowerCase() === 'no');
+        if (bondSideMatch) {
+          signals.push({
+            id: `yield-${bond.conditionId}`,
+            type: 'YIELD_MOMENTUM',
+            title: bond.question,
+            description: `Bond yield ${bond.returnPct.toFixed(1)}% (${bond.apy.toFixed(0)}% APY) respaldado por ${matchingMarket.traderCount} traders con ${matchingMarket.capitalConsensus}% consenso`,
+            confidence: Math.min(matchingMarket.capitalConsensus + Math.round(bond.returnPct * 5), 100),
+            markets: [bond.question],
+            traders: matchingMarket.traders.slice(0, 3).map(t => t.name),
+            suggestedAction: `Doble convicción: yield garantizado + smart money alineado. Riesgo bajo.`,
+          });
+        }
+      }
+    }
+
+    // Signal 4: HIGH CONVICTION CLUSTER — 2+ traders >20% portfolio in same market
+    const convictionMap = new Map<string, { traders: string[]; avgConviction: number; totalConviction: number }>();
+    for (const portfolio of traderPortfolios) {
+      for (const bet of portfolio.convictionBets) {
+        if (bet.pctOfPortfolio >= 20) {
+          const existing = convictionMap.get(bet.title) || { traders: [], avgConviction: 0, totalConviction: 0 };
+          existing.traders.push(portfolio.name);
+          existing.totalConviction += bet.pctOfPortfolio;
+          existing.avgConviction = existing.totalConviction / existing.traders.length;
+          convictionMap.set(bet.title, existing);
+        }
+      }
+    }
+    for (const [market, data] of convictionMap) {
+      if (data.traders.length >= 2) {
+        signals.push({
+          id: `conviction-${market.slice(0, 20)}`,
+          type: 'HIGH_CONVICTION_CLUSTER',
+          title: market,
+          description: `${data.traders.length} traders tienen >${Math.round(data.avgConviction)}% de su portafolio en este mercado`,
+          confidence: Math.min(data.traders.length * 25 + Math.round(data.avgConviction), 100),
+          markets: [market],
+          traders: data.traders.slice(0, 5),
+          suggestedAction: `Máxima convicción colectiva. Los mejores traders están all-in aquí.`,
+        });
+      }
+    }
+
+    // Signal 5: OI SURGE + CONSENSUS — high OI + high consensus
+    for (const market of smartMoneyMarkets) {
+      const oi = openInterestMap.get(market.conditionId) || 0;
+      if (oi > 100000 && market.capitalConsensus >= 70) {
+        signals.push({
+          id: `oi-${market.conditionId}`,
+          type: 'OI_SURGE_CONSENSUS',
+          title: market.title,
+          description: `${formatUSD(oi)} en Open Interest + ${market.capitalConsensus}% consenso de smart money`,
+          confidence: Math.min(Math.round((oi / 1000000) * 30 + market.capitalConsensus), 100),
+          markets: [market.title],
+          traders: market.traders.slice(0, 3).map(t => t.name),
+          suggestedAction: `Señal institucional. Alto capital en juego + ballenas alineadas.`,
+        });
+      }
+    }
+
+    return signals.sort((a, b) => b.confidence - a.confidence);
+  }, [smartMoneyMarkets, whaleSignals, bondMarkets, traderPortfolios, openInterestMap]);
+
+  // ─── TRADER RELIABILITY SCORE: should you copy this trader? ───
+  const traderReliabilityMap = useMemo(() => {
+    const map = new Map<string, { score: number; tier: 'RELIABLE' | 'MODERATE' | 'UNPROVEN' }>();
+    for (const portfolio of traderPortfolios) {
+      const cp = closedPositionsMap.get(portfolio.address);
+      const leaderboardEntry = smartMoneyLeaderboard.find(l => l.proxyWallet === portfolio.address);
+
+      // Win Rate (0-40)
+      let winRateScore = 0;
+      if (cp && (cp.wins + cp.losses) > 0) {
+        const total = cp.wins + cp.losses;
+        const winRate = cp.wins / total;
+        winRateScore = Math.min(Math.max(0, (winRate - 0.4) / 0.3 * 40), 40);
+        if (total < 5) winRateScore *= 0.5;
+        else if (total < 10) winRateScore *= 0.75;
+      }
+
+      // PnL (0-25)
+      let pnlScore = 0;
+      if (cp && cp.totalPnl > 0) pnlScore = Math.min(cp.totalPnl / 2000 * 25, 25);
+      else if (leaderboardEntry && leaderboardEntry.pnl > 0) pnlScore = Math.min(leaderboardEntry.pnl / 10000 * 15, 15);
+
+      // Diversification (0-20)
+      let divScore = 0;
+      if (portfolio.concentration >= 15 && portfolio.concentration <= 50) divScore = 20;
+      else if (portfolio.concentration < 15) divScore = 12;
+      else if (portfolio.concentration <= 70) divScore = 8;
+      else divScore = 3;
+      if (portfolio.hedges.length > 0) divScore = Math.min(divScore + 3, 20);
+
+      // Data Confidence (0-15)
+      let dataScore = 0;
+      if (cp && (cp.wins + cp.losses) >= 10) dataScore += 8;
+      else if (cp && (cp.wins + cp.losses) >= 3) dataScore += 4;
+      if (portfolio.positionCount >= 3) dataScore += 4;
+      if (leaderboardEntry) dataScore += 3;
+      dataScore = Math.min(dataScore, 15);
+
+      const score = Math.round(winRateScore + pnlScore + divScore + dataScore);
+      const tier = score >= 65 ? 'RELIABLE' as const : score >= 35 ? 'MODERATE' as const : 'UNPROVEN' as const;
+      map.set(portfolio.address, { score, tier });
+    }
+    return map;
+  }, [traderPortfolios, closedPositionsMap, smartMoneyLeaderboard]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -2048,10 +2266,11 @@ export default function PolymarketTrackerPage() {
                       </select>
                       <select
                         value={smartMoneySort}
-                        onChange={(e) => setSmartMoneySort(e.target.value as 'consensus' | 'capital' | 'traders')}
+                        onChange={(e) => setSmartMoneySort(e.target.value as 'consensus' | 'capital' | 'traders' | 'aiscore')}
                         disabled={smartMoneyLoading}
                         className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
                       >
+                        <option value="aiscore">Sort: AI Score</option>
                         <option value="traders">Sort: Traders</option>
                         <option value="consensus">Sort: Consensus</option>
                         <option value="capital">Sort: Capital</option>
@@ -2119,12 +2338,13 @@ export default function PolymarketTrackerPage() {
                 {/* Intelligence Panel Tabs — pixel grid style */}
                 {sortedSmartMoneyMarkets.length > 0 && (
                   <div className="space-y-1">
-                    <div className="grid grid-cols-4 gap-[2px] bg-green-500/10">
+                    <div className="grid grid-cols-5 gap-[2px] bg-green-500/10">
                       {([
                         { key: 'flow' as const, label: 'FLOW', icon: '◎', count: '' },
                         { key: 'signals' as const, label: 'SIGNALS', icon: '⚡', count: whaleSignals.length > 0 ? `${whaleSignals.length}` : '' },
                         { key: 'edge' as const, label: 'EDGE', icon: '◇', count: marketsWithEdge.length > 0 ? `${marketsWithEdge.length}` : '' },
                         { key: 'portfolios' as const, label: 'PORTFOLIOS', icon: '▦', count: traderPortfolios.length > 0 ? `${traderPortfolios.length}` : '' },
+                        { key: 'alpha' as const, label: 'ALPHA', icon: '★', count: alphaSignals.length > 0 ? `${alphaSignals.length}` : '' },
                       ]).map(tab => (
                         <button
                           key={tab.key}
@@ -2145,6 +2365,7 @@ export default function PolymarketTrackerPage() {
                       {smartMoneyActivePanel === 'signals' && '> whale_signals: real-time buy/sell from top PnL traders (72h)'}
                       {smartMoneyActivePanel === 'edge' && '> edge_tracker: avg entry price vs market price analysis'}
                       {smartMoneyActivePanel === 'portfolios' && '> portfolios: concentration, hedges & conviction analysis'}
+                      {smartMoneyActivePanel === 'alpha' && '> alpha_signals: cross-referenced actionable opportunities'}
                     </div>
                   </div>
                 )}
@@ -2528,7 +2749,7 @@ export default function PolymarketTrackerPage() {
                     <div className="mt-3 space-y-3">
                       {/* Summary row — pixel style */}
                       {displayPortfolios.length > 0 && (
-                        <div className="grid grid-cols-3 gap-[2px] bg-green-500/10">
+                        <div className="grid grid-cols-4 gap-[2px] bg-green-500/10">
                           <div className="bg-black/80 p-2.5 text-center">
                             <div className="text-red-400 text-lg font-bold">{concentrated.length}</div>
                             <div className="flex justify-center gap-[2px] my-1">
@@ -2555,6 +2776,16 @@ export default function PolymarketTrackerPage() {
                               ))}
                             </div>
                             <div className="text-blue-400/40 text-[9px]">HEDGED</div>
+                          </div>
+                          <div className="bg-black/80 p-2.5 text-center">
+                            <div className="text-green-400 text-lg font-bold">{displayPortfolios.filter(p => traderReliabilityMap.get(p.address)?.tier === 'RELIABLE').length}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => {
+                                const reliableCount = displayPortfolios.filter(p => traderReliabilityMap.get(p.address)?.tier === 'RELIABLE').length;
+                                return <div key={i} className={`w-2 h-2 ${i < Math.min(reliableCount, 5) ? 'bg-emerald-500' : 'bg-emerald-500/15'}`} style={{ imageRendering: 'pixelated' }} />;
+                              })}
+                            </div>
+                            <div className="text-emerald-400/40 text-[9px]">RELIABLE</div>
                           </div>
                         </div>
                       )}
@@ -2608,6 +2839,18 @@ export default function PolymarketTrackerPage() {
                                       return (
                                         <span className={`px-1 py-0.5 border text-[9px] font-bold ${wrColor}`} title={`${cp.wins}W/${cp.losses}L from resolved bets (PnL: ${formatUSD(cp.totalPnl)})`}>
                                           {winRate}% WR ({total})
+                                        </span>
+                                      );
+                                    })()}
+                                    {(() => {
+                                      const rel = traderReliabilityMap.get(portfolio.address);
+                                      if (!rel) return null;
+                                      const relColor = rel.tier === 'RELIABLE' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
+                                        rel.tier === 'MODERATE' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                        'text-gray-400 border-gray-500/30 bg-gray-500/10';
+                                      return (
+                                        <span className={`px-1 py-0.5 border text-[9px] font-bold ${relColor}`} title={`Reliability Score: ${rel.score}/100`}>
+                                          {rel.tier} {rel.score}
                                         </span>
                                       );
                                     })()}
@@ -2687,6 +2930,143 @@ export default function PolymarketTrackerPage() {
                   );
                 })()}
 
+                {/* Panel: Alpha Signals */}
+                {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'alpha' && (() => {
+                  const signalTypeConfig: Record<string, { color: string; bgColor: string; borderColor: string; icon: string; label: string }> = {
+                    'WHALE_CONVERGENCE': { color: 'text-green-400', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/30', icon: '🐋', label: 'WHALE' },
+                    'UNDERWATER_ACCUMULATION': { color: 'text-red-400', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', icon: '▼', label: 'UNDERWATER' },
+                    'YIELD_MOMENTUM': { color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30', icon: '$', label: 'YIELD' },
+                    'HIGH_CONVICTION_CLUSTER': { color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30', icon: '◆', label: 'CONVICTION' },
+                    'OI_SURGE_CONSENSUS': { color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30', icon: '◉', label: 'OI+SM' },
+                  };
+
+                  const typeCounts = {
+                    whale: alphaSignals.filter(s => s.type === 'WHALE_CONVERGENCE').length,
+                    underwater: alphaSignals.filter(s => s.type === 'UNDERWATER_ACCUMULATION').length,
+                    yield: alphaSignals.filter(s => s.type === 'YIELD_MOMENTUM').length,
+                    conviction: alphaSignals.filter(s => s.type === 'HIGH_CONVICTION_CLUSTER').length,
+                    oi: alphaSignals.filter(s => s.type === 'OI_SURGE_CONSENSUS').length,
+                  };
+
+                  const alphaAIData = {
+                    totalSignals: alphaSignals.length,
+                    signalBreakdown: typeCounts,
+                    topSignals: alphaSignals.slice(0, 10).map(s => ({
+                      type: s.type,
+                      market: s.title,
+                      confidence: s.confidence,
+                      traders: s.traders,
+                      action: s.suggestedAction,
+                      description: s.description,
+                    })),
+                  };
+
+                  return (
+                    <div className="mt-3 space-y-3">
+                      {/* Summary row — one block per signal type */}
+                      <div className="grid grid-cols-5 gap-[2px] bg-amber-500/10">
+                        {([
+                          { key: 'whale', label: 'WHALE', count: typeCounts.whale, color: 'green' },
+                          { key: 'underwater', label: 'UNDERWATER', count: typeCounts.underwater, color: 'red' },
+                          { key: 'yield', label: 'YIELD', count: typeCounts.yield, color: 'violet' },
+                          { key: 'conviction', label: 'CONVICTION', count: typeCounts.conviction, color: 'amber' },
+                          { key: 'oi', label: 'OI+SM', count: typeCounts.oi, color: 'cyan' },
+                        ] as const).map(item => (
+                          <div key={item.key} className="bg-black/80 p-2 text-center">
+                            <div className={`text-${item.color}-400 text-lg font-bold`}>{item.count}</div>
+                            <div className="flex justify-center gap-[2px] my-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className={`w-2 h-2 ${i < Math.min(item.count, 5) ? `bg-${item.color}-500` : `bg-${item.color}-500/15`}`} style={{ imageRendering: 'pixelated' }} />
+                              ))}
+                            </div>
+                            <div className={`text-${item.color}-400/40 text-[8px]`}>{item.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Signal cards */}
+                      <div className="border border-amber-500/15 bg-black/40 overflow-hidden font-mono">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-amber-500/5 border-b border-amber-500/10">
+                          <span className="text-amber-400/50 text-[10px]">{'>'} ALPHA SIGNALS — cross-referenced opportunities</span>
+                          <span className="text-amber-400/25 text-[10px]">{alphaSignals.length} signals</span>
+                        </div>
+                        {alphaSignals.length === 0 ? (
+                          <div className="p-4 text-amber-400/30 text-xs text-center">No alpha signals detected. Run a scan with more data for cross-referencing.</div>
+                        ) : (
+                          <div className="divide-y divide-amber-500/10 max-h-[500px] overflow-y-auto">
+                            {alphaSignals.map(signal => {
+                              const cfg = signalTypeConfig[signal.type] || signalTypeConfig['WHALE_CONVERGENCE'];
+                              const confColor = signal.confidence >= 75 ? 'text-green-400 border-green-500/40 bg-green-500/10' :
+                                signal.confidence >= 50 ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' :
+                                'text-red-400 border-red-500/40 bg-red-500/10';
+                              return (
+                                <div key={signal.id} className="px-3 py-2.5 hover:bg-amber-500/5 transition-colors">
+                                  {/* Header row */}
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-1.5 py-0.5 border text-[9px] font-bold ${cfg.borderColor} ${cfg.bgColor} ${cfg.color}`}>
+                                      {cfg.icon} {cfg.label}
+                                    </span>
+                                    <span className="text-amber-300/80 text-xs truncate flex-1">{signal.title}</span>
+                                    <span className={`px-1.5 py-0.5 border text-[10px] font-bold ${confColor}`}>
+                                      {signal.confidence}%
+                                    </span>
+                                  </div>
+
+                                  {/* Description */}
+                                  <div className="mt-1 text-[10px] text-amber-400/50">{signal.description}</div>
+
+                                  {/* Traders involved */}
+                                  {signal.traders.length > 0 && (
+                                    <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                      <span className="text-amber-400/30 text-[9px]">traders:</span>
+                                      {signal.traders.map((t, i) => (
+                                        <span key={i} className="text-amber-300/60 text-[9px] px-1 border border-amber-500/15 bg-amber-500/5">{t}</span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Suggested action */}
+                                  <div className="mt-1.5 flex items-start gap-1">
+                                    <span className="text-amber-400/30 text-[9px] shrink-0">action:</span>
+                                    <span className="text-amber-200/60 text-[9px]">{signal.suggestedAction}</span>
+                                  </div>
+
+                                  {/* Confidence bar */}
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="text-amber-400/30 text-[9px] w-12">confidence</span>
+                                    <div className="flex gap-[2px] flex-1">
+                                      {Array.from({ length: 10 }).map((_, i) => (
+                                        <div
+                                          key={i}
+                                          className={`flex-1 h-1 ${
+                                            i < Math.round(signal.confidence / 10)
+                                              ? signal.confidence >= 75 ? 'bg-green-500' : signal.confidence >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                              : 'bg-amber-500/10'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Explain for Alpha */}
+                      {alphaSignals.length > 0 && !smartMoneyLoading && (
+                        <AIInsightsTerminal
+                          context="smartmoney-alpha"
+                          data={alphaAIData}
+                          commandLabel="smartmoney --alpha-signals"
+                          buttonLabel="EXPLAIN ALPHA SIGNALS WITH AI"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Layer 3: Simplified Market Cards */}
                 {sortedSmartMoneyMarkets.length > 0 && (
                   <div className="space-y-[2px] font-mono">
@@ -2719,6 +3099,21 @@ export default function PolymarketTrackerPage() {
                                 <span className="text-[10px] font-bold leading-none">{market.topOutcome}</span>
                                 <span className="text-lg font-bold leading-tight">{market.topOutcomeCapitalPct}%</span>
                               </div>
+
+                              {/* AI Score badge */}
+                              {(() => {
+                                const cs = convergenceScoreMap.get(market.conditionId);
+                                if (!cs) return null;
+                                const scoreColor = cs.tier === 'STRONG' ? 'border-green-500/60 bg-green-500/15 text-green-400' :
+                                  cs.tier === 'MODERATE' ? 'border-amber-500/60 bg-amber-500/15 text-amber-400' :
+                                  'border-red-500/60 bg-red-500/15 text-red-400';
+                                return (
+                                  <div className={`shrink-0 w-11 h-14 flex flex-col items-center justify-center border rounded ${scoreColor}`} title={`AI Score: Consensus ${cs.breakdown.consensus} + Edge ${cs.breakdown.edge} + Momentum ${cs.breakdown.momentum} + Validation ${cs.breakdown.validation} + Quality ${cs.breakdown.quality}`}>
+                                    <span className="text-[8px] font-bold leading-none opacity-60">AI</span>
+                                    <span className="text-lg font-bold leading-tight">{cs.score}</span>
+                                  </div>
+                                );
+                              })()}
 
                               {/* Content */}
                               <div className="flex-1 min-w-0">
@@ -2766,12 +3161,36 @@ export default function PolymarketTrackerPage() {
                           {/* Expanded trader list */}
                           {isExp && (
                             <div className="bg-black/40 px-3 py-2 border-t border-green-500/10 space-y-1.5">
+                              {/* AI Score breakdown */}
+                              {(() => {
+                                const cs = convergenceScoreMap.get(market.conditionId);
+                                if (!cs) return null;
+                                const labels: Record<string, string> = { consensus: 'CONSENSUS', edge: 'EDGE', momentum: 'MOMENTUM', validation: 'VALIDATION', quality: 'QUALITY' };
+                                const maxPts: Record<string, number> = { consensus: 25, edge: 20, momentum: 20, validation: 15, quality: 20 };
+                                return (
+                                  <div className="grid grid-cols-5 gap-[2px] bg-green-500/10 mb-2">
+                                    {Object.entries(cs.breakdown).map(([key, value]) => (
+                                      <div key={key} className="bg-black/80 p-1.5 text-center">
+                                        <div className="text-green-400 text-sm font-bold">{value}<span className="text-green-400/30 text-[8px]">/{maxPts[key]}</span></div>
+                                        <div className="text-green-400/40 text-[8px]">{labels[key]}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                               <div className="text-green-400/40 text-[10px] mb-1">
                                 {'>'} {market.traders.length} traders in this market
                               </div>
                               {market.traders.map((trader, ti) => (
                                 <div key={trader.address} className="flex items-center gap-2 text-[10px]">
                                   <span className="text-green-400/30 w-4 shrink-0">{String(ti + 1).padStart(2, '0')}</span>
+                                  {/* Reliability dot */}
+                                  {(() => {
+                                    const r = traderReliabilityMap.get(trader.address);
+                                    if (!r) return null;
+                                    const color = r.tier === 'RELIABLE' ? 'bg-green-500' : r.tier === 'MODERATE' ? 'bg-amber-500' : 'bg-gray-500';
+                                    return <div className={`w-1.5 h-1.5 rounded-full ${color} shrink-0`} title={`${r.tier} (${r.score})`} />;
+                                  })()}
                                   <span className="text-green-400/50 w-5 shrink-0">#{trader.rank}</span>
                                   <span className={`px-1 py-0.5 border text-[9px] ${
                                     trader.outcome.toLowerCase() === 'yes'

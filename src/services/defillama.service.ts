@@ -79,22 +79,45 @@ function setCache(data: AIAgentProtocol[]): void {
   }
 }
 
+async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Validate that response is actually JSON (DefiLlama sometimes returns CloudFlare errors as 200)
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      } catch {
+        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+      }
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+  throw new Error('fetchWithRetry exhausted');
+}
+
 export const defillamaService = {
   async getAIAgentProtocols(): Promise<AIAgentProtocol[]> {
     const cached = getCached();
     if (cached) return cached;
 
-    const [protocolsRes, feesRes] = await Promise.all([
-      fetch('https://api.llama.fi/protocols'),
-      fetch('https://api.llama.fi/overview/fees'),
+    const [protocolsRes, feesRes] = await Promise.allSettled([
+      fetchWithRetry('https://api.llama.fi/protocols'),
+      fetchWithRetry('https://api.llama.fi/overview/fees'),
     ]);
 
-    if (!protocolsRes.ok || !feesRes.ok) {
-      throw new Error('Failed to fetch DefiLlama data');
+    // Protocols is required, fees is optional
+    if (protocolsRes.status !== 'fulfilled') {
+      console.warn('[DefiLlama] Failed to fetch protocols:', protocolsRes.reason);
+      throw new Error('Failed to fetch DefiLlama protocols data');
     }
 
-    const protocols = await protocolsRes.json();
-    const feesData = await feesRes.json();
+    const protocols = await protocolsRes.value.json();
+    const feesData = feesRes.status === 'fulfilled' ? await feesRes.value.json() : { protocols: [] };
 
     // Filter AI Agents category + extra known slugs
     const aiProtocols = protocols.filter(
@@ -155,9 +178,10 @@ export const defillamaService = {
 
     const responses = await Promise.allSettled(
       withTVL.map(p =>
-        fetch(`https://api.llama.fi/protocol/${p.slug}`)
-          .then(r => r.ok ? r.json() : null)
+        fetchWithRetry(`https://api.llama.fi/protocol/${p.slug}`, 1)
+          .then(r => r.json())
           .then(data => ({ slug: p.slug, name: p.name, tvl: data?.tvl || [] }))
+          .catch(() => ({ slug: p.slug, name: p.name, tvl: [] }))
       )
     );
 
