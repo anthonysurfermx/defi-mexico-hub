@@ -13,6 +13,9 @@ import { LongshotBiasChart } from './LongshotBiasChart';
 import { MakerTakerEdgeChart } from './MakerTakerEdgeChart';
 import { KellyPositionChart } from './KellyPositionChart';
 import { PolymarketFlowChart } from './PolymarketFlowChart';
+import { HyperliquidVolumeChart } from './HyperliquidVolumeChart';
+import { HyperliquidGrowthMetrics } from './HyperliquidGrowthMetrics';
+import { PerpDexMarketShare } from './PerpDexMarketShare';
 
 interface Props {
   type: string;
@@ -52,6 +55,12 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <KellyPositionChart />;
     case 'polymarket_flow':
       return <PolymarketFlowChart />;
+    case 'hl_volume':
+      return <HyperliquidVolumeChart />;
+    case 'hl_growth_metrics':
+      return <HyperliquidGrowthMetrics />;
+    case 'perp_dex_market':
+      return <PerpDexMarketShare />;
     default:
       return null;
   }

@@ -9,7 +9,7 @@ export interface ChartDataPoint {
   value: number;
 }
 
-export type ChartType = 'protocol_tvl' | 'chain_tvl' | 'protocol_fees';
+export type ChartType = 'protocol_tvl' | 'chain_tvl' | 'protocol_fees' | 'protocol_volume';
 
 interface CacheEntry {
   data: ChartDataPoint[];
@@ -75,6 +75,17 @@ async function fetchFromDefiLlamaFree(type: ChartType, identifier: string): Prom
 
     case 'protocol_fees':
       url = `https://api.llama.fi/summary/fees/${identifier}?dataType=dailyFees`;
+      transform = (data: any) => {
+        const chart = data.totalDataChart || [];
+        return chart.map((p: any) => ({
+          date: typeof p[0] === 'number' ? p[0] : new Date(p[0]).getTime() / 1000,
+          value: p[1] ?? 0,
+        }));
+      };
+      break;
+
+    case 'protocol_volume':
+      url = `https://api.llama.fi/summary/dexs/${identifier}?dataType=dailyVolume`;
       transform = (data: any) => {
         const chart = data.totalDataChart || [];
         return chart.map((p: any) => ({
