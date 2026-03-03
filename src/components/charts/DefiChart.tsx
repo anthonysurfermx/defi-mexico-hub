@@ -16,6 +16,9 @@ import { PolymarketFlowChart } from './PolymarketFlowChart';
 import { HyperliquidVolumeChart } from './HyperliquidVolumeChart';
 import { HyperliquidGrowthMetrics } from './HyperliquidGrowthMetrics';
 import { PerpDexMarketShare } from './PerpDexMarketShare';
+import { AIAgentMarketGrowthChart } from './AIAgentMarketGrowthChart';
+import { AIAgentInfraRaceChart } from './AIAgentInfraRaceChart';
+import { AIAgentTVLShareChart } from './AIAgentTVLShareChart';
 
 interface Props {
   type: string;
@@ -61,6 +64,12 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <HyperliquidGrowthMetrics />;
     case 'perp_dex_market':
       return <PerpDexMarketShare />;
+    case 'ai_agent_market_growth':
+      return <AIAgentMarketGrowthChart />;
+    case 'ai_agent_infra_race':
+      return <AIAgentInfraRaceChart />;
+    case 'ai_agent_tvl_share':
+      return <AIAgentTVLShareChart />;
     default:
       return null;
   }
