@@ -372,6 +372,25 @@ async function discoverMarkets(query: string): Promise<MarketInfo[]> {
 
   const now = Date.now();
   const q = query.toLowerCase();
+  const isTrending = q === 'trending' || q === 'tendencias' || q === 'top';
+
+  // For trending queries, return top markets by volume (no keyword filter)
+  if (isTrending) {
+    const activeMarkets = allMarkets.filter((m: any) => new Date(m.endDate).getTime() > now);
+    activeMarkets.sort((a: any, b: any) => (parseFloat(b.volume24hr) || parseFloat(b.volume) || 0) - (parseFloat(a.volume24hr) || parseFloat(a.volume) || 0));
+    return activeMarkets.slice(0, MAX_MARKETS).map((m: any) => {
+      const prices = parseOutcomePrices(m.outcomePrices);
+      return {
+        question: m.question || m.slug,
+        conditionId: m.conditionId || '',
+        slug: m.slug || '',
+        yesPrice: prices[0] || 0,
+        noPrice: prices[1] || 0,
+        volume: parseFloat(m.volume) || 0,
+        endDate: m.endDate || '',
+      };
+    });
+  }
 
   // Known asset aliases
   const assetAliases: Record<string, string[]> = {

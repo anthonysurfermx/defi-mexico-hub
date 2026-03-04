@@ -56,7 +56,20 @@ interface ChatMessage {
   timestamp: number;
 }
 
-// --- Helpers ---
+// --- Constants ---
+
+const FETCH_TIMEOUT_MS = 45_000;
+const SESSION_KEY = 'claw-chat-messages';
+const SESSION_STATE_KEY = 'claw-chat-state';
+
+const QUICK_CHIPS = [
+  { label: 'Bitcoin', query: 'bitcoin' },
+  { label: 'Trump', query: 'trump' },
+  { label: 'Ethereum', query: 'ethereum' },
+  { label: 'NBA', query: 'nba' },
+  { label: 'Fed', query: 'fed interest rate' },
+  { label: 'Crypto', query: 'crypto' },
+];
 
 const CONFIDENCE_COLORS = {
   high: { border: 'border-green-500/30', bg: 'bg-green-500/5', text: 'text-green-400', badge: 'bg-green-500/20 text-green-400' },
@@ -75,7 +88,50 @@ const WELCOME_MESSAGES: ChatMessage[] = [
   { id: 'sys4', role: 'system', text: '[SYS] Example: "Tengo $1,000 quiero ganar 5% con riesgo medio"', timestamp: Date.now() },
 ];
 
-// --- Components ---
+// --- Helpers ---
+
+function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeout));
+}
+
+function loadSessionMessages(): ChatMessage[] | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const msgs = JSON.parse(raw) as ChatMessage[];
+    // Strip streaming state from restored messages
+    return msgs.map(m => ({ ...m, streaming: undefined }));
+  } catch {
+    return null;
+  }
+}
+
+function saveSessionMessages(msgs: ChatMessage[]) {
+  try {
+    // Only save non-streaming messages to avoid stale state
+    const clean = msgs.map(m => ({ ...m, streaming: undefined }));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(clean));
+  } catch { /* quota exceeded */ }
+}
+
+function loadSessionState(): { amount: number; risk: string; query: string; opportunities: OpportunityResult[] } | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSessionState(state: { amount: number; risk: string; query: string; opportunities: OpportunityResult[] }) {
+  try {
+    sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state));
+  } catch { /* quota exceeded */ }
+}
+
+// --- Sub-components ---
 
 const OpportunityCard: React.FC<{ opp: OpportunityResult; index: number; onSelect: (n: number) => void }> = ({ opp, index, onSelect }) => {
   const c = CONFIDENCE_COLORS[opp.probability.confidence];
@@ -174,13 +230,18 @@ const ProgressBar: React.FC<{ text: string }> = ({ text }) => {
 // --- Main Component ---
 
 export const ClawTraderChat: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>(WELCOME_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    return loadSessionMessages() || WELCOME_MESSAGES;
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [lastOpportunities, setLastOpportunities] = useState<OpportunityResult[]>([]);
-  const [lastAmount, setLastAmount] = useState(1000);
-  const [lastRisk, setLastRisk] = useState('medium');
-  const [lastQuery, setLastQuery] = useState('');
+  const [lastOpportunities, setLastOpportunities] = useState<OpportunityResult[]>(() => {
+    return loadSessionState()?.opportunities || [];
+  });
+  const [lastAmount, setLastAmount] = useState(() => loadSessionState()?.amount || 1000);
+  const [lastRisk, setLastRisk] = useState(() => loadSessionState()?.risk || 'medium');
+  const [lastQuery, setLastQuery] = useState(() => loadSessionState()?.query || '');
+  const [scanProgress, setScanProgress] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -193,6 +254,16 @@ export const ClawTraderChat: React.FC = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Persist messages to sessionStorage
+  useEffect(() => {
+    saveSessionMessages(messages);
+  }, [messages]);
+
+  // Persist state
+  useEffect(() => {
+    saveSessionState({ amount: lastAmount, risk: lastRisk, query: lastQuery, opportunities: lastOpportunities });
+  }, [lastAmount, lastRisk, lastQuery, lastOpportunities]);
 
   const addMessage = useCallback((msg: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     setMessages(prev => [...prev, { ...msg, id: genId(), timestamp: Date.now() }]);
@@ -212,7 +283,7 @@ export const ClawTraderChat: React.FC = () => {
     addMessage({ role: 'assistant', text: '', streaming: '' });
 
     try {
-      const res = await fetch('/api/explain', {
+      const res = await fetchWithTimeout('/api/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ context, data, language: 'auto' }),
@@ -250,36 +321,57 @@ export const ClawTraderChat: React.FC = () => {
       }
 
       updateLastMessage({ text: accumulated, streaming: undefined });
-    } catch {
-      updateLastMessage({ text: '[CLW] Stream interrupted.', streaming: undefined });
+    } catch (err) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+      updateLastMessage({
+        text: isTimeout ? '[CLW] AI analysis timed out. Results above are still valid.' : '[CLW] Stream interrupted.',
+        streaming: undefined,
+      });
     }
   }, [addMessage, updateLastMessage]);
 
   // Handle FIND_OPPORTUNITIES
   const handleFindOpportunities = useCallback(async (intent: ChatIntent) => {
-    const amount = intent.amount || 1000;
+    const amount = intent.amount || lastAmount;
     const risk = intent.risk || 'medium';
-    const query = intent.query || 'bitcoin';
+    const query = intent.query || '';
 
     setLastAmount(amount);
     setLastRisk(risk);
-    setLastQuery(query);
+
+    // If no query, fetch trending markets
+    const isTrending = !query;
+    const displayQuery = isTrending ? 'trending' : query;
+    setLastQuery(displayQuery);
 
     addMessage({
       role: 'assistant',
-      text: `[CLW] Scanning markets for $${amount.toLocaleString()}, ${risk} risk...`,
-      attachment: { type: 'loading', text: `Scanning "${query}" markets, analyzing holders, computing VPIN` },
+      text: `[CLW] ${isTrending ? 'Fetching top markets' : `Scanning "${query}" markets`} for $${amount.toLocaleString()}, ${risk} risk...`,
+      attachment: { type: 'loading', text: isTrending ? 'Loading top markets by volume' : `Scanning "${query}" markets, analyzing holders, computing VPIN` },
     });
 
+    setScanProgress('Discovering markets...');
+
     try {
-      const res = await fetch(`/api/chat-analyze?query=${encodeURIComponent(query)}&amount=${amount}&risk=${risk}`);
+      const url = isTrending
+        ? `/api/chat-analyze?query=trending&amount=${amount}&risk=${risk}`
+        : `/api/chat-analyze?query=${encodeURIComponent(query)}&amount=${amount}&risk=${risk}`;
+
+      setScanProgress('Connecting to Polymarket...');
+      const res = await fetchWithTimeout(url);
+
+      setScanProgress('Processing results...');
       const data = await res.json();
 
       if (!data.ok || !data.opportunities || data.opportunities.length === 0) {
+        const suggestions = isTrending
+          ? 'Polymarket may be down. Try again in a minute.'
+          : `No markets for "${query}". Try: bitcoin, trump, nba, ethereum, crypto, fed`;
         updateLastMessage({
-          text: `[CLW] No opportunities found for "${query}". Try: bitcoin, trump, nba, ethereum...`,
+          text: `[CLW] ${suggestions}`,
           attachment: { type: 'error', text: data.message || 'No markets found' },
         });
+        setScanProgress('');
         return;
       }
 
@@ -287,9 +379,11 @@ export const ClawTraderChat: React.FC = () => {
       setLastOpportunities(opps);
 
       updateLastMessage({
-        text: `[CLW] Found ${opps.length} opportunit${opps.length === 1 ? 'y' : 'ies'} in ${(data.scanTime / 1000).toFixed(1)}s`,
+        text: `[CLW] Found ${opps.length} opportunit${opps.length === 1 ? 'y' : 'ies'} in ${(data.scanTime / 1000).toFixed(1)}s (${data.marketsFound} markets scanned)`,
         attachment: { type: 'opportunities', data: opps },
       });
+
+      setScanProgress('');
 
       // Stream AI explanation
       await streamExplanation('chat-opportunity', {
@@ -299,12 +393,16 @@ export const ClawTraderChat: React.FC = () => {
         userQuery: intent.raw,
       });
     } catch (err) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
       updateLastMessage({
-        text: '[CLW] Analysis failed. Please try again.',
-        attachment: { type: 'error', text: String(err) },
+        text: isTimeout
+          ? '[CLW] Scan timed out (>45s). Polymarket API may be slow. Try a more specific query or try again.'
+          : '[CLW] Analysis failed. Please try again.',
+        attachment: { type: 'error', text: isTimeout ? 'Timeout — try "bitcoin" or "trump" for faster results' : String(err) },
       });
+      setScanProgress('');
     }
-  }, [addMessage, updateLastMessage, streamExplanation]);
+  }, [lastAmount, addMessage, updateLastMessage, streamExplanation]);
 
   // Handle ANALYZE_MARKET (#1, #2, etc)
   const handleAnalyzeMarket = useCallback(async (intent: ChatIntent) => {
@@ -312,7 +410,9 @@ export const ClawTraderChat: React.FC = () => {
     if (ref < 0 || ref >= lastOpportunities.length) {
       addMessage({
         role: 'assistant',
-        text: `[CLW] No market #${ref + 1} found. Available: #1-${lastOpportunities.length}`,
+        text: lastOpportunities.length === 0
+          ? '[CLW] No results yet. Search for markets first (e.g. "bitcoin" or "$1000 riesgo medio")'
+          : `[CLW] No market #${ref + 1} found. Available: #1-${lastOpportunities.length}`,
       });
       return;
     }
@@ -353,11 +453,11 @@ export const ClawTraderChat: React.FC = () => {
   }, [lastAmount, lastRisk, handleFindOpportunities]);
 
   // Handle send
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
+  const handleSend = useCallback(async (overrideText?: string) => {
+    const text = (overrideText || input).trim();
     if (!text || isLoading) return;
 
-    setInput('');
+    if (!overrideText) setInput('');
     addMessage({ role: 'user', text: `[YOU] ${text}` });
     setIsLoading(true);
 
@@ -387,7 +487,7 @@ export const ClawTraderChat: React.FC = () => {
 >   "bitcoin", "trump", "nba", "ethereum"
 >
 > Deep analyze a result:
->   "#1" or "dime más sobre el primero"
+>   "#1" or "dime m\u00e1s sobre el primero"
 >
 > I'll scan markets, detect bots, compute VPIN,
 > and size your position with Kelly Criterion.`,
@@ -402,25 +502,37 @@ export const ClawTraderChat: React.FC = () => {
       addMessage({ role: 'assistant', text: '[CLW] Something went wrong. Try again.' });
     } finally {
       setIsLoading(false);
+      setScanProgress('');
     }
   }, [input, isLoading, addMessage, handleFindOpportunities, handleAnalyzeMarket, handleSearchMarket]);
 
   const handleSelectOpportunity = useCallback((n: number) => {
     if (isLoading) return;
-    setInput(`#${n}`);
-    // Auto-send
     addMessage({ role: 'user', text: `[YOU] #${n}` });
     setIsLoading(true);
     handleAnalyzeMarket({ type: 'ANALYZE_MARKET', marketRef: n, raw: `#${n}` }).finally(() => setIsLoading(false));
-    setInput('');
   }, [isLoading, addMessage, handleAnalyzeMarket]);
 
+  const handleChipClick = useCallback((query: string) => {
+    if (isLoading) return;
+    handleSend(query);
+  }, [isLoading, handleSend]);
+
+  const handleClearChat = useCallback(() => {
+    setMessages(WELCOME_MESSAGES);
+    setLastOpportunities([]);
+    setLastQuery('');
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_STATE_KEY);
+    inputRef.current?.focus();
+  }, []);
+
   return (
-    <div className="border border-green-500/20 bg-black/60 overflow-hidden font-mono flex flex-col h-[calc(100vh-12rem)]">
+    <div className="border border-green-500/20 bg-black/60 overflow-hidden font-mono flex flex-col h-[calc(100vh-12rem)] min-h-[400px]">
       {/* Terminal header */}
       <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border-b border-green-500/20 shrink-0">
         <div className="flex gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-red-500/60" />
+          <div className="w-2 h-2 rounded-full bg-red-500/60 cursor-pointer" onClick={handleClearChat} title="Clear chat" />
           <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
           <div className="w-2 h-2 rounded-full bg-green-500/60" />
         </div>
@@ -428,6 +540,9 @@ export const ClawTraderChat: React.FC = () => {
           claw-trader --chat --intelligence-engine
         </span>
         <div className="ml-auto flex items-center gap-2">
+          {scanProgress && (
+            <span className="text-[8px] text-green-400/50 animate-pulse">{scanProgress}</span>
+          )}
           <span className="text-[8px] text-green-400/30">9-signal</span>
           <span className="text-[8px] text-cyan-400/30">VPIN</span>
           <span className="text-[8px] text-amber-400/30">Kelly</span>
@@ -446,7 +561,6 @@ export const ClawTraderChat: React.FC = () => {
                 'text-green-400/80'
               }`}>
                 {msg.role === 'assistant' && !msg.text.startsWith('[CLW]') && !msg.text.startsWith('>') ? (
-                  // Streaming/AI text — render with > prefix per line
                   msg.text.split('\n').map((line, i) => (
                     <div key={i}>
                       <span className="text-green-400/30">{'> '}</span>{line}
@@ -551,9 +665,25 @@ export const ClawTraderChat: React.FC = () => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-3 py-2 bg-green-500/5 border-t border-green-500/20 shrink-0">
-        <div className="flex items-center gap-2">
+      {/* Input area */}
+      <div className="bg-green-500/5 border-t border-green-500/20 shrink-0">
+        {/* Quick chips — only show when not loading and no previous results */}
+        {!isLoading && lastOpportunities.length === 0 && (
+          <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+            {QUICK_CHIPS.map(chip => (
+              <button
+                key={chip.query}
+                onClick={() => handleChipClick(chip.query)}
+                className="text-[9px] px-2 py-0.5 border border-green-500/20 text-green-400/50 hover:text-green-400 hover:border-green-500/40 hover:bg-green-500/5 transition-all"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Input row */}
+        <div className="flex items-center gap-2 px-3 py-2">
           <span className="text-green-400/40 text-[11px]">{'>'}</span>
           <input
             ref={inputRef}

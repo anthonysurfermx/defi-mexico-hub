@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
 
 // Rate limiting: simple in-memory store (resets on cold start, good enough for MVP)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
+const RATE_LIMIT = 50;
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function isRateLimited(ip: string): boolean {
