@@ -19,6 +19,7 @@ import { PerpDexMarketShare } from './PerpDexMarketShare';
 import { AIAgentMarketGrowthChart } from './AIAgentMarketGrowthChart';
 import { AIAgentInfraRaceChart } from './AIAgentInfraRaceChart';
 import { AIAgentTVLShareChart } from './AIAgentTVLShareChart';
+import { AIAgentSkillsTable } from './AIAgentSkillsTable';
 
 interface Props {
   type: string;
@@ -70,6 +71,8 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <AIAgentInfraRaceChart />;
     case 'ai_agent_tvl_share':
       return <AIAgentTVLShareChart />;
+    case 'ai_agent_skills_table':
+      return <AIAgentSkillsTable />;
     default:
       return null;
   }
