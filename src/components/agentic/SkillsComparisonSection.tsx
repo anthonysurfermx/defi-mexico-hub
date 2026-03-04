@@ -139,6 +139,23 @@ const PLATFORMS: Platform[] = [
       { name: 'Auto Key Acquisition', description: 'Agents autonomously acquire API keys, compute, data streams, storage' },
     ],
   },
+  {
+    name: 'PancakeSwap',
+    type: 'DEX',
+    launch: 'Mar 2026',
+    chains: 'BSC, ETH, Arb, Base, zkSync, Linea',
+    chainCount: 6,
+    mcp: false,
+    integration: ['Claude Code', 'Cursor', 'Windsurf', 'Copilot', 'SKILL.md'],
+    github: [{ label: 'pancakeswap/pancakeswap-ai', url: 'https://github.com/pancakeswap/pancakeswap-ai' }],
+    skills: [
+      { name: 'swap-planner', description: 'Token discovery, contract verification, pricing data retrieval, and deep link generation to PancakeSwap swap UI' },
+      { name: 'liquidity-planner', description: 'LP position management across V2, V3, and StableSwap pools with pool analysis and APY calculations' },
+      { name: 'farming-planner', description: 'Farm identification, yield comparison, CAKE staking strategy planning, and farming UI link generation' },
+      { name: 'pancakeswap-driver', description: 'Plugin for programmatic interaction with PancakeSwap protocols — execute swaps and manage positions on-chain' },
+      { name: 'pancakeswap-farming', description: 'Plugin for automated farming workflows — stake/unstake LP tokens, harvest CAKE rewards, compound yields' },
+    ],
+  },
 ];
 
 interface CategoryDef {
