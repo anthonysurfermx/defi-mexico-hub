@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ClawTraderHero } from '@/components/claw-trader/ClawTraderHero';
+import { AlphaRadar } from '@/components/claw-trader/AlphaRadar';
 import { DivergenceScanner } from '@/components/claw-trader/DivergenceScanner';
 import { SignalFeed, type SignalEntry } from '@/components/claw-trader/SignalFeed';
 import { AgentDetectionPanel } from '@/components/claw-trader/AgentDetectionPanel';
+import { SmartMoneyCompass } from '@/components/claw-trader/SmartMoneyCompass';
 import { RiskDashboard } from '@/components/claw-trader/RiskDashboard';
 import type { SignalResponse } from '@/lib/onchainos/types';
 
@@ -52,6 +54,20 @@ export default function ClawTraderPage() {
     setSignals([]);
   }, []);
 
+  const [detectedAgents, setDetectedAgents] = useState<Array<{
+    address: string;
+    score: number;
+    direction: 'YES' | 'NO';
+    positionDelta: number;
+    outcomePrice?: number;
+    classification: string;
+    strategy: string;
+  }>>([]);
+
+  const handleAgentsDetected = useCallback((agents: typeof detectedAgents) => {
+    setDetectedAgents(agents);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -64,6 +80,12 @@ export default function ClawTraderPage() {
         <ClawTraderHero
           onPricesUpdate={handlePricesUpdate}
           onStatusUpdate={handleStatusUpdate}
+        />
+
+        {/* Alpha Radar — full width, ranked opportunities */}
+        <AlphaRadar
+          livePrices={livePrices}
+          onSignal={handleSignal}
         />
 
         {/* Two-column layout for scanner + feed on desktop */}
@@ -83,10 +105,13 @@ export default function ClawTraderPage() {
 
         {/* Two-column layout for detection + risk on desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Section D: Agent Detection */}
-          <AgentDetectionPanel />
+          {/* Left: Agent Detection + Smart Money Compass stacked */}
+          <div className="space-y-3">
+            <AgentDetectionPanel onAgentsDetected={handleAgentsDetected} />
+            <SmartMoneyCompass agents={detectedAgents} />
+          </div>
 
-          {/* Section E: Risk Dashboard */}
+          {/* Right: Risk Dashboard */}
           <RiskDashboard
             signals={signals}
             maxPositionUsdc={connectionStatus.maxPositionUsdc}

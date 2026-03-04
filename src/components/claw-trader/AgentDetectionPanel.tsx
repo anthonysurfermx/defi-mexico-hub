@@ -13,7 +13,11 @@ interface DetectedAgentData {
   strategy: string;
 }
 
-export const AgentDetectionPanel: React.FC = () => {
+interface AgentDetectionPanelProps {
+  onAgentsDetected?: (agents: DetectedAgentData[]) => void;
+}
+
+export const AgentDetectionPanel: React.FC<AgentDetectionPanelProps> = ({ onAgentsDetected }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -43,7 +47,7 @@ export const AgentDetectionPanel: React.FC = () => {
             detected.push({
               address: trader.proxyWallet,
               score: result.botScore,
-              direction: 'YES',
+              direction: result.strategy.directionalBias > 60 ? 'YES' : 'NO',
               positionDelta: trader.volume > 0 ? Math.min(trader.volume * 0.01, 5000) : 1000,
               classification: result.classification,
               strategy: result.strategy.type,
@@ -55,6 +59,7 @@ export const AgentDetectionPanel: React.FC = () => {
       }
 
       setAgents(detected);
+      onAgentsDetected?.(detected);
       setMarketSlug(input.trim());
       setProgress(detected.length > 0
         ? `${detected.length} agents found (score ≥ 80)`
@@ -87,7 +92,7 @@ export const AgentDetectionPanel: React.FC = () => {
             detected.push({
               address: trader.proxyWallet,
               score: result.botScore,
-              direction: 'YES',
+              direction: result.strategy.directionalBias > 60 ? 'YES' : 'NO',
               positionDelta: trader.volume > 0 ? Math.min(trader.volume * 0.01, 5000) : 1000,
               classification: result.classification,
               strategy: result.strategy.type,
@@ -99,6 +104,7 @@ export const AgentDetectionPanel: React.FC = () => {
       }
 
       setAgents(detected);
+      onAgentsDetected?.(detected);
       setMarketSlug('smart-money-leaderboard');
       setProgress(detected.length > 0
         ? `${detected.length} agents found in top 10 traders`
