@@ -1,7 +1,7 @@
 import { useState, Fragment } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, Zap, Shield, Wallet, BarChart3, Globe, Users, Fingerprint, ArrowLeftRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Zap, Shield, Wallet, BarChart3, Globe, Users, Fingerprint, ArrowLeftRight, Github } from 'lucide-react';
 
 interface Skill {
   name: string;
@@ -17,6 +17,7 @@ interface Platform {
   mcp: boolean;
   skills: Skill[];
   integration: string[];
+  github: { label: string; url: string }[];
 }
 
 const PLATFORMS: Platform[] = [
@@ -28,6 +29,7 @@ const PLATFORMS: Platform[] = [
     chainCount: 5,
     mcp: true,
     integration: ['OpenClaw', 'Claude', 'X/Farcaster', 'ERC-8004'],
+    github: [{ label: 'BankrBot/skills', url: 'https://github.com/BankrBot/skills' }],
     skills: [
       { name: 'bankr', description: 'Launch tokens, earn from every trade, fund agents. Built-in wallet with hallucination guards + TX verification' },
       { name: 'siwa', description: 'Sign-In With Agent (SIWA) auth for ERC-8004 agents. Message signing via Bankr wallets + ERC-8128 route protection' },
@@ -51,6 +53,7 @@ const PLATFORMS: Platform[] = [
     chainCount: 1,
     mcp: true,
     integration: ['MCP', 'Cursor', 'Claude Desktop', 'OpenClaw'],
+    github: [{ label: 'binance/binance-skills-hub', url: 'https://github.com/binance/binance-skills-hub' }],
     skills: [
       { name: 'Binance Spot Skill', description: 'Real-time market data (order book, price, depth, candlesticks) + trade execution (OCO/OPO/OTOCO)' },
       { name: 'Query Address Info', description: 'Wallet holdings breakdown, valuation, 24h changes, concentration insights, whale tracking' },
@@ -69,6 +72,7 @@ const PLATFORMS: Platform[] = [
     chainCount: 60,
     mcp: true,
     integration: ['MCP', 'AI Skills', 'REST API', 'Claude Code', 'Cursor'],
+    github: [{ label: 'okx/onchainos-skills', url: 'https://github.com/okx/onchainos-skills' }],
     skills: [
       { name: 'Wallet', description: 'Query balances, broadcast transactions, retrieve history across 20+ chains' },
       { name: 'Trade', description: 'Smart routing across 500+ DEXs for optimal swap execution and pricing' },
@@ -85,6 +89,7 @@ const PLATFORMS: Platform[] = [
     chainCount: 9,
     mcp: true,
     integration: ['MCP Server', 'CLI', 'OpenClaw', 'Manus', 'Claude'],
+    github: [{ label: 'bitget-wallet-ai-lab/bitget-wallet-skill', url: 'https://github.com/bitget-wallet-ai-lab/bitget-wallet-skill' }],
     skills: [
       { name: 'Token Info Queries', description: 'Detailed data about any cryptocurrency token via natural language' },
       { name: 'Candlestick Market Data', description: 'Historical and real-time price charting across supported chains' },
@@ -103,6 +108,7 @@ const PLATFORMS: Platform[] = [
     chainCount: 12,
     mcp: false,
     integration: ['CLI', 'Python', 'TypeScript', 'GitHub'],
+    github: [{ label: 'Uniswap/uniswap-ai', url: 'https://github.com/Uniswap/uniswap-ai' }],
     skills: [
       { name: 'v4-security-foundations', description: 'Security patterns for Uniswap v4 hooks, prevents agent-introduced vulnerabilities' },
       { name: 'configurator', description: 'Pool configuration, parameter setup, treasury pool initialization' },
@@ -121,6 +127,10 @@ const PLATFORMS: Platform[] = [
     chainCount: 15,
     mcp: false,
     integration: ['x402 Protocol', 'Agentic Wallets SDK', 'Base L2'],
+    github: [
+      { label: 'coinbase/agentkit', url: 'https://github.com/coinbase/agentkit' },
+      { label: 'coinbase/x402', url: 'https://github.com/coinbase/x402' },
+    ],
     skills: [
       { name: 'Agentic Wallets', description: 'Non-custodial wallets in TEEs for autonomous agent fund management' },
       { name: 'x402 Payments', description: 'Machine-to-machine payments, 50M+ transactions processed' },
@@ -313,13 +323,26 @@ export function SkillsComparisonSection() {
                       <tr className="border-b border-amber-500/10">
                         <td colSpan={5 + CATEGORIES.length} className="p-0">
                           <div className="bg-black/40 px-4 py-3 border-l-2 border-amber-500/40">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
                               <span className="text-[10px] font-mono text-amber-400/60">
                                 {'>'} LAUNCH: {p.launch}
                               </span>
                               <span className="text-[10px] font-mono text-amber-400/60">
                                 {'>'} INTEGRATIONS: {p.integration.join(', ')}
                               </span>
+                              {p.github.map((g) => (
+                                <a
+                                  key={g.url}
+                                  href={g.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400/80 hover:text-amber-300 transition-colors"
+                                >
+                                  <Github className="w-3 h-3" />
+                                  {g.label}
+                                </a>
+                              ))}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                               {p.skills.map((s, i) => (
