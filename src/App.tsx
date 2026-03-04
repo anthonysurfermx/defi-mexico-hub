@@ -53,6 +53,7 @@ const AgenticWorldPage = lazy(() => import('@/pages/AgenticWorldPage'));
 const AgenticLeaderboardPage = lazy(() => import('@/pages/AgenticLeaderboardPage'));
 const PolymarketTrackerPage = lazy(() => import('@/pages/PolymarketTrackerPage'));
 const ConsensusPage = lazy(() => import('@/pages/ConsensusPage'));
+const ClawTraderPage = lazy(() => import('@/pages/ClawTraderPage'));
 
 
 // Auth pages
@@ -490,6 +491,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <ConsensusPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/claw-trader',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ClawTraderPage />
                 </Suspense>
               ),
             },

@@ -17,6 +17,7 @@ import { detectBot, type BotDetectionResult, type SignalProgress, type MarketCon
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
 import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 import { ProWaitlistForm } from '@/components/agentic/ProWaitlistForm';
+import { SignalPanel } from '@/components/agentic/SignalPanel';
 import { supabase } from '@/lib/supabase';
 import { useScanLimit } from '@/hooks/useScanLimit';
 import { toast } from 'sonner';
@@ -1964,6 +1965,31 @@ export default function PolymarketTrackerPage() {
                   {'>'} {marketHolders.length} holders loaded | all scanned for agent behavior
                 </div>
               </div>
+            )}
+
+            {/* OnchainOS Signal Panel — aparece cuando hay agentes con score ≥ 80 */}
+            {marketHolders.some(h => h.bot && h.bot.botScore >= 80) && eventInfo && (
+              <SignalPanel
+                detectedAgents={marketHolders
+                  .filter(h => h.bot && h.bot.botScore >= 80)
+                  .map(h => {
+                    // Precio real del outcome desde marketInfo o eventInfo
+                    const isYes = h.outcome?.toUpperCase() === 'YES';
+                    const outcomePrice = marketInfo?.outcomePrices
+                      ? parseFloat(marketInfo.outcomePrices[isYes ? 0 : 1]) || 0.5
+                      : eventInfo.markets?.[0]?.yesPrice
+                        ? (isYes ? eventInfo.markets[0].yesPrice : 1 - eventInfo.markets[0].yesPrice)
+                        : 0.5;
+                    return {
+                      address: h.address,
+                      score: h.bot!.botScore,
+                      direction: (isYes ? 'YES' : 'NO') as 'YES' | 'NO',
+                      positionDelta: h.amount,
+                      outcomePrice,
+                    };
+                  })}
+                marketSlug={eventInfo.slug}
+              />
             )}
             </>)}
 

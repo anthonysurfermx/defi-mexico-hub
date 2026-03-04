@@ -430,8 +430,8 @@ export default function AgenticWorldPage() {
           </div>
         </div>
 
-        {/* ============ 3 TOOLS ============ */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        {/* ============ 4 TOOLS ============ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
           {/* Market Scanner */}
           <div
             className="group relative border border-cyan-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-cyan-500/60 transition-all duration-300"
@@ -485,6 +485,25 @@ export default function AgenticWorldPage() {
               <div className="text-violet-400/40 text-xs mb-4 leading-relaxed">Live ranking of 30+ AI protocols. Track TVL, fees, and real-time performance.</div>
               <div className="flex items-center gap-1.5 text-violet-400/30 text-[10px] group-hover:text-violet-400 transition-colors">
                 <span>EXPLORE</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+
+          {/* Claw Trader */}
+          <div
+            className="group relative border border-green-500/20 bg-black/60 overflow-hidden cursor-pointer hover:border-green-500/60 transition-all duration-300"
+            onClick={() => navigate('/agentic-world/claw-trader')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-green-500/0 to-green-500/0 group-hover:from-green-500/5 group-hover:to-green-500/10 transition-all duration-300" />
+            <div className="relative p-6 md:p-8 font-mono flex flex-col items-center text-center">
+              <div className="w-16 h-16 border-2 border-green-500/30 bg-green-500/5 flex items-center justify-center mb-4 group-hover:border-green-500/60 group-hover:bg-green-500/10 group-hover:scale-110 transition-all duration-300">
+                <PixelLobster size={32} className="text-green-400" />
+              </div>
+              <div className="text-green-300 text-lg font-bold mb-1">Claw Trader</div>
+              <div className="text-green-400/40 text-xs mb-4 leading-relaxed">Detect agent signals, scan OKX divergence, and execute trades autonomously.</div>
+              <div className="flex items-center gap-1.5 text-green-400/30 text-[10px] group-hover:text-green-400 transition-colors">
+                <span>TRADE</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
