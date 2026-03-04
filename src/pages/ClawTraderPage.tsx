@@ -1,12 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ClawTraderHero } from '@/components/claw-trader/ClawTraderHero';
+import { OnboardingSection } from '@/components/claw-trader/OnboardingSection';
 import { AlphaRadar } from '@/components/claw-trader/AlphaRadar';
 import { DivergenceScanner } from '@/components/claw-trader/DivergenceScanner';
 import { SignalFeed, type SignalEntry } from '@/components/claw-trader/SignalFeed';
+import { MarketTimeframeSelector, type DiscoveredMarket } from '@/components/claw-trader/MarketTimeframeSelector';
 import { AgentDetectionPanel } from '@/components/claw-trader/AgentDetectionPanel';
 import { SmartMoneyCompass } from '@/components/claw-trader/SmartMoneyCompass';
 import { RiskDashboard } from '@/components/claw-trader/RiskDashboard';
+import { useTraderScan } from '@/hooks/useTraderScan';
 import type { SignalResponse } from '@/lib/onchainos/types';
 
 const MAX_SIGNALS = 50;
@@ -21,6 +24,15 @@ export default function ClawTraderPage() {
     minDivergence: '3',
     maxLeverage: '5',
   });
+
+  // Market selector state
+  const [selectedMarket, setSelectedMarket] = useState<DiscoveredMarket | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<string>('BTC');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('');
+  const marketSectionRef = useRef<HTMLDivElement>(null);
+
+  // 200-trader scan hook
+  const { startScan, cancelScan, progress, allResults, botResults, isScanning } = useTraderScan();
 
   const handlePricesUpdate = useCallback((prices: Record<string, number>) => {
     setLivePrices(prices);
@@ -54,19 +66,20 @@ export default function ClawTraderPage() {
     setSignals([]);
   }, []);
 
-  const [detectedAgents, setDetectedAgents] = useState<Array<{
-    address: string;
-    score: number;
-    direction: 'YES' | 'NO';
-    positionDelta: number;
-    outcomePrice?: number;
-    classification: string;
-    strategy: string;
-  }>>([]);
-
-  const handleAgentsDetected = useCallback((agents: typeof detectedAgents) => {
-    setDetectedAgents(agents);
+  const handleMarketSelected = useCallback((market: DiscoveredMarket, asset: string, timeframe: string) => {
+    setSelectedMarket(market);
+    setSelectedAsset(asset);
+    setSelectedTimeframe(timeframe);
   }, []);
+
+  const handleGetStarted = useCallback(() => {
+    marketSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  // Market label for display
+  const marketLabel = selectedMarket
+    ? `${selectedAsset.toLowerCase()}-${selectedTimeframe}`
+    : undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,6 +94,9 @@ export default function ClawTraderPage() {
           onPricesUpdate={handlePricesUpdate}
           onStatusUpdate={handleStatusUpdate}
         />
+
+        {/* Onboarding — dismissible intro */}
+        <OnboardingSection onGetStarted={handleGetStarted} />
 
         {/* Alpha Radar — full width, ranked opportunities */}
         <AlphaRadar
@@ -103,12 +119,27 @@ export default function ClawTraderPage() {
           />
         </div>
 
+        {/* Market Timeframe Selector — full width */}
+        <div ref={marketSectionRef}>
+          <MarketTimeframeSelector
+            onMarketSelected={handleMarketSelected}
+            onStartScan={startScan}
+            isScanning={isScanning}
+          />
+        </div>
+
         {/* Two-column layout for detection + risk on desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* Left: Agent Detection + Smart Money Compass stacked */}
           <div className="space-y-3">
-            <AgentDetectionPanel onAgentsDetected={handleAgentsDetected} />
-            <SmartMoneyCompass agents={detectedAgents} />
+            <AgentDetectionPanel
+              isScanning={isScanning}
+              progress={progress}
+              botResults={botResults}
+              allResults={allResults}
+              marketLabel={marketLabel}
+            />
+            <SmartMoneyCompass agents={botResults} />
           </div>
 
           {/* Right: Risk Dashboard */}

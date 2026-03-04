@@ -19,6 +19,7 @@ interface CompassData {
   dominantStrategy: string;
   conviction: number; // 0-100
   totalBots: number;
+  strategyBreakdown: Record<string, number>;
 }
 
 function computeCompass(agents: DetectedAgentData[]): CompassData {
@@ -26,6 +27,7 @@ function computeCompass(agents: DetectedAgentData[]): CompassData {
     return {
       longCount: 0, shortCount: 0, longCapital: 0, shortCapital: 0,
       pressure: 0, dominantStrategy: 'N/A', conviction: 0, totalBots: 0,
+      strategyBreakdown: {},
     };
   }
 
@@ -56,8 +58,17 @@ function computeCompass(agents: DetectedAgentData[]): CompassData {
   const dominantStrategy = [...strategyCounts.entries()]
     .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
-  // Convicción: basada en unilateralidad + cantidad de agentes
-  const conviction = Math.min(100, Math.abs(pressure) + (agents.length > 5 ? 20 : agents.length > 3 ? 10 : 0));
+  // Convicción: basada en unilateralidad + cantidad de agentes (escalada para 200-trader scan)
+  const conviction = Math.min(100,
+    Math.abs(pressure) +
+    (agents.length >= 20 ? 30 : agents.length >= 10 ? 20 : agents.length >= 5 ? 10 : 0)
+  );
+
+  // Strategy breakdown
+  const strategyBreakdown = new Map<string, number>();
+  agents.forEach(a => {
+    strategyBreakdown.set(a.strategy, (strategyBreakdown.get(a.strategy) || 0) + 1);
+  });
 
   return {
     longCount: longs.length,
@@ -68,6 +79,7 @@ function computeCompass(agents: DetectedAgentData[]): CompassData {
     dominantStrategy,
     conviction,
     totalBots: agents.length,
+    strategyBreakdown: Object.fromEntries(strategyBreakdown),
   };
 }
 
@@ -193,6 +205,21 @@ export const SmartMoneyCompass: React.FC<SmartMoneyCompassProps> = ({ agents }) 
                 </div>
               </div>
             </div>
+
+            {/* Strategy breakdown */}
+            {Object.keys(compass.strategyBreakdown).length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {Object.entries(compass.strategyBreakdown)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([strategy, count]) => (
+                    <span key={strategy} className="text-[9px] px-1.5 py-0.5 border border-amber-500/15 bg-black/40">
+                      <span className="text-amber-400/60">{strategy}</span>
+                      <span className="text-amber-400/30 ml-1">×{count}</span>
+                    </span>
+                  ))
+                }
+              </div>
+            )}
           </div>
         )}
       </div>
