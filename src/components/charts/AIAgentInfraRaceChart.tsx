@@ -54,13 +54,23 @@ const INFRA_DATA = [
     highlight: false,
   },
   {
-    name: 'Binance AI',
+    name: 'Binance Skills',
     type: 'CEX',
-    chains: 0,
+    chains: 1,
     dexes: 0,
-    apiCalls: 'TBD',
-    features: 'Social Hyper, Topic Rush, token discovery',
-    launch: 'Jan 2026',
+    apiCalls: 'MCP + Cursor/Claude',
+    features: '7 AI Skills, smart money tracking, OCO/OTOCO orders, contract risk detection',
+    launch: 'Mar 2026',
+    highlight: false,
+  },
+  {
+    name: 'Bitget Wallet',
+    type: 'CEX',
+    chains: 9,
+    dexes: 110,
+    apiCalls: '90M+ users',
+    features: 'MCP Server, CLI, 9 chains, 110+ DEX liquidity, OpenClaw partnership',
+    launch: 'Feb 27, 2026',
     highlight: false,
   },
 ];
@@ -140,11 +150,11 @@ export function AIAgentInfraRaceChart() {
         </h4>
         <p className="text-xs mt-0.5" style={{ color: CHART_COLORS.textMuted }}>
           CEX platforms (orange) vs DEX protocols (green). Chain coverage as primary metric.
-          OKX leads with 60+ chains and 500+ DEX integrations via OnchainOS.
+          OKX leads with 60+ chains. All 5 major CEXs now have AI agent infrastructure.
         </p>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={CHART_DATA}
           layout="vertical"
@@ -185,7 +195,7 @@ export function AIAgentInfraRaceChart() {
       </ResponsiveContainer>
 
       <p className="text-right text-[10px] mt-1" style={{ color: CHART_COLORS.textMuted }}>
-        Sources: OKX, Coinbase, Uniswap, BANKR official docs (Feb-Mar 2026) · DeFi Mexico
+        Sources: OKX, Coinbase, Binance, Bitget, Uniswap, BANKR official docs (Feb-Mar 2026) · DeFi Mexico
       </p>
     </div>
   );
