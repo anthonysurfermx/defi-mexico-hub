@@ -359,6 +359,79 @@ Focus on:
 7. RED FLAGS: Any signals that contradict each other? Conflicting alpha = uncertainty.`;
 }
 
+function buildChatOpportunityPrompt(data: any): string {
+  const opportunities = (data.opportunities || [])
+    .map((o: any, i: number) => {
+      const m = o.market;
+      const p = o.probability;
+      const a = o.analysis;
+      return `#${i + 1}: "${m.question}"
+  Side: ${p.recommendedSide || 'N/A'} (${p.winProbability}% win prob) | Edge: ${p.edge > 0 ? '+' : ''}${(p.edge * 100).toFixed(1)}%
+  Smart Money: ${a.smartMoneyDirection} ${a.smartMoneyPct}% | ${a.botCount} bots / ${a.totalScanned} scanned
+  VPIN: ${a.vpinScore !== null ? `${Math.round(a.vpinScore * 100)}% (${a.vpinClassification})` : 'N/A'}
+  Kelly Size: $${p.smartMoneySize} of $${data.amount || 1000} | Confidence: ${p.confidence.toUpperCase()}
+  Red Flags: ${a.redFlags.length > 0 ? a.redFlags.join('; ') : 'None'}
+  Volume: $${Math.round(m.volume).toLocaleString()}`;
+    })
+    .join('\n\n');
+
+  return `You are explaining trading opportunities to a user who said: "${data.userQuery}"
+
+User budget: $${data.amount || 1000}
+Risk level: ${data.risk || 'medium'}
+
+OPPORTUNITIES (ranked by edge):
+${opportunities || 'None found'}
+
+Explain in 5-8 lines what makes each opportunity good or bad.
+Focus on: edge, smart money alignment, VPIN insider signals, risk factors.
+End with a one-line actionable verdict on which is the best pick and why.
+Detect the user's language from their query and respond in that language.
+If their query is in Spanish, respond in Spanish. If English, respond in English.`;
+}
+
+function buildChatDeepAnalysisPrompt(data: any): string {
+  const m = data.market;
+  const p = data.probability;
+  const a = data.analysis;
+
+  return `You are doing a deep dive on a specific market the user selected.
+User said: "${data.userQuery}"
+User budget: $${data.amount || 1000}
+
+MARKET: "${m.question}"
+Current odds: YES ${(m.yesPrice * 100).toFixed(0)}% / NO ${(m.noPrice * 100).toFixed(0)}%
+Volume: $${Math.round(m.volume).toLocaleString()}
+End date: ${m.endDate}
+
+Win Probability: ${p.winProbability}%
+Recommended Side: ${p.recommendedSide || 'None'}
+Edge: ${p.edge > 0 ? '+' : ''}${(p.edge * 100).toFixed(1)}%
+Confidence: ${p.confidence.toUpperCase()}
+Kelly Size: $${p.smartMoneySize}
+
+Breakdown:
+  Market Implied: ${p.breakdown.marketImplied}%
+  Agent Adjustment: ${p.breakdown.agentAdjustment > 0 ? '+' : ''}${p.breakdown.agentAdjustment}%
+  VPIN Adjustment: ${p.breakdown.vpinAdjustment > 0 ? '+' : ''}${p.breakdown.vpinAdjustment}%
+  Red Flag Penalty: ${p.breakdown.redFlagPenalty}%
+  Market Impact: ${p.breakdown.marketImpact}%
+
+Smart Money: ${a.smartMoneyDirection} (${a.smartMoneyPct}%)
+Bot Rate: ${a.agentRate}%
+Bots: ${a.botCount} / ${a.totalScanned} scanned
+Dominant Strategy: ${a.dominantStrategy}
+VPIN: ${a.vpinScore !== null ? `${Math.round(a.vpinScore * 100)}% (${a.vpinClassification})` : 'insufficient data'}
+Red Flags: ${a.redFlags.join('; ') || 'None'}
+
+Explain in 5-7 lines:
+1. What makes this market interesting or risky
+2. What the smart money consensus tells us
+3. What the VPIN score means for insider activity
+4. A clear verdict: should the user enter, wait, or skip?
+Detect the user's language and respond accordingly.`;
+}
+
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,
   'exchange-metrics': buildExchangeMetricsPrompt,
@@ -370,6 +443,8 @@ const promptBuilders: Record<string, (data: any) => string> = {
   'smartmoney-portfolios': buildSmartMoneyPortfoliosPrompt,
   'smartmoney-bonds': buildSmartMoneyBondsPrompt,
   'smartmoney-alpha': buildSmartMoneyAlphaPrompt,
+  'chat-opportunity': buildChatOpportunityPrompt,
+  'chat-deep-analysis': buildChatDeepAnalysisPrompt,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

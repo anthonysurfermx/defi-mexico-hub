@@ -1,16 +1,14 @@
 import { useState, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
 import { ClawTraderHero } from '@/components/claw-trader/ClawTraderHero';
-import { OnboardingSection } from '@/components/claw-trader/OnboardingSection';
-import { AlphaRadar } from '@/components/claw-trader/AlphaRadar';
-import { DivergenceScanner } from '@/components/claw-trader/DivergenceScanner';
-import { SignalFeed, type SignalEntry } from '@/components/claw-trader/SignalFeed';
+import { SignalRadar } from '@/components/claw-trader/SignalRadar';
 import { MarketTimeframeSelector, type DiscoveredMarket } from '@/components/claw-trader/MarketTimeframeSelector';
-import { AgentDetectionPanel } from '@/components/claw-trader/AgentDetectionPanel';
-import { SmartMoneyCompass } from '@/components/claw-trader/SmartMoneyCompass';
+import { SimplifiedResults } from '@/components/claw-trader/SimplifiedResults';
 import { RiskDashboard } from '@/components/claw-trader/RiskDashboard';
 import { useTraderScan } from '@/hooks/useTraderScan';
 import type { SignalResponse } from '@/lib/onchainos/types';
+import type { SignalEntry } from '@/components/claw-trader/SignalFeed';
 
 const MAX_SIGNALS = 50;
 
@@ -33,6 +31,9 @@ export default function ClawTraderPage() {
 
   // 200-trader scan hook
   const { startScan, cancelScan, progress, allResults, botResults, isScanning } = useTraderScan();
+
+  // Risk dashboard collapsed state
+  const [riskExpanded, setRiskExpanded] = useState(false);
 
   const handlePricesUpdate = useCallback((prices: Record<string, number>) => {
     setLivePrices(prices);
@@ -62,10 +63,6 @@ export default function ClawTraderPage() {
     });
   }, []);
 
-  const clearSignals = useCallback(() => {
-    setSignals([]);
-  }, []);
-
   const handleMarketSelected = useCallback((market: DiscoveredMarket, asset: string, timeframe: string) => {
     setSelectedMarket(market);
     setSelectedAsset(asset);
@@ -76,7 +73,6 @@ export default function ClawTraderPage() {
     marketSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  // Market label for display
   const marketLabel = selectedMarket
     ? `${selectedAsset.toLowerCase()}-${selectedTimeframe}`
     : undefined;
@@ -84,42 +80,35 @@ export default function ClawTraderPage() {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Claw Trader | DeFi Hub México</title>
-        <meta name="description" content="OpenClaw Signal Executor — Detect agent signals on Polymarket, scan OKX divergence, and execute trades autonomously." />
+        <title>Claw Trader | DeFi Hub M\u00e9xico</title>
+        <meta name="description" content="Scan 200 traders, detect bots, follow smart money. AI-powered Polymarket intelligence." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-6 space-y-3">
-        {/* Section A: Hero + Status + Prices */}
+        {/* Hero — compact with inline status */}
         <ClawTraderHero
           onPricesUpdate={handlePricesUpdate}
           onStatusUpdate={handleStatusUpdate}
+          onGetStarted={handleGetStarted}
         />
 
-        {/* Onboarding — dismissible intro */}
-        <OnboardingSection onGetStarted={handleGetStarted} />
+        {/* Cross-link to Chat Mode */}
+        <div className="flex justify-end">
+          <Link
+            to="/agentic-world/claw-trader-chat"
+            className="text-[10px] font-mono text-green-400/40 hover:text-green-400/60 transition-colors"
+          >
+            Want a simpler experience? {'\u2192'} Claw Trader Chat
+          </Link>
+        </div>
 
-        {/* Alpha Radar — full width, ranked opportunities */}
-        <AlphaRadar
+        {/* Signal Radar — replaces AlphaRadar + DivergenceScanner + SignalFeed */}
+        <SignalRadar
           livePrices={livePrices}
           onSignal={handleSignal}
         />
 
-        {/* Two-column layout for scanner + feed on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Section B: Divergence Scanner */}
-          <DivergenceScanner
-            livePrices={livePrices}
-            onSignal={handleSignal}
-          />
-
-          {/* Section C: Signal Feed */}
-          <SignalFeed
-            signals={signals}
-            onClear={clearSignals}
-          />
-        </div>
-
-        {/* Market Timeframe Selector — full width */}
+        {/* Market Timeframe Selector — full width, prominent */}
         <div ref={marketSectionRef}>
           <MarketTimeframeSelector
             onMarketSelected={handleMarketSelected}
@@ -128,28 +117,44 @@ export default function ClawTraderPage() {
           />
         </div>
 
-        {/* Two-column layout for detection + risk on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Left: Agent Detection + Smart Money Compass stacked */}
-          <div className="space-y-3">
-            <AgentDetectionPanel
-              isScanning={isScanning}
-              progress={progress}
-              botResults={botResults}
-              allResults={allResults}
-              marketLabel={marketLabel}
-            />
-            <SmartMoneyCompass agents={botResults} />
-          </div>
+        {/* Simplified Results — replaces AgentDetectionPanel + SmartMoneyCompass */}
+        <SimplifiedResults
+          isScanning={isScanning}
+          progress={progress}
+          botResults={botResults}
+          allResults={allResults}
+          marketLabel={marketLabel}
+        />
 
-          {/* Right: Risk Dashboard */}
-          <RiskDashboard
-            signals={signals}
-            maxPositionUsdc={connectionStatus.maxPositionUsdc}
-            minDivergence={connectionStatus.minDivergence}
-            maxLeverage={connectionStatus.maxLeverage}
-            tradingEnabled={connectionStatus.tradingEnabled}
-          />
+        {/* Risk Dashboard — collapsible, default collapsed */}
+        <div>
+          {!riskExpanded ? (
+            <button
+              onClick={() => setRiskExpanded(true)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 border border-cyan-500/20 bg-black/60 font-mono hover:bg-cyan-500/5 transition-colors"
+            >
+              <span className="text-cyan-400/40 text-[10px]">
+                {'\u25B8'} risk-manager --dashboard
+              </span>
+              <span className="text-cyan-400/20 text-[9px] ml-auto">click to expand</span>
+            </button>
+          ) : (
+            <div>
+              <RiskDashboard
+                signals={signals}
+                maxPositionUsdc={connectionStatus.maxPositionUsdc}
+                minDivergence={connectionStatus.minDivergence}
+                maxLeverage={connectionStatus.maxLeverage}
+                tradingEnabled={connectionStatus.tradingEnabled}
+              />
+              <button
+                onClick={() => setRiskExpanded(false)}
+                className="w-full px-3 py-1 text-[9px] text-cyan-400/30 hover:text-cyan-400/50 transition-colors border border-cyan-500/10 border-t-0 bg-black/40"
+              >
+                {'\u25BE'} collapse risk dashboard
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

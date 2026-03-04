@@ -97,12 +97,14 @@ function computeDirectionalBias(positions: any[]): number {
 // --- Clasificación de estrategia ---
 
 const WEIGHTS = {
-  intervalRegularity: 0.20,
-  splitMergeRatio: 0.25,
-  sizingConsistency: 0.15,
-  activity24h: 0.15,
-  winRateExtreme: 0.15,
-  marketConcentration: 0.10,
+  intervalRegularity: 0.18,
+  splitMergeRatio: 0.22,
+  sizingConsistency: 0.13,
+  activity24h: 0.13,
+  winRateExtreme: 0.12,
+  marketConcentration: 0.08,
+  makerTakerRatio: 0.10,
+  freshWalletScore: 0.04,
 };
 
 function classifyStrategy(
@@ -261,6 +263,47 @@ async function detectBotServer(address: string) {
     else s7 = 30;
   }
 
+  // S8: Maker/Taker Ratio (adapts to market price level using median)
+  let s8 = 0;
+  if (trades.length > 15) {
+    const tradePrices = trades.map((t: any) => parseFloat(t.price)).filter((p: number) => !isNaN(p));
+    const sortedPrices = [...tradePrices].sort((a, b) => a - b);
+    const medianPrice = sortedPrices[Math.floor(sortedPrices.length / 2)] || 0.5;
+    const takerBuyThreshold = Math.min(0.95, medianPrice + 0.05);
+    const takerSellThreshold = Math.max(0.05, medianPrice - 0.05);
+    let takerCount = 0;
+    for (const t of trades) {
+      const price = parseFloat(t.price);
+      const side = (t.side || '').toUpperCase();
+      if ((side === 'BUY' && price >= takerBuyThreshold) || (side === 'SELL' && price <= takerSellThreshold)) {
+        takerCount++;
+      }
+    }
+    const takerRatio = takerCount / trades.length;
+    if (takerRatio > 0.85) s8 = 90;
+    else if (takerRatio > 0.70) s8 = 50 + (takerRatio - 0.70) / 0.15 * 40;
+    else if (takerRatio > 0.50) s8 = 20 + (takerRatio - 0.50) / 0.20 * 30;
+  }
+
+  // S9: Fresh Wallet Detection
+  let s9 = 0;
+  if (trades.length > 0 && trades.length < 500) {
+    const earliest = trades[trades.length - 1];
+    const earliestTs = parseFloat(earliest.timestamp || 0);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const walletAgeDays = (nowSec - earliestTs) / 86400;
+    const firstTradeUSD = Math.abs(parseFloat(earliest.size || 0) * parseFloat(earliest.price || 0));
+    if (walletAgeDays < 7) {
+      if (firstTradeUSD > 5000) s9 = 95;
+      else if (firstTradeUSD > 1000) s9 = 75;
+      else if (firstTradeUSD > 500) s9 = 50;
+      else s9 = 20;
+    } else if (walletAgeDays < 30) {
+      if (firstTradeUSD > 5000) s9 = 60;
+      else if (firstTradeUSD > 1000) s9 = 30;
+    }
+  }
+
   // sizeCV for strategy
   let sizeCV = 1;
   if (trades.length > 10) {
@@ -273,7 +316,7 @@ async function detectBotServer(address: string) {
   if (s7 > 0 && trades.length <= 5) {
     rawScore = s7 * 0.50 + s5 * 0.20 + s2 * 0.15 + bothSidesPercent * 0.15;
   } else {
-    rawScore = s1 * WEIGHTS.intervalRegularity + s2 * WEIGHTS.splitMergeRatio + s3 * WEIGHTS.sizingConsistency + s4 * WEIGHTS.activity24h + s5 * WEIGHTS.winRateExtreme + s6 * WEIGHTS.marketConcentration;
+    rawScore = s1 * WEIGHTS.intervalRegularity + s2 * WEIGHTS.splitMergeRatio + s3 * WEIGHTS.sizingConsistency + s4 * WEIGHTS.activity24h + s5 * WEIGHTS.winRateExtreme + s6 * WEIGHTS.marketConcentration + s8 * WEIGHTS.makerTakerRatio + s9 * WEIGHTS.freshWalletScore;
   }
 
   const botScore = Math.min(100, Math.round(rawScore + bothSidesBonus));
