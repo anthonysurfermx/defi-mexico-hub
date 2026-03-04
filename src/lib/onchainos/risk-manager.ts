@@ -3,7 +3,7 @@
 // Valida ANTES de ejecutar cualquier trade. Sin excepciones.
 // ============================================================
 
-import type { TradeParams, Balance, ValidationResult } from './types';
+import type { TradeParams, Balance, ValidationResult } from './types.js';
 
 // Contador de trades por hora (in-memory, se resetea en cold start)
 const tradeLog: number[] = [];

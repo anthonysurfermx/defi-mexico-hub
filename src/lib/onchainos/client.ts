@@ -3,7 +3,7 @@
 // Maneja autenticación HMAC-SHA256 y llamadas a Market, Trade, Account
 // ============================================================
 
-import type { TradeParams, TradeResult, Balance, TickerData } from './types';
+import type { TradeParams, TradeResult, Balance, TickerData } from './types.js';
 
 const OKX_BASE_URL = 'https://www.okx.com/api/v5';
 

@@ -3,9 +3,9 @@
 // Recibe señal de agente detectado → calcula divergencia → decide ejecución
 // ============================================================
 
-import { getSpotPrice, getWalletBalance } from './client';
-import { validateTrade, recordTrade } from './risk-manager';
-import type { SignalDecision, TradeParams } from './types';
+import { getSpotPrice, getWalletBalance } from './client.js';
+import { validateTrade, recordTrade } from './risk-manager.js';
+import type { SignalDecision, TradeParams } from './types.js';
 
 // Mapa de slugs de Polymarket a instrumentos OKX
 const SLUG_TO_INSTRUMENT: Record<string, string> = {

@@ -5,9 +5,9 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { processAgentSignal } from '../src/lib/onchainos/signal-processor';
-import { executeTrade } from '../src/lib/onchainos/client';
-import type { SignalResponse } from '../src/lib/onchainos/types';
+import { processAgentSignal } from '../src/lib/onchainos/signal-processor.js';
+import { executeTrade } from '../src/lib/onchainos/client.js';
+import type { SignalResponse } from '../src/lib/onchainos/types.js';
 
 const SignalRequestSchema = z.object({
   walletAddress: z.string().min(1),
