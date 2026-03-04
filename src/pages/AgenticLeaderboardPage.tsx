@@ -14,6 +14,7 @@ import { EntityComments } from '@/components/BlogComments';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { AgentAvatar3D } from '@/components/agentic/avatar-3d/AgentAvatar3D';
 import { useAvatarRenderer } from '@/components/agentic/avatar-3d/useAvatarRenderer';
+import { SkillsComparisonSection } from '@/components/agentic/SkillsComparisonSection';
 
 function formatUSD(value: number): string {
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
@@ -309,6 +310,9 @@ export default function AgenticLeaderboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Skills Comparison */}
+        {!loading && !error && <SkillsComparisonSection />}
 
         {/* Refresh Button */}
         {!loading && !error && (
