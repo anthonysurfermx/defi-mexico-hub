@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from '
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react'; // ✅ PARA REACT (no Next.js)
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './hooks/useAuth';
 import Web3ContextProvider from '@/libs/components/Web3ContextProvider';
@@ -157,8 +158,9 @@ function RootLayout() {
               },
             }}
           />
-          {/* ✨ VERCEL ANALYTICS COMPONENT */}
+          {/* ✨ VERCEL ANALYTICS & SPEED INSIGHTS */}
           <Analytics />
+          <SpeedInsights />
         </AuthProvider>
       </Web3ContextProvider>
     </ThemeProvider>
