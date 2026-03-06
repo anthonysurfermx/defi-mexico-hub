@@ -10,7 +10,7 @@ interface Skill {
 
 interface Platform {
   name: string;
-  type: 'CEX' | 'DEX';
+  type: 'CEX' | 'DEX' | 'Wallet' | 'DEX Aggregator' | 'Bridge/DEX Aggregator' | 'L1 Ecosystem';
   launch: string;
   chains: string;
   chainCount: number;
@@ -170,6 +170,69 @@ const PLATFORMS: Platform[] = [
       { name: 'Spot Trading', description: 'Spot market data, order placement and cancellation, trade history, transaction records, commission rates' },
       { name: 'Account Management', description: 'Multi-account support with Fernet-encrypted API key storage, balance queries, position tracking' },
       { name: 'V3 Key Signing', description: 'EIP-712 authentication for secure agent-to-exchange interaction without exposing raw API secrets' },
+    ],
+  },
+  {
+    name: 'Trust Wallet',
+    type: 'Wallet',
+    launch: 'Mar 2026',
+    chains: '140+ chains (EVM, Solana, Cosmos, BTC, Aptos)',
+    chainCount: 140,
+    mcp: true,
+    integration: ['Claude Code', 'MCP', 'Claude Skills'],
+    github: [{ label: 'trustwallet/developer', url: 'https://github.com/trustwallet/developer' }],
+    skills: [
+      { name: 'wallet-core', description: 'Key management and transaction signing across 140+ blockchains, multi-chain wallet operations' },
+      { name: 'web3-provider', description: 'Web3 provider integrations for EVM, Solana, Cosmos, Bitcoin, and Aptos ecosystems' },
+      { name: 'token-tooling', description: 'Asset metadata, token discovery, balance queries, and portfolio tracking across supported chains' },
+      { name: 'ERC-4337 Smart Wallets', description: 'Account abstraction modules for gasless transactions, session keys, and smart wallet management' },
+    ],
+  },
+  {
+    name: '1inch',
+    type: 'DEX Aggregator',
+    launch: 'Feb 2026',
+    chains: '18 EVM chains (ETH, Arb, Base, Polygon, OP...)',
+    chainCount: 18,
+    mcp: true,
+    integration: ['Claude Code', 'Cursor', 'Claude Desktop', 'MCP'],
+    github: [{ label: 'vaibhavgeek/one_inch_mcp', url: 'https://github.com/vaibhavgeek/one_inch_mcp' }],
+    skills: [
+      { name: 'Cross-Chain Swap', description: 'Execute single-chain and cross-chain token swaps via Fusion+ API with natural language commands' },
+      { name: 'Quote Engine', description: 'Real-time swap quotes and optimal routing across 18 EVM chains with gas estimation' },
+      { name: 'Order Monitoring', description: 'Background worker system to track swap execution status from initiation to completion' },
+    ],
+  },
+  {
+    name: 'LI.FI',
+    type: 'Bridge/DEX Aggregator',
+    launch: 'Feb 2026',
+    chains: 'Multi-chain (30+ chains)',
+    chainCount: 30,
+    mcp: true,
+    integration: ['Claude Code', 'Cursor', 'Claude Desktop', 'MCP'],
+    github: [{ label: 'demomagic/lifi-mcp-server', url: 'https://github.com/demomagic/lifi-mcp-server' }],
+    skills: [
+      { name: 'Cross-Chain Bridge', description: 'Bridge tokens across 30+ chains with optimal route selection and fee comparison' },
+      { name: 'DEX Aggregation', description: 'Aggregate quotes from multiple DEXs for best swap execution across supported networks' },
+      { name: 'Chain & Token Info', description: 'Query supported chains, tokens, connections, gas prices, and available bridging tools' },
+      { name: 'Transaction Tracking', description: 'Monitor cross-chain transfer status, fee withdrawal management, and wallet operations' },
+    ],
+  },
+  {
+    name: 'BNB Chain',
+    type: 'L1 Ecosystem',
+    launch: 'Mar 2026',
+    chains: 'BNB Chain (BSC)',
+    chainCount: 1,
+    mcp: true,
+    integration: ['Cursor', 'Claude Desktop', 'OpenClaw', 'MCP', 'npx skills add'],
+    github: [{ label: 'bnb-chain/bnbchain-skills', url: 'https://github.com/bnb-chain/bnbchain-skills' }],
+    skills: [
+      { name: 'On-Chain Data', description: 'Read blockchain data, query balances, transaction history, and contract state on BNB Chain' },
+      { name: 'Transaction Execution', description: 'Execute real transactions on BSC mainnet and testnet via AI agent commands' },
+      { name: 'Wallet Management', description: 'Create and manage wallets, sign transactions, and interact with dApps on BNB ecosystem' },
+      { name: 'Agent Registry', description: 'Register and verify AI agents on-chain for trusted agent-to-agent and agent-to-protocol interactions' },
     ],
   },
 ];
