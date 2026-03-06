@@ -156,6 +156,22 @@ const PLATFORMS: Platform[] = [
       { name: 'pancakeswap-farming', description: 'Plugin for automated farming workflows — stake/unstake LP tokens, harvest CAKE rewards, compound yields' },
     ],
   },
+  {
+    name: 'Aster DEX',
+    type: 'DEX',
+    launch: 'Mar 2026',
+    chains: 'Aster L1',
+    chainCount: 1,
+    mcp: true,
+    integration: ['Cursor', 'Claude', 'LangChain', 'MCP', 'CLI'],
+    github: [{ label: 'asterdex/aster-mcp', url: 'https://github.com/asterdex/aster-mcp' }],
+    skills: [
+      { name: 'Futures Trading', description: 'Market data, order management (limit/market/OCO), leverage control, margin transfers, income tracking across futures markets' },
+      { name: 'Spot Trading', description: 'Spot market data, order placement and cancellation, trade history, transaction records, commission rates' },
+      { name: 'Account Management', description: 'Multi-account support with Fernet-encrypted API key storage, balance queries, position tracking' },
+      { name: 'V3 Key Signing', description: 'EIP-712 authentication for secure agent-to-exchange interaction without exposing raw API secrets' },
+    ],
+  },
 ];
 
 interface CategoryDef {
