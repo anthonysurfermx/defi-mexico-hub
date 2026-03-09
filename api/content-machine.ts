@@ -19,7 +19,9 @@ import fs from 'fs';
 
 export const config = {
   api: {
-    bodyParser: false, // manejamos el parsing manualmente según content-type
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
   },
 };
 
@@ -249,14 +251,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       inputText = (Array.isArray(fields.text) ? fields.text[0] : fields.text as string) || '';
       audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio as formidable.File;
     } else {
-      // Parsear JSON (cuando solo viene texto)
-      const body = await new Promise<string>((resolve, reject) => {
-        let data = '';
-        req.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-        req.on('end', () => resolve(data));
-        req.on('error', reject);
-      });
-      const json = JSON.parse(body);
+      // JSON — body ya viene parseado por Vercel bodyParser
+      const json = (req as any).body || {};
       jobIdRaw = json.job_id;
       sourceLabel = json.source_label || '';
       topic = json.topic || '';
