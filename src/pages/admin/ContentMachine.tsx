@@ -253,7 +253,7 @@ export default function ContentMachine() {
         const storagePath = `${job.id}/audio.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from('content-machine-audio')
-          .upload(storagePath, audioFile);
+          .upload(storagePath, audioFile, { contentType: 'audio/mpeg' });
 
         if (uploadError) throw new Error(`Error subiendo audio: ${uploadError.message}`);
 
