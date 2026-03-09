@@ -67,6 +67,7 @@ const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const ContentMachine = lazy(() => import('@/pages/admin/ContentMachine'));
 // Admin Blog y Academia removidos temporalmente
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog'));
 // const AdminAcademia = lazy(() => import('@/pages/admin/AdminAcademia'));
@@ -878,6 +879,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <AdminSettings />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'content-machine',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <ContentMachine />
                 </Suspense>
               ),
             },

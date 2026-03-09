@@ -9,10 +9,11 @@ import {
   X,
   ChevronRight,
   Settings,
-  Globe, // Agregado para Comunidades
-  UserCheck, // Para Referentes
-  Briefcase, // Para Trabajos Web3
-  Link2 // Para Short URLs
+  Globe,
+  UserCheck,
+  Briefcase,
+  Link2,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useMemo } from 'react';
@@ -37,6 +38,13 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard,
     exact: true,
     requiredRoles: ['admin', 'editor']
+  },
+  {
+    title: 'Content Machine',
+    path: '/admin/content-machine',
+    icon: Zap,
+    badge: 'Nuevo',
+    requiredRoles: ['admin']
   },
   // Blog, Academia y Video Tutoriales removidos temporalmente
   {
