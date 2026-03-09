@@ -228,20 +228,22 @@ export default function ContentMachine() {
 
     try {
       // 1. Crear job en Supabase
+      const insertPayload: Record<string, unknown> = {
+        source_type: audioFile ? (inputText ? 'both' : 'audio') : 'text',
+        source_label: sourceLabel || null,
+        topic: topic || null,
+        audience: audience || 'founders-latam',
+        status: 'pending',
+      };
+      if (user?.id) insertPayload.created_by = user.id;
+
       const { data: job, error: jobError } = await supabase
         .from('content_machine_jobs')
-        .insert({
-          source_type: audioFile && inputText ? 'both' : audioFile ? 'audio' : 'text',
-          source_label: sourceLabel,
-          topic,
-          audience,
-          status: 'pending',
-          created_by: user?.id,
-        })
+        .insert(insertPayload)
         .select('id')
         .single();
 
-      if (jobError || !job) throw new Error('No se pudo crear el job');
+      if (jobError || !job) throw new Error(jobError?.message || 'No se pudo crear el job');
       setJobId(job.id);
 
       // 2. Guardar el texto en Supabase para que la function lo lea desde ahí
