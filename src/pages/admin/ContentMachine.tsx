@@ -2,7 +2,7 @@
 // Content Machine — Dashboard privado para generar los 6 outputs de contenido
 
 import { useState, useRef, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
   Upload,
@@ -27,11 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
