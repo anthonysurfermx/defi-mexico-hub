@@ -245,20 +245,32 @@ export default function ContentMachine() {
       setJobId(job.id);
 
       // 2. Enviar a la Vercel function
-      const formData = new FormData();
-      formData.append('job_id', job.id);
-      formData.append('source_label', sourceLabel);
-      formData.append('topic', topic);
-      formData.append('audience', audience);
-      if (audioFile) formData.append('audio', audioFile);
-      if (inputText.trim()) formData.append('text', inputText.trim());
-
+      // Si hay audio usamos multipart, si no usamos JSON (evita 413)
       setStatus('transcribing');
 
-      const response = await fetch('/api/content-machine', {
-        method: 'POST',
-        body: formData,
-      });
+      let response: Response;
+      if (audioFile) {
+        const formData = new FormData();
+        formData.append('job_id', job.id);
+        formData.append('source_label', sourceLabel);
+        formData.append('topic', topic);
+        formData.append('audience', audience);
+        formData.append('audio', audioFile);
+        if (inputText.trim()) formData.append('text', inputText.trim());
+        response = await fetch('/api/content-machine', { method: 'POST', body: formData });
+      } else {
+        response = await fetch('/api/content-machine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: job.id,
+            source_label: sourceLabel,
+            topic,
+            audience,
+            text: inputText.trim(),
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errData = await response.json();

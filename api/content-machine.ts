@@ -19,7 +19,7 @@ import fs from 'fs';
 
 export const config = {
   api: {
-    bodyParser: false, // necesario para formidable
+    bodyParser: false, // manejamos el parsing manualmente según content-type
   },
 };
 
@@ -229,13 +229,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let audioTempPath: string | undefined;
 
   try {
-    const { fields, files } = await parseForm(req);
+    const contentType = req.headers['content-type'] || '';
+    const isMultipart = contentType.includes('multipart/form-data');
 
-    jobId = Array.isArray(fields.job_id) ? fields.job_id[0] : fields.job_id;
-    const sourceLabel = (Array.isArray(fields.source_label) ? fields.source_label[0] : fields.source_label) || '';
-    const topic = (Array.isArray(fields.topic) ? fields.topic[0] : fields.topic) || '';
-    const audience = (Array.isArray(fields.audience) ? fields.audience[0] : fields.audience) || 'founders-latam';
-    const inputText = (Array.isArray(fields.text) ? fields.text[0] : fields.text) || '';
+    let jobIdRaw: string | undefined;
+    let sourceLabel = '';
+    let topic = '';
+    let audience = 'founders-latam';
+    let inputText = '';
+    let audioFile: formidable.File | undefined;
+
+    if (isMultipart) {
+      // Parsear multipart (cuando viene audio)
+      const { fields, files } = await parseForm(req);
+      jobIdRaw = Array.isArray(fields.job_id) ? fields.job_id[0] : fields.job_id as string;
+      sourceLabel = (Array.isArray(fields.source_label) ? fields.source_label[0] : fields.source_label as string) || '';
+      topic = (Array.isArray(fields.topic) ? fields.topic[0] : fields.topic as string) || '';
+      audience = (Array.isArray(fields.audience) ? fields.audience[0] : fields.audience as string) || 'founders-latam';
+      inputText = (Array.isArray(fields.text) ? fields.text[0] : fields.text as string) || '';
+      audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio as formidable.File;
+    } else {
+      // Parsear JSON (cuando solo viene texto)
+      const body = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        req.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        req.on('end', () => resolve(data));
+        req.on('error', reject);
+      });
+      const json = JSON.parse(body);
+      jobIdRaw = json.job_id;
+      sourceLabel = json.source_label || '';
+      topic = json.topic || '';
+      audience = json.audience || 'founders-latam';
+      inputText = json.text || '';
+    }
+
+    jobId = jobIdRaw;
 
     if (!jobId) {
       return res.status(400).json({ error: 'job_id es requerido' });
@@ -249,7 +278,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Transcribir audio si viene
     let transcript = '';
-    const audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio;
 
     if (audioFile) {
       audioTempPath = audioFile.filepath;
