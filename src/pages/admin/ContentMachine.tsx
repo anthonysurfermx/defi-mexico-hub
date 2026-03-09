@@ -234,6 +234,7 @@ export default function ContentMachine() {
         topic: topic || null,
         audience: audience || 'founders-latam',
         status: 'pending',
+        input_text: inputText.trim() || null,
       };
       if (user?.id) insertPayload.created_by = user.id;
 
@@ -246,35 +247,41 @@ export default function ContentMachine() {
       if (jobError || !job) throw new Error(jobError?.message || 'No se pudo crear el job');
       setJobId(job.id);
 
-      // 2. Guardar el texto en Supabase para que la function lo lea desde ahí
-      //    Así evitamos el límite de 4.5MB de Vercel en el body del request
-      if (inputText.trim()) {
+      // 2. Subir audio directamente a Supabase Storage (evita límite de 4.5MB de Vercel)
+      if (audioFile) {
+        const ext = audioFile.name.split('.').pop() || 'mp3';
+        const storagePath = `${job.id}/audio.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('content-machine-audio')
+          .upload(storagePath, audioFile, { contentType: audioFile.type });
+
+        if (uploadError) throw new Error(`Error subiendo audio: ${uploadError.message}`);
+
+        // Guardar la ruta del storage en el job
         await supabase
           .from('content_machine_jobs')
-          .update({ input_text: inputText.trim() })
+          .update({ audio_storage_path: storagePath, audio_filename: audioFile.name })
           .eq('id', job.id);
       }
 
-      // 3. Enviar a la Vercel function solo con metadatos livianos
+      // 3. Llamar a la Vercel function con solo el job_id (~50 bytes)
       setStatus('transcribing');
 
-      let response: Response;
-      if (audioFile) {
-        const formData = new FormData();
-        formData.append('job_id', job.id);
-        formData.append('audio', audioFile);
-        response = await fetch('/api/content-machine', { method: 'POST', body: formData });
-      } else {
-        response = await fetch('/api/content-machine', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: job.id }),
-        });
-      }
+      const response = await fetch('/api/content-machine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.id }),
+      });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Error en el servidor');
+        let errMsg = 'Error en el servidor';
+        try {
+          const errData = await response.json();
+          errMsg = errData.error || errMsg;
+        } catch {
+          errMsg = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errMsg);
       }
 
       setStatus('generating');

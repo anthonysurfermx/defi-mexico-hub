@@ -2,26 +2,17 @@
 // Content Machine — Vercel serverless function
 // POST /api/content-machine
 //
-// Acepta multipart/form-data con:
-//   - audio?: File (MP3 del Audio Overview de NotebookLM)
-//   - text?: string (texto adicional o input directo)
-//   - source_label: string (Ej: "Invest Like the Best - Ep 123")
-//   - topic: string (Tema central)
-//   - audience: string (founders-latam | developers | instituciones)
-//   - job_id: string (UUID del job en Supabase, ya creado desde el frontend)
+// Recibe: { job_id: string } como JSON
+// El frontend ya guardó input_text en Supabase y subió el audio a Storage.
+// Esta función lee todo desde Supabase y genera los 6 outputs con Claude.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import formidable from 'formidable';
-import fs from 'fs';
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -31,40 +22,44 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ─── Parsear form-data ───────────────────────────────────────────────────────
+// ─── Descargar audio desde Supabase Storage y transcribir ────────────────────
 
-async function parseForm(req: VercelRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
-  return new Promise((resolve, reject) => {
-    const form = formidable({ maxFileSize: 50 * 1024 * 1024 }); // 50MB max
-    form.parse(req, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
+async function transcribeFromStorage(storagePath: string): Promise<string> {
+  // Descargar el archivo desde Supabase Storage
+  const { data, error } = await supabase.storage
+    .from('content-machine-audio')
+    .download(storagePath);
+
+  if (error || !data) throw new Error(`Error descargando audio: ${error?.message}`);
+
+  // Escribir a archivo temporal
+  const tmpPath = path.join(os.tmpdir(), `audio-${Date.now()}.mp3`);
+  const buffer = Buffer.from(await data.arrayBuffer());
+  fs.writeFileSync(tmpPath, buffer);
+
+  try {
+    const fileStream = fs.createReadStream(tmpPath);
+    const transcription = await openai.audio.transcriptions.create({
+      file: fileStream,
+      model: 'whisper-1',
+      language: 'es',
+      response_format: 'text',
     });
-  });
-}
-
-// ─── Transcribir con Whisper ─────────────────────────────────────────────────
-
-async function transcribeAudio(filePath: string, filename: string): Promise<string> {
-  const fileStream = fs.createReadStream(filePath);
-  const transcription = await openai.audio.transcriptions.create({
-    file: fileStream,
-    model: 'whisper-1',
-    language: 'es',
-    response_format: 'text',
-  });
-  return transcription as unknown as string;
+    return transcription as unknown as string;
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+  }
 }
 
 // ─── Generar los 6 outputs con Claude ────────────────────────────────────────
 
-function buildPrompt(transcript: string, inputText: string, sourcLabel: string, topic: string, audience: string): string {
+function buildPrompt(transcript: string, inputText: string, sourceLabel: string, topic: string, audience: string): string {
   const combinedInput = [transcript, inputText].filter(Boolean).join('\n\n---\n\n');
 
   return `Eres el Content Machine de Anthony Chávez (DeFi Mexico Hub).
 
 CONTEXTO DEL INPUT:
-- Fuente: ${sourcLabel || 'NotebookLM Audio Overview'}
+- Fuente: ${sourceLabel || 'NotebookLM Audio Overview'}
 - Tema central: ${topic || 'DeFi / Web3 LATAM'}
 - Audiencia objetivo: ${audience || 'founders LATAM'}
 
@@ -199,7 +194,6 @@ async function generateOutputs(
     .map(block => (block as { type: 'text'; text: string }).text)
     .join('');
 
-  // Extraer cada output por su encabezado
   const extract = (start: string, end: string | null): string => {
     const startIdx = fullText.indexOf(start);
     if (startIdx === -1) return '';
@@ -226,42 +220,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   let jobId: string | undefined;
-  let audioTempPath: string | undefined;
 
   try {
-    const contentType = req.headers['content-type'] || '';
-    const isMultipart = contentType.includes('multipart/form-data');
+    // Recibir job_id como JSON — Vercel parsea el body automáticamente
+    const body = req.body as { job_id?: string };
+    jobId = body?.job_id;
 
-    let jobIdRaw: string | undefined;
-    let sourceLabel = '';
-    let topic = '';
-    let audience = 'founders-latam';
-    let inputText = '';
-    let audioFile: formidable.File | undefined;
-
-    // Parsear solo el job_id del request (payload mínimo)
-    if (isMultipart) {
-      const { fields, files } = await parseForm(req);
-      jobIdRaw = Array.isArray(fields.job_id) ? fields.job_id[0] : fields.job_id as string;
-      audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio as formidable.File;
-    } else {
-      const body = await new Promise<string>((resolve, reject) => {
-        let data = '';
-        req.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-        req.on('end', () => resolve(data));
-        req.on('error', reject);
-      });
-      const json = JSON.parse(body);
-      jobIdRaw = json.job_id;
-    }
-
-    jobId = jobIdRaw;
     if (!jobId) return res.status(400).json({ error: 'job_id es requerido' });
 
-    // Leer todos los datos del job desde Supabase (texto ya guardado por el frontend)
+    // Leer todos los datos del job desde Supabase
     const { data: jobData, error: jobFetchError } = await supabase
       .from('content_machine_jobs')
-      .select('input_text, source_label, topic, audience')
+      .select('input_text, source_label, topic, audience, audio_storage_path, audio_filename')
       .eq('id', jobId)
       .single();
 
@@ -272,7 +242,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sourceLabel = jobData.source_label || '';
     const topic = jobData.topic || '';
     const audience = jobData.audience || 'founders-latam';
-    let inputText = jobData.input_text || '';
+    const inputText = jobData.input_text || '';
+    const audioStoragePath: string | null = jobData.audio_storage_path || null;
 
     // Marcar como transcribiendo
     await supabase
@@ -280,15 +251,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .update({ status: 'transcribing', processing_started_at: new Date().toISOString() })
       .eq('id', jobId);
 
-    // Transcribir audio si viene
+    // Transcribir audio desde Supabase Storage si hay un archivo subido
     let transcript = '';
-
-    if (audioFile) {
-      audioTempPath = audioFile.filepath;
-      transcript = await transcribeAudio(audioFile.filepath, audioFile.originalFilename || 'audio.mp3');
+    if (audioStoragePath) {
+      transcript = await transcribeFromStorage(audioStoragePath);
       await supabase
         .from('content_machine_jobs')
-        .update({ raw_transcript: transcript, audio_filename: audioFile.originalFilename })
+        .update({ raw_transcript: transcript })
         .eq('id', jobId);
     }
 
@@ -320,10 +289,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         output_twitter_post: outputs.twitter_post,
         output_video_script: outputs.video_script,
         output_defimexico_article: outputs.defimexico_article,
-        input_text: inputText,
-        source_label: sourceLabel,
-        topic,
-        audience,
         processing_finished_at: new Date().toISOString(),
       })
       .eq('id', jobId);
@@ -346,10 +311,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(500).json({ ok: false, error: msg });
-  } finally {
-    // Limpiar archivo temporal
-    if (audioTempPath) {
-      try { fs.unlinkSync(audioTempPath); } catch { /* ignore */ }
-    }
   }
 }
