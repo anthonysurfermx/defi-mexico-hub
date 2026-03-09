@@ -39,5 +39,11 @@
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/content-machine.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    }
+  }
 }
