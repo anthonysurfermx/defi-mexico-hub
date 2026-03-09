@@ -19,9 +19,7 @@ import fs from 'fs';
 
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
+    bodyParser: false,
   },
 };
 
@@ -241,30 +239,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let inputText = '';
     let audioFile: formidable.File | undefined;
 
+    // Parsear solo el job_id del request (payload mínimo)
     if (isMultipart) {
-      // Parsear multipart (cuando viene audio)
       const { fields, files } = await parseForm(req);
       jobIdRaw = Array.isArray(fields.job_id) ? fields.job_id[0] : fields.job_id as string;
-      sourceLabel = (Array.isArray(fields.source_label) ? fields.source_label[0] : fields.source_label as string) || '';
-      topic = (Array.isArray(fields.topic) ? fields.topic[0] : fields.topic as string) || '';
-      audience = (Array.isArray(fields.audience) ? fields.audience[0] : fields.audience as string) || 'founders-latam';
-      inputText = (Array.isArray(fields.text) ? fields.text[0] : fields.text as string) || '';
       audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio as formidable.File;
     } else {
-      // JSON — body ya viene parseado por Vercel bodyParser
-      const json = (req as any).body || {};
+      const body = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        req.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        req.on('end', () => resolve(data));
+        req.on('error', reject);
+      });
+      const json = JSON.parse(body);
       jobIdRaw = json.job_id;
-      sourceLabel = json.source_label || '';
-      topic = json.topic || '';
-      audience = json.audience || 'founders-latam';
-      inputText = json.text || '';
     }
 
     jobId = jobIdRaw;
+    if (!jobId) return res.status(400).json({ error: 'job_id es requerido' });
 
-    if (!jobId) {
-      return res.status(400).json({ error: 'job_id es requerido' });
+    // Leer todos los datos del job desde Supabase (texto ya guardado por el frontend)
+    const { data: jobData, error: jobFetchError } = await supabase
+      .from('content_machine_jobs')
+      .select('input_text, source_label, topic, audience')
+      .eq('id', jobId)
+      .single();
+
+    if (jobFetchError || !jobData) {
+      return res.status(404).json({ error: 'Job no encontrado' });
     }
+
+    const sourceLabel = jobData.source_label || '';
+    const topic = jobData.topic || '';
+    const audience = jobData.audience || 'founders-latam';
+    let inputText = jobData.input_text || '';
 
     // Marcar como transcribiendo
     await supabase
@@ -278,8 +286,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (audioFile) {
       audioTempPath = audioFile.filepath;
       transcript = await transcribeAudio(audioFile.filepath, audioFile.originalFilename || 'audio.mp3');
-
-      // Guardar transcripción
       await supabase
         .from('content_machine_jobs')
         .update({ raw_transcript: transcript, audio_filename: audioFile.originalFilename })

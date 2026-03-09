@@ -244,31 +244,29 @@ export default function ContentMachine() {
       if (jobError || !job) throw new Error('No se pudo crear el job');
       setJobId(job.id);
 
-      // 2. Enviar a la Vercel function
-      // Si hay audio usamos multipart, si no usamos JSON (evita 413)
+      // 2. Guardar el texto en Supabase para que la function lo lea desde ahí
+      //    Así evitamos el límite de 4.5MB de Vercel en el body del request
+      if (inputText.trim()) {
+        await supabase
+          .from('content_machine_jobs')
+          .update({ input_text: inputText.trim() })
+          .eq('id', job.id);
+      }
+
+      // 3. Enviar a la Vercel function solo con metadatos livianos
       setStatus('transcribing');
 
       let response: Response;
       if (audioFile) {
         const formData = new FormData();
         formData.append('job_id', job.id);
-        formData.append('source_label', sourceLabel);
-        formData.append('topic', topic);
-        formData.append('audience', audience);
         formData.append('audio', audioFile);
-        if (inputText.trim()) formData.append('text', inputText.trim());
         response = await fetch('/api/content-machine', { method: 'POST', body: formData });
       } else {
         response = await fetch('/api/content-machine', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            job_id: job.id,
-            source_label: sourceLabel,
-            topic,
-            audience,
-            text: inputText.trim(),
-          }),
+          body: JSON.stringify({ job_id: job.id }),
         });
       }
 
