@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#111111"/>
+    </linearGradient>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="goldglow">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+
+  <!-- Matrix background -->
+  <g opacity="0.05" fill="#f59e0b" font-family="'Courier New', monospace" font-size="12">
+    <text x="20" y="25">134 commands · 50 skills · 6 asset classes · MCP + SKILL.md + CLI</text>
+    <text x="30" y="50">crypto xStocks forex futures earn paper-trading · 9 integrations</text>
+    <text x="15" y="75">12 skills · Base · BANKR · social-native · token flywheel · fee share</text>
+    <text x="40" y="100">60+ chains · 500+ DEXs · x402 payments · OnchainOS · AI skills</text>
+    <text x="20" y="980">smart-money wallet-scanner market-analyzer bond-scanner find-opportunities</text>
+    <text x="15" y="1005">defimexico.org/agentic-world · AI Agent Skills Comparison</text>
+    <text x="20" y="1030">npx skills add anthonysurfermx/polymarket-agent-radar-API --all</text>
+  </g>
+
+  <!-- Terminal window -->
+  <rect x="60" y="100" width="960" height="860" rx="12" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+
+  <!-- Title bar -->
+  <rect x="60" y="100" width="960" height="40" rx="12" fill="#222"/>
+  <rect x="60" y="128" width="960" height="12" fill="#222"/>
+  <circle cx="90" cy="120" r="7" fill="#ff5f57"/>
+  <circle cx="114" cy="120" r="7" fill="#febc2e"/>
+  <circle cx="138" cy="120" r="7" fill="#28c840"/>
+  <text x="540" y="125" fill="#555" font-family="'SF Mono', 'Courier New', monospace" font-size="13" text-anchor="middle">defi-mexico · AI Agent Skills — Top Rankings</text>
+
+  <!-- Header -->
+  <text x="540" y="190" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="13" text-anchor="middle" filter="url(#softglow)">&#x276F; npx defi-mexico rank-skills --category crypto --all</text>
+
+  <!-- Title -->
+  <text x="540" y="240" fill="#fff" font-family="'SF Mono', 'Courier New', monospace" font-size="28" font-weight="900" text-anchor="middle" letter-spacing="6">AI AGENT SKILLS</text>
+  <text x="540" y="272" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="16" text-anchor="middle" letter-spacing="3">LEADERBOARD 2026</text>
+
+  <!-- Separator -->
+  <line x1="90" y1="292" x2="990" y2="292" stroke="#333" stroke-width="1"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PODIUM VISUAL -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- 2nd place pedestal (left) -->
+  <rect x="150" y="590" width="220" height="160" rx="4" fill="#1e1e1e" stroke="#888" stroke-width="1.5"/>
+  <text x="260" y="580" fill="#888" font-family="'SF Mono', 'Courier New', monospace" font-size="48" font-weight="900" text-anchor="middle">2</text>
+
+  <!-- 1st place pedestal (center) -->
+  <rect x="420" y="520" width="240" height="230" rx="4" fill="#1e1e1e" stroke="#f59e0b" stroke-width="2" filter="url(#goldglow)"/>
+  <text x="540" y="508" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="52" font-weight="900" text-anchor="middle" filter="url(#goldglow)">1</text>
+
+  <!-- 3rd place pedestal (right) -->
+  <rect x="710" y="630" width="220" height="120" rx="4" fill="#1e1e1e" stroke="#c97a28" stroke-width="1.5"/>
+  <text x="820" y="620" fill="#c97a28" font-family="'SF Mono', 'Courier New', monospace" font-size="44" font-weight="900" text-anchor="middle">3</text>
+
+  <!-- ═══ 1ST — KRAKEN ═══ -->
+  <text x="540" y="558" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="22" font-weight="900" text-anchor="middle" filter="url(#goldglow)">KRAKEN</text>
+  <text x="540" y="582" fill="#666" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">CEX / Multi-Asset</text>
+
+  <text x="540" y="618" fill="#28c840" font-family="'SF Mono', 'Courier New', monospace" font-size="12" text-anchor="middle">
+    <tspan fill="#444">&#x25A0;</tspan>
+    <tspan fill="#28c840"> 134 commands</tspan>
+  </text>
+  <text x="540" y="638" fill="#28c840" font-family="'SF Mono', 'Courier New', monospace" font-size="12" text-anchor="middle">
+    <tspan fill="#444">&#x25A0;</tspan>
+    <tspan fill="#f59e0b"> 50 SKILL.md workflows</tspan>
+  </text>
+  <text x="540" y="658" fill="#28c840" font-family="'SF Mono', 'Courier New', monospace" font-size="12" text-anchor="middle">
+    <tspan fill="#444">&#x25A0;</tspan>
+    <tspan fill="#60a5fa"> 6 asset classes</tspan>
+  </text>
+  <text x="540" y="678" fill="#28c840" font-family="'SF Mono', 'Courier New', monospace" font-size="12" text-anchor="middle">
+    <tspan fill="#444">&#x25A0;</tspan>
+    <tspan fill="#836EF9"> MCP + SKILL.md + CLI</tspan>
+  </text>
+  <text x="540" y="698" fill="#aaa" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">Crypto · xStocks · Forex · Futures · Earn</text>
+
+  <!-- crown -->
+  <text x="540" y="530" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="22" text-anchor="middle" filter="url(#goldglow)">&#x2605;&#x2605;&#x2605;</text>
+
+  <!-- ═══ 2ND — BANKR ═══ -->
+  <text x="260" y="628" fill="#ccc" font-family="'SF Mono', 'Courier New', monospace" font-size="20" font-weight="900" text-anchor="middle" filter="url(#softglow)">BANKR</text>
+  <text x="260" y="648" fill="#555" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">DEX / Social-Native</text>
+  <text x="260" y="672" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">12 skills · Base</text>
+  <text x="260" y="690" fill="#60a5fa" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">SKILL.md · fee flywheel</text>
+  <text x="260" y="708" fill="#28c840" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">Farcaster · X · Token launch</text>
+
+  <!-- ═══ 3RD — OKX ═══ -->
+  <text x="820" y="666" fill="#c97a28" font-family="'SF Mono', 'Courier New', monospace" font-size="18" font-weight="900" text-anchor="middle" filter="url(#softglow)">OKX OnchainOS</text>
+  <text x="820" y="684" fill="#555" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">CEX / Multi-Chain</text>
+  <text x="820" y="706" fill="#f59e0b" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">5 skills · 60+ chains</text>
+  <text x="820" y="724" fill="#60a5fa" font-family="'SF Mono', 'Courier New', monospace" font-size="11" text-anchor="middle">500+ DEXs · x402</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCORECARDS -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <line x1="90" y1="775" x2="990" y2="775" stroke="#333" stroke-width="1"/>
+
+  <text x="90" y="805" fill="#555" font-family="'SF Mono', 'Courier New', monospace" font-size="12">&#x25B6; SCORECARD</text>
+
+  <!-- headers -->
+  <g font-family="'SF Mono', 'Courier New', monospace" font-size="11" fill="#444">
+    <text x="90" y="830">PROTOCOL</text>
+    <text x="290" y="830">SKILLS</text>
+    <text x="390" y="830">CHAINS</text>
+    <text x="490" y="830">INTEGRATION</text>
+    <text x="680" y="830">ASSET CLASSES</text>
+    <text x="850" y="830">SCORE</text>
+  </g>
+
+  <line x1="90" y1="838" x2="990" y2="838" stroke="#2a2a2a" stroke-width="1"/>
+
+  <!-- Row 1 — Kraken -->
+  <g font-family="'SF Mono', 'Courier New', monospace" font-size="11">
+    <text x="90" y="858" fill="#f59e0b" font-weight="700">&#x2605; Kraken</text>
+    <text x="290" y="858" fill="#28c840">134 + 50</text>
+    <text x="390" y="858" fill="#aaa">Multi</text>
+    <text x="490" y="858" fill="#836EF9">MCP+SKILL+CLI</text>
+    <text x="680" y="858" fill="#60a5fa">6 classes</text>
+    <text x="850" y="858" fill="#f59e0b" font-weight="700">S+</text>
+  </g>
+
+  <!-- Row 2 — BANKR -->
+  <g font-family="'SF Mono', 'Courier New', monospace" font-size="11">
+    <text x="90" y="878" fill="#ccc" font-weight="700">&#x25CF; BANKR</text>
+    <text x="290" y="878" fill="#28c840">12</text>
+    <text x="390" y="878" fill="#aaa">Base</text>
+    <text x="490" y="878" fill="#836EF9">SKILL.md</text>
+    <text x="680" y="878" fill="#60a5fa">Crypto + Social</text>
+    <text x="850" y="878" fill="#ccc" font-weight="700">A+</text>
+  </g>
+
+  <!-- Row 3 — OKX -->
+  <g font-family="'SF Mono', 'Courier New', monospace" font-size="11">
+    <text x="90" y="898" fill="#c97a28" font-weight="700">&#x25CF; OKX OnchainOS</text>
+    <text x="290" y="898" fill="#28c840">5</text>
+    <text x="390" y="898" fill="#aaa">60+</text>
+    <text x="490" y="898" fill="#836EF9">MCP + Skills</text>
+    <text x="680" y="898" fill="#60a5fa">Crypto + Payments</text>
+    <text x="850" y="898" fill="#c97a28" font-weight="700">A</text>
+  </g>
+
+  <!-- Separator -->
+  <line x1="90" y1="918" x2="990" y2="918" stroke="#222" stroke-width="1"/>
+
+  <!-- Footer -->
+  <text x="90" y="942" fill="#444" font-family="'SF Mono', 'Courier New', monospace" font-size="12">
+    <tspan fill="#836EF9" font-weight="700">DeFi Mexico</tspan>
+    <tspan fill="#333"> &#x2502; </tspan>
+    <tspan fill="#f59e0b">defimexico.org/agentic-world</tspan>
+    <tspan fill="#333"> &#x2502; </tspan>
+    <tspan fill="#555">13 protocols analyzed · Mar 2026</tspan>
+  </text>
+</svg>
