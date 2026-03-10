@@ -11,6 +11,7 @@ interface Skill {
 interface Platform {
   name: string;
   type: 'CEX' | 'DEX' | 'Wallet' | 'DEX Aggregator' | 'Bridge/DEX Aggregator' | 'L1 Ecosystem' | 'CEX/Multi-Asset';
+  skillCount?: number; // override displayed count when real count differs from skills array length
   launch: string;
   chains: string;
   chainCount: number;
@@ -238,6 +239,7 @@ const PLATFORMS: Platform[] = [
   {
     name: 'Kraken',
     type: 'CEX/Multi-Asset',
+    skillCount: 50, // 50 SKILL.md goal-oriented workflows (+ 134 CLI commands)
     launch: 'Mar 2026',
     chains: 'Crypto, xStocks, Forex, Futures, Earn',
     chainCount: 6,
@@ -398,7 +400,7 @@ export function SkillsComparisonSection() {
                       </td>
                       <td className="py-3 px-2 text-center">
                         <span className="font-mono font-bold text-sm text-amber-400">
-                          {p.skills.length}
+                          {p.skillCount ?? p.skills.length}
                         </span>
                       </td>
                       <td className="py-3 px-2 text-center font-mono text-sm text-foreground">
