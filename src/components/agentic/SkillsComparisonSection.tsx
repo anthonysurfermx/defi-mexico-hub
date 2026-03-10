@@ -10,7 +10,7 @@ interface Skill {
 
 interface Platform {
   name: string;
-  type: 'CEX' | 'DEX' | 'Wallet' | 'DEX Aggregator' | 'Bridge/DEX Aggregator' | 'L1 Ecosystem';
+  type: 'CEX' | 'DEX' | 'Wallet' | 'DEX Aggregator' | 'Bridge/DEX Aggregator' | 'L1 Ecosystem' | 'CEX/Multi-Asset';
   launch: string;
   chains: string;
   chainCount: number;
@@ -233,6 +233,25 @@ const PLATFORMS: Platform[] = [
       { name: 'Transaction Execution', description: 'Execute real transactions on BSC mainnet and testnet via AI agent commands' },
       { name: 'Wallet Management', description: 'Create and manage wallets, sign transactions, and interact with dApps on BNB ecosystem' },
       { name: 'Agent Registry', description: 'Register and verify AI agents on-chain for trusted agent-to-agent and agent-to-protocol interactions' },
+    ],
+  },
+  {
+    name: 'Kraken',
+    type: 'CEX/Multi-Asset',
+    launch: 'Mar 2026',
+    chains: 'Crypto, xStocks, Forex, Futures, Earn',
+    chainCount: 6,
+    mcp: true,
+    integration: ['Claude Desktop', 'Cursor', 'Windsurf', 'VS Code', 'Gemini CLI', 'ChatGPT', 'MCP', 'SKILL.md', 'CLI'],
+    github: [{ label: 'krakenfx/kraken-cli', url: 'https://github.com/krakenfx/kraken-cli' }],
+    skills: [
+      { name: 'Market Data (10 cmds)', description: 'Ticker, OHLC, order book, recent trades across 1,400+ crypto pairs, 79 xStocks, 11 forex pairs, 317 futures contracts' },
+      { name: 'Trading (9 cmds)', description: 'Place, amend, and cancel spot/margin orders with up to 10x leverage. 32 dangerous commands require explicit acknowledgment' },
+      { name: 'Futures & Derivatives (39 cmds)', description: 'Perpetual and fixed-date futures across crypto, forex, and equities with up to 50x leverage. Real-time WebSocket streaming' },
+      { name: 'Account & Funding (28 cmds)', description: 'Balances, open positions, trade history, ledger, deposits, withdrawals, wallet transfers, and subaccount management' },
+      { name: 'Earn / Staking (6 cmds)', description: 'Flexible and bonded staking strategies across multiple assets. Earn yield directly from agent commands' },
+      { name: 'Paper Trading (10 cmds)', description: 'Full simulation environment with live prices and no real funds. Safe iteration for strategy testing' },
+      { name: '50 Workflow Skills', description: 'Goal-oriented SKILL.md packages for complex multi-step trading strategies, market analysis, and portfolio management' },
     ],
   },
 ];
