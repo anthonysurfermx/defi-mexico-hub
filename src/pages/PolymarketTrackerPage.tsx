@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster } from '@/components/ui/pixel-icons';
+import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
+import { AgentActivityLog, type AgentLogEntry } from '@/components/claw-trader/AgentActivityLog';
 import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory, type LeaderboardEntry, type SmartMoneyMarket, type SmartMoneyTrader, type OutcomeBias, type WhaleSignal, type TraderPortfolio, type RecentTrade, type BondOpportunity, type ClosedPosition, type OrderBook } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
@@ -251,8 +253,7 @@ export default function PolymarketTrackerPage() {
   const [scanLimit, setScanLimit] = useState(50);
 
   // Scanner mode toggle
-  const [scanMode, setScanMode] = useState<'market' | 'wallet' | 'smartmoney' | 'bonds'>('market');
-  const [walletSearch, setWalletSearch] = useState('');
+  const [scanMode, setScanMode] = useState<'market' | 'smartmoney' | 'bonds'>('market');
 
   // Smart Money state
   const [smartMoneyMarkets, setSmartMoneyMarkets] = useState<SmartMoneyMarket[]>([]);
@@ -275,9 +276,14 @@ export default function PolymarketTrackerPage() {
   const [bondMinLiquidity, setBondMinLiquidity] = useState(1000);
   const [bondSort, setBondSort] = useState<'apy' | 'return' | 'liquidity' | 'time'>('apy');
 
+  // Agent activity log
+  const [agentLog, setAgentLog] = useState<AgentLogEntry[]>([]);
+  const addLog = (agent: AgentLogEntry['agent'], message: string, status?: AgentLogEntry['status']) => {
+    setAgentLog(prev => [...prev, { agent, message, timestamp: Date.now(), status }]);
+  };
+
   // CLOB enrichment state
   const [openInterestMap, setOpenInterestMap] = useState<Map<string, number>>(new Map());
-  const [spreadMap, setSpreadMap] = useState<Map<string, { spread: number; midpoint: number }>>(new Map());
   const [closedPositionsMap, setClosedPositionsMap] = useState<Map<string, { wins: number; losses: number; totalPnl: number }>>(new Map());
   const [rewardRates, setRewardRates] = useState<Map<string, number>>(new Map());
   const [marketOrderBook, setMarketOrderBook] = useState<OrderBook | null>(null);
@@ -436,21 +442,14 @@ export default function PolymarketTrackerPage() {
     setLoadingPositions(null);
   };
 
-  const handleWalletXRay = () => {
-    const addr = walletSearch.trim().toLowerCase();
-    if (!addr || !addr.startsWith('0x')) {
-      toast.error('Enter a valid wallet address (0x...)');
-      return;
-    }
-    navigate(`/agentic-world/consensus?wallet=${addr}`);
-  };
-
   const handleSmartMoneyFetch = async () => {
     setSmartMoneyLoading(true);
     setSmartMoneyMarkets([]);
     setWhaleSignals([]);
     setTraderPortfolios([]);
+    setAgentLog([]);
     setSmartMoneyProgress('Fetching leaderboard...');
+    addLog('scout', 'Initializing scan — fetching top trader leaderboard...');
 
     const cacheKey = `smartmoney_${smartMoneyCategory}_${smartMoneyTimePeriod}`;
     try {
@@ -475,6 +474,7 @@ export default function PolymarketTrackerPage() {
       return;
     }
     setSmartMoneyLeaderboard(leaderboard);
+    addLog('scout', `Found ${leaderboard.length} traders. Scanning positions...`, 'success');
 
     // Batched concurrency: chunks of 5 to avoid 429 rate limiting
     const BATCH_SIZE = 5;
@@ -503,10 +503,15 @@ export default function PolymarketTrackerPage() {
       setSmartMoneyProgress(`Scanned ${completed}/${leaderboard.length} traders...`);
     }
 
+    addLog('scout', `Scanned ${positionsByTrader.size} wallets with active positions`, 'success');
+    addLog('strategist', 'Aggregating consensus across markets...');
     setSmartMoneyProgress('Aggregating consensus...');
     const markets = aggregateSmartMoney(leaderboard, positionsByTrader);
 
+    addLog('strategist', `Found ${markets.length} markets with smart money overlap`, 'success');
+
     // Fetch market prices for edge tracker
+    addLog('strategist', 'Calculating edge: market prices vs entry prices...');
     setSmartMoneyProgress('Fetching market prices for edge analysis...');
     const conditionIds = markets.slice(0, 20).map(m => m.conditionId).filter(Boolean);
     const marketPrices = await polymarketService.getMarketPrices(conditionIds);
@@ -525,6 +530,7 @@ export default function PolymarketTrackerPage() {
     }
 
     // Fetch recent trades for whale signals (top 15 traders, batched)
+    addLog('scout', 'Scanning whale activity — last 72h trades from top 15...');
     setSmartMoneyProgress('Scanning whale activity...');
     const signals: WhaleSignal[] = [];
     const now = Date.now() / 1000;
@@ -564,8 +570,10 @@ export default function PolymarketTrackerPage() {
     }
     signals.sort((a, b) => b.timestamp - a.timestamp);
     setWhaleSignals(signals);
+    addLog('scout', `Detected ${signals.length} whale signals in last 72h`, 'success');
 
     // Build portfolio analysis
+    addLog('strategist', 'Analyzing portfolio concentration & hedges...');
     setSmartMoneyProgress('Analyzing portfolios...');
     const portfolios: TraderPortfolio[] = [];
     for (const trader of leaderboard.slice(0, 30)) {
@@ -630,7 +638,10 @@ export default function PolymarketTrackerPage() {
 
     setSmartMoneyMarkets(markets);
 
+    addLog('strategist', `Built ${portfolios.length} portfolio profiles`, 'success');
+
     // ─── CLOB Enrichment: Open Interest + Spreads + Closed Positions (parallel, non-blocking) ───
+    addLog('executor', 'Enriching with CLOB data: open interest, spreads, win rates...');
     setSmartMoneyProgress('Fetching CLOB data (OI, spreads, win rates)...');
     try {
       const conditionIdsForOI = markets.slice(0, 20).map(m => m.conditionId).filter(Boolean);
@@ -659,6 +670,8 @@ export default function PolymarketTrackerPage() {
       setClosedPositionsMap(cpMap);
     } catch { /* CLOB enrichment failed, non-critical */ }
 
+    addLog('executor', 'CLOB enrichment complete', 'success');
+    addLog('executor', `Scan complete — ${markets.length} markets ranked by smart money consensus`, 'success');
     setSmartMoneyLoading(false);
     setSmartMoneyProgress('');
 
@@ -766,11 +779,11 @@ export default function PolymarketTrackerPage() {
           id: `whale-${market.conditionId}`,
           type: 'WHALE_CONVERGENCE',
           title: market.title,
-          description: `${uniqueTraders.length} top traders compraron ${market.topOutcome} en las últimas 24h por ${formatUSD(totalUsd)}`,
+          description: `${uniqueTraders.length} top traders bought ${market.topOutcome} in the last 24h for ${formatUSD(totalUsd)}`,
           confidence: Math.min(uniqueTraders.length * 20, 100),
           markets: [market.title],
           traders: names.slice(0, 5),
-          suggestedAction: `Entrada coordinada de ${uniqueTraders.length} ballenas. Alta probabilidad de movimiento.`,
+          suggestedAction: `Coordinated entry from ${uniqueTraders.length} whales. High probability of price movement.`,
         });
       }
     }
@@ -785,11 +798,11 @@ export default function PolymarketTrackerPage() {
           id: `underwater-${market.conditionId}`,
           type: 'UNDERWATER_ACCUMULATION',
           title: market.title,
-          description: `Smart money está ${Math.abs(market.edgePercent)}pts underwater pero sigue comprando (${recentBuys.length} compras recientes)`,
+          description: `Smart money is ${Math.abs(market.edgePercent)}pts underwater but still buying (${recentBuys.length} recent buys)`,
           confidence: Math.min(50 + Math.round(avgConviction), 100),
           markets: [market.title],
           traders: names.slice(0, 5),
-          suggestedAction: `Acumulación contrarian. Las ballenas promedian su entrada — señal de convicción fuerte.`,
+          suggestedAction: `Contrarian accumulation. Whales are averaging down — strong conviction signal.`,
         });
       }
     }
@@ -805,11 +818,11 @@ export default function PolymarketTrackerPage() {
             id: `yield-${bond.conditionId}`,
             type: 'YIELD_MOMENTUM',
             title: bond.question,
-            description: `Bond yield ${bond.returnPct.toFixed(1)}% (${bond.apy.toFixed(0)}% APY) respaldado por ${matchingMarket.traderCount} traders con ${matchingMarket.capitalConsensus}% consenso`,
+            description: `Bond yield ${bond.returnPct.toFixed(1)}% backed by ${matchingMarket.traderCount} traders with ${matchingMarket.capitalConsensus}% agreement`,
             confidence: Math.min(matchingMarket.capitalConsensus + Math.round(bond.returnPct * 5), 100),
             markets: [bond.question],
             traders: matchingMarket.traders.slice(0, 3).map(t => t.name),
-            suggestedAction: `Doble convicción: yield garantizado + smart money alineado. Riesgo bajo.`,
+            suggestedAction: `Double conviction: near-guaranteed yield + smart money aligned. Low risk.`,
           });
         }
       }
@@ -834,11 +847,11 @@ export default function PolymarketTrackerPage() {
           id: `conviction-${market.slice(0, 20)}`,
           type: 'HIGH_CONVICTION_CLUSTER',
           title: market,
-          description: `${data.traders.length} traders tienen >${Math.round(data.avgConviction)}% de su portafolio en este mercado`,
+          description: `${data.traders.length} traders have >${Math.round(data.avgConviction)}% of their portfolio in this market`,
           confidence: Math.min(data.traders.length * 25 + Math.round(data.avgConviction), 100),
           markets: [market],
           traders: data.traders.slice(0, 5),
-          suggestedAction: `Máxima convicción colectiva. Los mejores traders están all-in aquí.`,
+          suggestedAction: `Maximum collective conviction. Top traders are going all-in here.`,
         });
       }
     }
@@ -851,11 +864,11 @@ export default function PolymarketTrackerPage() {
           id: `oi-${market.conditionId}`,
           type: 'OI_SURGE_CONSENSUS',
           title: market.title,
-          description: `${formatUSD(oi)} en Open Interest + ${market.capitalConsensus}% consenso de smart money`,
+          description: `${formatUSD(oi)} in Open Interest + ${market.capitalConsensus}% smart money agreement`,
           confidence: Math.min(Math.round((oi / 1000000) * 30 + market.capitalConsensus), 100),
           markets: [market.title],
           traders: market.traders.slice(0, 3).map(t => t.name),
-          suggestedAction: `Señal institucional. Alto capital en juego + ballenas alineadas.`,
+          suggestedAction: `Institutional signal. High capital at stake + whales aligned.`,
         });
       }
     }
@@ -909,81 +922,59 @@ export default function PolymarketTrackerPage() {
   }, [traderPortfolios, closedPositionsMap, smartMoneyLeaderboard]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
       <Helmet>
         <title>Polymarket Agent Radar | DeFi Hub Mexico</title>
         <meta name="description" content="Detect AI agents trading on Polymarket using behavioral analysis" />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Header — Uniswap-style minimal */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Link
               to="/agentic-world"
-              className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground"
+              className="p-2 hover:bg-white/5 rounded-xl text-neutral-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
-              <PixelLobster size={28} className="text-white" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
+              <PixelLobster size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Polymarket Agent Radar</h1>
-              <p className="text-muted-foreground">Behavioral analysis of prediction market traders</p>
+              <h1 className="text-xl font-bold text-white">Agent Radar</h1>
+              <p className="text-neutral-500 text-sm">Smart money tracking + X Layer execution</p>
             </div>
           </div>
-
         </div>
 
         {/* Scanner Card with Toggle */}
-        <Card className="mb-8 border-cyan-500/20">
+        <Card className="mb-6 border-neutral-800 bg-[#131313] rounded-2xl overflow-hidden">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2 mb-3">
-              <button
-                onClick={() => setScanMode('market')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
-                  scanMode === 'market'
-                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                Scan Market
-              </button>
-              <button
-                onClick={() => setScanMode('wallet')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
-                  scanMode === 'wallet'
-                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Wallet className="w-3.5 h-3.5" />
-                Wallet X-Ray
-              </button>
-              <button
-                onClick={() => setScanMode('smartmoney')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
-                  scanMode === 'smartmoney'
-                    ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <TrendingUp className="w-3.5 h-3.5" />
-                Smart Money
-              </button>
-              <button
-                onClick={() => setScanMode('bonds')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border transition-colors ${
-                  scanMode === 'bonds'
-                    ? 'border-violet-500/40 bg-violet-500/10 text-violet-400'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Bonds / Yield
-              </button>
+            {/* Uniswap-style segmented control */}
+            <div className="inline-flex items-center bg-neutral-900 rounded-2xl p-1 mb-3">
+              {([
+                { key: 'market' as const, label: 'Scan', icon: Link2 },
+                { key: 'smartmoney' as const, label: 'Smart Money', icon: TrendingUp },
+                { key: 'bonds' as const, label: 'Yield', icon: Sparkles },
+              ]).map(tab => {
+                const Icon = tab.icon;
+                const isActive = scanMode === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setScanMode(tab.key)}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-neutral-700/80 text-white shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-300'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
             {scanMode === 'market' ? (
               <>
@@ -993,16 +984,6 @@ export default function PolymarketTrackerPage() {
                 </CardTitle>
                 <CardDescription>
                   Paste a Polymarket event URL to scan all holders and detect agents
-                </CardDescription>
-              </>
-            ) : scanMode === 'wallet' ? (
-              <>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-amber-500" />
-                  Wallet X-Ray
-                </CardTitle>
-                <CardDescription>
-                  Paste any Polymarket wallet address for a full behavioral scan
                 </CardDescription>
               </>
             ) : scanMode === 'bonds' ? (
@@ -1019,36 +1000,15 @@ export default function PolymarketTrackerPage() {
               <>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
-                  Smart Money Consensus
+                  Smart Money Tracker
                 </CardTitle>
                 <CardDescription>
-                  Where are the top Polymarket traders placing their bets?
+                  See where top Polymarket traders are putting their money — and follow the smart bets
                 </CardDescription>
               </>
             )}
           </CardHeader>
           <CardContent>
-            {/* Wallet X-Ray Tab */}
-            {scanMode === 'wallet' && (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  placeholder="0x..."
-                  value={walletSearch}
-                  onChange={(e) => setWalletSearch(e.target.value)}
-                  className="flex-1 font-mono"
-                  onKeyDown={(e) => e.key === 'Enter' && handleWalletXRay()}
-                />
-                <Button
-                  onClick={handleWalletXRay}
-                  disabled={!walletSearch}
-                  className="bg-amber-600 hover:bg-amber-700 shrink-0"
-                >
-                  <ScanSearch className="w-4 h-4 mr-2" />
-                  X-Ray Wallet
-                </Button>
-              </div>
-            )}
-
             {/* Market Scanner Tab */}
             {scanMode === 'market' && (<>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -1724,19 +1684,6 @@ export default function PolymarketTrackerPage() {
                                           tradeCount={holder.bot.tradeCount}
                                         />
                                       </span>
-                                      <div className="relative group/analyzer">
-                                        <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
-                                        <button
-                                          className="relative text-[10px] px-3 py-1.5 bg-gradient-to-r from-amber-900/90 to-amber-800/90 border border-amber-400/60 text-amber-300 hover:text-amber-100 flex items-center gap-1.5 transition-all font-bold tracking-wide hover:scale-[1.02]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
-                                          }}
-                                        >
-                                          <Sparkles className="w-3 h-3" />
-                                          ACTIVATE DeFi MEXICO ANALYZER
-                                        </button>
-                                      </div>
                                       <a
                                         href={`https://polymarket.com/portfolio/${holder.address}`}
                                         target="_blank"
@@ -1902,19 +1849,6 @@ export default function PolymarketTrackerPage() {
                                 signals={holder.bot.signals}
                                 tradeCount={holder.bot.tradeCount}
                               />
-                              <div className="relative group/analyzer">
-                                <div className="absolute -inset-[1px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-60 blur-[2px] group-hover/analyzer:opacity-100 transition-opacity" style={{ animation: 'glow-spin 3s ease-in-out infinite' }} />
-                                <button
-                                  className="relative text-[10px] px-2.5 py-1.5 bg-gradient-to-r from-amber-900/90 to-amber-800/90 border border-amber-400/60 text-amber-300 hover:text-amber-100 flex items-center gap-1.5 transition-all font-bold"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/agentic-world/consensus?wallet=${holder.address}${marketInfo?.conditionId ? `&market=${marketInfo.conditionId}` : ''}`);
-                                  }}
-                                >
-                                  <Sparkles className="w-3 h-3" />
-                                  ANALYZER
-                                </button>
-                              </div>
                               <a
                                 href={`https://polymarket.com/portfolio/${holder.address}`}
                                 target="_blank"
@@ -2043,10 +1977,10 @@ export default function PolymarketTrackerPage() {
                       disabled={bondLoading}
                       className="h-8 px-2 border border-violet-500/20 bg-black text-violet-400 text-[11px] font-mono"
                     >
-                      <option value="apy">Sort: APY</option>
-                      <option value="return">Sort: Return %</option>
-                      <option value="liquidity">Sort: Liquidity</option>
-                      <option value="time">Sort: Time Left</option>
+                      <option value="apy">Sort: Annualized Yield</option>
+                      <option value="return">Sort: Actual Return</option>
+                      <option value="liquidity">Sort: Available Liquidity</option>
+                      <option value="time">Sort: Ending Soonest</option>
                     </select>
                     <button
                       onClick={handleBondScan}
@@ -2069,7 +2003,7 @@ export default function PolymarketTrackerPage() {
                         <p>{'>'} Find markets where one outcome is nearly certain (e.g. 96¢)</p>
                         <p>{'>'} Buy that outcome → if it resolves to $1, you pocket the difference</p>
                         <p>{'>'} Example: Buy YES at 96¢ → market resolves YES → you earn 4¢ per share (4.17% return)</p>
-                        <p>{'>'} APY = return annualized by time to resolution. Shorter time = higher APY</p>
+                        <p>{'>'} APY = return annualized by time to resolution. Hidden for bonds &lt;7 days (misleading)</p>
                         <p className="text-amber-400/60">{'>'} RISK: If the "certain" outcome doesn't happen, you lose most of your investment</p>
                       </div>
                     </div>
@@ -2089,14 +2023,14 @@ export default function PolymarketTrackerPage() {
                       </div>
                       <div className="bg-black/80 p-2.5 text-center">
                         <div className="text-green-400 text-lg font-bold">
-                          {sortedBonds.length > 0 ? `${Math.max(...sortedBonds.map(b => b.apy)).toLocaleString()}%` : '—'}
+                          {sortedBonds.length > 0 ? `${Math.max(...sortedBonds.map(b => b.returnPct)).toFixed(1)}%` : '—'}
                         </div>
                         <div className="flex justify-center gap-[2px] my-1">
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(Math.max(...sortedBonds.map(b => b.apy)) / 500), 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
+                            <div key={i} className={`w-2 h-2 ${i < Math.min(Math.round(Math.max(...sortedBonds.map(b => b.returnPct)) / 2), 5) ? 'bg-green-500' : 'bg-green-500/15'}`} style={{ imageRendering: 'pixelated' }} />
                           ))}
                         </div>
-                        <div className="text-green-400/40 text-[9px]">MAX APY</div>
+                        <div className="text-green-400/40 text-[9px]">BEST RETURN</div>
                       </div>
                       <div className="bg-black/80 p-2.5 text-center">
                         <div className="text-amber-400 text-lg font-bold">
@@ -2129,14 +2063,14 @@ export default function PolymarketTrackerPage() {
                       {/* Table header */}
                       <div className="grid grid-cols-12 gap-1 px-3 py-1.5 bg-violet-500/5 border-b border-violet-500/10 text-[9px] text-violet-400/40">
                         <div className="col-span-3">MARKET</div>
-                        <div className="text-center">SIDE</div>
-                        <div className="text-right">PRICE</div>
-                        <div className="text-right">RETURN</div>
-                        <div className="text-right">APY</div>
-                        <div className="text-right" title="Liquidity reward APY (from Polymarket incentives)">+REWARD</div>
-                        <div className="text-right">LIQ</div>
-                        <div className="text-right">VOL</div>
-                        <div className="text-right">TIME</div>
+                        <div className="text-center" title="Which side to buy (the near-certain outcome)">SIDE</div>
+                        <div className="text-right" title="Current price per share (buy at this price, sells for $1 if correct)">PRICE</div>
+                        <div className="text-right" title="Your profit if the market resolves in your favor">RETURN</div>
+                        <div className="text-right" title="Annualized yield (hidden for bonds ending in less than 7 days)">APY</div>
+                        <div className="text-right" title="Extra rewards from Polymarket for providing liquidity">+REWARD</div>
+                        <div className="text-right" title="Available liquidity — how much you can buy without moving the price">LIQ</div>
+                        <div className="text-right" title="Total trading volume on this market">VOL</div>
+                        <div className="text-right" title="Time until market resolves (shorter = faster payout)">TIME</div>
                         <div className="text-center">LINK</div>
                       </div>
 
@@ -2148,14 +2082,17 @@ export default function PolymarketTrackerPage() {
                             : bond.daysToEnd < 30
                             ? `${bond.daysToEnd}d`
                             : `${Math.round(bond.daysToEnd / 30)}mo`;
-                          const apyColor = bond.apy >= 1000 ? 'text-green-400 font-bold' :
-                            bond.apy >= 100 ? 'text-green-400' :
-                            bond.apy >= 20 ? 'text-amber-400' : 'text-violet-300';
+                          // For short-term bonds (<7d), APY is misleading — cap display and add context
+                          const isShortTerm = bond.daysToEnd < 7;
+                          const cappedApy = Math.min(bond.apy, 9999);
+                          const apyColor = isShortTerm ? 'text-violet-300/60' :
+                            cappedApy >= 100 ? 'text-green-400' :
+                            cappedApy >= 20 ? 'text-amber-400' : 'text-violet-300';
                           const timeColor = bond.hoursToEnd <= 24 ? 'text-red-400' :
                             bond.hoursToEnd <= 72 ? 'text-amber-400' : 'text-violet-300/60';
 
                           const rewardApy = rewardRates.get(bond.conditionId) || 0;
-                          const effectiveApy = bond.apy + rewardApy;
+                          const effectiveApy = cappedApy + rewardApy;
 
                           return (
                             <div key={bond.conditionId} className="grid grid-cols-12 gap-1 px-3 py-2 hover:bg-violet-500/5 transition-colors items-center text-[10px]">
@@ -2174,8 +2111,8 @@ export default function PolymarketTrackerPage() {
                               </div>
                               <div className="text-right text-violet-300 font-bold">{(bond.safePrice * 100).toFixed(1)}¢</div>
                               <div className="text-right text-amber-400">{bond.returnPct.toFixed(1)}%</div>
-                              <div className={`text-right ${apyColor}`} title={rewardApy > 0 ? `Price APY: ${bond.apy.toFixed(0)}% + Reward: ${rewardApy.toFixed(0)}% = ${effectiveApy.toFixed(0)}%` : undefined}>
-                                {bond.apy >= 1000 ? `${(bond.apy / 1000).toFixed(1)}K` : bond.apy.toFixed(0)}%
+                              <div className={`text-right ${apyColor}`} title={isShortTerm ? `Short-term bond (${timeLabel}) — APY is inflated. Actual return: ${bond.returnPct.toFixed(1)}%` : rewardApy > 0 ? `Price APY: ${cappedApy.toFixed(0)}% + Reward: ${rewardApy.toFixed(0)}% = ${effectiveApy.toFixed(0)}%` : `Annualized return based on ${timeLabel} to resolution`}>
+                                {isShortTerm ? '—' : cappedApy >= 1000 ? `${(cappedApy / 1000).toFixed(1)}K` : `${cappedApy.toFixed(0)}%`}
                               </div>
                               <div className={`text-right ${rewardApy > 0 ? 'text-cyan-400' : 'text-violet-400/20'}`} title="Liquidity incentive reward APY from Polymarket">
                                 {rewardApy > 0 ? `+${rewardApy >= 100 ? rewardApy.toFixed(0) : rewardApy.toFixed(1)}%` : '—'}
@@ -2296,10 +2233,10 @@ export default function PolymarketTrackerPage() {
                         disabled={smartMoneyLoading}
                         className="h-8 px-2 border border-green-500/20 bg-black text-green-400 text-[11px] font-mono"
                       >
-                        <option value="aiscore">Sort: AI Score</option>
-                        <option value="traders">Sort: Traders</option>
-                        <option value="consensus">Sort: Consensus</option>
-                        <option value="capital">Sort: Capital</option>
+                        <option value="aiscore">Sort: Best Overall</option>
+                        <option value="traders">Sort: Most Traders</option>
+                        <option value="consensus">Sort: Strongest Agreement</option>
+                        <option value="capital">Sort: Most Money</option>
                       </select>
                       <button
                         onClick={handleSmartMoneyFetch}
@@ -2320,6 +2257,13 @@ export default function PolymarketTrackerPage() {
                     </div>
                   )}
 
+                  {/* Agent Activity Log */}
+                  {agentLog.length > 0 && (
+                    <div className="px-3 pt-3">
+                      <AgentActivityLog entries={agentLog} />
+                    </div>
+                  )}
+
                   {/* Content area inside terminal */}
                   <div className="px-3 py-3 space-y-3">
 
@@ -2327,7 +2271,7 @@ export default function PolymarketTrackerPage() {
                 {sortedSmartMoneyMarkets.length > 0 && (
                   <div className="grid grid-cols-3 gap-[2px] bg-green-500/10">
                     <div className="bg-black/80 p-3 text-center">
-                      <div className="text-green-400/40 text-[9px]">TRADERS</div>
+                      <div className="text-green-400/40 text-[9px]">TOP TRADERS</div>
                       <div className="text-green-300 text-2xl font-bold">{smartMoneyLeaderboard.length}</div>
                       <div className="flex justify-center gap-[2px] mt-1">
                         {Array.from({ length: 10 }).map((_, i) => (
@@ -2337,7 +2281,7 @@ export default function PolymarketTrackerPage() {
                       <div className="text-green-400/30 text-[9px] mt-1">PnL: {formatUSD(smartMoneyLeaderboard.reduce((a, t) => a + t.pnl, 0))}</div>
                     </div>
                     <div className="bg-black/80 p-3 text-center">
-                      <div className="text-green-400/40 text-[9px]">CONSENSUS</div>
+                      <div className="text-green-400/40 text-[9px]">MARKETS FOUND</div>
                       <div className="text-green-300 text-2xl font-bold">{sortedSmartMoneyMarkets.length}</div>
                       <div className="flex justify-center gap-[2px] mt-1">
                         {Array.from({ length: 10 }).map((_, i) => (
@@ -2366,11 +2310,11 @@ export default function PolymarketTrackerPage() {
                   <div className="space-y-1">
                     <div className="grid grid-cols-5 gap-[2px] bg-green-500/10">
                       {([
-                        { key: 'flow' as const, label: 'FLOW', icon: '◎', count: '' },
-                        { key: 'signals' as const, label: 'SIGNALS', icon: '⚡', count: whaleSignals.length > 0 ? `${whaleSignals.length}` : '' },
-                        { key: 'edge' as const, label: 'EDGE', icon: '◇', count: marketsWithEdge.length > 0 ? `${marketsWithEdge.length}` : '' },
-                        { key: 'portfolios' as const, label: 'PORTFOLIOS', icon: '▦', count: traderPortfolios.length > 0 ? `${traderPortfolios.length}` : '' },
-                        { key: 'alpha' as const, label: 'ALPHA', icon: '★', count: alphaSignals.length > 0 ? `${alphaSignals.length}` : '' },
+                        { key: 'flow' as const, label: 'MONEY MAP', icon: '◎', count: '' },
+                        { key: 'signals' as const, label: 'WHALE MOVES', icon: '⚡', count: whaleSignals.length > 0 ? `${whaleSignals.length}` : '' },
+                        { key: 'edge' as const, label: 'PRICE GAPS', icon: '◇', count: marketsWithEdge.length > 0 ? `${marketsWithEdge.length}` : '' },
+                        { key: 'portfolios' as const, label: 'WALLETS', icon: '▦', count: traderPortfolios.length > 0 ? `${traderPortfolios.length}` : '' },
+                        { key: 'alpha' as const, label: 'ALERTS', icon: '★', count: alphaSignals.length > 0 ? `${alphaSignals.length}` : '' },
                       ]).map(tab => (
                         <button
                           key={tab.key}
@@ -2387,11 +2331,11 @@ export default function PolymarketTrackerPage() {
                       ))}
                     </div>
                     <div className="text-[9px] text-green-400/25 font-mono px-1">
-                      {smartMoneyActivePanel === 'flow' && '> capital_flow: trader → market allocation visualization'}
-                      {smartMoneyActivePanel === 'signals' && '> whale_signals: real-time buy/sell from top PnL traders (72h)'}
-                      {smartMoneyActivePanel === 'edge' && '> edge_tracker: avg entry price vs market price analysis'}
-                      {smartMoneyActivePanel === 'portfolios' && '> portfolios: concentration, hedges & conviction analysis'}
-                      {smartMoneyActivePanel === 'alpha' && '> alpha_signals: cross-referenced actionable opportunities'}
+                      {smartMoneyActivePanel === 'flow' && '> Where the money is going — who is betting on what'}
+                      {smartMoneyActivePanel === 'signals' && '> Recent buys & sells from top traders (last 72 hours)'}
+                      {smartMoneyActivePanel === 'edge' && '> Markets where traders bought cheaper than current price'}
+                      {smartMoneyActivePanel === 'portfolios' && '> How each trader spreads their bets across markets'}
+                      {smartMoneyActivePanel === 'alpha' && '> Best opportunities found by combining all signals'}
                     </div>
                   </div>
                 )}
@@ -2819,7 +2763,7 @@ export default function PolymarketTrackerPage() {
                       {/* Portfolio list */}
                       <div className="border border-green-500/15 bg-black/40 overflow-hidden font-mono">
                         <div className="flex items-center justify-between px-3 py-1.5 bg-green-500/5 border-b border-green-500/10">
-                          <span className="text-green-400/50 text-[10px]">{'>'} PORTFOLIO CONSTRUCTION</span>
+                          <span className="text-green-400/50 text-[10px]">{'>'} HOW EACH TRADER BETS</span>
                           <span className="text-green-400/25 text-[10px]">{traderPortfolios.length} traders</span>
                         </div>
                         {displayPortfolios.length === 0 ? (
@@ -2959,11 +2903,11 @@ export default function PolymarketTrackerPage() {
                 {/* Panel: Alpha Signals */}
                 {sortedSmartMoneyMarkets.length > 0 && smartMoneyActivePanel === 'alpha' && (() => {
                   const signalTypeConfig: Record<string, { color: string; bgColor: string; borderColor: string; icon: string; label: string }> = {
-                    'WHALE_CONVERGENCE': { color: 'text-green-400', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/30', icon: '🐋', label: 'WHALE' },
-                    'UNDERWATER_ACCUMULATION': { color: 'text-red-400', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', icon: '▼', label: 'UNDERWATER' },
-                    'YIELD_MOMENTUM': { color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30', icon: '$', label: 'YIELD' },
-                    'HIGH_CONVICTION_CLUSTER': { color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30', icon: '◆', label: 'CONVICTION' },
-                    'OI_SURGE_CONSENSUS': { color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30', icon: '◉', label: 'OI+SM' },
+                    'WHALE_CONVERGENCE': { color: 'text-green-400', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/30', icon: '🐋', label: 'GROUP BUY' },
+                    'UNDERWATER_ACCUMULATION': { color: 'text-red-400', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', icon: '▼', label: 'BUYING DIP' },
+                    'YIELD_MOMENTUM': { color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30', icon: '$', label: 'NEAR-SURE' },
+                    'HIGH_CONVICTION_CLUSTER': { color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30', icon: '◆', label: 'BIG BETS' },
+                    'OI_SURGE_CONSENSUS': { color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30', icon: '◉', label: 'HOT MARKET' },
                   };
 
                   const typeCounts = {
@@ -2992,11 +2936,11 @@ export default function PolymarketTrackerPage() {
                       {/* Summary row — one block per signal type */}
                       <div className="grid grid-cols-5 gap-[2px] bg-amber-500/10">
                         {([
-                          { key: 'whale', label: 'WHALE', count: typeCounts.whale, color: 'green' },
-                          { key: 'underwater', label: 'UNDERWATER', count: typeCounts.underwater, color: 'red' },
-                          { key: 'yield', label: 'YIELD', count: typeCounts.yield, color: 'violet' },
-                          { key: 'conviction', label: 'CONVICTION', count: typeCounts.conviction, color: 'amber' },
-                          { key: 'oi', label: 'OI+SM', count: typeCounts.oi, color: 'cyan' },
+                          { key: 'whale', label: 'GROUP BUY', count: typeCounts.whale, color: 'green' },
+                          { key: 'underwater', label: 'BUYING DIP', count: typeCounts.underwater, color: 'red' },
+                          { key: 'yield', label: 'NEAR-SURE', count: typeCounts.yield, color: 'violet' },
+                          { key: 'conviction', label: 'BIG BETS', count: typeCounts.conviction, color: 'amber' },
+                          { key: 'oi', label: 'HOT MARKET', count: typeCounts.oi, color: 'cyan' },
                         ] as const).map(item => (
                           <div key={item.key} className="bg-black/80 p-2 text-center">
                             <div className={`text-${item.color}-400 text-lg font-bold`}>{item.count}</div>
@@ -3013,7 +2957,7 @@ export default function PolymarketTrackerPage() {
                       {/* Signal cards */}
                       <div className="border border-amber-500/15 bg-black/40 overflow-hidden font-mono">
                         <div className="flex items-center justify-between px-3 py-1.5 bg-amber-500/5 border-b border-amber-500/10">
-                          <span className="text-amber-400/50 text-[10px]">{'>'} ALPHA SIGNALS — cross-referenced opportunities</span>
+                          <span className="text-amber-400/50 text-[10px]">{'>'} BEST OPPORTUNITIES — signals combined from all data</span>
                           <span className="text-amber-400/25 text-[10px]">{alphaSignals.length} signals</span>
                         </div>
                         {alphaSignals.length === 0 ? (
@@ -3097,7 +3041,7 @@ export default function PolymarketTrackerPage() {
                 {sortedSmartMoneyMarkets.length > 0 && (
                   <div className="space-y-[2px] font-mono">
                     <div className="flex items-center justify-between px-1 py-1">
-                      <span className="text-green-400/30 text-[9px]">{'>'} consensus_markets --sort {smartMoneySort}</span>
+                      <span className="text-green-400/30 text-[9px]">{'>'} Markets ranked by {smartMoneySort === 'aiscore' ? 'AI score' : smartMoneySort === 'capital' ? 'total money' : smartMoneySort === 'consensus' ? 'agreement' : 'trader count'}</span>
                       <span className="text-green-400/20 text-[9px]">{sortedSmartMoneyMarkets.length} results</span>
                     </div>
                     {sortedSmartMoneyMarkets.map((market) => {
@@ -3134,7 +3078,7 @@ export default function PolymarketTrackerPage() {
                                   cs.tier === 'MODERATE' ? 'border-amber-500/60 bg-amber-500/15 text-amber-400' :
                                   'border-red-500/60 bg-red-500/15 text-red-400';
                                 return (
-                                  <div className={`shrink-0 w-11 h-14 flex flex-col items-center justify-center border rounded ${scoreColor}`} title={`AI Score: Consensus ${cs.breakdown.consensus} + Edge ${cs.breakdown.edge} + Momentum ${cs.breakdown.momentum} + Validation ${cs.breakdown.validation} + Quality ${cs.breakdown.quality}`}>
+                                  <div className={`shrink-0 w-11 h-14 flex flex-col items-center justify-center border rounded ${scoreColor}`} title={`AI Score ${cs.score}/100 — How strong this opportunity looks overall.\nAgreement: ${cs.breakdown.consensus}/25 (do traders agree?)\nPrice Gap: ${cs.breakdown.edge}/20 (did they buy cheap?)\nActivity: ${cs.breakdown.momentum}/20 (recent buying?)\nMarket Size: ${cs.breakdown.validation}/15 (enough volume?)\nTrack Record: ${cs.breakdown.quality}/20 (do these traders win?)`}>
                                     <span className="text-[8px] font-bold leading-none opacity-60">AI</span>
                                     <span className="text-lg font-bold leading-tight">{cs.score}</span>
                                   </div>
@@ -3161,14 +3105,14 @@ export default function PolymarketTrackerPage() {
                                       />
                                     ))}
                                   </div>
-                                  <span className="text-green-400/60 text-[10px] w-8 text-right">{market.capitalConsensus}%</span>
+                                  <span className="text-green-400/60 text-[10px] w-8 text-right" title="Agreement: what % of smart money capital is on the same side">{market.capitalConsensus}%</span>
                                 </div>
 
                                 {/* Quick stats */}
                                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[10px]">
-                                  <span className="text-green-300">{formatUSD(market.totalCapital)}</span>
-                                  <span className="text-green-400/50">{market.traderCount} traders</span>
-                                  <span className={market.avgPnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                  <span className="text-green-300" title="Total money from top traders in this market">{formatUSD(market.totalCapital)}</span>
+                                  <span className="text-green-400/50" title="Number of top PnL traders with positions here">{market.traderCount} traders</span>
+                                  <span className={market.avgPnl >= 0 ? 'text-green-400' : 'text-red-400'} title="Average profit/loss of traders in this market">
                                     avg {market.avgPnl >= 0 ? '+' : ''}{formatUSD(market.avgPnl)}
                                   </span>
                                   {openInterestMap.get(market.conditionId) ? (
@@ -3191,7 +3135,7 @@ export default function PolymarketTrackerPage() {
                               {(() => {
                                 const cs = convergenceScoreMap.get(market.conditionId);
                                 if (!cs) return null;
-                                const labels: Record<string, string> = { consensus: 'CONSENSUS', edge: 'EDGE', momentum: 'MOMENTUM', validation: 'VALIDATION', quality: 'QUALITY' };
+                                const labels: Record<string, string> = { consensus: 'AGREEMENT', edge: 'PRICE GAP', momentum: 'ACTIVITY', validation: 'MARKET SIZE', quality: 'TRACK RECORD' };
                                 const maxPts: Record<string, number> = { consensus: 25, edge: 20, momentum: 20, validation: 15, quality: 20 };
                                 return (
                                   <div className="grid grid-cols-5 gap-[2px] bg-green-500/10 mb-2">
@@ -3242,6 +3186,13 @@ export default function PolymarketTrackerPage() {
                                   </div>
                                 </div>
                               ))}
+                              {/* OKX DEX Quote — shows swap price on X Layer for tradeable assets */}
+                              <DexQuotePanel
+                                marketSlug={market.slug || ''}
+                                marketTitle={market.title}
+                                className="mt-2"
+                              />
+
                               {market.slug && (
                                 <div className="pt-1.5 border-t border-green-500/10">
                                   <a href={`https://polymarket.com/event/${market.slug}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-400/40 hover:text-green-400 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -3487,22 +3438,14 @@ export default function PolymarketTrackerPage() {
           </div>
         </div>
 
-        {/* Disclaimer */}
-        <div className="mt-4 border border-red-500/30 bg-red-500/5 px-4 py-3">
-          <p className="text-red-400 text-[11px] font-mono text-center leading-relaxed">
-            This is NOT investment advice. All data is for educational and research purposes only. You are solely responsible for your own trading decisions. Past performance does not guarantee future results. Trade at your own risk.
+        {/* Disclaimer — Uniswap-style subtle */}
+        <div className="mt-4 rounded-2xl bg-neutral-900/50 px-5 py-3">
+          <p className="text-neutral-600 text-xs text-center leading-relaxed">
+            Not investment advice. Educational and research purposes only. You are solely responsible for your trading decisions. Past performance ≠ future results.
           </p>
         </div>
       </div>
 
-      {/* Glow animation for ANALYZER buttons */}
-      <style>{`
-        @keyframes glow-spin {
-          0% { filter: hue-rotate(0deg) blur(2px); }
-          50% { filter: hue-rotate(15deg) blur(3px); }
-          100% { filter: hue-rotate(0deg) blur(2px); }
-        }
-      `}</style>
     </div>
   );
 }

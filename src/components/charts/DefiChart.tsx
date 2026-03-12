@@ -12,7 +12,6 @@ import { LatamAdoptionChart } from './LatamAdoptionChart';
 import { LongshotBiasChart } from './LongshotBiasChart';
 import { MakerTakerEdgeChart } from './MakerTakerEdgeChart';
 import { KellyPositionChart } from './KellyPositionChart';
-import { PolymarketFlowChart } from './PolymarketFlowChart';
 import { HyperliquidVolumeChart } from './HyperliquidVolumeChart';
 import { HyperliquidGrowthMetrics } from './HyperliquidGrowthMetrics';
 import { PerpDexMarketShare } from './PerpDexMarketShare';
@@ -57,8 +56,6 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <MakerTakerEdgeChart />;
     case 'kelly_position':
       return <KellyPositionChart />;
-    case 'polymarket_flow':
-      return <PolymarketFlowChart />;
     case 'hl_volume':
       return <HyperliquidVolumeChart />;
     case 'hl_growth_metrics':
