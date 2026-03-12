@@ -10,6 +10,7 @@ import { useSmartMoneyScan } from '@/hooks/useSmartMoneyScan';
 import { DiscoverPanel } from './DiscoverPanel';
 import { AnalyzePanel } from './AnalyzePanel';
 import { ExecutePanel } from './ExecutePanel';
+import { OKXTickerStrip } from './OKXTickerStrip';
 
 interface Props {
   onSwitchToAdvanced: (mode?: string) => void;
@@ -43,6 +44,11 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
             Advanced View
             <ChevronRight className="w-3 h-3" />
           </button>
+        </div>
+
+        {/* OKX Live Ticker Strip */}
+        <div className="mb-5 -mt-2">
+          <OKXTickerStrip />
         </div>
 
         {/* DISCOVER — Full width, auto-loading */}
@@ -123,13 +129,15 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
         </div>
 
         {/* Footer badge */}
-        <div className="flex items-center justify-center gap-3 mt-8 text-[11px] text-neutral-600">
+        <div className="flex items-center justify-center flex-wrap gap-3 mt-8 text-[11px] text-neutral-600">
           <span>Powered by</span>
           <span className="font-bold text-neutral-400">OKX</span>
           <span className="text-neutral-700">·</span>
           <span>X Layer</span>
           <span className="text-neutral-700">·</span>
           <span>DEX Aggregator</span>
+          <span className="text-neutral-700">·</span>
+          <span>Agent Trade Kit</span>
           <span className="text-neutral-700">·</span>
           <span>Polymarket API</span>
         </div>

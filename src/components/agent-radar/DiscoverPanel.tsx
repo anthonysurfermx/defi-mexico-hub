@@ -10,6 +10,7 @@ import type { SmartMoneyMarket, WhaleSignal } from '@/services/polymarket.servic
 import type { AgentLogEntry } from '@/components/claw-trader/AgentActivityLog';
 import { AgentActivityLog } from '@/components/claw-trader/AgentActivityLog';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
+import { CEXInsightBadge } from './CEXInsightBadge';
 
 function formatUSD(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -125,6 +126,9 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                     <span className={consensusColor}>
                       {market.capitalConsensus}% agreement
                     </span>
+
+                    {/* Compact CEX price badge */}
+                    <CEXInsightBadge marketTitle={market.title} compact />
                   </div>
                 </div>
 
@@ -208,6 +212,9 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                         </div>
                       </div>
                     )}
+
+                    {/* OKX CEX Market Intelligence */}
+                    <CEXInsightBadge marketTitle={market.title} />
 
                     {/* DEX Quote */}
                     <DexQuotePanel
