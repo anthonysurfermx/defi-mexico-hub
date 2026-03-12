@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fromTokenAddress: String(fromToken),
       toTokenAddress: String(toToken),
       amount: String(amount),
-      slippage: String(slippage || '0.5'),
+      slippage: String(slippage || '0.01'),
     };
 
     const requestPath = '/api/v5/dex/aggregator/quote';
@@ -114,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (json.code !== '0') {
       console.error('[DEX Quote] OKX API Error:', json.code, json.msg);
-      return res.status(502).json({ error: 'OKX API error', code: json.code, msg: json.msg });
+      return res.status(502).json({ error: 'OKX API error', code: json.code, msg: json.msg, detail: `OKX code ${json.code}: ${json.msg}` });
     }
 
     if (!json.data || json.data.length === 0) {

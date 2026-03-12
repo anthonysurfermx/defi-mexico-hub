@@ -107,7 +107,7 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
       const data = await res.json();
 
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || data.msg || 'Failed to get quote');
+        throw new Error(data.detail || data.msg || data.error || 'Failed to get quote');
       }
 
       if (!data.quote) {
