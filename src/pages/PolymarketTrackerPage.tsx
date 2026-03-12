@@ -14,6 +14,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PixelLobster } from '@/components/ui/pixel-icons';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
 import { AgentActivityLog, type AgentLogEntry } from '@/components/claw-trader/AgentActivityLog';
+import { AgentRadarLanding } from '@/components/agent-radar/AgentRadarLanding';
 import { polymarketService, type MarketInfo, type MarketHolder, type EventInfo, type PolymarketPosition, type OutcomePriceHistory, type LeaderboardEntry, type SmartMoneyMarket, type SmartMoneyTrader, type OutcomeBias, type WhaleSignal, type TraderPortfolio, type RecentTrade, type BondOpportunity, type ClosedPosition, type OrderBook } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type SignalProgress, type MarketContext, type StrategyType } from '@/services/polymarket-detector';
 import { ShareScoreCard } from '@/components/agentic/ShareScoreCard';
@@ -238,6 +239,12 @@ export default function PolymarketTrackerPage() {
   const navigate = useNavigate();
   const { canScanMarket, marketScansRemaining, marketScanLimit, marketCooldownText, consumeMarketScan } = useScanLimit();
 
+  // View toggle: landing (new UX) or advanced (legacy terminal)
+  const [view, setView] = useState<'landing' | 'advanced'>('landing');
+
+  // Scanner mode toggle
+  const [scanMode, setScanMode] = useState<'market' | 'smartmoney' | 'bonds'>('market');
+
   // Market scanner state
   const [marketUrl, setMarketUrl] = useState('');
   const [marketInfo, setMarketInfo] = useState<MarketInfo | null>(null);
@@ -251,9 +258,6 @@ export default function PolymarketTrackerPage() {
   const [holderPositions, setHolderPositions] = useState<Record<string, PolymarketPosition[]>>({});
   const [loadingPositions, setLoadingPositions] = useState<string | null>(null);
   const [scanLimit, setScanLimit] = useState(50);
-
-  // Scanner mode toggle
-  const [scanMode, setScanMode] = useState<'market' | 'smartmoney' | 'bonds'>('market');
 
   // Smart Money state
   const [smartMoneyMarkets, setSmartMoneyMarkets] = useState<SmartMoneyMarket[]>([]);
@@ -921,6 +925,21 @@ export default function PolymarketTrackerPage() {
     return map;
   }, [traderPortfolios, closedPositionsMap, smartMoneyLeaderboard]);
 
+  // Landing view — progressive disclosure
+  if (view === 'landing') {
+    return (
+      <AgentRadarLanding
+        onSwitchToAdvanced={(mode) => {
+          setView('advanced');
+          if (mode === 'market') setScanMode('market');
+          else if (mode === 'smartmoney') setScanMode('smartmoney');
+          else if (mode === 'bonds') setScanMode('bonds');
+        }}
+      />
+    );
+  }
+
+  // Advanced (legacy) view
   return (
     <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
       <Helmet>
@@ -946,6 +965,12 @@ export default function PolymarketTrackerPage() {
               <p className="text-neutral-500 text-sm">Smart money tracking + X Layer execution</p>
             </div>
           </div>
+          <button
+            onClick={() => setView('landing')}
+            className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5"
+          >
+            ← Overview
+          </button>
         </div>
 
         {/* Scanner Card with Toggle */}
