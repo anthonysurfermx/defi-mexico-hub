@@ -1,27 +1,49 @@
 // ============================================================
 // DexQuotePanel — Shows OKX DEX swap price for a detected asset
-// Used inside Smart Money market cards when the asset maps to X Layer
+// Queries multiple chains via OKX DEX Aggregator V6
+// Priority: Ethereum (deep liquidity) with X Layer badge for hackathon
 // ============================================================
 
 import { useState, useCallback } from 'react';
 import { ExternalLink } from 'lucide-react';
 
-// X Layer token addresses (inline to avoid server-only import)
-const XLAYER_CHAIN_ID = '196';
-const XLAYER_EXPLORER = 'https://www.oklink.com/x-layer';
-
 const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-const TOKEN_MAP: Record<string, { address: string; symbol: string; decimals: number }> = {
-  USDC: { address: '0x74b7F16337b8972027F6196A17a631aC6dE26d22', symbol: 'USDC', decimals: 6 },
-  USDT: { address: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d', symbol: 'USDT', decimals: 6 },
-  WETH: { address: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c', symbol: 'WETH', decimals: 18 },
-  WBTC: { address: '0xEA034fb02eB1808C2cc3adbC15f447B93CbE08e1', symbol: 'WBTC', decimals: 8 },
-  OKB: { address: NATIVE_TOKEN, symbol: 'OKB', decimals: 18 },
-  DAI: { address: '0xC5015b9d9161Dca7e18e32f6f25C4aD850731Fd4', symbol: 'DAI', decimals: 18 },
-};
+// Chain configs with token addresses
+interface ChainConfig {
+  chainId: string;
+  name: string;
+  explorer: string;
+  tokens: Record<string, { address: string; symbol: string; decimals: number }>;
+}
 
-// Maps Polymarket asset keywords to X Layer buy pairs (USDC → token)
+const CHAINS: ChainConfig[] = [
+  {
+    chainId: '1', // Ethereum — deep liquidity
+    name: 'Ethereum',
+    explorer: 'https://etherscan.io',
+    tokens: {
+      USDC: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC', decimals: 6 },
+      USDT: { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', symbol: 'USDT', decimals: 6 },
+      WETH: { address: NATIVE_TOKEN, symbol: 'ETH', decimals: 18 },
+      WBTC: { address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', symbol: 'WBTC', decimals: 8 },
+    },
+  },
+  {
+    chainId: '196', // X Layer — OKX hackathon chain
+    name: 'X Layer',
+    explorer: 'https://www.oklink.com/x-layer',
+    tokens: {
+      USDC: { address: '0x74b7F16337b8972027F6196A17a631aC6dE26d22', symbol: 'USDC', decimals: 6 },
+      USDT: { address: '0x1E4a5963aBFD975d8c9021ce480b42188849D41d', symbol: 'USDT', decimals: 6 },
+      WETH: { address: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c', symbol: 'WETH', decimals: 18 },
+      WBTC: { address: '0xEA034fb02eB1808C2cc3adbC15f447B93CbE08e1', symbol: 'WBTC', decimals: 8 },
+      OKB: { address: NATIVE_TOKEN, symbol: 'OKB', decimals: 18 },
+    },
+  },
+];
+
+// Maps Polymarket asset keywords to token key
 const SLUG_ASSET_MAP: Record<string, string> = {
   btc: 'WBTC', bitcoin: 'WBTC',
   eth: 'WETH', ethereum: 'WETH',
@@ -57,15 +79,11 @@ interface DexQuoteResult {
 interface Props {
   marketSlug: string;
   marketTitle: string;
-  polymarketPrice?: number; // Polymarket implied price (e.g. 0.72 for 72% YES)
-  spotPrice?: number; // Current spot price from CEX
+  polymarketPrice?: number;
+  spotPrice?: number;
   className?: string;
 }
 
-/**
- * Extract asset keyword from a market slug/title.
- * Returns the token symbol on X Layer if mappable.
- */
 function extractAsset(slug: string, title: string): string | null {
   const text = `${slug} ${title}`.toLowerCase();
   for (const [keyword, symbol] of Object.entries(SLUG_ASSET_MAP)) {
@@ -79,54 +97,67 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
   const [quote, setQuote] = useState<DexQuoteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [amount, setAmount] = useState(100); // Default $100 USDC
+  const [amount, setAmount] = useState(100);
+  const [usedChain, setUsedChain] = useState<ChainConfig | null>(null);
 
   const asset = extractAsset(marketSlug, marketTitle);
 
   const fetchQuote = useCallback(async () => {
     if (!asset) return;
 
-    const toToken = TOKEN_MAP[asset];
-    const fromToken = TOKEN_MAP.USDC;
-    if (!toToken || !fromToken) return;
-
     setLoading(true);
     setError(null);
+    setQuote(null);
 
-    try {
-      const amountRaw = toSmallestUnit(amount, fromToken.decimals);
-      const params = new URLSearchParams({
-        chainId: XLAYER_CHAIN_ID,
-        fromToken: fromToken.address,
-        toToken: toToken.address,
-        amount: amountRaw,
-      });
+    // Try chains in order until we get liquidity
+    for (const chain of CHAINS) {
+      const toToken = chain.tokens[asset];
+      const fromToken = chain.tokens.USDC;
+      if (!toToken || !fromToken) continue;
 
-      const res = await fetch(`/api/dex-quote?${params}`);
-      const data = await res.json();
+      try {
+        const amountRaw = toSmallestUnit(amount, fromToken.decimals);
+        const params = new URLSearchParams({
+          chainId: chain.chainId,
+          fromToken: fromToken.address,
+          toToken: toToken.address,
+          amount: amountRaw,
+        });
 
-      if (!res.ok || !data.ok) {
-        throw new Error(data.detail || data.msg || data.error || 'Failed to get quote');
+        const res = await fetch(`/api/dex-quote?${params}`);
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+          // If insufficient liquidity, try next chain
+          if (data.code === '82000' || data.detail?.includes('liquidity')) continue;
+          throw new Error(data.detail || data.msg || data.error || 'Failed to get quote');
+        }
+
+        if (!data.quote) continue;
+
+        setQuote(data.quote);
+        setUsedChain(chain);
+        setLoading(false);
+        return;
+      } catch (err) {
+        // If it's a real error (not liquidity), stop
+        if (err instanceof Error && !err.message.includes('liquidity')) {
+          setError(err.message);
+          setLoading(false);
+          return;
+        }
       }
-
-      if (!data.quote) {
-        throw new Error('No liquidity on X Layer for this pair');
-      }
-
-      setQuote(data.quote);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Quote failed');
-    } finally {
-      setLoading(false);
     }
+
+    // No chain had liquidity
+    setError('No liquidity found across supported chains');
+    setLoading(false);
   }, [asset, amount]);
 
-  // Don't render if this market doesn't map to a tradeable asset
   if (!asset) return null;
 
-  const toToken = TOKEN_MAP[asset];
+  const displayAsset = asset === 'WBTC' ? 'BTC' : asset === 'WETH' ? 'ETH' : asset;
 
-  // Calculate arbitrage if we have both Polymarket and DEX prices
   const arbOpportunity = quote && spotPrice && polymarketPrice
     ? ((1 - polymarketPrice) * spotPrice - quote.effectivePrice * quote.toAmount) / (quote.effectivePrice * quote.toAmount) * 100
     : null;
@@ -136,18 +167,22 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400 text-[10px] font-bold">⬡ X LAYER DEX</span>
-          <span className="text-cyan-400/30 text-[9px]">Chain 196</span>
+          <span className="text-cyan-400 text-[10px] font-bold">⬡ OKX DEX AGGREGATOR</span>
+          {usedChain && (
+            <span className="text-cyan-400/30 text-[9px]">{usedChain.name} (Chain {usedChain.chainId})</span>
+          )}
         </div>
-        <a
-          href={`${XLAYER_EXPLORER}/token/${toToken.address}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-cyan-400/30 hover:text-cyan-400 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ExternalLink className="w-3 h-3" />
-        </a>
+        {usedChain && quote && (
+          <a
+            href={`${usedChain.explorer}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400/30 hover:text-cyan-400 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
       </div>
 
       {/* Quote input */}
@@ -166,7 +201,7 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
           <span className="text-cyan-400/30 text-[10px]">USDC</span>
         </div>
         <span className="text-cyan-400/30 text-[10px]">→</span>
-        <span className="text-cyan-300 text-[10px] font-bold">{asset}</span>
+        <span className="text-cyan-300 text-[10px] font-bold">{displayAsset}</span>
         <button
           onClick={(e) => { e.stopPropagation(); fetchQuote(); }}
           disabled={loading}
@@ -186,22 +221,20 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
       {/* Quote result */}
       {quote && (
         <div className="space-y-1.5">
-          {/* Price */}
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-cyan-400/50">You get:</span>
             <span className="text-cyan-300 font-bold">
-              {quote.toAmount.toFixed(asset === 'WBTC' ? 6 : 4)} {asset}
+              {quote.toAmount.toFixed(asset === 'WBTC' ? 6 : 4)} {displayAsset}
             </span>
           </div>
 
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-cyan-400/50">Price per {asset}:</span>
+            <span className="text-cyan-400/50">Price per {displayAsset}:</span>
             <span className="text-cyan-300">
               ${quote.effectivePrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
           </div>
 
-          {/* Spot vs DEX comparison */}
           {spotPrice && (
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-cyan-400/50">CEX spot price:</span>
@@ -228,13 +261,11 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
             </div>
           )}
 
-          {/* Gas estimate */}
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-cyan-400/50">Est. gas:</span>
-            <span className="text-cyan-300/40">{quote.estimateGasFee} OKB</span>
+            <span className="text-cyan-300/40">{quote.estimateGasFee}</span>
           </div>
 
-          {/* Route */}
           {quote.routes.length > 0 && (
             <div className="text-[9px] text-cyan-400/30">
               {'>'} Route: {quote.routes.map(r =>
@@ -244,7 +275,6 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
             </div>
           )}
 
-          {/* DEX comparison */}
           {quote.dexComparison.length > 1 && (
             <div className="border-t border-cyan-500/10 pt-1.5 mt-1.5">
               <div className="text-[9px] text-cyan-400/30 mb-1">{'>'} Price comparison across DEXes:</div>
@@ -255,7 +285,7 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
                       {i === 0 ? '★ ' : '  '}{d.dex}
                     </span>
                     <span className={i === 0 ? 'text-green-400' : 'text-cyan-400/30'}>
-                      {d.receiveAmount.toFixed(asset === 'WBTC' ? 6 : 4)} {asset}
+                      {d.receiveAmount.toFixed(asset === 'WBTC' ? 6 : 4)} {displayAsset}
                     </span>
                   </div>
                 ))}
@@ -263,21 +293,19 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
             </div>
           )}
 
-          {/* Arbitrage signal */}
           {arbOpportunity !== null && Math.abs(arbOpportunity) > 1 && (
             <div className={`border-t border-cyan-500/10 pt-1.5 mt-1.5 text-[10px] font-bold ${
               arbOpportunity > 0 ? 'text-green-400' : 'text-red-400'
             }`}>
-              {arbOpportunity > 0 ? '▲' : '▼'} Polymarket vs X Layer arbitrage: {arbOpportunity > 0 ? '+' : ''}{arbOpportunity.toFixed(1)}%
+              {arbOpportunity > 0 ? '▲' : '▼'} Polymarket vs DEX arbitrage: {arbOpportunity > 0 ? '+' : ''}{arbOpportunity.toFixed(1)}%
             </div>
           )}
         </div>
       )}
 
-      {/* CTA when no quote yet */}
       {!quote && !loading && !error && (
         <div className="text-cyan-400/25 text-[9px] text-center py-1">
-          Click QUOTE to see the best swap price on X Layer
+          Click QUOTE to get best swap price via OKX DEX Aggregator
         </div>
       )}
     </div>
