@@ -100,7 +100,6 @@ export function DexQuotePanel({ marketSlug, marketTitle, polymarketPrice, spotPr
         fromToken: fromToken.address,
         toToken: toToken.address,
         amount: amountRaw,
-        slippage: '0.5',
       });
 
       const res = await fetch(`/api/dex-quote?${params}`);

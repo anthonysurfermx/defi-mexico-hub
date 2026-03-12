@@ -1,12 +1,12 @@
 // ============================================================
 // GET /api/dex-quote
-// Proxy for OKX DEX Aggregator — returns best swap price
-// Params: chainId, fromToken, toToken, amount, slippage
+// Proxy for OKX DEX Aggregator V6 — returns best swap price
+// Params: chainId, fromToken, toToken, amount
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const OKX_BASE = 'https://www.okx.com';
+const OKX_BASE = 'https://web3.okx.com';
 
 async function hmacSign(message: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { chainId, fromToken, toToken, amount, slippage } = req.query;
+  const { chainId, fromToken, toToken, amount } = req.query;
 
   if (!chainId || !fromToken || !toToken || !amount) {
     return res.status(400).json({
@@ -47,15 +47,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // V6 API uses chainIndex instead of chainId, and requires swapMode
     const queryParams: Record<string, string> = {
-      chainId: String(chainId),
+      chainIndex: String(chainId),
       fromTokenAddress: String(fromToken),
       toTokenAddress: String(toToken),
       amount: String(amount),
-      slippage: String(slippage || '0.01'),
+      swapMode: 'exactIn',
     };
 
-    const requestPath = '/api/v5/dex/aggregator/quote';
+    const requestPath = '/api/v6/dex/aggregator/quote';
     const queryString = '?' + new URLSearchParams(queryParams).toString();
     const timestamp = new Date().toISOString();
 
@@ -86,13 +87,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       code: string;
       msg: string;
       data: Array<{
-        chainId: string;
+        chainIndex: string;
         fromToken: { tokenSymbol: string; tokenUnitPrice: string; decimal: string; tokenContractAddress: string };
         toToken: { tokenSymbol: string; tokenUnitPrice: string; decimal: string; tokenContractAddress: string };
         fromTokenAmount: string;
         toTokenAmount: string;
         estimateGasFee: string;
-        routerList: Array<{
+        dexRouterList: Array<{
           router: string;
           routerPercent: string;
           subRouterList: Array<{
@@ -131,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fromUnitPrice = parseFloat(q.fromToken.tokenUnitPrice) || 0;
     const toUnitPrice = parseFloat(q.toToken.tokenUnitPrice) || 0;
 
-    // Effective price: how much toToken per fromToken
+    // Effective price: how much fromToken per toToken (e.g. USDC per WBTC)
     const effectivePrice = toAmount > 0 ? fromAmount / toAmount : 0;
 
     // DEX comparison: which DEX gives the best rate
@@ -142,8 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fee: d.tradeFee,
     }));
 
-    // Route breakdown
-    const routes = (q.routerList || []).map(r => ({
+    // Route breakdown (V6 uses dexRouterList instead of routerList)
+    const routes = (q.dexRouterList || []).map(r => ({
       percent: r.routerPercent,
       path: (r.subRouterList || []).flatMap(sr =>
         (sr.dexRouter || []).map(d => ({
@@ -160,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       ok: true,
       quote: {
-        chainId: q.chainId,
+        chainId: q.chainIndex,
         fromToken: q.fromToken.tokenSymbol,
         toToken: q.toToken.tokenSymbol,
         fromAmount,
