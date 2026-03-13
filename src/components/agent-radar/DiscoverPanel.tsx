@@ -11,6 +11,9 @@ import type { AgentLogEntry } from '@/components/claw-trader/AgentActivityLog';
 import { AgentActivityLog } from '@/components/claw-trader/AgentActivityLog';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
 import { CEXInsightBadge } from './CEXInsightBadge';
+import { CopyTradeCard } from './CopyTradeCard';
+import { SmartMoneyTreemap } from './SmartMoneyTreemap';
+import { ArbitrageDetector } from './ArbitrageDetector';
 
 function formatUSD(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -26,13 +29,45 @@ interface Props {
   agentLog: AgentLogEntry[];
 }
 
+type ViewMode = 'cards' | 'treemap';
+
 export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentLog }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
   const top5 = markets.slice(0, 5);
 
   return (
     <div className="space-y-3">
+      {/* View mode toggle + Arbitrage detector */}
+      {!loading && markets.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5 bg-neutral-900/60 rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                  viewMode === 'cards' ? 'bg-neutral-800 text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'
+                }`}
+              >
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode('treemap')}
+                className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                  viewMode === 'treemap' ? 'bg-neutral-800 text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'
+                }`}
+              >
+                Heatmap
+              </button>
+            </div>
+          </div>
+
+          {/* Arbitrage signals */}
+          <ArbitrageDetector markets={markets} />
+        </div>
+      )}
+
       {/* Loading state */}
       {loading && (
         <div className="space-y-3">
@@ -60,7 +95,19 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
         </div>
       )}
 
-      {top5.map((market, idx) => {
+      {/* Treemap view */}
+      {viewMode === 'treemap' && !loading && markets.length > 0 && (
+        <SmartMoneyTreemap
+          markets={markets}
+          onSelectMarket={(m) => {
+            setViewMode('cards');
+            setExpandedId(m.conditionId);
+          }}
+        />
+      )}
+
+      {/* Cards view */}
+      {viewMode === 'cards' && top5.map((market, idx) => {
         const isExpanded = expandedId === market.conditionId;
         const isTopOutcomeYes = market.topOutcome.toLowerCase() === 'yes';
         const consensusColor = market.capitalConsensus >= 70
@@ -216,6 +263,14 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                     {/* OKX CEX Market Intelligence */}
                     <CEXInsightBadge marketTitle={market.title} />
 
+                    {/* Copy Trade — follow top trader */}
+                    {market.traders.length > 0 && (
+                      <CopyTradeCard
+                        market={market}
+                        trader={market.traders[0]}
+                      />
+                    )}
+
                     {/* DEX Quote */}
                     <DexQuotePanel
                       marketSlug={market.slug || ''}
@@ -243,7 +298,7 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
       })}
 
       {/* More markets hint */}
-      {!loading && markets.length > 5 && (
+      {viewMode === 'cards' && !loading && markets.length > 5 && (
         <div className="text-center text-xs text-neutral-600">
           +{markets.length - 5} more markets in Advanced View
         </div>
