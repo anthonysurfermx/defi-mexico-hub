@@ -14,6 +14,7 @@ import { CEXInsightBadge } from './CEXInsightBadge';
 import { CopyTradeCard } from './CopyTradeCard';
 import { SmartMoneyTreemap } from './SmartMoneyTreemap';
 import { ArbitrageDetector } from './ArbitrageDetector';
+import { OnchainIntelBadge } from './OnchainIntelBadge';
 
 function formatUSD(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -262,6 +263,12 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
 
                     {/* OKX CEX Market Intelligence */}
                     <CEXInsightBadge marketTitle={market.title} />
+
+                    {/* On-chain whale intelligence */}
+                    <OnchainIntelBadge
+                      marketTitle={market.title}
+                      polymarketWhales={market.traders.map(t => t.address)}
+                    />
 
                     {/* Copy Trade — follow top trader */}
                     {market.traders.length > 0 && (

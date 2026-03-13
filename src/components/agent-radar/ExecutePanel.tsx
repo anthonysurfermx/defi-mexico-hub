@@ -7,6 +7,8 @@
 import { useState, useEffect } from 'react';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
 import { fetchMarketDetail, formatVolume, type OKXMarketDetail } from '@/services/okx-market.service';
+import { OKXSwapWidget } from './OKXSwapWidget';
+import { YieldBanner } from './YieldBanner';
 
 const ASSETS = [
   { key: 'btc', label: 'BTC', slug: 'bitcoin-btc', title: 'Bitcoin BTC price', instId: 'BTC-USDT' },
@@ -14,7 +16,7 @@ const ASSETS = [
   { key: 'okb', label: 'OKB', slug: 'okb-price', title: 'OKB price', instId: 'OKB-USDT' },
 ];
 
-type Mode = 'dex' | 'cex';
+type Mode = 'dex' | 'cex' | 'widget';
 
 export function ExecutePanel() {
   const [selected, setSelected] = useState(0);
@@ -28,7 +30,7 @@ export function ExecutePanel() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.mode === 'dex' || detail?.mode === 'cex') {
+      if (detail?.mode === 'dex' || detail?.mode === 'cex' || detail?.mode === 'widget') {
         setMode(detail.mode);
       }
     };
@@ -63,6 +65,16 @@ export function ExecutePanel() {
               : 'text-neutral-500 hover:text-neutral-300'
           }`}
         >
+          DEX Quote
+        </button>
+        <button
+          onClick={() => setMode('widget')}
+          className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
+            mode === 'widget'
+              ? 'bg-amber-500/20 text-amber-400'
+              : 'text-neutral-500 hover:text-neutral-300'
+          }`}
+        >
           DEX Swap
         </button>
         <button
@@ -77,22 +89,24 @@ export function ExecutePanel() {
         </button>
       </div>
 
-      {/* Asset selector */}
-      <div className="flex gap-1 bg-neutral-900/40 rounded-lg p-0.5">
-        {ASSETS.map((a, i) => (
-          <button
-            key={a.key}
-            onClick={() => setSelected(i)}
-            className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-colors ${
-              i === selected
-                ? mode === 'dex' ? 'bg-amber-500/15 text-amber-400' : 'bg-purple-500/15 text-purple-400'
-                : 'text-neutral-600 hover:text-neutral-400'
-            }`}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
+      {/* Asset selector (not shown for widget mode — widget has its own picker) */}
+      {mode !== 'widget' && (
+        <div className="flex gap-1 bg-neutral-900/40 rounded-lg p-0.5">
+          {ASSETS.map((a, i) => (
+            <button
+              key={a.key}
+              onClick={() => setSelected(i)}
+              className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                i === selected
+                  ? mode === 'dex' ? 'bg-amber-500/15 text-amber-400' : 'bg-purple-500/15 text-purple-400'
+                  : 'text-neutral-600 hover:text-neutral-400'
+              }`}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* DEX Mode */}
       {mode === 'dex' && (
@@ -250,6 +264,23 @@ export function ExecutePanel() {
           </div>
         </div>
       )}
+
+      {/* Widget Mode — Embedded OKX DEX Swap */}
+      {mode === 'widget' && (
+        <>
+          <OKXSwapWidget
+            defaultToToken={asset.label === 'OKB' ? 'OKB' : asset.label === 'ETH' ? 'ETH' : 'WBTC'}
+          />
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <span className="text-[10px] text-neutral-600">Powered by</span>
+            <span className="text-[10px] font-bold text-amber-400/80">OKX DEX Widget</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400/50">500+ sources</span>
+          </div>
+        </>
+      )}
+
+      {/* Yield suggestion — shown after any mode */}
+      <YieldBanner asset={asset.label} className="mt-2" />
     </div>
   );
 }
