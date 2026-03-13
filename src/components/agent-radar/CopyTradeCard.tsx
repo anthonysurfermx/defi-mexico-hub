@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, TrendingUp, Shield, Zap } from 'lucide-react';
+import { Copy, Check, TrendingUp, Shield, Zap, ExternalLink } from 'lucide-react';
 import type { SmartMoneyTrader, SmartMoneyMarket } from '@/services/polymarket.service';
 
 function formatUSD(n: number): string {
@@ -17,19 +17,17 @@ function formatUSD(n: number): string {
 interface Props {
   market: SmartMoneyMarket;
   trader: SmartMoneyTrader;
-  onExecuteDEX?: () => void;
-  onExecuteCEX?: () => void;
 }
 
 type RiskLevel = 'conservative' | 'moderate' | 'aggressive';
 
-const RISK_CONFIGS: Record<RiskLevel, { label: string; multiplier: number; color: string; icon: typeof Shield }> = {
-  conservative: { label: 'Conservative', multiplier: 0.01, color: 'text-blue-400', icon: Shield },
-  moderate: { label: 'Moderate', multiplier: 0.05, color: 'text-amber-400', icon: TrendingUp },
-  aggressive: { label: 'Aggressive', multiplier: 0.1, color: 'text-red-400', icon: Zap },
+const RISK_CONFIGS: Record<RiskLevel, { label: string; pct: number; color: string; bg: string; icon: typeof Shield }> = {
+  conservative: { label: 'Conservative', pct: 5, color: 'text-blue-400', bg: 'bg-blue-500/10', icon: Shield },
+  moderate: { label: 'Moderate', pct: 10, color: 'text-amber-400', bg: 'bg-amber-500/10', icon: TrendingUp },
+  aggressive: { label: 'Aggressive', pct: 25, color: 'text-red-400', bg: 'bg-red-500/10', icon: Zap },
 };
 
-export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Props) {
+export function CopyTradeCard({ market, trader }: Props) {
   const [risk, setRisk] = useState<RiskLevel>('moderate');
   const [budget, setBudget] = useState(1000);
   const [copied, setCopied] = useState(false);
@@ -37,21 +35,37 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
 
   const config = RISK_CONFIGS[risk];
 
-  // Calculate position sizing based on whale's conviction
-  const whaleConviction = trader.positionValue / (market.totalCapital || 1);
-  const suggestedSize = Math.round(budget * config.multiplier * (1 + whaleConviction));
+  // Whale's conviction: what % of this market's total capital is this trader?
+  const whaleConviction = market.totalCapital > 0 ? trader.positionValue / market.totalCapital : 0;
+
+  // Position sizing: % of budget, scaled by whale conviction
+  // E.g. Moderate (10%) * $1000 = $100 base, then adjust by conviction
+  const baseSize = budget * (config.pct / 100);
+  const convictionBonus = 1 + Math.min(whaleConviction * 2, 1); // max 2x
+  const suggestedSize = Math.round(baseSize * convictionBonus);
   const effectiveSize = Math.min(suggestedSize, budget);
 
-  // Expected outcome
+  // Price: use market price, then trader entry, then consensus-implied
   const isYes = trader.outcome.toLowerCase() === 'yes';
-  const currentPrice = market.currentPrice || market.marketPrice || 0.5;
-  const entryPrice = isYes ? currentPrice : (1 - currentPrice);
-  const potentialReturn = entryPrice > 0 ? ((1 / entryPrice) - 1) * 100 : 0;
+  const rawPrice = market.currentPrice || market.marketPrice || trader.entryPrice || 0;
+  const entryPrice = rawPrice > 0 ? (isYes ? rawPrice : (1 - rawPrice)) : 0;
+  const hasPrice = entryPrice > 0 && entryPrice < 1;
+  const potentialReturn = hasPrice ? ((1 / entryPrice) - 1) * 100 : 0;
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(trader.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const scrollToExecute = (mode: 'dex' | 'cex') => {
+    // Find the Execute panel and scroll to it
+    const executeEl = document.querySelector('[data-panel="execute"]');
+    if (executeEl) {
+      executeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Dispatch custom event to set mode
+      window.dispatchEvent(new CustomEvent('execute-mode', { detail: { mode } }));
+    }
   };
 
   return (
@@ -80,7 +94,9 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
               <span className="text-sm font-bold text-neutral-200">
                 {trader.name || `Trader #${trader.rank}`}
               </span>
-              <span className={`text-xs font-bold ${isYes ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                isYes ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'
+              }`}>
                 {trader.outcome}
               </span>
             </div>
@@ -103,8 +119,8 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
                 onClick={() => setRisk(key)}
                 className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-medium rounded-lg transition-colors ${
                   risk === key
-                    ? `bg-neutral-800 ${cfg.color}`
-                    : 'text-neutral-600 hover:text-neutral-400'
+                    ? `${cfg.bg} ${cfg.color} border border-current/20`
+                    : 'text-neutral-600 hover:text-neutral-400 border border-transparent'
                 }`}
               >
                 <cfg.icon className="w-3 h-3" />
@@ -128,7 +144,9 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
             />
           </div>
           <div className="flex-1">
-            <div className="text-[9px] text-neutral-500 mb-1">Suggested Size</div>
+            <div className="text-[9px] text-neutral-500 mb-1">
+              Suggested ({config.pct}% × conviction)
+            </div>
             <div className="bg-neutral-900/40 border border-green-500/20 rounded-lg px-3 py-1.5 text-sm font-bold text-green-400">
               {formatUSD(effectiveSize)}
             </div>
@@ -137,28 +155,45 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
 
         {/* Position summary */}
         <div className="bg-neutral-900/40 rounded-lg p-2.5 space-y-1.5">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-neutral-500">Entry Price</span>
-            <span className="text-neutral-300">{(entryPrice * 100).toFixed(1)}¢</span>
-          </div>
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-neutral-500">Position</span>
-            <span className="text-neutral-300">
-              {formatUSD(effectiveSize)} → {trader.outcome}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-neutral-500">If correct (max return)</span>
-            <span className="text-green-400 font-bold">
-              +{formatUSD(effectiveSize * (1 / entryPrice - 1))} ({potentialReturn.toFixed(0)}%)
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-neutral-500">If wrong (max loss)</span>
-            <span className="text-red-400">
-              -{formatUSD(effectiveSize)}
-            </span>
-          </div>
+          {hasPrice ? (
+            <>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">Entry Price</span>
+                <span className="text-neutral-300">{(entryPrice * 100).toFixed(1)}¢ per share</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">Position</span>
+                <span className="text-neutral-300">
+                  {formatUSD(effectiveSize)} on <b className={isYes ? 'text-green-400' : 'text-red-400'}>{trader.outcome}</b>
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">If correct (max return)</span>
+                <span className="text-green-400 font-bold">
+                  +{formatUSD(effectiveSize * (1 / entryPrice - 1))} ({potentialReturn.toFixed(0)}%)
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">If wrong (max loss)</span>
+                <span className="text-red-400">-{formatUSD(effectiveSize)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">Position</span>
+                <span className="text-neutral-300">
+                  {formatUSD(effectiveSize)} on <b className={isYes ? 'text-green-400' : 'text-red-400'}>{trader.outcome}</b>
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-neutral-500">Whale entry</span>
+                <span className="text-neutral-300">
+                  {trader.entryPrice > 0 ? `${(trader.entryPrice * 100).toFixed(1)}¢` : 'Unknown'}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-neutral-500">Whale consensus</span>
             <span className="text-neutral-300">
@@ -170,9 +205,9 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
         {/* Execute buttons */}
         <button
           onClick={() => setShowExecution(!showExecution)}
-          className="w-full py-2 bg-green-500/15 border border-green-500/30 rounded-xl text-sm font-medium text-green-400 hover:bg-green-500/25 transition-colors"
+          className="w-full py-2.5 bg-green-500/15 border border-green-500/30 rounded-xl text-sm font-medium text-green-400 hover:bg-green-500/25 transition-colors"
         >
-          Follow This Trade →
+          {showExecution ? 'Hide Execution Options' : 'Follow This Trade →'}
         </button>
 
         <AnimatePresence>
@@ -184,45 +219,51 @@ export function CopyTradeCard({ market, trader, onExecuteDEX, onExecuteCEX }: Pr
               className="overflow-hidden"
             >
               <div className="space-y-2 pt-1">
-                {/* DEX execution */}
-                <button
-                  onClick={onExecuteDEX}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg hover:bg-amber-500/15 transition-colors"
-                >
-                  <div>
-                    <div className="text-[11px] font-medium text-amber-400">DEX Swap (On-chain)</div>
-                    <div className="text-[9px] text-neutral-500">Non-custodial · OKX DEX Aggregator</div>
-                  </div>
-                  <span className="text-[10px] text-neutral-500">→</span>
-                </button>
-
-                {/* CEX execution */}
-                <button
-                  onClick={onExecuteCEX}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/15 transition-colors"
-                >
-                  <div>
-                    <div className="text-[11px] font-medium text-purple-400">CEX Trade (OKX Exchange)</div>
-                    <div className="text-[9px] text-neutral-500">Spot/Perps · Agent Trade Kit · 95 tools</div>
-                  </div>
-                  <span className="text-[10px] text-neutral-500">→</span>
-                </button>
-
-                {/* Polymarket direct */}
+                {/* Polymarket direct — primary action */}
                 {market.slug && (
                   <a
                     href={`https://polymarket.com/event/${market.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-between px-3 py-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/15 transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-3 bg-cyan-500/10 border border-cyan-500/25 rounded-lg hover:bg-cyan-500/15 transition-colors"
                   >
                     <div>
-                      <div className="text-[11px] font-medium text-cyan-400">Trade on Polymarket</div>
-                      <div className="text-[9px] text-neutral-500">Direct market access · Same position as whale</div>
+                      <div className="text-xs font-medium text-cyan-400">Trade on Polymarket</div>
+                      <div className="text-[9px] text-neutral-500">
+                        Buy {trader.outcome} shares · Same position as whale #{trader.rank}
+                      </div>
                     </div>
-                    <span className="text-[10px] text-neutral-500">↗</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-cyan-400/50" />
                   </a>
                 )}
+
+                {/* DEX execution — scroll to Execute panel */}
+                <button
+                  onClick={() => scrollToExecute('dex')}
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg hover:bg-amber-500/15 transition-colors text-left"
+                >
+                  <div>
+                    <div className="text-[11px] font-medium text-amber-400">DEX Swap (On-chain)</div>
+                    <div className="text-[9px] text-neutral-500">
+                      Swap {formatUSD(effectiveSize)} USDC via OKX DEX Aggregator
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-amber-400/50">↓</span>
+                </button>
+
+                {/* CEX execution — scroll to Execute panel */}
+                <button
+                  onClick={() => scrollToExecute('cex')}
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-purple-500/8 border border-purple-500/20 rounded-lg hover:bg-purple-500/15 transition-colors text-left"
+                >
+                  <div>
+                    <div className="text-[11px] font-medium text-purple-400">CEX Trade (OKX)</div>
+                    <div className="text-[9px] text-neutral-500">
+                      Spot/Perps via Agent Trade Kit · 95 tools
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-purple-400/50">↓</span>
+                </button>
               </div>
             </motion.div>
           )}

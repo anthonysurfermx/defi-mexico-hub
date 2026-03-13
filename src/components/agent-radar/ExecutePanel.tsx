@@ -24,6 +24,18 @@ export function ExecutePanel() {
 
   const asset = ASSETS[selected];
 
+  // Listen for mode switch events from CopyTradeCard
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.mode === 'dex' || detail?.mode === 'cex') {
+        setMode(detail.mode);
+      }
+    };
+    window.addEventListener('execute-mode', handler);
+    return () => window.removeEventListener('execute-mode', handler);
+  }, []);
+
   // Fetch CEX data when in CEX mode or when asset changes
   useEffect(() => {
     if (mode !== 'cex') return;
@@ -40,7 +52,7 @@ export function ExecutePanel() {
   }, [mode, asset.instId]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-panel="execute">
       {/* Mode toggle */}
       <div className="flex gap-1 bg-neutral-900/60 rounded-xl p-1">
         <button
