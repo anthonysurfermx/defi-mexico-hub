@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
 import { fetchMarketDetail, formatVolume, type OKXMarketDetail } from '@/services/okx-market.service';
-import { OKXSwapWidget } from './OKXSwapWidget';
+import { SwapExecutor } from './SwapExecutor';
 import { YieldBanner } from './YieldBanner';
 
 const ASSETS = [
@@ -71,11 +71,11 @@ export function ExecutePanel() {
           onClick={() => setMode('widget')}
           className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
             mode === 'widget'
-              ? 'bg-amber-500/20 text-amber-400'
+              ? 'bg-green-500/20 text-green-400'
               : 'text-neutral-500 hover:text-neutral-300'
           }`}
         >
-          DEX Swap
+          Swap (Real)
         </button>
         <button
           onClick={() => setMode('cex')}
@@ -265,18 +265,12 @@ export function ExecutePanel() {
         </div>
       )}
 
-      {/* Widget Mode — Embedded OKX DEX Swap */}
+      {/* Real Swap Mode — On-chain execution via OKX DEX Aggregator */}
       {mode === 'widget' && (
-        <>
-          <OKXSwapWidget
-            defaultToToken={asset.label === 'OKB' ? 'OKB' : asset.label === 'ETH' ? 'ETH' : 'WBTC'}
-          />
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <span className="text-[10px] text-neutral-600">Powered by</span>
-            <span className="text-[10px] font-bold text-amber-400/80">OKX DEX Widget</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400/50">500+ sources</span>
-          </div>
-        </>
+        <SwapExecutor
+          defaultFrom="USDC"
+          defaultTo={asset.label === 'OKB' ? 'ETH' : asset.label}
+        />
       )}
 
       {/* Yield suggestion — shown after any mode */}
