@@ -98,10 +98,10 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
           </div>
         </div>
 
-        {/* ANALYZE + EXECUTE — Side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* ANALYZE */}
-          <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+        {/* ANALYZE + EXECUTE — Balanced grid */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* ANALYZE — 2 cols */}
+          <div className="md:col-span-2 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
                 <Search className="w-4 h-4 text-cyan-400" />
@@ -114,15 +114,15 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
             <AnalyzePanel onSwitchToAdvanced={() => onSwitchToAdvanced('market')} />
           </div>
 
-          {/* EXECUTE */}
-          <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+          {/* EXECUTE — 3 cols */}
+          <div className="md:col-span-3 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-amber-400" />
+              <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-green-400" />
               </div>
               <div>
                 <h2 className="text-sm font-medium text-neutral-200">Execute</h2>
-                <p className="text-[11px] text-neutral-500">Best price to swap</p>
+                <p className="text-[11px] text-neutral-500">Real on-chain swaps</p>
               </div>
             </div>
             <ExecutePanel />

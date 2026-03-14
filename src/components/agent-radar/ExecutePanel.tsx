@@ -1,26 +1,26 @@
 // ============================================================
-// ExecutePanel — Dual-mode execution: DEX Swap + CEX Trade
-// DEX: OKX DEX Aggregator (on-chain swap)
-// CEX: Agent Trade Kit concept (spot/perps via OKX exchange)
+// ExecutePanel — Clean execution panel
+// Default: Real Swap via OKX DEX Aggregator
+// Secondary: CEX data view for context
 // ============================================================
 
 import { useState, useEffect } from 'react';
-import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
+import { ArrowLeftRight, BarChart3 } from 'lucide-react';
 import { fetchMarketDetail, formatVolume, type OKXMarketDetail } from '@/services/okx-market.service';
 import { SwapExecutor } from './SwapExecutor';
 import { YieldBanner } from './YieldBanner';
 
 const ASSETS = [
-  { key: 'btc', label: 'BTC', slug: 'bitcoin-btc', title: 'Bitcoin BTC price', instId: 'BTC-USDT' },
-  { key: 'eth', label: 'ETH', slug: 'ethereum-eth', title: 'Ethereum ETH price', instId: 'ETH-USDT' },
-  { key: 'okb', label: 'OKB', slug: 'okb-price', title: 'OKB price', instId: 'OKB-USDT' },
+  { key: 'btc', label: 'BTC', instId: 'BTC-USDT' },
+  { key: 'eth', label: 'ETH', instId: 'ETH-USDT' },
+  { key: 'okb', label: 'OKB', instId: 'OKB-USDT' },
 ];
 
-type Mode = 'dex' | 'cex' | 'widget';
+type Mode = 'swap' | 'market';
 
 export function ExecutePanel() {
   const [selected, setSelected] = useState(0);
-  const [mode, setMode] = useState<Mode>('dex');
+  const [mode, setMode] = useState<Mode>('swap');
   const [cexData, setCexData] = useState<OKXMarketDetail | null>(null);
   const [cexLoading, setCexLoading] = useState(false);
 
@@ -30,17 +30,19 @@ export function ExecutePanel() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.mode === 'dex' || detail?.mode === 'cex' || detail?.mode === 'widget') {
-        setMode(detail.mode);
+      if (detail?.mode === 'dex' || detail?.mode === 'widget') {
+        setMode('swap');
+      } else if (detail?.mode === 'cex') {
+        setMode('market');
       }
     };
     window.addEventListener('execute-mode', handler);
     return () => window.removeEventListener('execute-mode', handler);
   }, []);
 
-  // Fetch CEX data when in CEX mode or when asset changes
+  // Fetch CEX data when in market mode
   useEffect(() => {
-    if (mode !== 'cex') return;
+    if (mode !== 'market') return;
     let mounted = true;
     setCexLoading(true);
     setCexData(null);
@@ -55,87 +57,73 @@ export function ExecutePanel() {
 
   return (
     <div className="space-y-3" data-panel="execute">
-      {/* Mode toggle */}
-      <div className="flex gap-1 bg-neutral-900/60 rounded-xl p-1">
-        <button
-          onClick={() => setMode('dex')}
-          className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
-            mode === 'dex'
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'text-neutral-500 hover:text-neutral-300'
-          }`}
-        >
-          DEX Quote
-        </button>
-        <button
-          onClick={() => setMode('widget')}
-          className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
-            mode === 'widget'
-              ? 'bg-green-500/20 text-green-400'
-              : 'text-neutral-500 hover:text-neutral-300'
-          }`}
-        >
-          Swap (Real)
-        </button>
-        <button
-          onClick={() => setMode('cex')}
-          className={`flex-1 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${
-            mode === 'cex'
-              ? 'bg-purple-500/20 text-purple-400'
-              : 'text-neutral-500 hover:text-neutral-300'
-          }`}
-        >
-          CEX Trade
-        </button>
+      {/* Compact mode toggle */}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-0.5 bg-neutral-900/60 rounded-lg p-0.5 flex-1">
+          <button
+            onClick={() => setMode('swap')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
+              mode === 'swap'
+                ? 'bg-green-500/15 text-green-400'
+                : 'text-neutral-500 hover:text-neutral-300'
+            }`}
+          >
+            <ArrowLeftRight className="w-3 h-3" />
+            Swap
+          </button>
+          <button
+            onClick={() => setMode('market')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
+              mode === 'market'
+                ? 'bg-purple-500/15 text-purple-400'
+                : 'text-neutral-500 hover:text-neutral-300'
+            }`}
+          >
+            <BarChart3 className="w-3 h-3" />
+            Market Data
+          </button>
+        </div>
       </div>
 
-      {/* Asset selector (not shown for widget mode — widget has its own picker) */}
-      {mode !== 'widget' && (
-        <div className="flex gap-1 bg-neutral-900/40 rounded-lg p-0.5">
-          {ASSETS.map((a, i) => (
-            <button
-              key={a.key}
-              onClick={() => setSelected(i)}
-              className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                i === selected
-                  ? mode === 'dex' ? 'bg-amber-500/15 text-amber-400' : 'bg-purple-500/15 text-purple-400'
-                  : 'text-neutral-600 hover:text-neutral-400'
-              }`}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* DEX Mode */}
-      {mode === 'dex' && (
+      {/* SWAP MODE — Real on-chain execution */}
+      {mode === 'swap' && (
         <>
-          <DexQuotePanel
-            key={asset.key}
-            marketSlug={asset.slug}
-            marketTitle={asset.title}
+          <SwapExecutor
+            defaultFrom="USDC"
+            defaultTo={asset.label === 'OKB' ? 'ETH' : asset.label}
           />
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <span className="text-[10px] text-neutral-600">Powered by</span>
-            <span className="text-[10px] font-bold text-neutral-400">OKX DEX Aggregator</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500">X Layer</span>
-          </div>
+          <YieldBanner asset={asset.label} className="mt-1" />
         </>
       )}
 
-      {/* CEX Mode — Agent Trade Kit */}
-      {mode === 'cex' && (
+      {/* MARKET DATA MODE — CEX context for informed decisions */}
+      {mode === 'market' && (
         <div className="space-y-3">
-          {/* Live market data */}
+          {/* Asset selector */}
+          <div className="flex gap-1 bg-neutral-900/40 rounded-lg p-0.5">
+            {ASSETS.map((a, i) => (
+              <button
+                key={a.key}
+                onClick={() => setSelected(i)}
+                className={`flex-1 py-1.5 text-[10px] font-medium rounded-md transition-colors ${
+                  i === selected
+                    ? 'bg-purple-500/15 text-purple-400'
+                    : 'text-neutral-600 hover:text-neutral-400'
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+
           {cexLoading ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-10 bg-neutral-800/50 rounded-lg" />
-              <div className="h-20 bg-neutral-800/50 rounded-lg" />
+              <div className="h-16 bg-neutral-800/50 rounded-lg" />
             </div>
           ) : cexData ? (
-            <div className="border border-purple-500/20 bg-purple-500/5 rounded-xl p-3 space-y-3">
-              {/* Price header */}
+            <div className="border border-purple-500/15 bg-purple-500/5 rounded-xl p-3 space-y-3">
+              {/* Price + change */}
               {cexData.ticker && (
                 <div className="flex items-center justify-between">
                   <div>
@@ -149,24 +137,21 @@ export function ExecutePanel() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-neutral-500">24h Volume</div>
+                    <div className="text-[10px] text-neutral-500">24h Vol</div>
                     <div className="text-xs text-neutral-300">{formatVolume(cexData.ticker.vol24h)}</div>
                   </div>
                 </div>
               )}
 
-              {/* Funding + OI row */}
+              {/* Funding + OI compact row */}
               <div className="grid grid-cols-2 gap-2">
                 {cexData.funding && (
                   <div className="bg-neutral-900/60 rounded-lg px-2 py-1.5">
-                    <div className="text-[9px] text-neutral-500">Funding Rate</div>
+                    <div className="text-[9px] text-neutral-500">Funding</div>
                     <div className={`text-xs font-medium ${
                       cexData.funding.rate > 0 ? 'text-green-400' : cexData.funding.rate < 0 ? 'text-red-400' : 'text-neutral-300'
                     }`}>
                       {(cexData.funding.rate * 100).toFixed(4)}%
-                    </div>
-                    <div className="text-[9px] text-neutral-600">
-                      Ann. {cexData.funding.annualized}%
                     </div>
                   </div>
                 )}
@@ -176,60 +161,8 @@ export function ExecutePanel() {
                     <div className="text-xs font-medium text-neutral-300">
                       {formatVolume(cexData.openInterest.oiCcy * cexData.ticker.last)}
                     </div>
-                    <div className="text-[9px] text-neutral-600">
-                      {cexData.openInterest.oiCcy.toLocaleString(undefined, { maximumFractionDigits: 0 })} {asset.label}
-                    </div>
                   </div>
                 )}
-              </div>
-
-              {/* Agent Trade Kit actions */}
-              <div className="space-y-1.5">
-                <div className="text-[9px] text-purple-400/60 uppercase tracking-wider">Agent Trade Kit Actions</div>
-
-                {/* Spot buy */}
-                <button className="w-full flex items-center justify-between px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-green-400">BUY</span>
-                    <span className="text-[10px] text-neutral-400">Spot {asset.label}</span>
-                  </div>
-                  <span className="text-[9px] text-neutral-600 group-hover:text-neutral-400">
-                    spot_place_order →
-                  </span>
-                </button>
-
-                {/* Long perp */}
-                <button className="w-full flex items-center justify-between px-3 py-2 bg-green-500/5 border border-green-500/15 rounded-lg hover:bg-green-500/10 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-green-400/80">LONG</span>
-                    <span className="text-[10px] text-neutral-400">{asset.label}-USDT Perp</span>
-                  </div>
-                  <span className="text-[9px] text-neutral-600 group-hover:text-neutral-400">
-                    swap_place_order →
-                  </span>
-                </button>
-
-                {/* Short perp */}
-                <button className="w-full flex items-center justify-between px-3 py-2 bg-red-500/5 border border-red-500/15 rounded-lg hover:bg-red-500/10 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-red-400/80">SHORT</span>
-                    <span className="text-[10px] text-neutral-400">{asset.label}-USDT Perp</span>
-                  </div>
-                  <span className="text-[9px] text-neutral-600 group-hover:text-neutral-400">
-                    swap_place_order →
-                  </span>
-                </button>
-
-                {/* Grid bot */}
-                <button className="w-full flex items-center justify-between px-3 py-2 bg-purple-500/5 border border-purple-500/15 rounded-lg hover:bg-purple-500/10 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-purple-400/80">GRID</span>
-                    <span className="text-[10px] text-neutral-400">Auto-trade {asset.label} range</span>
-                  </div>
-                  <span className="text-[9px] text-neutral-600 group-hover:text-neutral-400">
-                    grid_create_order →
-                  </span>
-                </button>
               </div>
 
               {/* Signal context */}
@@ -242,39 +175,35 @@ export function ExecutePanel() {
                     : 'bg-neutral-800/50 text-neutral-500'
                 }`}>
                   {cexData.funding.rate > 0.005
-                    ? `High funding (${(cexData.funding.rate * 100).toFixed(3)}%) — longs crowded, short opportunity`
+                    ? `High funding — longs crowded, short opportunity`
                     : cexData.funding.rate < -0.005
-                    ? `Negative funding (${(cexData.funding.rate * 100).toFixed(3)}%) — shorts crowded, long opportunity`
+                    ? `Negative funding — shorts crowded, long opportunity`
                     : `Neutral funding — no clear crowding signal`
                   }
                 </div>
               )}
+
+              {/* Quick swap CTA */}
+              <button
+                onClick={() => setMode('swap')}
+                className="w-full py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-[11px] font-medium text-green-400 hover:bg-green-500/15 transition-colors"
+              >
+                Swap {asset.label} now →
+              </button>
             </div>
           ) : (
             <div className="text-center py-4 text-neutral-500 text-xs">
-              Failed to load CEX data
+              Failed to load market data
             </div>
           )}
 
-          {/* Agent Trade Kit badge */}
-          <div className="flex items-center justify-center gap-2 pt-1">
+          {/* Badge */}
+          <div className="flex items-center justify-center gap-2">
             <span className="text-[10px] text-neutral-600">Powered by</span>
-            <span className="text-[10px] font-bold text-purple-400/80">OKX Agent Trade Kit</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/50">95 tools</span>
+            <span className="text-[10px] font-bold text-purple-400/60">OKX CEX Data</span>
           </div>
         </div>
       )}
-
-      {/* Real Swap Mode — On-chain execution via OKX DEX Aggregator */}
-      {mode === 'widget' && (
-        <SwapExecutor
-          defaultFrom="USDC"
-          defaultTo={asset.label === 'OKB' ? 'ETH' : asset.label}
-        />
-      )}
-
-      {/* Yield suggestion — shown after any mode */}
-      <YieldBanner asset={asset.label} className="mt-2" />
     </div>
   );
 }

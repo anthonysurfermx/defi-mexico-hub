@@ -1,10 +1,10 @@
 // ============================================================
-// AnalyzePanel — Simplified market URL scanner for landing page
-// Paste a Polymarket URL → get clean bot detection report
+// AnalyzePanel — Clean market scanner with suggested markets
+// No empty states — always shows something useful
 // ============================================================
 
 import { useState } from 'react';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, TrendingUp, Users, Bot as BotIcon } from 'lucide-react';
 import { polymarketService, type MarketInfo, type MarketHolder } from '@/services/polymarket.service';
 import { detectBot, type BotDetectionResult, type MarketContext } from '@/services/polymarket-detector';
 import { toast } from 'sonner';
@@ -14,6 +14,13 @@ function formatUSD(n: number): string {
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
   return `$${n.toFixed(0)}`;
 }
+
+// Suggested markets to fill empty state
+const SUGGESTED = [
+  { label: 'US Elections', slug: 'presidential-election-winner-2024' },
+  { label: 'Fed Rate Cut', slug: 'fed-funds-rate-march-19' },
+  { label: 'BTC > $100K', slug: 'will-bitcoin-reach-100k' },
+];
 
 interface Props {
   onSwitchToAdvanced: () => void;
@@ -33,8 +40,9 @@ export function AnalyzePanel({ onSwitchToAdvanced }: Props) {
   const [progress, setProgress] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
 
-  const handleScan = async () => {
-    const slug = polymarketService.parseMarketUrl(url);
+  const handleScan = async (inputUrl?: string) => {
+    const target = inputUrl || url;
+    const slug = polymarketService.parseMarketUrl(target) || target;
     if (!slug) {
       toast.error('Paste a valid Polymarket URL');
       return;
@@ -61,12 +69,11 @@ export function AnalyzePanel({ onSwitchToAdvanced }: Props) {
       return;
     }
 
-    // Scan top 10 holders for bots
     const holdersWithBot: (MarketHolder & { bot?: BotDetectionResult })[] = holders.map(h => ({ ...h }));
-    const toScan = holdersWithBot.slice(0, 10);
+    const toScan = holdersWithBot.slice(0, 8);
 
     for (let i = 0; i < toScan.length; i++) {
-      setProgress(`Analyzing holder ${i + 1}/${toScan.length}...`);
+      setProgress(`Scanning ${i + 1}/${toScan.length}...`);
       const ctx: MarketContext = {
         holderAmount: toScan[i].amount,
         totalMarketVolume: info.volume,
@@ -89,74 +96,82 @@ export function AnalyzePanel({ onSwitchToAdvanced }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* URL input */}
-      <div className="flex gap-2">
+      {/* Compact search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600" />
         <input
           type="text"
           value={url}
           onChange={e => setUrl(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !scanning && handleScan()}
-          placeholder="https://polymarket.com/event/..."
-          className="flex-1 bg-neutral-900/60 border border-neutral-800 rounded-xl px-3 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 outline-none focus:border-cyan-500/40 transition-colors"
+          placeholder="Paste Polymarket URL or slug..."
+          className="w-full bg-neutral-900/60 border border-neutral-800 rounded-xl pl-9 pr-16 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 outline-none focus:border-cyan-500/30 transition-colors"
         />
         <button
-          onClick={handleScan}
+          onClick={() => handleScan()}
           disabled={scanning || !url}
-          className="px-4 py-2.5 bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 rounded-xl text-sm font-medium hover:bg-cyan-500/25 transition-colors disabled:opacity-40"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-cyan-500/15 text-cyan-400 rounded-lg text-[11px] font-medium hover:bg-cyan-500/25 transition-colors disabled:opacity-30"
         >
           {scanning ? (
-            <span className="flex items-center gap-1.5">
-              <div className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+            <span className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 border-[1.5px] border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
               {progress}
             </span>
-          ) : (
-            <span className="flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5" />
-              Scan
-            </span>
-          )}
+          ) : 'Scan'}
         </button>
       </div>
 
       {/* Results */}
-      {result && (
-        <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-4 space-y-3">
-          {/* Market title */}
-          <h4 className="text-sm font-medium text-neutral-200">{result.market.question}</h4>
-
-          {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-center p-2 bg-neutral-800/50 rounded-lg">
-              <div className="text-lg font-bold text-red-400">{result.botCount}</div>
-              <div className="text-[10px] text-neutral-500">Agents</div>
-            </div>
-            <div className="text-center p-2 bg-neutral-800/50 rounded-lg">
-              <div className="text-lg font-bold text-green-400">{result.humanCount}</div>
-              <div className="text-[10px] text-neutral-500">Humans</div>
-            </div>
-            <div className="text-center p-2 bg-neutral-800/50 rounded-lg">
-              <div className="text-lg font-bold text-amber-400">{result.mixedCount}</div>
-              <div className="text-[10px] text-neutral-500">Mixed</div>
+      {result ? (
+        <div className="space-y-3">
+          {/* Market title + volume */}
+          <div>
+            <h4 className="text-[13px] font-medium text-neutral-200 leading-snug line-clamp-2">{result.market.question}</h4>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] text-neutral-500">{formatUSD(result.market.volume)} vol</span>
             </div>
           </div>
 
-          {/* Top holders */}
-          <div className="space-y-1">
-            {result.holders.slice(0, 5).map(h => (
-              <div key={h.address} className="flex items-center justify-between text-xs py-1">
-                <span className="text-neutral-400 font-mono">{h.address.slice(0, 6)}...{h.address.slice(-4)}</span>
+          {/* Agent detection bar */}
+          <div className="flex items-center gap-1.5">
+            {result.botCount > 0 && (
+              <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/15 rounded-lg px-2 py-1.5">
+                <BotIcon className="w-3 h-3 text-red-400" />
+                <span className="text-[11px] font-bold text-red-400">{result.botCount}</span>
+                <span className="text-[10px] text-red-400/60">agents</span>
+              </div>
+            )}
+            {result.humanCount > 0 && (
+              <div className="flex items-center gap-1 bg-green-500/10 border border-green-500/15 rounded-lg px-2 py-1.5">
+                <Users className="w-3 h-3 text-green-400" />
+                <span className="text-[11px] font-bold text-green-400">{result.humanCount}</span>
+                <span className="text-[10px] text-green-400/60">humans</span>
+              </div>
+            )}
+            {result.mixedCount > 0 && (
+              <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/15 rounded-lg px-2 py-1.5">
+                <span className="text-[11px] font-bold text-amber-400">{result.mixedCount}</span>
+                <span className="text-[10px] text-amber-400/60">mixed</span>
+              </div>
+            )}
+          </div>
+
+          {/* Top holders compact list */}
+          <div className="space-y-0.5">
+            {result.holders.slice(0, 4).map(h => (
+              <div key={h.address} className="flex items-center justify-between text-[11px] py-1 px-2 rounded-md hover:bg-neutral-800/30">
+                <span className="text-neutral-500 font-mono">{h.address.slice(0, 6)}...{h.address.slice(-4)}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-neutral-500">{formatUSD(h.amount)}</span>
+                  <span className="text-neutral-400">{formatUSD(h.amount)}</span>
                   {h.bot && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium ${
                       h.bot.classification === 'bot' || h.bot.classification === 'likely-bot'
-                        ? 'bg-red-500/15 text-red-400'
+                        ? 'bg-red-500/10 text-red-400'
                         : h.bot.classification === 'human'
-                        ? 'bg-green-500/15 text-green-400'
-                        : 'bg-amber-500/15 text-amber-400'
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-amber-500/10 text-amber-400'
                     }`}>
-                      {h.bot.classification === 'bot' ? 'AGENT' : h.bot.classification === 'likely-bot' ? 'LIKELY' : h.bot.classification === 'human' ? 'HUMAN' : 'MIXED'}
-                      {' '}{h.bot.score}
+                      {h.bot.classification === 'bot' ? 'BOT' : h.bot.classification === 'likely-bot' ? 'LIKELY' : h.bot.classification === 'human' ? 'HUMAN' : 'MIXED'}
                     </span>
                   )}
                 </div>
@@ -165,25 +180,41 @@ export function AnalyzePanel({ onSwitchToAdvanced }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between">
             <button
               onClick={onSwitchToAdvanced}
-              className="text-xs text-cyan-400/60 hover:text-cyan-400 transition-colors"
+              className="text-[11px] text-cyan-400/50 hover:text-cyan-400 transition-colors"
             >
-              Full analysis in Advanced View →
+              Full analysis →
             </button>
             <a
-              href={`https://polymarket.com/event/${polymarketService.parseMarketUrl(url)}`}
+              href={`https://polymarket.com/event/${polymarketService.parseMarketUrl(url) || url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-neutral-600 hover:text-neutral-400 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               Polymarket
             </a>
           </div>
         </div>
-      )}
+      ) : !scanning ? (
+        /* Suggested markets — no empty state */
+        <div className="space-y-1.5">
+          <div className="text-[10px] text-neutral-600 uppercase tracking-wider">Popular markets</div>
+          {SUGGESTED.map(m => (
+            <button
+              key={m.slug}
+              onClick={() => { setUrl(m.slug); handleScan(m.slug); }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-neutral-900/40 border border-neutral-800/50 hover:border-cyan-500/20 hover:bg-cyan-500/5 transition-all group text-left"
+            >
+              <TrendingUp className="w-3 h-3 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
+              <span className="text-[11px] text-neutral-400 group-hover:text-neutral-200 transition-colors">{m.label}</span>
+              <Search className="w-2.5 h-2.5 text-neutral-700 ml-auto group-hover:text-cyan-400/50 transition-colors" />
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
