@@ -9,7 +9,7 @@ import { analyzeWithClaude } from './reasoning';
 import { applyRiskGate, DEFAULT_RISK_CONFIG } from './risk-gate';
 import type { CycleResult, PortfolioState, TradeResult, RiskConfig } from './types';
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 // ---- Supabase helpers ----
@@ -36,38 +36,51 @@ async function supabaseQuery(path: string, options: RequestInit = {}) {
 }
 
 async function getPortfolio(): Promise<PortfolioState> {
-  // Try to load from Supabase
-  const positions = await supabaseQuery('agent_positions?closed_at=is.null&select=*');
-  const recentTrades = await supabaseQuery(
-    `agent_trades?created_at=gte.${new Date(Date.now() - 86400000).toISOString()}&select=*`
-  );
-
-  const posArray = Array.isArray(positions) ? positions : [];
-  const tradesArray = Array.isArray(recentTrades) ? recentTrades : [];
-
-  const totalValue = posArray.reduce(
-    (sum: number, p: Record<string, unknown>) => sum + (Number(p.amount_usd) || 0), 0
-  );
-
-  const dailyPnl = posArray.reduce(
-    (sum: number, p: Record<string, unknown>) => sum + (Number(p.unrealized_pnl) || 0), 0
-  );
-
-  return {
-    positions: posArray.map((p: Record<string, unknown>) => ({
-      chain: String(p.chain || ''),
-      tokenSymbol: String(p.token_symbol || ''),
-      tokenAddress: String(p.token_address || ''),
-      amountUsd: Number(p.amount_usd) || 0,
-      entryPrice: Number(p.entry_price) || 0,
-    })),
-    totalValueUsd: totalValue,
-    dailyPnlUsd: dailyPnl,
-    tradesLast24h: tradesArray.length,
+  const emptyPortfolio: PortfolioState = {
+    positions: [],
+    totalValueUsd: 0,
+    dailyPnlUsd: 0,
+    tradesLast24h: 0,
   };
+
+  try {
+    // Try to load from Supabase (tables may not exist yet)
+    const positions = await supabaseQuery('agent_positions?closed_at=is.null&select=*');
+    const recentTrades = await supabaseQuery(
+      `agent_trades?created_at=gte.${new Date(Date.now() - 86400000).toISOString()}&select=*`
+    );
+
+    const posArray = Array.isArray(positions) ? positions : [];
+    const tradesArray = Array.isArray(recentTrades) ? recentTrades : [];
+
+    const totalValue = posArray.reduce(
+      (sum: number, p: Record<string, unknown>) => sum + (Number(p.amount_usd) || 0), 0
+    );
+
+    const dailyPnl = posArray.reduce(
+      (sum: number, p: Record<string, unknown>) => sum + (Number(p.unrealized_pnl) || 0), 0
+    );
+
+    return {
+      positions: posArray.map((p: Record<string, unknown>) => ({
+        chain: String(p.chain || ''),
+        tokenSymbol: String(p.token_symbol || ''),
+        tokenAddress: String(p.token_address || ''),
+        amountUsd: Number(p.amount_usd) || 0,
+        entryPrice: Number(p.entry_price) || 0,
+      })),
+      totalValueUsd: totalValue,
+      dailyPnlUsd: dailyPnl,
+      tradesLast24h: tradesArray.length,
+    };
+  } catch (err) {
+    console.warn('[Agent] Portfolio fetch failed (tables may not exist yet):', err);
+    return emptyPortfolio;
+  }
 }
 
 async function logCycle(result: CycleResult) {
+  try {
   // Insert cycle
   const cycle = await supabaseQuery('agent_cycles', {
     method: 'POST',
@@ -114,6 +127,10 @@ async function logCycle(result: CycleResult) {
   }
 
   return cycleId;
+  } catch (err) {
+    console.warn('[Agent] logCycle failed (tables may not exist yet):', err);
+    return null;
+  }
 }
 
 // ---- Execute a single swap ----
