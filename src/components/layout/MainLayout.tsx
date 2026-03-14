@@ -73,7 +73,6 @@ export default function MainLayout() {
   // Navegación "Agentic World" (dropdown) - Polymarket Agent Radar first (star feature)
   const agenticNavigation = [
     { name: t('agenticWorld.navPolymarket'), href: '/agentic-world/polymarket', Icon: PixelLobster, description: t('agenticWorld.navPolymarketDesc') },
-    { name: t('agenticWorld.navDirectorio'), href: '/agentic-world', Icon: PixelZap, description: t('agenticWorld.navDirectorioDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
     { name: 'Claw Trader', href: '/agentic-world/claw-trader', Icon: PixelTarget, description: 'Signal executor & divergence scanner' },
   ];

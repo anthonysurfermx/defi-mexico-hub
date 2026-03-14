@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Rocket, Users, BarChart3, Trophy, BookOpen, Gamepad2, Video, FileText, Bot, ScanSearch } from "lucide-react";
+import { Briefcase, Rocket, Users, BarChart3, Trophy, BookOpen, Gamepad2, Video, FileText, ScanSearch } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -71,9 +71,8 @@ const Navbar = () => {
   ];
 
   const agenticItems = [
-    { label: "Directory", href: "/agentic-world", icon: Bot },
-    { label: "DefiLlama Leaderboard", href: "/agentic-world/leaderboard", icon: BarChart3 },
     { label: "Polymarket Agent Radar", href: "/agentic-world/polymarket", icon: ScanSearch },
+    { label: "DefiLlama Leaderboard", href: "/agentic-world/leaderboard", icon: BarChart3 },
   ];
 
   const isEcosistemaActive = () => {
