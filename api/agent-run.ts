@@ -6,8 +6,8 @@
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { runAgentCycle } from '../src/lib/agent/runner';
-import { DEFAULT_RISK_CONFIG } from '../src/lib/agent/risk-gate';
+import { runAgentCycle } from './lib/agent-runner';
+import { DEFAULT_RISK_CONFIG } from './lib/agent-risk-gate';
 
 export const config = {
   maxDuration: 60, // 60 second timeout for serverless
