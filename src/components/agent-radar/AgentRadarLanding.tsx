@@ -3,7 +3,7 @@
 // 3 paths: DISCOVER / ANALYZE / EXECUTE
 // ============================================================
 
-import { ArrowLeft, TrendingUp, Search, Zap, ChevronRight } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Search, Zap, Bot, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PixelLobster } from '@/components/ui/pixel-icons';
 import { useSmartMoneyScan } from '@/hooks/useSmartMoneyScan';
@@ -11,6 +11,7 @@ import { DiscoverPanel } from './DiscoverPanel';
 import { AnalyzePanel } from './AnalyzePanel';
 import { ExecutePanel } from './ExecutePanel';
 import { OKXTickerStrip } from './OKXTickerStrip';
+import { AgentDashboard } from './AgentDashboard';
 
 interface Props {
   onSwitchToAdvanced: (mode?: string) => void;
@@ -128,6 +129,22 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
           </div>
         </div>
 
+        {/* AUTONOMOUS AGENT — Full width */}
+        <div className="mt-6">
+          <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-neutral-200">Autonomous Agent</h2>
+                <p className="text-[11px] text-neutral-500">AI trades every 8h — collect, analyze, execute</p>
+              </div>
+            </div>
+            <AgentDashboard />
+          </div>
+        </div>
+
         {/* Footer badge */}
         <div className="flex items-center justify-center flex-wrap gap-3 mt-8 text-[11px] text-neutral-600">
           <span>Powered by</span>
@@ -137,9 +154,13 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
           <span className="text-neutral-700">·</span>
           <span>DEX Aggregator</span>
           <span className="text-neutral-700">·</span>
+          <span>OnchainOS</span>
+          <span className="text-neutral-700">·</span>
           <span>Agent Trade Kit</span>
           <span className="text-neutral-700">·</span>
           <span>Polymarket API</span>
+          <span className="text-neutral-700">·</span>
+          <span>Claude AI</span>
         </div>
       </div>
     </div>

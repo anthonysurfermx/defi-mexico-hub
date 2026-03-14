@@ -40,9 +40,19 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/agent-run",
+      "schedule": "0 */8 * * *"
+    }
+  ],
   "functions": {
     "api/content-machine.ts": {
       "maxDuration": 120,
+      "memory": 1024
+    },
+    "api/agent-run.ts": {
+      "maxDuration": 60,
       "memory": 1024
     }
   }
