@@ -4,10 +4,10 @@
 // Shows what the agent SEES, THINKS, and DOES
 // ============================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bot, Activity, TrendingUp, TrendingDown, Shield, Clock, Zap, Eye,
+  Bot, Activity, TrendingUp, TrendingDown, Shield, Clock, Zap,
   Brain, Target, AlertCircle, CheckCircle, FlaskConical, ChevronDown,
 } from 'lucide-react';
 
@@ -59,6 +59,14 @@ interface AgentPosition {
   take_profit_pct: number;
   opened_at: string;
   closed_at: string | null;
+}
+
+interface AgentMessage {
+  id: string;
+  wallet_address: string;
+  advisor_name: string;
+  message: string;
+  created_at: string;
 }
 
 // ---- Supabase ----
@@ -242,6 +250,47 @@ function PlaceholderChart() {
   );
 }
 
+// ---- Typewriter for cycle chat ----
+
+function CycleTypewriter({ text, speed = 10 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
+  const idxRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const lastRef = useRef(0);
+
+  const skip = () => { if (!done) { setDisplayed(text); setDone(true); } };
+
+  useEffect(() => {
+    idxRef.current = 0;
+    lastRef.current = 0;
+    setDisplayed('');
+    setDone(false);
+
+    const step = (ts: number) => {
+      if (!lastRef.current) lastRef.current = ts;
+      const elapsed = ts - lastRef.current;
+      if (elapsed >= speed) {
+        const next = Math.min(idxRef.current + Math.min(Math.floor(elapsed / speed), 4), text.length);
+        idxRef.current = next;
+        lastRef.current = ts;
+        setDisplayed(text.slice(0, next));
+        if (next >= text.length) { setDone(true); return; }
+      }
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [text, speed]);
+
+  return (
+    <div onClick={skip} className="cursor-pointer">
+      <span>{displayed}</span>
+      {!done && <span className="inline-block w-[5px] h-[12px] bg-green-400 ml-[1px] align-middle animate-pulse" />}
+    </div>
+  );
+}
+
 // ---- Main Dashboard ----
 
 interface DashboardProps {
@@ -254,20 +303,24 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
   const [cycles, setCycles] = useState<AgentCycle[]>([]);
   const [trades, setTrades] = useState<AgentTrade[]>([]);
   const [positions, setPositions] = useState<AgentPosition[]>([]);
+  const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCycle, setExpandedCycle] = useState<string | null>(null);
   const [triggerLoading, setTriggerLoading] = useState(false);
+  const [animatedCycleId, setAnimatedCycleId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
-    const [c, t, p] = await Promise.all([
+    const [c, t, p, m] = await Promise.all([
       fetchSupabase<AgentCycle>('agent_cycles?order=started_at.desc&limit=20'),
       fetchSupabase<AgentTrade>('agent_trades?order=created_at.desc&limit=50'),
       fetchSupabase<AgentPosition>('agent_positions?closed_at=is.null&order=opened_at.desc'),
+      fetchSupabase<AgentMessage>('agent_messages?order=created_at.desc&limit=20'),
     ]);
     setCycles(c);
     setTrades(t);
     setPositions(p);
+    setMessages(m);
     setLoading(false);
   };
 
@@ -280,6 +333,14 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
       const data = await res.json();
       if (data.ok) {
         await loadData();
+        // Auto-expand latest cycle with typewriter
+        setCycles(prev => {
+          if (prev.length > 0) {
+            setExpandedCycle(prev[0].id);
+            setAnimatedCycleId(prev[0].id);
+          }
+          return prev;
+        });
         onCycleComplete?.();
       }
     } catch (err) {
@@ -356,9 +417,9 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
       {/* ======== SECTION 2: DECISIONS / STRATEGY ======== */}
       <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2 mb-1">
-          <Brain className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm font-medium text-neutral-200">Decisions & Strategy</span>
-          <span className="text-[9px] text-neutral-600">What the agent thinks</span>
+          <Brain className="w-4 h-4 text-green-400" />
+          <span className="text-sm font-medium text-neutral-200">{advisorName || 'Agent'} Reports</span>
+          <span className="text-[9px] text-neutral-600">Analysis per cycle</span>
         </div>
 
         {loading && (
@@ -371,7 +432,7 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
         {!loading && cycles.length === 0 && (
           <div className="text-center py-6">
             <Brain className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
-            <p className="text-xs text-neutral-500">No decisions yet. Click "Run Now" to trigger the first analysis.</p>
+            <p className="text-xs text-neutral-500">No reports yet. Click "Analyze Market" to trigger the first analysis.</p>
           </div>
         )}
 
@@ -415,93 +476,94 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="px-3 pb-3 space-y-2.5 border-t border-neutral-800/50 pt-2.5">
-                      {/* What it SAW */}
-                      <div className="flex items-start gap-2">
-                        <Eye className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
-                        <div>
-                          <div className="text-[9px] text-amber-400/70 uppercase tracking-wider mb-0.5">What it saw</div>
-                          <p className="text-[11px] text-neutral-400">
-                            Scanned {cycle.signals_found} signals from OKX whale tracking + Polymarket consensus + CEX funding rates.
-                            {cycle.signals_filtered > 0 ? ` ${cycle.signals_filtered} passed quality filters.` : ' None passed filters.'}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="px-3 pb-3 border-t border-neutral-800/50 pt-2.5">
+                      {(() => {
+                        // Find the greeting message closest to this cycle's timestamp
+                        const cycleTime = new Date(cycle.started_at).getTime();
+                        const matchedMsg = messages.find(m => {
+                          const msgTime = new Date(m.created_at).getTime();
+                          return Math.abs(msgTime - cycleTime) < 120_000; // within 2 min
+                        });
 
-                      {/* What it THOUGHT */}
-                      {cycle.llm_reasoning && (
-                        <div className="flex items-start gap-2">
-                          <Brain className="w-3.5 h-3.5 text-cyan-400 mt-0.5 shrink-0" />
-                          <div>
-                            <div className="text-[9px] text-cyan-400/70 uppercase tracking-wider mb-0.5">What it thought</div>
-                            <p className="text-[11px] text-neutral-300 leading-relaxed italic">
-                              "{cycle.llm_reasoning}"
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                        const msgText = matchedMsg
+                          ? matchedMsg.message.replace(/\*/g, '').replace(/_/g, '')
+                          : null;
 
-                      {/* What it DID */}
-                      {cycleTrades.length > 0 && (
-                        <div className="flex items-start gap-2">
-                          <Target className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
-                          <div className="flex-1">
-                            <div className="text-[9px] text-green-400/70 uppercase tracking-wider mb-1">What it did</div>
-                            <div className="space-y-1">
-                              {cycleTrades.map(trade => (
-                                <div key={trade.id} className="flex items-center justify-between bg-neutral-800/30 rounded-lg px-2.5 py-1.5">
-                                  <div className="flex items-center gap-2">
-                                    {trade.status === 'simulated' ? (
-                                      <FlaskConical className="w-3 h-3 text-amber-400" />
-                                    ) : trade.status === 'confirmed' ? (
-                                      <CheckCircle className="w-3 h-3 text-green-400" />
+                        const shouldAnimate = animatedCycleId === cycle.id;
+
+                        return (
+                          <div className="flex items-start gap-3">
+                            {/* Advisor avatar */}
+                            <div className="w-8 h-8 rounded-lg bg-green-500/15 border border-green-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="text-green-400 text-sm font-bold">
+                                {(advisorName || 'A')[0].toUpperCase()}
+                              </span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              {/* Advisor name + timestamp */}
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="text-xs font-medium text-green-400">{advisorName || 'Agent Radar'}</span>
+                                <span className="text-[9px] text-neutral-600">{new Date(cycle.started_at).toLocaleString()}</span>
+                              </div>
+
+                              {/* Chat message — greeting or fallback */}
+                              {msgText ? (
+                                <div className="bg-green-500/5 border border-green-500/10 rounded-xl rounded-tl-sm p-3">
+                                  <div className="text-[11px] text-green-300/90 leading-relaxed whitespace-pre-line font-mono">
+                                    {shouldAnimate ? (
+                                      <CycleTypewriter text={msgText} speed={6} />
                                     ) : (
-                                      <AlertCircle className="w-3 h-3 text-red-400" />
+                                      msgText
                                     )}
-                                    <span className="text-[11px] font-medium text-neutral-200">
-                                      {trade.direction} {trade.token_symbol}
-                                    </span>
-                                    <span className="text-[9px] text-neutral-600">{trade.chain}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-neutral-400">${trade.amount_usd}</span>
-                                    <span className={`text-[10px] font-bold ${trade.confidence >= 0.8 ? 'text-green-400' : 'text-amber-400'}`}>
-                                      {(trade.confidence * 100).toFixed(0)}%
-                                    </span>
                                   </div>
                                 </div>
-                              ))}
+                              ) : (
+                                /* Fallback: structured cycle data if no greeting found */
+                                <div className="bg-neutral-800/30 border border-neutral-800 rounded-xl rounded-tl-sm p-3 space-y-2">
+                                  <p className="text-[11px] text-neutral-400 font-mono">
+                                    Scanned {cycle.signals_found} signals → {cycle.signals_filtered} passed filters → {cycle.trades_executed} trades
+                                  </p>
+                                  {cycle.llm_reasoning && (
+                                    <p className="text-[11px] text-neutral-300 font-mono italic">
+                                      "{cycle.llm_reasoning}"
+                                    </p>
+                                  )}
+                                  {cycleTrades.length > 0 && (
+                                    <div className="space-y-1 pt-1">
+                                      {cycleTrades.map(trade => (
+                                        <div key={trade.id} className="flex items-center justify-between text-[10px]">
+                                          <div className="flex items-center gap-1.5">
+                                            {trade.status === 'simulated' ? (
+                                              <FlaskConical className="w-3 h-3 text-amber-400" />
+                                            ) : (
+                                              <CheckCircle className="w-3 h-3 text-green-400" />
+                                            )}
+                                            <span className="text-neutral-200 font-medium">{trade.direction} {trade.token_symbol}</span>
+                                          </div>
+                                          <span className="text-neutral-400">${trade.amount_usd} · {(trade.confidence * 100).toFixed(0)}%</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Meta footer */}
+                              <div className="flex items-center gap-3 mt-1.5 text-[9px] text-neutral-600">
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {(cycle.latency_ms / 1000).toFixed(1)}s</span>
+                                <span>Claude Sonnet 4</span>
+                                {cycle.trades_blocked > 0 && (
+                                  <span className="flex items-center gap-1 text-red-400/50">
+                                    <Shield className="w-3 h-3" /> {cycle.trades_blocked} blocked
+                                  </span>
+                                )}
+                                {cycle.error && <span className="text-red-400">{cycle.error}</span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-
-                      {/* Risk gate blocks */}
-                      {cycle.trades_blocked > 0 && (
-                        <div className="flex items-start gap-2">
-                          <Shield className="w-3.5 h-3.5 text-red-400/60 mt-0.5 shrink-0" />
-                          <div>
-                            <div className="text-[9px] text-red-400/50 uppercase tracking-wider mb-0.5">Blocked by risk gate</div>
-                            <p className="text-[10px] text-neutral-500">
-                              {cycle.trades_blocked} trade{cycle.trades_blocked > 1 ? 's' : ''} blocked by risk limits
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Error */}
-                      {cycle.error && (
-                        <div className="bg-red-500/10 border border-red-500/15 rounded-lg p-2">
-                          <p className="text-[10px] text-red-400">{cycle.error}</p>
-                        </div>
-                      )}
-
-                      {/* Meta */}
-                      <div className="flex items-center gap-4 text-[9px] text-neutral-600 pt-1">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {(cycle.latency_ms / 1000).toFixed(1)}s</span>
-                        <span>Claude Sonnet 4</span>
-                        <span>{new Date(cycle.started_at).toLocaleString()}</span>
-                      </div>
+                        );
+                      })()}
                     </div>
                   </motion.div>
                 )}
