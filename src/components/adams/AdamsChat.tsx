@@ -4,7 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX } from 'lucide-react';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -110,14 +110,22 @@ async function saveInterestTags(wallet: string, tokens: string[], context: strin
 
 function detectIntent(text: string): 'price' | 'analyze' | 'portfolio' | 'trending' | 'prices_all' | 'help' | 'chat' {
   const l = text.toLowerCase();
+
+  // Conversational / opinion questions → always go to OpenClaw (Bobby's brain)
+  // "qué opinas", "what do you think", "crees que", "deberíamos", "tell me about", etc.
+  if (/\b(opin|piens|crees|think|deberi|should|recomiend|recommend|tell me|dime|explica|explain|por ?qu[eé]|why|como ves|how do you see|que onda|what.?s your|cual es tu)\b/i.test(l)) return 'chat';
+
   if (/\b(pric|precio|coti|cuanto|how much|what.?s .* at|dame .* precio|give me|show me)\b/i.test(l)) return 'price';
   if (/\b(analyz|analiz|scan|escan|run|ejecut)\b/i.test(l)) return 'analyze';
   if (/\b(portfolio|position|posicion|balance|cartera|wallet)\b/i.test(l)) return 'portfolio';
-  if (/\b(trend|trending|hot|popular|whats up|que hay|mercado)\b/i.test(l)) return 'trending';
-  if (/\b(prices|precios|all|todos|market|overview|resumen)\b/i.test(l)) return 'prices_all';
-  if (/\b(help|ayuda|command|como|how)\b/i.test(l)) return 'help';
-  // If tokens detected, default to price
-  if (detectTokens(text).length > 0) return 'price';
+  if (/\b(trend|trending|hot|popular|whats up|que hay)\b/i.test(l)) return 'trending';
+  if (/\b(prices|precios|all|todos|overview|resumen)\b/i.test(l)) return 'prices_all';
+  if (/\b(help|ayuda|command)\b/i.test(l)) return 'help';
+  // If tokens detected but it's a longer sentence, route to chat for Bobby's analysis
+  // Short inputs like "BTC" or "ETH SOL" → price; longer questions → Bobby's brain
+  if (detectTokens(text).length > 0) {
+    return l.split(/\s+/).length <= 3 ? 'price' : 'chat';
+  }
   return 'chat';
 }
 
@@ -399,6 +407,47 @@ export function AdamsChat() {
     lastSpokenRef.current = text;
     speak(clean);
   }, [voiceEnabled, speak]);
+
+  // ---- Speech Recognition (user talks back to Bobby) ----
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const sendMessageRef = useRef<(text?: string) => void>(() => {});
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as typeof window & { webkitSpeechRecognition: typeof window.SpeechRecognition }).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) return;
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'es-MX';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript)
+        .join('');
+      setInputText(transcript);
+
+      // Auto-send on final result
+      if (event.results[event.results.length - 1].isFinal) {
+        setIsListening(false);
+        setTimeout(() => sendMessageRef.current(transcript), 300);
+      }
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.start();
+    setIsListening(true);
+  }, [isListening]);
 
   const advisorName = profile?.advisorName || 'Bobby';
 
@@ -760,15 +809,32 @@ export function AdamsChat() {
     }
 
     // ========================
-    // GENERIC CHAT — route to OpenClaw for conversational AI
+    // CONVERSATIONAL AI — Bobby's brain via OpenClaw
+    // If user mentions tokens, fetch live data in parallel for context
     // ========================
     setIsProcessing(true);
+
+    // Fetch price data in parallel if tokens mentioned (Bobby shows data while he talks)
+    const contextPricesPromise = tokens.length > 0 ? getPriceCards(tokens) : Promise.resolve([]);
+
     try {
+      // Enrich the message with live market context so Bobby has real data
+      let enrichedMessage = msg;
+      try {
+        const contextPrices = await contextPricesPromise;
+        if (contextPrices.length > 0) {
+          const priceContext = contextPrices.map(p =>
+            `${p.symbol}: $${fmtPrice(p.price)} (${p.change24h > 0 ? '+' : ''}${p.change24h.toFixed(2)}% 24h, vol ${formatVolume(p.vol24h)}${p.funding ? `, funding ${(p.funding.rate * 100).toFixed(4)}%` : ''})`
+          ).join('; ');
+          enrichedMessage = `${msg}\n\n[LIVE DATA: ${priceContext}]`;
+        }
+      } catch { /* continue without context */ }
+
       const res = await fetch('/api/openclaw-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: msg,
+          message: enrichedMessage,
           history: messages.slice(-10).map(m => ({
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.text,
@@ -778,6 +844,12 @@ export function AdamsChat() {
 
       if (!res.ok) throw new Error(`OpenClaw: ${res.status}`);
 
+      // Get price cards to show alongside Bobby's response
+      let responsePrices: PriceCard[] = [];
+      try {
+        responsePrices = tokens.length > 0 ? await contextPricesPromise : [];
+      } catch { /* no prices */ }
+
       // Try to parse SSE stream
       const reader = res.body?.getReader();
       if (reader) {
@@ -785,10 +857,11 @@ export function AdamsChat() {
         let fullText = '';
         const replyId = uid();
 
-        // Add empty advisor message that we'll update with streamed content
+        // Add empty advisor message with price cards already visible
         setMessages(prev => [...prev, {
           id: replyId, role: 'advisor', timestamp: Date.now(),
           text: '', isLive: false,
+          prices: responsePrices.length > 0 ? responsePrices : undefined,
         }]);
 
         while (true) {
@@ -829,18 +902,27 @@ export function AdamsChat() {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
           text: data.choices?.[0]?.message?.content || `I'm not sure how to help with "${msg}". Try "BTC", "ETH", or "Analyze Market".`,
+          prices: responsePrices.length > 0 ? responsePrices : undefined,
         }]);
       }
     } catch {
-      // OpenClaw unavailable — static fallback
+      // OpenClaw unavailable — fallback with prices if available
+      let fallbackPrices: PriceCard[] = [];
+      try { fallbackPrices = await contextPricesPromise; } catch { /* silent */ }
       setMessages(prev => [...prev, {
         id: uid(), role: 'advisor', timestamp: Date.now(),
-        text: `I can help with prices and market analysis. Try:\n\n"BTC" or "ETH" — Live price\n"All Prices" — Market overview\n"Analyze Market" — Full agent scan\n\nType "help" for all commands.`,
+        text: fallbackPrices.length > 0
+          ? `Here's the latest data. For a full Bobby analysis, try "Analyze Market" — that's where I deploy the full multi-agent debate.`
+          : `I can help with prices and market analysis. Try:\n\n"BTC" or "ETH" — Live price\n"All Prices" — Market overview\n"Analyze Market" — Full agent scan`,
+        prices: fallbackPrices.length > 0 ? fallbackPrices : undefined,
       }]);
     }
     setIsProcessing(false);
 
   }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled]);
+
+  // Keep ref in sync for speech recognition callback
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-black text-white flex flex-col">
@@ -926,11 +1008,23 @@ export function AdamsChat() {
           <QuickActions onAction={sendMessage} disabled={isProcessing} />
         </div>
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
+          {/* Mic button */}
+          <button onClick={toggleListening} disabled={isProcessing}
+            className={`w-10 h-10 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 ${
+              isListening
+                ? 'bg-red-500 border-red-500 text-white animate-pulse'
+                : 'border-white/[0.08] text-white/30 hover:border-green-500/30 hover:text-green-400'
+            }`}
+            title={isListening ? 'Listening...' : 'Hold to talk'}>
+            {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+          </button>
           <input type="text" value={inputText}
             onChange={e => setInputText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder={`Ask ${advisorName} — try "BTC" or "Analyze Market"...`}
-            className="flex-1 bg-transparent border border-white/[0.08] px-4 py-2.5 text-[14px] text-white placeholder:text-white/20 outline-none focus:border-white/20 transition-colors"
+            placeholder={isListening ? 'Listening...' : `Ask ${advisorName} — try "BTC" or "Analyze Market"...`}
+            className={`flex-1 bg-transparent border px-4 py-2.5 text-[14px] text-white placeholder:text-white/20 outline-none transition-colors ${
+              isListening ? 'border-red-500/30 placeholder:text-red-400/50' : 'border-white/[0.08] focus:border-white/20'
+            }`}
             disabled={isProcessing} />
           <button onClick={() => sendMessage()} disabled={!inputText.trim() || isProcessing}
             className={`w-10 h-10 flex items-center justify-center border transition-all active:scale-[0.95] ${
