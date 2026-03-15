@@ -469,10 +469,12 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
       { text: 'Scanning ETH, SOL, Base whale signals...', delay: 800 },
       { text: 'Filtering signals (score > 20)...', delay: 2200 },
       { text: 'Fetching Polymarket leaderboard (top 15)...', delay: 3500 },
-      { text: 'Aggregating smart money consensus...', delay: 5000 },
-      { text: 'Claude Sonnet 4 analyzing...', delay: 6500 },
-      { text: 'Applying risk gate ($150 max exposure)...', delay: 8000 },
-      { text: 'Generating personalized report...', delay: 9000 },
+      { text: 'Self-optimizing prompt from last 10 cycles...', delay: 5000 },
+      { text: 'Alpha Hunter analyzing opportunities...', delay: 6500 },
+      { text: 'Red Team finding attack vectors...', delay: 8500 },
+      { text: 'Judge agent making final verdict...', delay: 10500 },
+      { text: 'Kelly Criterion sizing positions...', delay: 12000 },
+      { text: 'Generating personalized report...', delay: 13000 },
     ];
     phases.forEach(p => {
       const t = setTimeout(() => setAnalysisPhases(prev => [...prev, p.text]), p.delay);
@@ -489,13 +491,20 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
 
       if (data.ok) {
         const c = data.cycle;
+        const d = data.debate;
         setAnalysisPhases([
           `OKX: ${c.signals_found} signals detected`,
           `Filter: ${c.signals_filtered} passed quality gate`,
           `Polymarket: ${data.polymarket?.length || 0} consensus markets`,
-          `Claude: ${c.llm_decisions || 0} decisions, ${c.trades_executed} trades`,
-          `Total deployed: $${(c.total_usd_deployed || 0).toFixed(2)}`,
-          `Done in ${(c.latency_ms / 1000).toFixed(1)}s`,
+          ...(d ? [
+            `Alpha Hunter: "${(d.alphaView || '').slice(0, 80)}..."`,
+            `Red Team: "${(d.redTeamView || '').slice(0, 80)}..."`,
+            `Judge verdict: ${c.llm_decisions || 0} approved, ${d.sizingMethod || 'kelly'}`,
+          ] : [
+            `Claude: ${c.llm_decisions || 0} decisions`,
+          ]),
+          `${c.trades_executed} trades, $${(c.total_usd_deployed || 0).toFixed(2)} deployed`,
+          `${d?.selfOptimized ? '✦ Self-optimized prompt · ' : ''}Done in ${(c.latency_ms / 1000).toFixed(1)}s`,
         ]);
         await loadData();
         setCycles(prev => {

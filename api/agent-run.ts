@@ -6,7 +6,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 120 };
 
 // ---- Types ----
 interface RawSignal {
@@ -148,115 +148,286 @@ function filterSignals(signals: RawSignal[]): FilteredSignal[] {
   return filtered.slice(0, 10);
 }
 
-// ---- Claude reasoning ----
-async function analyzeWithClaude(signals: FilteredSignal[], polyConsensusData?: SmartMoneyConsensus[]): Promise<{ decisions: TradeDecision[]; reasoning: string }> {
+// ---- Claude call helper (shared by all agents) ----
+async function callClaude(
+  systemPrompt: string,
+  userMsg: string,
+  toolSchema?: { name: string; description: string; input_schema: Record<string, unknown> },
+): Promise<{ text: string; toolInput: Record<string, unknown> | null }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return { decisions: [], reasoning: 'No API key' };
+  if (!apiKey) return { text: '', toolInput: null };
 
-  const systemPrompt = `You are Agent Radar, an autonomous crypto trading agent.
-RULES: Max 3 trades, max $50 each, min 0.7 confidence. Prefer low sold ratio (<20%), multiple wallet triggers.
-SKIP honeypots, rug pulls, low liquidity. Be concise. Call execute_decisions with your analysis.`;
+  const body: Record<string, unknown> = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMsg }],
+  };
 
-  // Build Polymarket context if available
+  if (toolSchema) {
+    body.tools = [toolSchema];
+    body.tool_choice = { type: 'tool', name: toolSchema.name };
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    return { text: `Claude ${res.status}: ${t.slice(0, 100)}`, toolInput: null };
+  }
+
+  const result = await res.json() as { content: Array<{ type: string; text?: string; input?: Record<string, unknown> }> };
+  const toolUse = result.content.find(b => b.type === 'tool_use');
+  const textBlock = result.content.find(b => b.type === 'text');
+
+  return {
+    text: textBlock?.text || '',
+    toolInput: toolUse?.input || null,
+  };
+}
+
+// ---- Build signal context string (shared) ----
+function buildSignalContext(signals: FilteredSignal[], polyConsensusData?: SmartMoneyConsensus[]): string {
   const polyContext = polyConsensusData && polyConsensusData.length > 0
     ? `\n\nPolymarket Smart Money Consensus (${polyConsensusData.length} markets with 2+ top traders):\n${polyConsensusData.slice(0, 5).map((m, i) =>
         `[P${i + 1}] "${m.title}" — ${m.traderCount} traders, ${m.topOutcomePct.toFixed(0)}% on ${m.topOutcome}, price ${Math.round(m.currentPrice * 100)}¢, entry ${Math.round(m.avgEntryPrice * 100)}¢, edge ${m.edgePct.toFixed(1)}%`
-      ).join('\n')}\nConsider these prediction markets when assessing macro sentiment.`
+      ).join('\n')}`
     : '';
 
-  const userMsg = `Signals (${signals.length}):\n${signals.map((s, i) =>
+  return `Signals (${signals.length}):\n${signals.map((s, i) =>
     `[${i + 1}] ${s.tokenSymbol} (chain ${s.chain}) — $${s.amountUsd.toLocaleString()} — score ${s.filterScore} — ${s.reasons.join(', ')}`
-  ).join('\n')}${polyContext}\n\nAnalyze and call execute_decisions.`;
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: systemPrompt,
-        tools: [{
-          name: 'execute_decisions',
-          description: 'Submit trading decisions',
-          input_schema: {
-            type: 'object',
-            properties: {
-              reasoning: { type: 'string' },
-              trades: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    action: { type: 'string', enum: ['BUY', 'SKIP'] },
-                    chain: { type: 'string' },
-                    token_address: { type: 'string' },
-                    token_symbol: { type: 'string' },
-                    amount_usd: { type: 'number' },
-                    reason: { type: 'string' },
-                    confidence: { type: 'number' },
-                  },
-                  required: ['action', 'token_symbol', 'reason', 'confidence'],
-                },
-              },
-            },
-            required: ['reasoning', 'trades'],
-          },
-        }],
-        tool_choice: { type: 'tool', name: 'execute_decisions' },
-        messages: [{ role: 'user', content: userMsg }],
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      return { decisions: [], reasoning: `Claude ${res.status}: ${text.slice(0, 100)}` };
-    }
-
-    const result = await res.json() as { content: Array<{ type: string; input?: Record<string, unknown> }> };
-    const toolUse = result.content.find((b) => b.type === 'tool_use');
-    if (!toolUse?.input) return { decisions: [], reasoning: 'No tool call' };
-
-    const input = toolUse.input as { reasoning: string; trades: Array<Record<string, unknown>> };
-
-    const decisions: TradeDecision[] = (input.trades || [])
-      .filter(t => t.action === 'BUY' && Number(t.confidence) >= 0.7)
-      .slice(0, 3)
-      .map(t => ({
-        action: 'BUY' as const,
-        chain: String(t.chain || '1'),
-        tokenAddress: String(t.token_address || ''),
-        tokenSymbol: String(t.token_symbol),
-        amountUsd: Math.min(Number(t.amount_usd) || 25, 50),
-        reason: String(t.reason),
-        confidence: Number(t.confidence),
-        signalSources: ['okx_dex_signal'],
-      }));
-
-    return { decisions, reasoning: input.reasoning || '' };
-  } catch (err) {
-    return { decisions: [], reasoning: `Error: ${err instanceof Error ? err.message : String(err)}` };
-  }
+  ).join('\n')}${polyContext}`;
 }
 
-// ---- Risk gate ----
-function applyRiskGate(decisions: TradeDecision[]): { approved: TradeDecision[]; blocked: number } {
+// ---- Trade decision tool schema ----
+const tradeToolSchema = {
+  name: 'execute_decisions',
+  description: 'Submit trading decisions',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      reasoning: { type: 'string' },
+      trades: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['BUY', 'SKIP'] },
+            chain: { type: 'string' },
+            token_address: { type: 'string' },
+            token_symbol: { type: 'string' },
+            amount_usd: { type: 'number' },
+            reason: { type: 'string' },
+            confidence: { type: 'number' },
+          },
+          required: ['action', 'token_symbol', 'reason', 'confidence'],
+        },
+      },
+    },
+    required: ['reasoning', 'trades'],
+  },
+};
+
+// ---- Multi-Agent Debate System ----
+// Agent 1: Alpha Hunter — finds opportunities
+// Agent 2: Red Team — finds reasons trades will FAIL
+// Agent 3: Judge — makes final decision with both perspectives
+
+interface DebateResult {
+  decisions: TradeDecision[];
+  reasoning: string;
+  alphaView: string;
+  redTeamView: string;
+  judgeVerdict: string;
+}
+
+async function multiAgentDebate(
+  signals: FilteredSignal[],
+  polyConsensusData?: SmartMoneyConsensus[],
+  selfOptimizedPrompt?: string,
+): Promise<DebateResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { decisions: [], reasoning: 'No API key', alphaView: '', redTeamView: '', judgeVerdict: '' };
+
+  const signalCtx = buildSignalContext(signals, polyConsensusData);
+
+  // ── AGENT 1: Alpha Hunter (parallel with Red Team) ──
+  const alphaPrompt = selfOptimizedPrompt || `You are the Alpha Hunter agent. Your ONLY job is to find the best trading opportunities.
+Analyze signals aggressively. Look for: high wallet convergence, low sold ratio, large volume, smart money patterns.
+For Polymarket, find edges where smart money entry price diverges from current price.
+Be BULLISH and find alpha. Max 3 trades. Call execute_decisions.`;
+
+  const alphaPromise = callClaude(
+    alphaPrompt,
+    `${signalCtx}\n\nFind the best alpha opportunities and call execute_decisions.`,
+    tradeToolSchema,
+  );
+
+  // ── AGENT 2: Red Team (parallel with Alpha) ──
+  const redTeamPromise = callClaude(
+    `You are the Red Team agent — the Devil's Advocate. Your ONLY job is to find reasons why trades will FAIL.
+For each signal, analyze: honeypot risk, rug pull patterns, low liquidity traps, pump-and-dump cycles,
+whale manipulation, front-running exposure, smart money exit signals (high sold ratio).
+For Polymarket, check if consensus is just herd behavior vs informed positioning.
+Be SKEPTICAL and adversarial. Output a risk assessment for each signal.`,
+    `${signalCtx}\n\nFor each signal, explain WHY this trade could fail. Be specific and adversarial.`,
+  );
+
+  // Run Alpha + Red Team in parallel
+  const [alphaResult, redTeamResult] = await Promise.all([alphaPromise, redTeamPromise]);
+
+  const alphaView = alphaResult.toolInput
+    ? (alphaResult.toolInput as { reasoning: string }).reasoning || ''
+    : alphaResult.text;
+  const redTeamView = redTeamResult.text;
+
+  // ── AGENT 3: Judge — sees both perspectives ──
+  const alphaTrades = alphaResult.toolInput
+    ? (alphaResult.toolInput as { trades: Array<Record<string, unknown>> }).trades || []
+    : [];
+
+  const judgeResult = await callClaude(
+    `You are the Judge agent. You receive two perspectives on crypto trades:
+1. The Alpha Hunter found opportunities (bullish view)
+2. The Red Team found risks (bearish view)
+
+YOUR JOB: Make the FINAL decision. Only approve trades where Alpha's thesis survives Red Team scrutiny.
+Adjust confidence DOWN if Red Team raised valid concerns. SKIP if risks outweigh opportunity.
+Max 3 trades. Call execute_decisions with your final verdict.`,
+    `ALPHA HUNTER THESIS:\n${alphaView}\n\nAlpha proposed trades:\n${JSON.stringify(alphaTrades, null, 1)}\n\nRED TEAM RISKS:\n${redTeamView}\n\nMake your final judgment. Call execute_decisions.`,
+    tradeToolSchema,
+  );
+
+  const judgeVerdict = judgeResult.toolInput
+    ? (judgeResult.toolInput as { reasoning: string }).reasoning || ''
+    : judgeResult.text;
+
+  // Parse judge decisions
+  const judgeTrades = judgeResult.toolInput
+    ? (judgeResult.toolInput as { trades: Array<Record<string, unknown>> }).trades || []
+    : [];
+
+  const decisions: TradeDecision[] = judgeTrades
+    .filter(t => t.action === 'BUY' && Number(t.confidence) >= 0.7)
+    .slice(0, 3)
+    .map(t => ({
+      action: 'BUY' as const,
+      chain: String(t.chain || '1'),
+      tokenAddress: String(t.token_address || ''),
+      tokenSymbol: String(t.token_symbol),
+      amountUsd: Number(t.amount_usd) || 25,
+      reason: String(t.reason),
+      confidence: Number(t.confidence),
+      signalSources: ['okx_dex_signal'],
+    }));
+
+  console.log(`[Agent] Debate: Alpha proposed ${alphaTrades.length}, Judge approved ${decisions.length}`);
+
+  return {
+    decisions,
+    reasoning: judgeVerdict,
+    alphaView,
+    redTeamView,
+    judgeVerdict,
+  };
+}
+
+// ---- Kelly Criterion Dynamic Position Sizing ----
+// f* = (p(b+1) - 1) / b
+// p = probability of success (confidence), b = win/loss ratio
+function kellySize(confidence: number, bankroll: number, maxExposurePct = 0.33): number {
+  // Estimate win/loss ratio from historical or use 2:1 default for crypto
+  const b = 2.0;
+  const p = Math.max(0.5, Math.min(0.95, confidence)); // clamp
+
+  const kelly = (p * (b + 1) - 1) / b;
+  if (kelly <= 0) return 0; // negative edge = don't bet
+
+  // Half-Kelly for safety (standard practice)
+  const halfKelly = kelly * 0.5;
+
+  // Apply to bankroll with max exposure cap
+  const size = Math.min(bankroll * halfKelly, bankroll * maxExposurePct);
+
+  // Floor at $5, cap at $75
+  return Math.max(5, Math.min(75, Math.round(size * 100) / 100));
+}
+
+// ---- Prompt Self-Optimization ----
+// Analyzes last N cycles' outcomes and generates an improved system prompt
+async function selfOptimizePrompt(recentCycles: Array<{ llm_reasoning: string; trades_executed: number; status: string }>): Promise<string | null> {
+  if (recentCycles.length < 3) return null; // need at least 3 cycles
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  const cyclesSummary = recentCycles.slice(0, 10).map((c, i) =>
+    `Cycle ${i + 1}: ${c.status} | ${c.trades_executed} trades | Reasoning: "${(c.llm_reasoning || '').slice(0, 150)}"`
+  ).join('\n');
+
+  try {
+    const result = await callClaude(
+      `You are a meta-optimization agent. Analyze the trading agent's recent cycle outcomes and generate an IMPROVED system prompt.
+Focus on: What patterns led to good/bad decisions? What biases appear? What should the agent prioritize differently?
+Output ONLY the new system prompt text (1-3 paragraphs). Keep rules about max trades and confidence thresholds.`,
+      `Recent cycle history:\n${cyclesSummary}\n\nGenerate an improved Alpha Hunter system prompt based on these patterns.`,
+    );
+
+    const newPrompt = result.text?.trim();
+    if (newPrompt && newPrompt.length > 50 && newPrompt.length < 2000) {
+      console.log('[Agent] Self-optimized prompt generated');
+      return newPrompt;
+    }
+  } catch (err) {
+    console.warn('[Agent] Prompt optimization failed:', err);
+  }
+  return null;
+}
+
+// ---- Fetch recent cycles for self-optimization ----
+async function fetchRecentCycles(limit = 10): Promise<Array<{ llm_reasoning: string; trades_executed: number; status: string }>> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return [];
+
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/agent_cycles?select=llm_reasoning,trades_executed,status&order=started_at.desc&limit=${limit}`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+// ---- Risk gate with Kelly Criterion ----
+function applyRiskGate(decisions: TradeDecision[], bankroll = 500): { approved: TradeDecision[]; blocked: number; sizingMethod: string } {
   const approved: TradeDecision[] = [];
   let exposure = 0;
+  const maxExposure = bankroll * 0.3; // 30% max portfolio exposure
 
   for (const d of decisions) {
-    if (d.amountUsd > 50) d.amountUsd = 50;
-    if (exposure + d.amountUsd > 150) { continue; }
     if (d.confidence < 0.7) continue;
+
+    // Kelly Criterion dynamic sizing replaces static $50 cap
+    const kellyAmount = kellySize(d.confidence, bankroll);
+    d.amountUsd = kellyAmount;
+
+    if (exposure + d.amountUsd > maxExposure) continue;
     approved.push(d);
     exposure += d.amountUsd;
   }
 
-  return { approved, blocked: decisions.length - approved.length };
+  return { approved, blocked: decisions.length - approved.length, sizingMethod: 'half-kelly' };
 }
 
 // ---- Polymarket Intelligence — Direct API calls ----
@@ -476,9 +647,11 @@ interface GreetingContext {
   topFilteredSignals: FilteredSignal[];
   trades: Array<{ tokenSymbol: string; amountUsd: number; confidence: number; chain: string }>;
   polymarketData: SmartMoneyConsensus[];
+  debate?: { alphaView: string; redTeamView: string; judgeVerdict: string };
+  sizingMethod?: string;
 }
 
-function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string {
+function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext, memoryFollowUp?: MemoryFollowUp | null): string {
   const hour = new Date().getUTCHours();
   const lang = profile.language || 'es';
   const hrs = profile.scan_interval_hours || 8;
@@ -502,6 +675,36 @@ function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string
     '',
   ];
 
+  // ── MEMORY SECTION: Follow-up on last recommendation ──
+  if (memoryFollowUp) {
+    const { title, entryPrice, currentPrice, hoursAgo } = memoryFollowUp;
+    const diff = currentPrice - entryPrice;
+    const pctChange = entryPrice > 0 ? ((diff / entryPrice) * 100).toFixed(1) : '0.0';
+    const sign = diff >= 0 ? '+' : '';
+    const correct = diff >= 0;
+
+    if (lang === 'es') {
+      L.push(`--- Seguimiento ---`);
+      L.push(`Hace ${hoursAgo}h te recomendé "${title}" a ${entryPrice}¢. Ahora está en ${currentPrice}¢ (${sign}${pctChange}%).`);
+      L.push(correct
+        ? 'Mi lectura fue correcta.'
+        : 'Mi lectura necesita ajuste — el mercado se movió en contra.');
+    } else if (lang === 'pt') {
+      L.push(`--- Acompanhamento ---`);
+      L.push(`Há ${hoursAgo}h recomendei "${title}" a ${entryPrice}¢. Agora está em ${currentPrice}¢ (${sign}${pctChange}%).`);
+      L.push(correct
+        ? 'Minha leitura estava correta.'
+        : 'Minha leitura precisa de ajuste — o mercado se moveu contra.');
+    } else {
+      L.push(`--- Follow-up ---`);
+      L.push(`${hoursAgo}h ago I recommended "${title}" at ${entryPrice}¢. Now at ${currentPrice}¢ (${sign}${pctChange}%).`);
+      L.push(correct
+        ? 'My read was correct.'
+        : 'My read needs adjustment — the market moved against.');
+    }
+    L.push('');
+  }
+
   // ── OKX SECTION: COLLECT → FILTER → THINK → EXECUTE ──
 
   if (lang === 'es') {
@@ -519,8 +722,14 @@ function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string
     L.push('');
     L.push(`${cycle.signals_found} → ${cycle.signals_filtered} pasaron filtros de calidad.`);
 
-    // THINK
-    if (cycle.llm_reasoning) {
+    // THINK — Multi-Agent Debate
+    if (ctx.debate) {
+      L.push('');
+      L.push(`--- Debate Multi-Agente ---`);
+      L.push(`Alpha Hunter: _${ctx.debate.alphaView.slice(0, 120)}_`);
+      L.push(`Red Team: _${ctx.debate.redTeamView.slice(0, 120)}_`);
+      L.push(`Juez: _${ctx.debate.judgeVerdict.slice(0, 120)}_`);
+    } else if (cycle.llm_reasoning) {
       L.push('');
       L.push(`Mi análisis: _${cycle.llm_reasoning}_`);
     }
@@ -528,8 +737,9 @@ function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string
     // EXECUTE
     if (trades.length > 0) {
       L.push('');
+      const sizing = ctx.sizingMethod === 'half-kelly' ? ' (Half-Kelly)' : '';
       for (const t of trades) {
-        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confianza ${(t.confidence * 100).toFixed(0)}%`);
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd.toFixed(2)}${sizing} — confianza ${(t.confidence * 100).toFixed(0)}%`);
       }
       L.push(`Total desplegado: $${cycle.total_usd_deployed.toFixed(2)}`);
       if (cycle.trades_blocked > 0) {
@@ -575,15 +785,22 @@ function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string
     L.push('');
     L.push(`${cycle.signals_found} → ${cycle.signals_filtered} passaram filtros de qualidade.`);
 
-    if (cycle.llm_reasoning) {
+    if (ctx.debate) {
+      L.push('');
+      L.push(`--- Debate Multi-Agente ---`);
+      L.push(`Alpha Hunter: _${ctx.debate.alphaView.slice(0, 120)}_`);
+      L.push(`Red Team: _${ctx.debate.redTeamView.slice(0, 120)}_`);
+      L.push(`Juiz: _${ctx.debate.judgeVerdict.slice(0, 120)}_`);
+    } else if (cycle.llm_reasoning) {
       L.push('');
       L.push(`Minha análise: _${cycle.llm_reasoning}_`);
     }
 
     if (trades.length > 0) {
       L.push('');
+      const sizing = ctx.sizingMethod === 'half-kelly' ? ' (Half-Kelly)' : '';
       for (const t of trades) {
-        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confiança ${(t.confidence * 100).toFixed(0)}%`);
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd.toFixed(2)}${sizing} — confiança ${(t.confidence * 100).toFixed(0)}%`);
       }
       L.push(`Total: $${cycle.total_usd_deployed.toFixed(2)}`);
     } else {
@@ -625,15 +842,22 @@ function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string
     L.push('');
     L.push(`${cycle.signals_found} → ${cycle.signals_filtered} passed quality filters.`);
 
-    if (cycle.llm_reasoning) {
+    if (ctx.debate) {
+      L.push('');
+      L.push(`--- Multi-Agent Debate ---`);
+      L.push(`Alpha Hunter: _${ctx.debate.alphaView.slice(0, 120)}_`);
+      L.push(`Red Team: _${ctx.debate.redTeamView.slice(0, 120)}_`);
+      L.push(`Judge: _${ctx.debate.judgeVerdict.slice(0, 120)}_`);
+    } else if (cycle.llm_reasoning) {
       L.push('');
       L.push(`My analysis: _${cycle.llm_reasoning}_`);
     }
 
     if (trades.length > 0) {
       L.push('');
+      const sizing = ctx.sizingMethod === 'half-kelly' ? ' (Half-Kelly)' : '';
       for (const t of trades) {
-        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confidence ${(t.confidence * 100).toFixed(0)}%`);
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd.toFixed(2)}${sizing} — confidence ${(t.confidence * 100).toFixed(0)}%`);
       }
       L.push(`Total deployed: $${cycle.total_usd_deployed.toFixed(2)}`);
       if (cycle.trades_blocked > 0) {
@@ -694,6 +918,93 @@ async function saveGreetings(greetings: Array<{ wallet_address: string; advisor_
   } catch (err) {
     console.warn('[Agent] Greeting save failed:', err);
   }
+}
+
+// ---- Fetch last greeting for memory continuity ----
+interface LastGreeting {
+  message: string;
+  created_at: string;
+}
+
+async function fetchLastGreeting(wallet: string): Promise<LastGreeting | null> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/agent_messages?wallet_address=eq.${wallet}&select=message,created_at&order=created_at.desc&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    return { message: data[0].message, created_at: data[0].created_at };
+  } catch { return null; }
+}
+
+// ---- Parse recommendation from a previous greeting and fetch current price ----
+interface MemoryFollowUp {
+  title: string;
+  outcome: string;
+  entryPrice: number;
+  currentPrice: number;
+  hoursAgo: number;
+}
+
+function parseRecommendation(message: string): { title: string; outcome: string; price: number; slug?: string } | null {
+  // Match patterns like: Recomendación: "BTC > $100K" → Yes a 72¢.
+  // or: Recommendation: "BTC > $100K" → Yes at 72¢.
+  // or: Recomendação: "BTC > $100K" → Yes a 72¢.
+  const m = message.match(/Recomendaci[oó]n|Recommendation|Recomenda[çc][aã]o/);
+  if (!m) return null;
+
+  const lineStart = message.indexOf(m[0]);
+  const lineEnd = message.indexOf('\n', lineStart);
+  const line = message.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
+
+  const parts = line.match(/"([^"]+)"\s*→\s*(\w+)\s*(?:a|at)\s*(\d+)¢/);
+  if (!parts) return null;
+
+  // Try to extract slug from the full message — look for the market title in polymarket section
+  // The slug is not directly in the greeting, so we'll search by title via gamma API
+  return { title: parts[1], outcome: parts[2], price: parseInt(parts[3]) };
+}
+
+async function fetchMarketCurrentPrice(title: string): Promise<number | null> {
+  try {
+    // Search gamma API by title (slug not available, use search)
+    const res = await fetch(`${POLY_GAMMA}/markets?title=${encodeURIComponent(title)}&limit=1`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const market = data[0] as Record<string, unknown>;
+    // outcomePrices is a JSON string like "[0.72, 0.28]"
+    const prices = market.outcomePrices;
+    if (typeof prices === 'string') {
+      const parsed = JSON.parse(prices);
+      if (Array.isArray(parsed) && parsed.length > 0) return parseFloat(parsed[0]);
+    }
+    return null;
+  } catch { return null; }
+}
+
+async function buildMemoryFollowUp(lastGreeting: LastGreeting): Promise<MemoryFollowUp | null> {
+  const rec = parseRecommendation(lastGreeting.message);
+  if (!rec) return null;
+
+  const currentPrice = await fetchMarketCurrentPrice(rec.title);
+  if (currentPrice === null) return null;
+
+  const hoursAgo = Math.round((Date.now() - new Date(lastGreeting.created_at).getTime()) / (1000 * 60 * 60));
+
+  return {
+    title: rec.title,
+    outcome: rec.outcome,
+    entryPrice: rec.price,
+    currentPrice: Math.round(currentPrice * 100),
+    hoursAgo,
+  };
 }
 
 // ---- Supabase logging ----
@@ -774,7 +1085,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const profiles0 = isManual
         ? allProfiles0
         : allProfiles0.filter(p => new Date().getUTCHours() % (p.scan_interval_hours || 8) === 0);
-      const greetings0 = profiles0.map(p => ({
+
+      // Fetch last greetings for memory continuity (parallel)
+      const memoryResults0 = await Promise.all(
+        profiles0.map(async (p) => {
+          const last = await fetchLastGreeting(p.wallet_address);
+          return last ? buildMemoryFollowUp(last) : null;
+        })
+      );
+
+      const greetings0 = profiles0.map((p, i) => ({
         wallet_address: p.wallet_address,
         advisor_name: p.advisor_name,
         message: generateGreeting(p, {
@@ -782,7 +1102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           topFilteredSignals: [],
           trades: [],
           polymarketData: polyConsensus,
-        }),
+        }, memoryResults0[i]),
       }));
       await saveGreetings(greetings0);
 
@@ -801,16 +1121,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Phase 3: Claude analysis
-    console.log('[Agent] Claude analyzing...');
-    const { decisions, reasoning } = await analyzeWithClaude(filtered, polyConsensus);
-    console.log(`[Agent] ${decisions.length} decisions`);
+    // Phase 3: Self-optimization (fetch recent cycles + generate improved prompt)
+    console.log('[Agent] Self-optimizing prompt...');
+    const [recentCycles, optimizedPrompt] = await Promise.all([
+      fetchRecentCycles(10),
+      Promise.resolve(null), // placeholder — we need cycles first
+    ]);
+    const selfPrompt = recentCycles.length >= 3
+      ? await selfOptimizePrompt(recentCycles)
+      : null;
+    if (selfPrompt) console.log('[Agent] Using self-optimized Alpha prompt');
 
-    // Phase 4: Risk gate
-    const { approved, blocked } = applyRiskGate(decisions);
-    console.log(`[Agent] ${approved.length} approved, ${blocked} blocked`);
+    // Phase 4: Multi-Agent Debate (Alpha + Red Team + Judge)
+    console.log('[Agent] Multi-agent debate starting...');
+    const debate = await multiAgentDebate(filtered, polyConsensus, selfPrompt || undefined);
+    console.log(`[Agent] Debate complete: ${debate.decisions.length} decisions`);
 
-    // Phase 5: Execute (simulation mode — real execution needs wallet)
+    // Phase 5: Kelly Criterion Risk Gate
+    const { approved, blocked, sizingMethod } = applyRiskGate(debate.decisions);
+    console.log(`[Agent] ${approved.length} approved (${sizingMethod}), ${blocked} blocked`);
+
+    // Phase 6: Execute (simulation mode — OKX Agent TradeKit integration ready)
     const trades = approved.map(d => ({
       ...d,
       txHash: `SIM-${Date.now()}-${d.tokenSymbol}`,
@@ -819,19 +1150,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const totalDeployed = trades.reduce((sum, t) => sum + t.amountUsd, 0);
 
-    // Phase 6: Log
+    // Phase 7: Log
     const result = {
       started_at: startedAt,
       completed_at: new Date().toISOString(),
       signals_found: raw.length,
       signals_filtered: filtered.length,
-      llm_decisions: decisions.length,
+      llm_decisions: debate.decisions.length,
       trades_executed: trades.length,
       trades_blocked: blocked,
       total_usd_deployed: totalDeployed,
       latency_ms: Date.now() - startMs,
       llm_model: 'claude-sonnet-4-20250514',
-      llm_reasoning: reasoning,
+      llm_reasoning: debate.reasoning,
       status: 'completed',
     };
 
@@ -851,7 +1182,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return currentHour % interval === 0;
         });
 
-    const greetings = profiles.map(p => ({
+    // Fetch last greetings for memory continuity (parallel)
+    const memoryResults = await Promise.all(
+      profiles.map(async (p) => {
+        const last = await fetchLastGreeting(p.wallet_address);
+        return last ? buildMemoryFollowUp(last) : null;
+      })
+    );
+
+    const greetings = profiles.map((p, i) => ({
       wallet_address: p.wallet_address,
       advisor_name: p.advisor_name,
       message: generateGreeting(p, {
@@ -859,7 +1198,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         topFilteredSignals: filtered,
         trades: trades.map(t => ({ tokenSymbol: t.tokenSymbol, amountUsd: t.amountUsd, confidence: t.confidence, chain: t.chain })),
         polymarketData: polyConsensus,
-      }),
+        debate: { alphaView: debate.alphaView, redTeamView: debate.redTeamView, judgeVerdict: debate.judgeVerdict },
+        sizingMethod,
+      }, memoryResults[i]),
     }));
     await saveGreetings(greetings);
     console.log(`[Agent] ${greetings.length} greetings sent`);
@@ -871,6 +1212,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       cycle: result,
       trades,
+      debate: {
+        alphaView: debate.alphaView.slice(0, 500),
+        redTeamView: debate.redTeamView.slice(0, 500),
+        judgeVerdict: debate.judgeVerdict.slice(0, 500),
+        selfOptimized: !!selfPrompt,
+        sizingMethod,
+      },
       greetings: greetings.map(g => ({ advisor: g.advisor_name, wallet: g.wallet_address.slice(0, 8) + '...' })),
       topSignals: filtered.slice(0, 5).map(s => ({
         token: s.tokenSymbol,
