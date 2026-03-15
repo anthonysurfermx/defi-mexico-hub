@@ -252,6 +252,126 @@ function applyRiskGate(decisions: TradeDecision[]): { approved: TradeDecision[];
   return { approved, blocked: decisions.length - approved.length };
 }
 
+// ---- Fetch advisor profiles for personalized greetings ----
+interface AdvisorProfile {
+  wallet_address: string;
+  user_name: string;
+  advisor_name: string;
+  categories: string[];
+  language: string;
+}
+
+async function fetchAdvisorProfiles(): Promise<AdvisorProfile[]> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return [];
+
+  try {
+    const res = await fetch(`${url}/rest/v1/agent_profiles?select=*`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+function generateGreeting(
+  profile: AdvisorProfile,
+  cycle: { signals_found: number; signals_filtered: number; trades_executed: number; llm_reasoning: string; total_usd_deployed: number },
+): string {
+  const hour = new Date().getUTCHours();
+  const isES = profile.language === 'es';
+
+  // Time-aware greeting
+  let greeting: string;
+  if (hour >= 5 && hour < 12) {
+    greeting = isES ? `Buenos días ${profile.user_name}!` : `Good morning ${profile.user_name}!`;
+  } else if (hour >= 12 && hour < 18) {
+    greeting = isES ? `Buenas tardes ${profile.user_name}!` : `Good afternoon ${profile.user_name}!`;
+  } else {
+    greeting = isES ? `Buenas noches ${profile.user_name}!` : `Good evening ${profile.user_name}!`;
+  }
+
+  const lines: string[] = [
+    `*${profile.advisor_name}*`,
+    '',
+    greeting,
+    '',
+  ];
+
+  if (isES) {
+    lines.push(`Acabo de completar mi análisis del mercado.`);
+    lines.push(`Escaneé ${cycle.signals_found} señales y ${cycle.signals_filtered} pasaron mis filtros.`);
+
+    if (cycle.trades_executed > 0) {
+      lines.push('');
+      lines.push(`Ejecuté ${cycle.trades_executed} operaciones por un total de $${cycle.total_usd_deployed.toFixed(2)}.`);
+    } else {
+      lines.push('');
+      lines.push('No encontré oportunidades que cumplan mis criterios de riesgo esta vez. Seguiré monitoreando.');
+    }
+
+    if (cycle.llm_reasoning) {
+      lines.push('');
+      lines.push(`Mi análisis: _${cycle.llm_reasoning}_`);
+    }
+
+    lines.push('');
+    lines.push(`Tus categorías: ${profile.categories.join(', ')}`);
+    lines.push('Nos vemos en 8 horas.');
+  } else {
+    lines.push(`I just completed my market analysis.`);
+    lines.push(`Scanned ${cycle.signals_found} signals, ${cycle.signals_filtered} passed my filters.`);
+
+    if (cycle.trades_executed > 0) {
+      lines.push('');
+      lines.push(`Executed ${cycle.trades_executed} trades totaling $${cycle.total_usd_deployed.toFixed(2)}.`);
+    } else {
+      lines.push('');
+      lines.push('No opportunities met my risk criteria this cycle. Still watching.');
+    }
+
+    if (cycle.llm_reasoning) {
+      lines.push('');
+      lines.push(`My analysis: _${cycle.llm_reasoning}_`);
+    }
+
+    lines.push('');
+    lines.push(`Your categories: ${profile.categories.join(', ')}`);
+    lines.push('See you in 8 hours.');
+  }
+
+  return lines.join('\n');
+}
+
+// ---- Save greeting messages to Supabase ----
+async function saveGreetings(greetings: Array<{ wallet_address: string; advisor_name: string; message: string }>) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || greetings.length === 0) return;
+
+  try {
+    await fetch(`${url}/rest/v1/agent_messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(greetings.map(g => ({
+        wallet_address: g.wallet_address,
+        advisor_name: g.advisor_name,
+        message: g.message,
+        created_at: new Date().toISOString(),
+      }))),
+    });
+  } catch (err) {
+    console.warn('[Agent] Greeting save failed:', err);
+  }
+}
+
 // ---- Supabase logging ----
 async function logToSupabase(data: Record<string, unknown>) {
   const url = process.env.SUPABASE_URL;
@@ -359,6 +479,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await logToSupabase(result);
 
+    // Phase 7: Generate personalized greetings for all advisors
+    console.log('[Agent] Generating greetings...');
+    const profiles = await fetchAdvisorProfiles();
+    const greetings = profiles.map(p => ({
+      wallet_address: p.wallet_address,
+      advisor_name: p.advisor_name,
+      message: generateGreeting(p, result),
+    }));
+    await saveGreetings(greetings);
+    console.log(`[Agent] ${greetings.length} greetings sent`);
+
     console.log(`[Agent] Done in ${result.latency_ms}ms — ${trades.length} trades`);
 
     res.setHeader('Cache-Control', 'no-store');
@@ -366,6 +497,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       cycle: result,
       trades,
+      greetings: greetings.map(g => ({ advisor: g.advisor_name, wallet: g.wallet_address.slice(0, 8) + '...' })),
       topSignals: filtered.slice(0, 5).map(s => ({
         token: s.tokenSymbol,
         chain: s.chain,
