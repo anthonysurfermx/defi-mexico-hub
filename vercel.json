@@ -58,6 +58,10 @@
     "api/openclaw-chat.ts": {
       "maxDuration": 60,
       "memory": 256
+    },
+    "api/bobby-voice.ts": {
+      "maxDuration": 30,
+      "memory": 256
     }
   }
 }

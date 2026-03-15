@@ -21,3 +21,23 @@ CREATE TABLE IF NOT EXISTS agent_config (
 );
 
 COMMENT ON TABLE agent_config IS 'Key-value store for persistent agent state (self-optimized prompts, feature flags, etc.)';
+
+-- User interest tracking: what assets the user is watching
+-- Bobby saves these automatically when the user asks about an asset
+-- The Watchdog compares market signals against these interests every 15 min
+CREATE TABLE IF NOT EXISTS user_interests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_address text NOT NULL,
+  asset text NOT NULL,
+  context text,
+  target_threshold numeric DEFAULT 0.75,
+  last_conviction numeric DEFAULT 0,
+  last_notified_at timestamptz,
+  active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_interests_asset ON user_interests(asset);
+CREATE INDEX IF NOT EXISTS idx_user_interests_wallet ON user_interests(wallet_address);
+
+COMMENT ON TABLE user_interests IS 'Assets the user is actively watching — Bobby auto-saves when you ask about a token, Watchdog checks every 15min';

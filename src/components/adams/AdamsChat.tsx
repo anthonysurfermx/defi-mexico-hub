@@ -4,7 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -13,6 +13,8 @@ import { AdvisorSetup, useAdvisorProfile } from '@/components/agent-radar/Adviso
 import type { AdvisorProfile } from '@/components/agent-radar/AdvisorSetup';
 import { fetchTickers, fetchMarketDetail, formatVolume, type OKXTicker } from '@/services/okx-market.service';
 import { SwapConfirm, type TradeExecution } from './SwapConfirm';
+import { VoiceOrb } from './VoiceOrb';
+import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 
 // ---- Supabase ----
 
@@ -60,6 +62,50 @@ function detectTokens(text: string): string[] {
     }
   }
   return found;
+}
+
+// ---- Interest tag auto-save ----
+// Bobby silently saves what assets the user is watching to user_interests
+async function saveInterestTags(wallet: string, tokens: string[], context: string) {
+  if (!wallet || tokens.length === 0) return;
+  for (const instId of tokens) {
+    const asset = instId.split('-')[0]; // BTC-USDT → BTC
+    try {
+      // Check if interest already exists
+      const checkRes = await fetch(
+        `${SB_URL}/rest/v1/user_interests?wallet_address=eq.${wallet}&asset=eq.${asset}&active=eq.true&select=id`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const existing = await checkRes.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        // Update context timestamp — user is still interested
+        await fetch(`${SB_URL}/rest/v1/user_interests?id=eq.${existing[0].id}`, {
+          method: 'PATCH',
+          headers: {
+            apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+            'Content-Type': 'application/json', Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ context, target_threshold: 0.75 }),
+        });
+      } else {
+        // Insert new interest
+        await fetch(`${SB_URL}/rest/v1/user_interests`, {
+          method: 'POST',
+          headers: {
+            apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+            'Content-Type': 'application/json', Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            wallet_address: wallet,
+            asset,
+            context,
+            target_threshold: 0.75,
+            active: true,
+          }),
+        });
+      }
+    } catch { /* silent — don't block chat for interest tracking */ }
+  }
 }
 
 function detectIntent(text: string): 'price' | 'analyze' | 'portfolio' | 'trending' | 'prices_all' | 'help' | 'chat' {
@@ -331,6 +377,29 @@ export function AdamsChat() {
   // Cache tickers locally for quick re-use
   const tickerCacheRef = useRef<OKXTicker[]>([]);
 
+  // ---- Bobby's Voice ----
+  const { speak, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    try { return localStorage.getItem('bobby_voice_enabled') === 'true'; } catch { return false; }
+  });
+  const toggleVoice = useCallback(() => {
+    const next = !voiceEnabled;
+    setVoiceEnabled(next);
+    try { localStorage.setItem('bobby_voice_enabled', String(next)); } catch {}
+    if (!next) stopVoice();
+  }, [voiceEnabled, stopVoice]);
+
+  // Auto-speak new advisor messages when voice is enabled
+  const lastSpokenRef = useRef<string>('');
+  const speakIfEnabled = useCallback((text: string) => {
+    if (!voiceEnabled || !text || text === lastSpokenRef.current) return;
+    // Strip markdown-ish formatting for cleaner speech
+    const clean = text.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
+    if (clean.length < 10) return; // too short to speak
+    lastSpokenRef.current = text;
+    speak(clean);
+  }, [voiceEnabled, speak]);
+
   const advisorName = profile?.advisorName || 'Bobby';
 
   useEffect(() => {
@@ -453,6 +522,11 @@ export function AdamsChat() {
     const intent = detectIntent(msg);
     const tokens = detectTokens(msg);
 
+    // Bobby auto-saves interest tags when user mentions assets
+    if (tokens.length > 0 && profile?.walletAddress) {
+      saveInterestTags(profile.walletAddress, tokens, `user inquiry: "${msg}"`);
+    }
+
     // ========================
     // PRICE QUERY — specific token(s)
     // ========================
@@ -463,13 +537,15 @@ export function AdamsChat() {
         const cards = await getPriceCards(targetTokens);
         const names = cards.map(c => c.symbol).join(', ');
         const isUp = cards.length > 0 && cards[0].change24h >= 0;
+        const priceText = cards.length === 1
+          ? `${cards[0].symbol} is at $${fmtPrice(cards[0].price)} — ${isUp ? 'up' : 'down'} ${Math.abs(cards[0].change24h).toFixed(2)}% in the last 24h.`
+          : `Here's the latest on ${names}:`;
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: cards.length === 1
-            ? `${cards[0].symbol} is at $${fmtPrice(cards[0].price)} — ${isUp ? 'up' : 'down'} ${Math.abs(cards[0].change24h).toFixed(2)}% in the last 24h.`
-            : `Here's the latest on ${names}:`,
+          text: priceText,
           prices: cards,
         }]);
+        speakIfEnabled(priceText);
       } catch (err) {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
@@ -655,13 +731,16 @@ export function AdamsChat() {
           }
 
           setMessages(prev => [...prev, ...newMsgs]);
+          speakIfEnabled(greetingText);
         } else {
           // API returned ok:false — still show what we got
           const reason = data.cycle?.llm_reasoning || data.error || 'No actionable signals this cycle.';
+          const noTradeText = `Analysis complete but no trades recommended. ${reason}`;
           setMessages(prev => [...prev, {
             id: uid(), role: 'advisor', timestamp: Date.now(),
             text: `Analysis complete but no trades recommended.\n\n${reason}`,
           }]);
+          speakIfEnabled(noTradeText);
         }
       } catch (err) {
         phaseTimerRef.current.forEach(clearTimeout);
@@ -740,6 +819,9 @@ export function AdamsChat() {
           setMessages(prev => prev.map(m =>
             m.id === replyId ? { ...m, text: `I understood "${msg}" but couldn't generate a response. Try asking about prices ("BTC", "ETH") or run "Analyze Market".` } : m
           ));
+        } else {
+          // Bobby speaks the complete response
+          speakIfEnabled(fullText);
         }
       } else {
         // Non-streaming fallback
@@ -758,7 +840,7 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled]);
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-black text-white flex flex-col">
@@ -771,17 +853,28 @@ export function AdamsChat() {
             <Link to="/agentic-world" className="text-white/20 hover:text-white/50 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="w-8 h-8 border border-green-500/20 bg-green-500/5 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-green-400">{advisorName.charAt(0).toUpperCase()}</span>
-            </div>
+            {/* Avatar / VoiceOrb — swaps when Bobby speaks */}
+            {isSpeaking ? (
+              <VoiceOrb analyser={analyser} isSpeaking={isSpeaking} mood="confident" onToggleMute={toggleVoice} isMuted={!voiceEnabled} />
+            ) : (
+              <div className="w-8 h-8 border border-green-500/20 bg-green-500/5 flex items-center justify-center">
+                <span className="text-[11px] font-bold text-green-400">{advisorName.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
             <div>
               <h1 className="text-[14px] font-semibold text-white/90">{advisorName}</h1>
               <p className="text-[10px] text-white/30 font-mono">
-                {isProcessing ? 'Working...' : 'Online'} · Scans every {profile?.scanIntervalHours || 8}h
+                {isSpeaking ? 'Speaking...' : isProcessing ? 'Working...' : 'Online'} · Scans every {profile?.scanIntervalHours || 8}h
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Voice toggle */}
+            <button onClick={toggleVoice}
+              className={`p-2 border transition-colors ${voiceEnabled ? 'border-green-500/30 text-green-400 hover:bg-green-500/10' : 'border-white/[0.06] text-white/20 hover:border-white/20 hover:text-white/40'}`}
+              title={voiceEnabled ? 'Voice ON — click to mute' : 'Voice OFF — click to enable'}>
+              {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            </button>
             {address ? (
               <button onClick={() => openWallet()}
                 className="flex items-center gap-1.5 text-[11px] text-green-400/70 border border-green-500/20 px-2.5 py-1.5 hover:bg-green-500/10 transition-colors font-mono">
