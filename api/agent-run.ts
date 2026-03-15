@@ -350,15 +350,22 @@ function calculateDynamicConviction(
 }
 
 // ---- Calculate win rate from recent cycles ----
-type CycleRecord = { status: string; trades_executed: number; total_usd_deployed?: number };
+type CycleRecord = { status: string; trades_executed: number; trades_successful?: number; total_usd_deployed?: number };
 function calculateWinRate(cycles: CycleRecord[]): number {
   if (cycles.length === 0) return 1; // optimistic default
   const completed = cycles.filter(c => c.status === 'completed');
   if (completed.length === 0) return 1;
   const withTrades = completed.filter(c => c.trades_executed > 0);
   if (withTrades.length === 0) return 0.5; // no trades = neutral
-  // Simple heuristic: cycles that completed with trades are "wins"
-  // In future, use trades_successful field for real accuracy
+
+  // Real win rate: use trades_successful if available, otherwise fall back to heuristic
+  const hasSuccessData = withTrades.some(c => typeof c.trades_successful === 'number');
+  if (hasSuccessData) {
+    const totalExecuted = withTrades.reduce((sum, c) => sum + c.trades_executed, 0);
+    const totalSuccessful = withTrades.reduce((sum, c) => sum + (c.trades_successful || 0), 0);
+    return totalExecuted > 0 ? totalSuccessful / totalExecuted : 0.5;
+  }
+  // Fallback: cycles with trades / total completed (legacy heuristic)
   return withTrades.length / completed.length;
 }
 
@@ -373,7 +380,7 @@ function getAgentMood(winRate: number): 'confident' | 'cautious' | 'defensive' {
 function formatPerformanceContext(cycles: CycleRecord[], winRate: number, mood: string, isSafeMode: boolean): string {
   if (cycles.length === 0) return '';
   const lines = cycles.slice(0, 5).map((c, i) =>
-    `- Cycle ${i + 1}: ${c.status} | ${c.trades_executed} trades | $${(c.total_usd_deployed || 0).toFixed(2)} deployed`
+    `- Cycle ${i + 1}: ${c.status} | ${c.trades_executed} trades (${c.trades_successful || 0} profitable) | $${(c.total_usd_deployed || 0).toFixed(2)} deployed`
   );
   return `\n\nHISTORICAL PERFORMANCE (last ${cycles.length} cycles):\n${lines.join('\n')}\n- Win rate: ${(winRate * 100).toFixed(0)}% | Mood: ${mood} | Safe Mode: ${isSafeMode ? 'ACTIVE' : 'OFF'}${isSafeMode ? '\n- Action: Increase confidence threshold to 0.8, reduce max position.' : ''}`;
 }
@@ -577,44 +584,95 @@ function kellySize(confidence: number, bankroll: number, maxExposurePct = 0.33):
 
 // ---- Prompt Self-Optimization ----
 // Analyzes last N cycles' outcomes and generates an improved system prompt
-async function selfOptimizePrompt(recentCycles: Array<{ llm_reasoning: string; trades_executed: number; status: string }>): Promise<string | null> {
-  if (recentCycles.length < 3) return null; // need at least 3 cycles
+async function fetchStoredPrompt(): Promise<string | null> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/agent_config?select=value&key=eq.optimized_alpha_prompt&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.[0]?.value || null;
+  } catch { return null; }
+}
+
+async function persistOptimizedPrompt(prompt: string): Promise<void> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return;
+  try {
+    // Upsert: insert or update on conflict
+    await fetch(`${url}/rest/v1/agent_config`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ key: 'optimized_alpha_prompt', value: prompt, updated_at: new Date().toISOString() }),
+    });
+    console.log('[Agent] Optimized prompt persisted to Supabase');
+  } catch (err) {
+    console.warn('[Agent] Failed to persist prompt:', err);
+  }
+}
+
+async function selfOptimizePrompt(recentCycles: Array<{ llm_reasoning: string; trades_executed: number; trades_successful: number; status: string }>): Promise<string | null> {
+  if (recentCycles.length < 3) return null;
+
+  // First check if we have a stored prompt from a previous cycle
+  const storedPrompt = await fetchStoredPrompt();
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return storedPrompt; // Return stored even if no API key
 
   const cyclesSummary = recentCycles.slice(0, 10).map((c, i) =>
-    `Cycle ${i + 1}: ${c.status} | ${c.trades_executed} trades | Reasoning: "${(c.llm_reasoning || '').slice(0, 150)}"`
+    `Cycle ${i + 1}: ${c.status} | ${c.trades_executed} trades (${c.trades_successful || 0} profitable) | Reasoning: "${(c.llm_reasoning || '').slice(0, 150)}"`
   ).join('\n');
+
+  const winRate = recentCycles.filter(c => c.trades_successful > 0).length / Math.max(recentCycles.filter(c => c.trades_executed > 0).length, 1);
 
   try {
     const result = await callClaude(
-      `You are a meta-optimization agent. Analyze the trading agent's recent cycle outcomes and generate an IMPROVED system prompt.
-Focus on: What patterns led to good/bad decisions? What biases appear? What should the agent prioritize differently?
-Output ONLY the new system prompt text (1-3 paragraphs). Keep rules about max trades and confidence thresholds.`,
-      `Recent cycle history:\n${cyclesSummary}\n\nGenerate an improved Alpha Hunter system prompt based on these patterns.`,
+      `You are the Meta-Optimizer of Bobby Agent Trader. Your job is to evolve the Alpha Hunter's system prompt based on real trading results.
+
+CURRENT WIN RATE: ${(winRate * 100).toFixed(0)}%
+${storedPrompt ? `PREVIOUS OPTIMIZED PROMPT (evolve from this, don't start from scratch):\n${storedPrompt.slice(0, 500)}` : 'No previous optimization — create the first evolved prompt.'}
+
+RULES:
+- Keep the core: max 3 trades, dynamicConviction scoring, latency awareness
+- If win rate < 50%: make the prompt MORE conservative (higher thresholds, fewer trades)
+- If win rate > 80%: allow slightly more aggressive plays
+- Add lessons learned from the cycle reasoning below
+- Output ONLY the new system prompt (1-3 paragraphs). No explanations.`,
+      `Recent cycle history:\n${cyclesSummary}\n\nGenerate the next evolution of the Alpha Hunter prompt.`,
     );
 
     const newPrompt = result.text?.trim();
     if (newPrompt && newPrompt.length > 50 && newPrompt.length < 2000) {
-      console.log('[Agent] Self-optimized prompt generated');
+      console.log('[Agent] Self-optimized prompt generated (evolved from previous)');
+      await persistOptimizedPrompt(newPrompt);
       return newPrompt;
     }
   } catch (err) {
     console.warn('[Agent] Prompt optimization failed:', err);
   }
-  return null;
+  return storedPrompt; // Fall back to stored prompt
 }
 
 // ---- Fetch recent cycles for self-optimization ----
-async function fetchRecentCycles(limit = 10): Promise<Array<{ llm_reasoning: string; trades_executed: number; status: string }>> {
+async function fetchRecentCycles(limit = 10): Promise<Array<{ llm_reasoning: string; trades_executed: number; trades_successful: number; status: string; total_usd_deployed?: number }>> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return [];
 
   try {
     const res = await fetch(
-      `${url}/rest/v1/agent_cycles?select=llm_reasoning,trades_executed,status&order=started_at.desc&limit=${limit}`,
+      `${url}/rest/v1/agent_cycles?select=llm_reasoning,trades_executed,trades_successful,total_usd_deployed,status&order=started_at.desc&limit=${limit}`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return [];
