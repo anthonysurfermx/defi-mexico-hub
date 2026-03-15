@@ -670,12 +670,82 @@ export function AdamsChat() {
     }
 
     // ========================
-    // GENERIC CHAT — try to be helpful
+    // GENERIC CHAT — route to OpenClaw for conversational AI
     // ========================
-    setMessages(prev => [...prev, {
-      id: uid(), role: 'advisor', timestamp: Date.now(),
-      text: `I'm not sure what you mean by "${msg}".\n\nTry asking for a token price (e.g. "BTC", "ETH SOL"), or use "Analyze Market" for a full agent scan.\n\nType "help" to see everything I can do.`,
-    }]);
+    setIsProcessing(true);
+    try {
+      const res = await fetch('/api/openclaw-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg,
+          history: messages.slice(-10).map(m => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.text,
+          })),
+        }),
+      });
+
+      if (!res.ok) throw new Error(`OpenClaw: ${res.status}`);
+
+      // Try to parse SSE stream
+      const reader = res.body?.getReader();
+      if (reader) {
+        const decoder = new TextDecoder();
+        let fullText = '';
+        const replyId = uid();
+
+        // Add empty advisor message that we'll update with streamed content
+        setMessages(prev => [...prev, {
+          id: replyId, role: 'advisor', timestamp: Date.now(),
+          text: '', isLive: false,
+        }]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+
+          // Parse SSE data lines
+          for (const line of chunk.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullText += delta;
+                setMessages(prev => prev.map(m =>
+                  m.id === replyId ? { ...m, text: fullText } : m
+                ));
+              }
+            } catch { /* skip non-JSON lines */ }
+          }
+        }
+
+        // If we got no text from stream, set a fallback
+        if (!fullText) {
+          setMessages(prev => prev.map(m =>
+            m.id === replyId ? { ...m, text: `I understood "${msg}" but couldn't generate a response. Try asking about prices ("BTC", "ETH") or run "Analyze Market".` } : m
+          ));
+        }
+      } else {
+        // Non-streaming fallback
+        const data = await res.json();
+        setMessages(prev => [...prev, {
+          id: uid(), role: 'advisor', timestamp: Date.now(),
+          text: data.choices?.[0]?.message?.content || `I'm not sure how to help with "${msg}". Try "BTC", "ETH", or "Analyze Market".`,
+        }]);
+      }
+    } catch {
+      // OpenClaw unavailable — static fallback
+      setMessages(prev => [...prev, {
+        id: uid(), role: 'advisor', timestamp: Date.now(),
+        text: `I can help with prices and market analysis. Try:\n\n"BTC" or "ETH" — Live price\n"All Prices" — Market overview\n"Analyze Market" — Full agent scan\n\nType "help" for all commands.`,
+      }]);
+    }
+    setIsProcessing(false);
 
   }, [inputText, isProcessing, profile?.walletAddress, address, advisorName]);
 
