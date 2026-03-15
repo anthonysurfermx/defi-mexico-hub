@@ -291,6 +291,131 @@ function CycleTypewriter({ text, speed = 10 }: { text: string; speed?: number })
   );
 }
 
+// ---- Advisor Score / Track Record ----
+
+function AdvisorScore({
+  cycles, trades, messages, advisorName,
+}: {
+  cycles: AgentCycle[];
+  trades: AgentTrade[];
+  messages: AgentMessage[];
+  advisorName?: string;
+}) {
+  const stats = useMemo(() => {
+    const totalCycles = cycles.length;
+    if (totalCycles === 0) return null;
+
+    const completedCycles = cycles.filter(c => c.status === 'completed').length;
+    const failedCycles = cycles.filter(c => c.status === 'failed').length;
+    const uptime = totalCycles > 0 ? (completedCycles / totalCycles) * 100 : 0;
+
+    // Trade accuracy: simulated trades with positive confidence = "correct calls"
+    const buyTrades = trades.filter(t => t.direction === 'BUY' || t.status === 'simulated');
+    const highConfTrades = buyTrades.filter(t => t.confidence >= 0.8);
+    const tradeAccuracy = buyTrades.length > 0 ? (highConfTrades.length / buyTrades.length) * 100 : 0;
+
+    // Recommendation tracking: count messages with "Recomendación/Recommendation"
+    const recsGiven = messages.filter(m =>
+      /Recomendaci[oó]n|Recommendation|Recomenda[çc][aã]o/.test(m.message)
+    ).length;
+
+    // Follow-ups that mention "correcta" or "correct"
+    const followUps = messages.filter(m =>
+      /correcta|correct|Minha leitura/.test(m.message)
+    ).length;
+    const recAccuracy = recsGiven > 0 ? Math.min((followUps / recsGiven) * 100, 100) : 0;
+
+    // Average signals per cycle
+    const avgSignals = totalCycles > 0
+      ? Math.round(cycles.reduce((s, c) => s + (c.signals_found || 0), 0) / totalCycles)
+      : 0;
+
+    // Total deployed
+    const totalDeployed = cycles.reduce((s, c) => s + (c.total_usd_deployed || 0), 0);
+
+    // Composite score (0-100)
+    const score = Math.round(
+      uptime * 0.3 +
+      tradeAccuracy * 0.3 +
+      recAccuracy * 0.25 +
+      Math.min(totalCycles * 2, 15) // bonus for consistency, max 15
+    );
+
+    return {
+      score: Math.min(score, 100),
+      totalCycles,
+      completedCycles,
+      failedCycles,
+      uptime,
+      tradeAccuracy,
+      buyTrades: buyTrades.length,
+      recsGiven,
+      recAccuracy,
+      avgSignals,
+      totalDeployed,
+    };
+  }, [cycles, trades, messages]);
+
+  if (!stats) {
+    return (
+      <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-4 text-center">
+        <Shield className="w-5 h-5 text-neutral-700 mx-auto mb-1.5" />
+        <p className="text-[11px] text-neutral-500">Advisor Score will appear after the first cycle</p>
+      </div>
+    );
+  }
+
+  const scoreColor = stats.score >= 75 ? 'text-green-400' : stats.score >= 50 ? 'text-amber-400' : 'text-red-400';
+  const scoreBg = stats.score >= 75 ? 'from-green-500/20 to-green-500/5' : stats.score >= 50 ? 'from-amber-500/20 to-amber-500/5' : 'from-red-500/20 to-red-500/5';
+  const scoreBorder = stats.score >= 75 ? 'border-green-500/20' : stats.score >= 50 ? 'border-amber-500/20' : 'border-red-500/20';
+
+  return (
+    <div className={`bg-gradient-to-br ${scoreBg} border ${scoreBorder} rounded-xl p-4`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-green-400" />
+          <span className="text-sm font-medium text-neutral-200">{advisorName || 'Advisor'} Score</span>
+        </div>
+        <div className={`text-2xl font-bold ${scoreColor}`}>{stats.score}</div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          {
+            label: 'Uptime',
+            value: `${stats.uptime.toFixed(0)}%`,
+            sub: `${stats.completedCycles}/${stats.totalCycles} cycles`,
+            color: stats.uptime >= 90 ? 'text-green-400' : 'text-amber-400',
+          },
+          {
+            label: 'Trade Accuracy',
+            value: `${stats.tradeAccuracy.toFixed(0)}%`,
+            sub: `${stats.buyTrades} trades`,
+            color: stats.tradeAccuracy >= 70 ? 'text-green-400' : 'text-amber-400',
+          },
+          {
+            label: 'Rec. Accuracy',
+            value: stats.recsGiven > 0 ? `${stats.recAccuracy.toFixed(0)}%` : '—',
+            sub: `${stats.recsGiven} recs given`,
+            color: stats.recAccuracy >= 60 ? 'text-green-400' : 'text-amber-400',
+          },
+        ].map((metric, i) => (
+          <div key={i} className="text-center">
+            <div className={`text-base font-bold ${metric.color}`}>{metric.value}</div>
+            <div className="text-[9px] text-neutral-400 font-medium">{metric.label}</div>
+            <div className="text-[8px] text-neutral-600">{metric.sub}</div>
+          </div>
+        ))}
+      </div>
+      {stats.totalDeployed > 0 && (
+        <div className="mt-2.5 pt-2 border-t border-neutral-800/50 flex items-center justify-between text-[10px] text-neutral-500">
+          <span>Avg {stats.avgSignals} signals/cycle</span>
+          <span>Total deployed: {formatUSD(stats.totalDeployed)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Main Dashboard ----
 
 interface DashboardProps {
@@ -326,14 +451,53 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
 
   useEffect(() => { loadData(); }, []);
 
+  // Live analysis phases
+  const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
   const triggerManualRun = async () => {
     setTriggerLoading(true);
+    setAnalysisPhases([]);
+
+    // Clear old timers
+    phaseTimerRef.current.forEach(clearTimeout);
+    phaseTimerRef.current = [];
+
+    // Simulate phase progression while waiting for API
+    const phases = [
+      { text: 'Connecting to OKX OnchainOS...', delay: 0 },
+      { text: 'Scanning ETH, SOL, Base whale signals...', delay: 800 },
+      { text: 'Filtering signals (score > 20)...', delay: 2200 },
+      { text: 'Fetching Polymarket leaderboard (top 15)...', delay: 3500 },
+      { text: 'Aggregating smart money consensus...', delay: 5000 },
+      { text: 'Claude Sonnet 4 analyzing...', delay: 6500 },
+      { text: 'Applying risk gate ($150 max exposure)...', delay: 8000 },
+      { text: 'Generating personalized report...', delay: 9000 },
+    ];
+    phases.forEach(p => {
+      const t = setTimeout(() => setAnalysisPhases(prev => [...prev, p.text]), p.delay);
+      phaseTimerRef.current.push(t);
+    });
+
     try {
       const res = await fetch('/api/agent-run?manual=true');
       const data = await res.json();
+
+      // Clear phase timers and show final
+      phaseTimerRef.current.forEach(clearTimeout);
+      phaseTimerRef.current = [];
+
       if (data.ok) {
+        const c = data.cycle;
+        setAnalysisPhases([
+          `OKX: ${c.signals_found} signals detected`,
+          `Filter: ${c.signals_filtered} passed quality gate`,
+          `Polymarket: ${data.polymarket?.length || 0} consensus markets`,
+          `Claude: ${c.llm_decisions || 0} decisions, ${c.trades_executed} trades`,
+          `Total deployed: $${(c.total_usd_deployed || 0).toFixed(2)}`,
+          `Done in ${(c.latency_ms / 1000).toFixed(1)}s`,
+        ]);
         await loadData();
-        // Auto-expand latest cycle with typewriter
         setCycles(prev => {
           if (prev.length > 0) {
             setExpandedCycle(prev[0].id);
@@ -345,8 +509,10 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
       }
     } catch (err) {
       console.error('Manual trigger failed:', err);
+      setAnalysisPhases(prev => [...prev, 'Error: cycle failed']);
     }
-    setTriggerLoading(false);
+    // Clear phases after 5s so user can read results
+    setTimeout(() => { setAnalysisPhases([]); setTriggerLoading(false); }, 5000);
   };
 
   // Stats
@@ -391,6 +557,49 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
         </button>
       </div>
 
+      {/* ======== LIVE ANALYSIS LOG ======== */}
+      <AnimatePresence>
+        {analysisPhases.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="bg-neutral-950/80 border border-green-500/20 rounded-xl overflow-hidden"
+          >
+            <div className="px-3 py-2.5 border-b border-green-500/10 flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5 text-green-400 animate-pulse" />
+              <span className="text-[10px] font-medium text-green-400 uppercase tracking-wider">Live Analysis</span>
+            </div>
+            <div className="px-3 py-2 space-y-1 font-mono text-[11px] max-h-48 overflow-y-auto">
+              {analysisPhases.map((phase, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-start gap-2"
+                >
+                  <span className="text-green-500/60 shrink-0 mt-px">
+                    {i === analysisPhases.length - 1 && triggerLoading ? '▸' : '✓'}
+                  </span>
+                  <span className={i === analysisPhases.length - 1 && triggerLoading ? 'text-green-300' : 'text-green-400/70'}>
+                    {phase}
+                  </span>
+                </motion.div>
+              ))}
+              {triggerLoading && (
+                <div className="flex items-center gap-1 text-green-500/40 pt-1">
+                  <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                  <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ======== STATS BAR ======== */}
       <div className="grid grid-cols-5 gap-2">
         {[
@@ -408,6 +617,9 @@ export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete
           </div>
         ))}
       </div>
+
+      {/* ======== ADVISOR SCORE / TRACK RECORD ======== */}
+      <AdvisorScore cycles={cycles} trades={trades} messages={messages} advisorName={advisorName} />
 
       {/* ======== SECTION 1: PERFORMANCE CHART ======== */}
       <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-4">
