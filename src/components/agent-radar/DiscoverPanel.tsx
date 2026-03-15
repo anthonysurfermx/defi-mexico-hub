@@ -1,19 +1,17 @@
 // ============================================================
-// DiscoverPanel — Clean smart money results for landing page
-// Shows top markets with whale consensus, expandable for details
+// DiscoverPanel — Simplified smart money signals for beginners
+// Top 3 visible, expand for more. Clean, essential info only.
 // ============================================================
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, ChevronDown, Users, ExternalLink } from 'lucide-react';
+import { ChevronDown, Users, ExternalLink, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react';
 import type { SmartMoneyMarket, WhaleSignal } from '@/services/polymarket.service';
 import type { AgentLogEntry } from '@/components/claw-trader/AgentActivityLog';
 import { AgentActivityLog } from '@/components/claw-trader/AgentActivityLog';
 import { DexQuotePanel } from '@/components/claw-trader/DexQuotePanel';
 import { CEXInsightBadge } from './CEXInsightBadge';
 import { CopyTradeCard } from './CopyTradeCard';
-import { SmartMoneyTreemap } from './SmartMoneyTreemap';
-import { ArbitrageDetector } from './ArbitrageDetector';
 import { OnchainIntelBadge } from './OnchainIntelBadge';
 
 function formatUSD(n: number): string {
@@ -30,45 +28,14 @@ interface Props {
   agentLog: AgentLogEntry[];
 }
 
-type ViewMode = 'cards' | 'treemap';
-
 export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentLog }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [showAll, setShowAll] = useState(false);
 
-  const top5 = markets.slice(0, 5);
+  const visible = showAll ? markets.slice(0, 10) : markets.slice(0, 3);
 
   return (
-    <div className="space-y-3">
-      {/* View mode toggle + Arbitrage detector */}
-      {!loading && markets.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 bg-neutral-900/60 rounded-lg p-0.5">
-              <button
-                onClick={() => setViewMode('cards')}
-                className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  viewMode === 'cards' ? 'bg-neutral-800 text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'
-                }`}
-              >
-                Cards
-              </button>
-              <button
-                onClick={() => setViewMode('treemap')}
-                className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  viewMode === 'treemap' ? 'bg-neutral-800 text-neutral-200' : 'text-neutral-600 hover:text-neutral-400'
-                }`}
-              >
-                Heatmap
-              </button>
-            </div>
-          </div>
-
-          {/* Arbitrage signals */}
-          <ArbitrageDetector markets={markets} />
-        </div>
-      )}
-
+    <div className="space-y-2.5">
       {/* Loading state */}
       {loading && (
         <div className="space-y-3">
@@ -79,7 +46,6 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
           {agentLog.length > 0 && (
             <AgentActivityLog entries={agentLog} />
           )}
-          {/* Skeleton cards */}
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-neutral-900/50 rounded-xl p-4 animate-pulse">
               <div className="h-4 w-3/4 bg-neutral-800 rounded mb-3" />
@@ -89,35 +55,19 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
         </div>
       )}
 
-      {/* Results */}
-      {!loading && top5.length === 0 && (
+      {/* Empty state */}
+      {!loading && markets.length === 0 && (
         <div className="text-center py-8 text-neutral-500 text-sm">
           No smart money data yet. Scanning will start automatically.
         </div>
       )}
 
-      {/* Treemap view */}
-      {viewMode === 'treemap' && !loading && markets.length > 0 && (
-        <SmartMoneyTreemap
-          markets={markets}
-          onSelectMarket={(m) => {
-            setViewMode('cards');
-            setExpandedId(m.conditionId);
-          }}
-        />
-      )}
-
-      {/* Cards view */}
-      {viewMode === 'cards' && top5.map((market, idx) => {
+      {/* Market cards — simplified */}
+      {visible.map((market, idx) => {
         const isExpanded = expandedId === market.conditionId;
-        const isTopOutcomeYes = market.topOutcome.toLowerCase() === 'yes';
-        const consensusColor = market.capitalConsensus >= 70
-          ? 'text-green-400'
-          : market.capitalConsensus >= 50
-          ? 'text-amber-400'
-          : 'text-neutral-400';
+        const isYes = market.topOutcome.toLowerCase() === 'yes';
+        const strong = market.capitalConsensus >= 70;
 
-        // Find recent whale activity for this market
         const marketSignals = whaleSignals.filter(
           s => s.marketSlug === market.slug || s.marketTitle === market.title
         ).slice(0, 3);
@@ -126,62 +76,55 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
           <div key={market.conditionId}>
             <button
               onClick={() => setExpandedId(isExpanded ? null : market.conditionId)}
-              className="w-full text-left bg-neutral-900/60 hover:bg-neutral-900/80 border border-neutral-800 hover:border-neutral-700 rounded-xl p-4 transition-all"
+              className="w-full text-left bg-neutral-900/50 hover:bg-neutral-900/70 border border-neutral-800 hover:border-neutral-700 rounded-xl p-3.5 transition-all"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  {/* Rank badge */}
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[10px] font-bold text-neutral-500">#{idx + 1}</span>
-                    {idx === 0 && markets.length > 0 && (
-                      <span className="text-[10px] font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
-                        TOP SIGNAL
-                      </span>
-                    )}
-                  </div>
+              <div className="flex items-center gap-3">
+                {/* Direction indicator */}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                  isYes ? 'bg-green-500/10' : 'bg-red-500/10'
+                }`}>
+                  {isYes
+                    ? <TrendingUp className="w-5 h-5 text-green-400" />
+                    : <TrendingDown className="w-5 h-5 text-red-400" />
+                  }
+                </div>
 
-                  {/* Market question */}
-                  <h3 className="text-sm font-medium text-neutral-200 line-clamp-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  {/* Market title — 2 lines max */}
+                  <h3 className="text-[13px] font-medium text-neutral-200 line-clamp-2 mb-1">
                     {market.title}
                   </h3>
 
-                  {/* Stats row */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs">
-                    {/* Consensus direction */}
-                    <span className={`font-bold ${isTopOutcomeYes ? 'text-green-400' : 'text-red-400'}`}>
+                  {/* Key stats — only the essential 3 */}
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className={`font-bold ${isYes ? 'text-green-400' : 'text-red-400'}`}>
                       {market.topOutcome} {market.topOutcomeCapitalPct}%
                     </span>
-
-                    {/* Trader count */}
-                    <span className="flex items-center gap-1 text-neutral-500">
+                    <span className="text-neutral-600">·</span>
+                    <span className="flex items-center gap-0.5 text-neutral-500">
                       <Users className="w-3 h-3" />
-                      {market.traderCount} whales
+                      {market.traderCount}
                     </span>
-
-                    {/* Capital */}
-                    <span className="text-neutral-500">
-                      {formatUSD(market.totalCapital)}
-                    </span>
-
-                    {/* Edge */}
-                    {market.edgePercent !== 0 && (
-                      <span className={market.edgeDirection === 'PROFIT' ? 'text-green-400' : market.edgeDirection === 'UNDERWATER' ? 'text-red-400' : 'text-neutral-500'}>
-                        {market.edgePercent > 0 ? '+' : ''}{market.edgePercent}pts
-                      </span>
+                    <span className="text-neutral-600">·</span>
+                    <span className="text-neutral-500">{formatUSD(market.totalCapital)}</span>
+                    {strong && (
+                      <>
+                        <span className="text-neutral-600">·</span>
+                        <span className="text-green-400 text-[10px] font-medium">Strong</span>
+                      </>
                     )}
-
-                    {/* Consensus strength */}
-                    <span className={consensusColor}>
-                      {market.capitalConsensus}% agreement
-                    </span>
-
-                    {/* Compact CEX price badge */}
-                    <CEXInsightBadge marketTitle={market.title} compact />
                   </div>
                 </div>
 
-                {/* Expand chevron */}
-                <ChevronDown className={`w-4 h-4 text-neutral-600 transition-transform shrink-0 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
+                {/* Rank + expand */}
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  {idx === 0 && (
+                    <span className="text-[8px] font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
+                      #1
+                    </span>
+                  )}
+                  <ChevronDown className={`w-3.5 h-3.5 text-neutral-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
               </div>
             </button>
 
@@ -195,10 +138,10 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-neutral-900/40 border border-t-0 border-neutral-800 rounded-b-xl p-4 space-y-4">
-                    {/* Outcome breakdown */}
+                  <div className="bg-neutral-900/30 border border-t-0 border-neutral-800 rounded-b-xl p-4 space-y-4">
+                    {/* Capital distribution bar */}
                     <div>
-                      <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Capital Distribution</div>
+                      <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Where the money is</div>
                       <div className="space-y-1.5">
                         {market.outcomeBias.map(ob => {
                           const pct = market.totalCapital > 0 ? (ob.capital / market.totalCapital) * 100 : 0;
@@ -211,8 +154,8 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-neutral-500 w-16 text-right">
-                                {formatUSD(ob.capital)} ({ob.headcount})
+                              <span className="text-[10px] text-neutral-500 w-14 text-right">
+                                {formatUSD(ob.capital)}
                               </span>
                             </div>
                           );
@@ -220,15 +163,13 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                       </div>
                     </div>
 
-                    {/* Top traders */}
+                    {/* Top 3 traders — simplified */}
                     <div>
-                      <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Top Traders</div>
+                      <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Top Traders on This</div>
                       <div className="space-y-1">
                         {market.traders.slice(0, 3).map(t => (
                           <div key={t.address} className="flex items-center justify-between text-xs">
-                            <span className="text-neutral-300">
-                              #{t.rank} {t.name}
-                            </span>
+                            <span className="text-neutral-300">#{t.rank} {t.name}</span>
                             <div className="flex items-center gap-2">
                               <span className={t.outcome.toLowerCase() === 'yes' ? 'text-green-400' : 'text-red-400'}>
                                 {t.outcome}
@@ -240,10 +181,10 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                       </div>
                     </div>
 
-                    {/* Recent whale activity */}
+                    {/* Recent whale moves */}
                     {marketSignals.length > 0 && (
                       <div>
-                        <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Recent Activity</div>
+                        <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Recent Whale Moves</div>
                         <div className="space-y-1">
                           {marketSignals.map((s, i) => (
                             <div key={i} className="flex items-center justify-between text-xs">
@@ -253,7 +194,6 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                                   {s.side}
                                 </span>
                                 <span className="text-neutral-500">{formatUSD(s.usdcSize)}</span>
-                                <span className="text-neutral-600">{s.hoursAgo}h ago</span>
                               </div>
                             </div>
                           ))}
@@ -261,21 +201,16 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
                       </div>
                     )}
 
-                    {/* OKX CEX Market Intelligence */}
+                    {/* CEX + On-chain intel */}
                     <CEXInsightBadge marketTitle={market.title} />
-
-                    {/* On-chain whale intelligence */}
                     <OnchainIntelBadge
                       marketTitle={market.title}
                       polymarketWhales={market.traders.map(t => t.address)}
                     />
 
-                    {/* Copy Trade — follow top trader */}
+                    {/* Copy Trade */}
                     {market.traders.length > 0 && (
-                      <CopyTradeCard
-                        market={market}
-                        trader={market.traders[0]}
-                      />
+                      <CopyTradeCard market={market} trader={market.traders[0]} />
                     )}
 
                     {/* DEX Quote */}
@@ -304,11 +239,21 @@ export function DiscoverPanel({ markets, whaleSignals, loading, progress, agentL
         );
       })}
 
-      {/* More markets hint */}
-      {viewMode === 'cards' && !loading && markets.length > 5 && (
-        <div className="text-center text-xs text-neutral-600">
-          +{markets.length - 5} more markets in Advanced View
-        </div>
+      {/* Show more / less */}
+      {!loading && markets.length > 3 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-neutral-500 hover:text-neutral-300 border border-neutral-800/50 hover:border-neutral-700 rounded-xl transition-all"
+        >
+          {showAll ? (
+            <>Show less</>
+          ) : (
+            <>
+              Show {Math.min(markets.length - 3, 7)} more markets
+              <ChevronRight className="w-3 h-3" />
+            </>
+          )}
+        </button>
       )}
     </div>
   );
