@@ -275,7 +275,28 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
           <OKXTickerStrip />
         </div>
 
-        {/* DISCOVER — Full width, auto-loading */}
+        {/* ======== AUTONOMOUS AGENT (ADAMS) — PRIMARY SECTION ======== */}
+        <div className="mb-6">
+          <div className="bg-[#131313] border border-green-500/20 rounded-2xl p-5">
+            <AgentDashboard
+              advisorName={profile?.advisorName}
+              scanIntervalHours={profile?.scanIntervalHours}
+              onCycleComplete={() => {
+                if (profile?.walletAddress) {
+                  setTypewriterDone(false);
+                  fetchGreetings(profile.walletAddress).then(g => {
+                    setGreetings(g);
+                    if (g.length > 0) {
+                      seenGreetingRef.current = g[0].id;
+                    }
+                  });
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ======== DISCOVER — Smart Money Trends ======== */}
         <div className="mb-6">
           <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -301,7 +322,6 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
               agentLog={scan.agentLog}
             />
 
-            {/* Rescan button */}
             {!scan.loading && scan.markets.length > 0 && (
               <div className="mt-3 flex items-center justify-between">
                 <button
@@ -321,9 +341,8 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
           </div>
         </div>
 
-        {/* ANALYZE + EXECUTE — Balanced grid */}
+        {/* ======== ANALYZE + EXECUTE ======== */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {/* ANALYZE — 2 cols */}
           <div className="md:col-span-2 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
@@ -337,7 +356,6 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
             <AnalyzePanel onSwitchToAdvanced={() => onSwitchToAdvanced('market')} />
           </div>
 
-          {/* EXECUTE — 3 cols */}
           <div className="md:col-span-3 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -349,40 +367,6 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
               </div>
             </div>
             <ExecutePanel />
-          </div>
-        </div>
-
-        {/* AUTONOMOUS AGENT — Full width */}
-        <div className="mt-6">
-          <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-green-400" />
-              </div>
-              <div>
-                <h2 className="text-sm font-medium text-neutral-200">
-                  {profile ? profile.advisorName : 'Autonomous Agent'}
-                </h2>
-                <p className="text-[11px] text-neutral-500">
-                  AI trades every {profile?.scanIntervalHours || 8}h — collect, analyze, execute
-                </p>
-              </div>
-            </div>
-            <AgentDashboard
-              advisorName={profile?.advisorName}
-              scanIntervalHours={profile?.scanIntervalHours}
-              onCycleComplete={() => {
-                if (profile?.walletAddress) {
-                  setTypewriterDone(false);
-                  fetchGreetings(profile.walletAddress).then(g => {
-                    setGreetings(g);
-                    if (g.length > 0) {
-                      seenGreetingRef.current = g[0].id;
-                    }
-                  });
-                }
-              }}
-            />
           </div>
         </div>
 
