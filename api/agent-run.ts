@@ -50,6 +50,147 @@ async function hmacSign(message: string, secret: string): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
+// ---- Token Registry (inline for Vercel serverless) ----
+const TOKEN_REGISTRY: Record<string, Record<string, { address: string; decimals: number }>> = {
+  '196': { // X Layer
+    USDC: { address: '0x74b7F16337b8972027F6196A17a631aC6dE26d22', decimals: 6 },
+    WETH: { address: '0x5A77f1443D16ee5761d310e38b62f77f726bC71c', decimals: 18 },
+    WBTC: { address: '0xEA034fb02eB1808C2cc3adbC15f447B93CbE08e1', decimals: 8 },
+    OKB:  { address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', decimals: 18 },
+  },
+  '1': { // Ethereum
+    USDC: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6 },
+    WETH: { address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', decimals: 18 },
+    WBTC: { address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', decimals: 8 },
+  },
+  '8453': { // Base
+    USDC: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+    WETH: { address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', decimals: 18 },
+  },
+};
+
+// ---- DEX Aggregator helpers (inline, reuse HMAC auth) ----
+async function getSwapQuote(
+  chainId: string, fromSymbol: string, toSymbol: string, amountUsd: number
+): Promise<{ fromAmount: string; toAmount: string; fromToken: string; toToken: string } | null> {
+  const apiKey = process.env.OKX_API_KEY;
+  const secretKey = process.env.OKX_SECRET_KEY;
+  const passphrase = process.env.OKX_PASSPHRASE;
+  const projectId = process.env.OKX_PROJECT_ID;
+  if (!apiKey || !secretKey || !passphrase || !projectId) return null;
+
+  const chainTokens = TOKEN_REGISTRY[chainId];
+  if (!chainTokens || !chainTokens[fromSymbol] || !chainTokens[toSymbol]) return null;
+
+  const from = chainTokens[fromSymbol];
+  const to = chainTokens[toSymbol];
+  const fromAmount = String(Math.round(amountUsd * (10 ** from.decimals)));
+
+  const path = `/api/v5/dex/aggregator/quote?chainId=${chainId}&fromTokenAddress=${from.address}&toTokenAddress=${to.address}&amount=${fromAmount}`;
+  const ts = new Date().toISOString();
+  const sig = await hmacSign(ts + 'GET' + path, secretKey);
+
+  try {
+    const resp = await fetch(`https://www.okx.com${path}`, {
+      headers: {
+        'OK-ACCESS-KEY': apiKey,
+        'OK-ACCESS-SIGN': sig,
+        'OK-ACCESS-TIMESTAMP': ts,
+        'OK-ACCESS-PASSPHRASE': passphrase,
+        'OK-ACCESS-PROJECT': projectId,
+      },
+    });
+    const data = await resp.json();
+    if (data?.data?.[0]) {
+      return {
+        fromToken: fromSymbol,
+        toToken: toSymbol,
+        fromAmount,
+        toAmount: data.data[0].toTokenAmount || '0',
+      };
+    }
+  } catch (e) { console.error('[DEX] Quote error:', e); }
+  return null;
+}
+
+async function getSwapCalldata(
+  chainId: string, fromSymbol: string, toSymbol: string, amountUsd: number,
+  userWallet: string, slippage = '0.5'
+): Promise<{ to: string; data: string; value: string; gas: string } | null> {
+  const apiKey = process.env.OKX_API_KEY;
+  const secretKey = process.env.OKX_SECRET_KEY;
+  const passphrase = process.env.OKX_PASSPHRASE;
+  const projectId = process.env.OKX_PROJECT_ID;
+  if (!apiKey || !secretKey || !passphrase || !projectId) return null;
+
+  const chainTokens = TOKEN_REGISTRY[chainId];
+  if (!chainTokens || !chainTokens[fromSymbol] || !chainTokens[toSymbol]) return null;
+
+  const from = chainTokens[fromSymbol];
+  const to = chainTokens[toSymbol];
+  const fromAmount = String(Math.round(amountUsd * (10 ** from.decimals)));
+
+  const path = `/api/v5/dex/aggregator/swap?chainId=${chainId}&fromTokenAddress=${from.address}&toTokenAddress=${to.address}&amount=${fromAmount}&userWalletAddress=${userWallet}&slippage=${slippage}`;
+  const ts = new Date().toISOString();
+  const sig = await hmacSign(ts + 'GET' + path, secretKey);
+
+  try {
+    const resp = await fetch(`https://www.okx.com${path}`, {
+      headers: {
+        'OK-ACCESS-KEY': apiKey,
+        'OK-ACCESS-SIGN': sig,
+        'OK-ACCESS-TIMESTAMP': ts,
+        'OK-ACCESS-PASSPHRASE': passphrase,
+        'OK-ACCESS-PROJECT': projectId,
+      },
+    });
+    const data = await resp.json();
+    const tx = data?.data?.[0]?.tx;
+    if (tx) {
+      return { to: tx.to, data: tx.data, value: tx.value || '0', gas: tx.gas || '500000' };
+    }
+  } catch (e) { console.error('[DEX] Swap calldata error:', e); }
+  return null;
+}
+
+async function getApproveCalldata(
+  chainId: string, tokenSymbol: string, amount: string
+): Promise<{ to: string; data: string } | null> {
+  const apiKey = process.env.OKX_API_KEY;
+  const secretKey = process.env.OKX_SECRET_KEY;
+  const passphrase = process.env.OKX_PASSPHRASE;
+  const projectId = process.env.OKX_PROJECT_ID;
+  if (!apiKey || !secretKey || !passphrase || !projectId) return null;
+
+  const chainTokens = TOKEN_REGISTRY[chainId];
+  if (!chainTokens || !chainTokens[tokenSymbol]) return null;
+
+  const token = chainTokens[tokenSymbol];
+  // Native tokens don't need approval
+  if (token.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') return null;
+
+  const path = `/api/v5/dex/aggregator/approve-transaction?chainId=${chainId}&tokenContractAddress=${token.address}&approveAmount=${amount}`;
+  const ts = new Date().toISOString();
+  const sig = await hmacSign(ts + 'GET' + path, secretKey);
+
+  try {
+    const resp = await fetch(`https://www.okx.com${path}`, {
+      headers: {
+        'OK-ACCESS-KEY': apiKey,
+        'OK-ACCESS-SIGN': sig,
+        'OK-ACCESS-TIMESTAMP': ts,
+        'OK-ACCESS-PASSPHRASE': passphrase,
+        'OK-ACCESS-PROJECT': projectId,
+      },
+    });
+    const data = await resp.json();
+    if (data?.data?.[0]) {
+      return { to: data.data[0].to, data: data.data[0].data };
+    }
+  } catch (e) { console.error('[DEX] Approve error:', e); }
+  return null;
+}
+
 // ---- Collect OKX dex signals directly ----
 async function collectDexSignals(): Promise<RawSignal[]> {
   const apiKey = process.env.OKX_API_KEY;
@@ -1040,6 +1181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Auth check for cron (skip for manual)
   const cronSecret = process.env.CRON_SECRET;
   const isManual = req.query.manual === 'true';
+  const walletAddress = isManual ? String(req.query.wallet || '') : '';
   if (cronSecret && !isManual) {
     if (req.headers.authorization !== `Bearer ${cronSecret}`) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -1141,12 +1283,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { approved, blocked, sizingMethod } = applyRiskGate(debate.decisions);
     console.log(`[Agent] ${approved.length} approved (${sizingMethod}), ${blocked} blocked`);
 
-    // Phase 6: Execute (simulation mode — OKX Agent TradeKit integration ready)
-    const trades = approved.map(d => ({
-      ...d,
-      txHash: `SIM-${Date.now()}-${d.tokenSymbol}`,
-      status: 'simulated',
-    }));
+    // Phase 6: Execute
+    let trades: any[];
+    if (walletAddress && isManual) {
+      // Real execution mode — fetch swap calldata from OKX DEX Aggregator
+      console.log(`[Agent] Fetching DEX calldata for wallet ${walletAddress.slice(0, 8)}...`);
+      trades = [];
+      for (const d of approved) {
+        const chainId = d.chain || '196'; // Default X Layer for hackathon
+        const fromAmount = String(Math.round(d.amountUsd * 1e6)); // USDC decimals
+        const quote = await getSwapQuote(chainId, 'USDC', d.tokenSymbol, d.amountUsd);
+        const swapTx = await getSwapCalldata(chainId, 'USDC', d.tokenSymbol, d.amountUsd, walletAddress);
+        const approveTx = await getApproveCalldata(chainId, 'USDC', fromAmount);
+
+        trades.push({
+          ...d,
+          txHash: null,
+          status: 'pending_execution',
+          execution: swapTx ? {
+            needsApproval: !!approveTx,
+            approveTx: approveTx || undefined,
+            swapTx,
+            quote: quote || { fromToken: 'USDC', toToken: d.tokenSymbol, fromAmount, toAmount: '0' },
+          } : undefined,
+        });
+      }
+    } else {
+      // Cron/simulation mode
+      trades = approved.map(d => ({
+        ...d,
+        txHash: `SIM-${Date.now()}-${d.tokenSymbol}`,
+        status: 'simulated',
+      }));
+    }
 
     const totalDeployed = trades.reduce((sum, t) => sum + t.amountUsd, 0);
 

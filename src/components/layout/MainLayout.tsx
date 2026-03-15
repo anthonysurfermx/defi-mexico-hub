@@ -74,7 +74,7 @@ export default function MainLayout() {
   const agenticNavigation = [
     { name: t('agenticWorld.navPolymarket'), href: '/agentic-world/polymarket', Icon: PixelLobster, description: t('agenticWorld.navPolymarketDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
-    { name: 'Claw Trader', href: '/agentic-world/claw-trader', Icon: PixelTarget, description: 'Signal executor & divergence scanner' },
+    { name: 'Adams Agent Trader', href: '/agentic-world/adams', Icon: PixelTarget, description: 'AI-powered autonomous trading' },
   ];
 
   const isActive = (path: string) => {

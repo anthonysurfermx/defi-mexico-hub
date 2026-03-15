@@ -1,33 +1,38 @@
 // ============================================================
-// AgentRadarLanding — Chat-style conversation with AI advisor
-// Inspired by BetWhisper/Punch: full-height chat, persistent messages
+// AgentRadarLanding — Progressive disclosure landing for Agent Radar
+// With personalized AI advisor onboarding + greeting messages
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, ChevronRight, Activity, MessageSquare, Settings, Bot } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Search, Zap, Bot, ChevronRight, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { PixelLobster } from '@/components/ui/pixel-icons';
+import { useSmartMoneyScan } from '@/hooks/useSmartMoneyScan';
+import { DiscoverPanel } from './DiscoverPanel';
+import { AnalyzePanel } from './AnalyzePanel';
+import { ExecutePanel } from './ExecutePanel';
+import { OKXTickerStrip } from './OKXTickerStrip';
+import { AgentDashboard } from './AgentDashboard';
 import { AdvisorSetup, useAdvisorProfile } from './AdvisorSetup';
 import type { AdvisorProfile } from './AdvisorSetup';
 
-// ---- Supabase ----
+// ---- Greeting message fetcher ----
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
 
-interface DBMessage {
+interface GreetingMessage {
   id: string;
-  wallet_address: string;
   advisor_name: string;
   message: string;
   created_at: string;
   read: boolean;
 }
 
-async function fetchMessages(wallet: string): Promise<DBMessage[]> {
+async function fetchGreetings(wallet: string): Promise<GreetingMessage[]> {
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/agent_messages?wallet_address=eq.${wallet}&order=created_at.asc&limit=50`,
+      `${SB_URL}/rest/v1/agent_messages?wallet_address=eq.${wallet}&order=created_at.desc&limit=5`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
     );
     if (!res.ok) return [];
@@ -36,31 +41,35 @@ async function fetchMessages(wallet: string): Promise<DBMessage[]> {
   } catch { return []; }
 }
 
-// ---- Chat message type (local state) ----
-
-interface ChatMsg {
-  id: string;
-  role: 'user' | 'advisor';
-  text: string;
-  timestamp: number;
-  isLive?: boolean; // for streaming phases
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
-// ---- Typewriter for advisor messages ----
+// ---- Typewriter effect for greeting ----
 
-function Typewriter({ text, speed = 8, onDone }: { text: string; speed?: number; onDone?: () => void }) {
+function TypewriterText({ text, speed = 12, onDone }: { text: string; speed?: number; onDone?: () => void }) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(false);
-  const idxRef = useRef(0);
+  const indexRef = useRef(0);
   const rafRef = useRef<number>(0);
   const lastRef = useRef(0);
 
+  // Skip animation on click
   const skip = useCallback(() => {
-    if (!done) { setDisplayed(text); setDone(true); onDone?.(); }
+    if (!done) {
+      setDisplayed(text);
+      setDone(true);
+      onDone?.();
+    }
   }, [done, text, onDone]);
 
   useEffect(() => {
-    idxRef.current = 0;
+    indexRef.current = 0;
     lastRef.current = 0;
     setDisplayed('');
     setDone(false);
@@ -68,448 +77,315 @@ function Typewriter({ text, speed = 8, onDone }: { text: string; speed?: number;
     const step = (ts: number) => {
       if (!lastRef.current) lastRef.current = ts;
       const elapsed = ts - lastRef.current;
+
       if (elapsed >= speed) {
-        const next = Math.min(idxRef.current + Math.min(Math.floor(elapsed / speed), 4), text.length);
-        idxRef.current = next;
+        const charsToAdd = Math.min(Math.floor(elapsed / speed), 3); // max 3 chars per frame for smoothness
+        const nextIdx = Math.min(indexRef.current + charsToAdd, text.length);
+        indexRef.current = nextIdx;
         lastRef.current = ts;
-        setDisplayed(text.slice(0, next));
-        if (next >= text.length) { setDone(true); onDone?.(); return; }
+        setDisplayed(text.slice(0, nextIdx));
+
+        if (nextIdx >= text.length) {
+          setDone(true);
+          onDone?.();
+          return;
+        }
       }
+
       rafRef.current = requestAnimationFrame(step);
     };
+
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
   }, [text, speed, onDone]);
 
   return (
-    <span onClick={skip} className="cursor-pointer">
-      {displayed}
-      {!done && <span className="inline-block w-[5px] h-[13px] bg-green-400 ml-[1px] align-middle animate-pulse" />}
-    </span>
-  );
-}
-
-// ---- Helpers ----
-
-function timeStr(ts: number | string): string {
-  const d = typeof ts === 'string' ? new Date(ts) : new Date(ts);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function uid(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-// ---- Chat Bubble ----
-
-function ChatBubble({ msg, advisorName, isLatest }: { msg: ChatMsg; advisorName: string; isLatest: boolean }) {
-  const isUser = msg.role === 'user';
-  const initial = advisorName.charAt(0).toUpperCase();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={`flex gap-2.5 ${isUser ? 'justify-end' : 'items-start'}`}
-    >
-      {/* Advisor avatar */}
-      {!isUser && (
-        <div className="w-7 h-7 border border-green-500/20 bg-green-500/5 flex items-center justify-center flex-shrink-0 mt-5">
-          <span className="text-[10px] font-bold text-green-400">{initial}</span>
-        </div>
+    <div onClick={skip} className="cursor-pointer">
+      <span>{displayed}</span>
+      {!done && (
+        <span className="inline-block w-[6px] h-[14px] bg-green-400 ml-[1px] align-middle animate-pulse" />
       )}
-
-      <div className={`max-w-[85%] sm:max-w-[75%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-        {/* Label */}
-        <span className="text-[9px] font-bold font-mono tracking-[1.5px] mb-1 px-0.5 text-white/30">
-          {isUser ? 'YOU' : advisorName.toUpperCase()}
-        </span>
-
-        {/* Bubble */}
-        <div className={`px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-line ${
-          isUser
-            ? 'bg-white text-black'
-            : 'border border-green-500/15 bg-green-500/[0.04] text-green-200/90 font-mono text-[12px]'
-        }`}>
-          {!isUser && isLatest && msg.isLive !== false ? (
-            <Typewriter text={msg.text} speed={6} />
-          ) : (
-            msg.text
-          )}
-        </div>
-
-        {/* Timestamp */}
-        <span className="text-[9px] text-white/15 mt-0.5 px-0.5 font-mono">
-          {timeStr(msg.timestamp)}
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
-// ---- Live Analysis Phase Bubble ----
-
-function LiveAnalysisBubble({ phases, advisorName }: { phases: string[]; advisorName: string }) {
-  const initial = advisorName.charAt(0).toUpperCase();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex gap-2.5 items-start"
-    >
-      <div className="w-7 h-7 border border-green-500/20 bg-green-500/5 flex items-center justify-center flex-shrink-0 mt-5">
-        <span className="text-[10px] font-bold text-green-400">{initial}</span>
-      </div>
-      <div className="max-w-[85%] flex flex-col items-start">
-        <span className="text-[9px] font-bold font-mono tracking-[1.5px] mb-1 px-0.5 text-white/30">
-          {advisorName.toUpperCase()}
-        </span>
-        <div className="border border-green-500/15 bg-green-500/[0.04] px-3.5 py-2.5 font-mono text-[11px] space-y-1">
-          {phases.map((phase, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-start gap-1.5"
-            >
-              <span className={i === phases.length - 1 ? 'text-green-400' : 'text-green-500/50'}>
-                {i === phases.length - 1 ? '▸' : '✓'}
-              </span>
-              <span className={i === phases.length - 1 ? 'text-green-300' : 'text-green-400/60'}>
-                {phase}
-              </span>
-            </motion.div>
-          ))}
-          <div className="flex items-center gap-1 text-green-500/30 pt-0.5">
-            <span className="inline-block w-1 h-1 bg-green-400 rounded-full animate-pulse" />
-            <span className="inline-block w-1 h-1 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-            <span className="inline-block w-1 h-1 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ---- Quick Action Chips ----
-
-function QuickActions({ onAction, disabled }: { onAction: (text: string) => void; disabled: boolean }) {
-  const actions = [
-    { label: 'Analyze Market', icon: '🔍' },
-    { label: 'Show Portfolio', icon: '📊' },
-    { label: 'What\'s trending?', icon: '🔥' },
-  ];
-
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {actions.map(a => (
-        <button
-          key={a.label}
-          onClick={() => onAction(a.label)}
-          disabled={disabled}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] border border-white/[0.08] bg-white/[0.02] text-white/50 hover:bg-white/[0.06] hover:text-white/80 hover:border-white/20 transition-all disabled:opacity-30"
-        >
-          <span>{a.icon}</span>
-          {a.label}
-        </button>
-      ))}
     </div>
   );
 }
 
-// ---- Main Component ----
+// ---- Component ----
 
 interface Props {
   onSwitchToAdvanced: (mode?: string) => void;
 }
 
 export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
+  const scan = useSmartMoneyScan({ autoStart: true, walletCount: 50 });
   const { profile, needsSetup, saveNewProfile, isConnected } = useAdvisorProfile();
   const [showSetup, setShowSetup] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const phaseTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const advisorName = profile?.advisorName || 'Adams';
+  const [greetings, setGreetings] = useState<GreetingMessage[]>([]);
+  const [expandedGreeting, setExpandedGreeting] = useState<string | null>(null);
+  const [typewriterDone, setTypewriterDone] = useState(false);
+  const seenGreetingRef = useRef<string | null>(null);
 
   // Show setup when wallet connects and no profile exists
   useEffect(() => {
     if (needsSetup) setShowSetup(true);
   }, [needsSetup]);
 
-  // Load conversation history from Supabase
+  // Fetch greetings when profile is loaded
   useEffect(() => {
     if (!profile?.walletAddress) return;
-    fetchMessages(profile.walletAddress).then(dbMsgs => {
-      if (dbMsgs.length === 0) {
-        // Welcome message
-        setMessages([{
-          id: 'welcome',
-          role: 'advisor',
-          text: profile.language === 'es'
-            ? `Hola ${profile.userName}! Soy ${advisorName}, tu advisor de trading autónomo.\n\nEscaneo OKX + Polymarket cada ${profile.scanIntervalHours || 8}h buscando oportunidades.\n\nEscribe "Analyze Market" o usa los botones de abajo para comenzar.`
-            : profile.language === 'pt'
-            ? `Olá ${profile.userName}! Sou ${advisorName}, seu advisor de trading autônomo.\n\nEscaneio OKX + Polymarket a cada ${profile.scanIntervalHours || 8}h buscando oportunidades.\n\nDigite "Analyze Market" ou use os botões abaixo para começar.`
-            : `Hey ${profile.userName}! I'm ${advisorName}, your autonomous trading advisor.\n\nI scan OKX + Polymarket every ${profile.scanIntervalHours || 8}h looking for opportunities.\n\nType "Analyze Market" or use the buttons below to get started.`,
-          timestamp: Date.now(),
-        }]);
-        return;
+    fetchGreetings(profile.walletAddress).then(g => {
+      setGreetings(g);
+      // Reset typewriter if new greeting arrived
+      if (g.length > 0 && g[0].id !== seenGreetingRef.current) {
+        seenGreetingRef.current = g[0].id;
+        setTypewriterDone(false);
       }
-
-      // Convert DB messages to chat format
-      const chatMsgs: ChatMsg[] = [];
-      for (const m of dbMsgs) {
-        // Each advisor greeting is preceded by an implicit "Analyze Market" action
-        chatMsgs.push({
-          id: m.id + '-trigger',
-          role: 'user',
-          text: 'Analyze Market',
-          timestamp: new Date(m.created_at).getTime() - 1000,
-          isLive: false,
-        });
-        chatMsgs.push({
-          id: m.id,
-          role: 'advisor',
-          text: m.message.replace(/\*/g, '').replace(/_/g, ''),
-          timestamp: new Date(m.created_at).getTime(),
-          isLive: false,
-        });
-      }
-      setMessages(chatMsgs);
     });
-  }, [profile?.walletAddress, advisorName]);
-
-  // Auto-scroll on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, analysisPhases]);
+  }, [profile?.walletAddress]);
 
   const handleSetupComplete = (p: AdvisorProfile) => {
     saveNewProfile(p);
     setShowSetup(false);
   };
 
-  // ---- Send message / trigger action ----
-  const sendMessage = useCallback(async (text?: string) => {
-    const msg = (text || inputText).trim();
-    if (!msg || isProcessing) return;
-    setInputText('');
-
-    // Add user message
-    const userMsg: ChatMsg = { id: uid(), role: 'user', text: msg, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-
-    const lower = msg.toLowerCase();
-
-    if (lower.includes('analyze') || lower.includes('market') || lower.includes('scan') || lower.includes('analiz')) {
-      // ── Trigger full analysis cycle ──
-      setIsProcessing(true);
-      setAnalysisPhases([]);
-      phaseTimerRef.current.forEach(clearTimeout);
-      phaseTimerRef.current = [];
-
-      const phases = [
-        { text: 'Connecting to OKX OnchainOS...', delay: 0 },
-        { text: 'Scanning ETH, SOL, Base whale signals...', delay: 800 },
-        { text: 'Filtering signals (score > 20)...', delay: 2200 },
-        { text: 'Fetching Polymarket leaderboard (top 15)...', delay: 3500 },
-        { text: 'Self-optimizing prompt from last 10 cycles...', delay: 5000 },
-        { text: 'Alpha Hunter analyzing opportunities...', delay: 6500 },
-        { text: 'Red Team finding attack vectors...', delay: 8500 },
-        { text: 'Judge agent making final verdict...', delay: 10500 },
-        { text: 'Kelly Criterion sizing positions...', delay: 12000 },
-        { text: 'Generating personalized report...', delay: 13000 },
-      ];
-      phases.forEach(p => {
-        const t = setTimeout(() => setAnalysisPhases(prev => [...prev, p.text]), p.delay);
-        phaseTimerRef.current.push(t);
-      });
-
-      try {
-        const res = await fetch('/api/agent-run?manual=true');
-        const data = await res.json();
-
-        phaseTimerRef.current.forEach(clearTimeout);
-        phaseTimerRef.current = [];
-        setAnalysisPhases([]);
-
-        if (data.ok) {
-          // Refetch messages from DB to get the new greeting
-          if (profile?.walletAddress) {
-            const dbMsgs = await fetchMessages(profile.walletAddress);
-            if (dbMsgs.length > 0) {
-              const latest = dbMsgs[dbMsgs.length - 1];
-              // Add the advisor response as a new chat message
-              setMessages(prev => [...prev, {
-                id: latest.id,
-                role: 'advisor',
-                text: latest.message.replace(/\*/g, '').replace(/_/g, ''),
-                timestamp: new Date(latest.created_at).getTime(),
-                isLive: true,
-              }]);
-            }
-          }
-        } else {
-          setMessages(prev => [...prev, {
-            id: uid(),
-            role: 'advisor',
-            text: 'Analysis cycle completed but no new data was generated. I\'ll try again next cycle.',
-            timestamp: Date.now(),
-          }]);
-        }
-      } catch (err) {
-        setMessages(prev => [...prev, {
-          id: uid(),
-          role: 'advisor',
-          text: `Error during analysis: ${err instanceof Error ? err.message : 'Unknown error'}. I'll retry next cycle.`,
-          timestamp: Date.now(),
-        }]);
-      }
-      setIsProcessing(false);
-
-    } else if (lower.includes('portfolio') || lower.includes('position')) {
-      // ── Portfolio query ──
-      setMessages(prev => [...prev, {
-        id: uid(),
-        role: 'advisor',
-        text: 'Portfolio tracking is coming soon. For now, use "Analyze Market" to see the latest signals and recommendations.',
-        timestamp: Date.now(),
-      }]);
-
-    } else if (lower.includes('trending') || lower.includes('trend')) {
-      // ── Switch to discover view ──
-      setMessages(prev => [...prev, {
-        id: uid(),
-        role: 'advisor',
-        text: 'Switching to Smart Money Discover view...',
-        timestamp: Date.now(),
-      }]);
-      setTimeout(() => onSwitchToAdvanced('smartmoney'), 500);
-
-    } else {
-      // ── Generic response ──
-      setMessages(prev => [...prev, {
-        id: uid(),
-        role: 'advisor',
-        text: `I understand you said "${msg}". Try:\n• "Analyze Market" — full OKX + Polymarket scan with multi-agent debate\n• "What's trending?" — smart money trends\n• "Show Portfolio" — open positions`,
-        timestamp: Date.now(),
-      }]);
-    }
-  }, [inputText, isProcessing, profile?.walletAddress, onSwitchToAdvanced]);
-
   return (
-    <div className="h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
       {/* Onboarding overlay */}
       {showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
 
-      {/* ======== HEADER ======== */}
-      <div className="flex-shrink-0 border-b border-white/[0.06] bg-black">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-4 py-6">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Link to="/agentic-world" className="text-white/20 hover:text-white/50 transition-colors">
+            <Link to="/agentic-world" className="text-neutral-600 hover:text-neutral-400 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="w-8 h-8 border border-green-500/20 bg-green-500/5 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-green-400">{advisorName.charAt(0).toUpperCase()}</span>
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+              <PixelLobster size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-[14px] font-semibold text-white/90">{advisorName}</h1>
-              <p className="text-[10px] text-white/30 font-mono">
-                {isProcessing ? 'Analyzing...' : 'Online'} · Every {profile?.scanIntervalHours || 8}h
+              <h1 className="text-lg font-semibold text-neutral-100">
+                {profile ? `${profile.advisorName}` : 'Agent Radar'}
+              </h1>
+              <p className="text-xs text-neutral-500">
+                {profile ? `AI advisor for ${profile.userName}` : 'AI-powered market intelligence'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Setup / Edit profile button */}
             {isConnected && profile && (
               <button
                 onClick={() => setShowSetup(true)}
-                className="p-2 border border-white/[0.06] hover:border-white/20 transition-colors"
+                className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors"
               >
-                <Settings className="w-3.5 h-3.5 text-white/30" />
+                Edit
               </button>
             )}
             {isConnected && !profile && (
               <button
                 onClick={() => setShowSetup(true)}
-                className="text-[11px] text-green-400/60 border border-green-500/20 px-3 py-1.5 hover:bg-green-500/10 transition-colors"
+                className="flex items-center gap-1 text-xs text-green-400/60 hover:text-green-400 transition-colors bg-green-500/10 px-3 py-1.5 rounded-lg"
               >
                 Setup Advisor
               </button>
             )}
             <button
               onClick={() => onSwitchToAdvanced()}
-              className="flex items-center gap-1 p-2 border border-white/[0.06] hover:border-white/20 transition-colors text-white/30 hover:text-white/60"
+              className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
             >
-              <Bot className="w-3.5 h-3.5" />
+              Advanced View
               <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ======== MESSAGES ======== */}
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-          {messages.map((msg, i) => (
-            <ChatBubble
-              key={msg.id}
-              msg={msg}
-              advisorName={advisorName}
-              isLatest={i === messages.length - 1 && msg.role === 'advisor'}
+        {/* ADVISOR GREETING — Latest message from your AI advisor */}
+        {profile && greetings.length > 0 && (
+          <div className="mb-6">
+            <div className="bg-[#131313] border border-green-500/20 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                  <span className="text-green-400 text-sm font-bold">
+                    {profile.advisorName[0]?.toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-green-400">{profile.advisorName}</div>
+                  <div className="text-[10px] text-neutral-500">{timeAgo(greetings[0].created_at)}</div>
+                </div>
+                {greetings.length > 1 && (
+                  <div className="flex items-center gap-1 text-[10px] text-neutral-600">
+                    <MessageSquare className="w-3 h-3" />
+                    {greetings.length} messages
+                  </div>
+                )}
+              </div>
+
+              {/* Latest greeting — typewriter on first view, static after */}
+              <div className="text-sm text-green-300/90 leading-relaxed whitespace-pre-line font-mono">
+                {(() => {
+                  const clean = greetings[0].message.replace(/\*/g, '').replace(/_/g, '');
+                  const isExpanded = expandedGreeting === greetings[0].id;
+                  const preview = clean.split('\n').slice(0, 6).join('\n') + (clean.split('\n').length > 6 ? '\n...' : '');
+                  const content = isExpanded ? clean : preview;
+
+                  if (typewriterDone) {
+                    return (
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => setExpandedGreeting(isExpanded ? null : greetings[0].id)}
+                      >
+                        {content}
+                        {!isExpanded && clean.split('\n').length > 6 && (
+                          <span className="text-green-400/40 text-xs ml-1">[click to expand]</span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <TypewriterText
+                      text={preview}
+                      speed={8}
+                      onDone={() => setTypewriterDone(true)}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Older messages */}
+              {greetings.length > 1 && expandedGreeting === greetings[0].id && (
+                <div className="mt-4 pt-4 border-t border-neutral-800 space-y-3">
+                  {greetings.slice(1, 3).map(g => (
+                    <div key={g.id} className="text-xs text-neutral-500 leading-relaxed font-mono">
+                      <span className="text-neutral-600">{timeAgo(g.created_at)}</span>
+                      <span className="text-neutral-700 mx-1">—</span>
+                      {g.message.replace(/\*/g, '').replace(/_/g, '').split('\n').slice(2, 4).join(' ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* OKX Live Ticker Strip */}
+        <div className="mb-5 -mt-2">
+          <OKXTickerStrip />
+        </div>
+
+        {/* ======== AUTONOMOUS AGENT (ADAMS) — PRIMARY SECTION ======== */}
+        <div className="mb-6">
+          <div className="bg-[#131313] border border-green-500/20 rounded-2xl p-5">
+            <AgentDashboard
+              advisorName={profile?.advisorName}
+              scanIntervalHours={profile?.scanIntervalHours}
+              onCycleComplete={() => {
+                if (profile?.walletAddress) {
+                  setTypewriterDone(false);
+                  fetchGreetings(profile.walletAddress).then(g => {
+                    setGreetings(g);
+                    if (g.length > 0) {
+                      seenGreetingRef.current = g[0].id;
+                    }
+                  });
+                }
+              }}
             />
-          ))}
-
-          {/* Live analysis phases */}
-          <AnimatePresence>
-            {isProcessing && analysisPhases.length > 0 && (
-              <LiveAnalysisBubble phases={analysisPhases} advisorName={advisorName} />
-            )}
-          </AnimatePresence>
-
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* ======== QUICK ACTIONS + INPUT BAR ======== */}
-      <div className="flex-shrink-0 border-t border-white/[0.06] bg-black">
-        {/* Quick action chips */}
-        <div className="max-w-2xl mx-auto px-4 pt-2.5 pb-0">
-          <QuickActions onAction={sendMessage} disabled={isProcessing} />
+          </div>
         </div>
 
-        {/* Input */}
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder={`Ask ${advisorName}...`}
-            className="flex-1 bg-transparent border border-white/[0.08] px-4 py-2.5 text-[14px] text-white placeholder:text-white/20 outline-none focus:border-white/20 transition-colors"
-            disabled={isProcessing}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={!inputText.trim() || isProcessing}
-            className={`w-10 h-10 flex items-center justify-center border transition-all active:scale-[0.95] ${
-              inputText.trim() && !isProcessing
-                ? 'bg-white border-white text-black'
-                : 'border-white/[0.08] text-white/20 cursor-not-allowed'
-            }`}
-          >
-            {isProcessing ? (
-              <Activity className="w-4 h-4 animate-spin" />
-            ) : (
-              <ArrowUp className="w-4 h-4" />
+        {/* ======== DISCOVER — Smart Money Trends ======== */}
+        <div className="mb-6">
+          <div className="bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-neutral-200">Discover</h2>
+                <p className="text-[11px] text-neutral-500">What's trending in smart money?</p>
+              </div>
+              {scan.markets.length > 0 && (
+                <span className="ml-auto text-[10px] text-green-400/60 bg-green-400/5 px-2 py-1 rounded-lg">
+                  {scan.markets.length} markets · {scan.leaderboard.length} traders
+                </span>
+              )}
+            </div>
+
+            <DiscoverPanel
+              markets={scan.sortedMarkets}
+              whaleSignals={scan.whaleSignals}
+              loading={scan.loading}
+              progress={scan.progress}
+              agentLog={scan.agentLog}
+            />
+
+            {!scan.loading && scan.markets.length > 0 && (
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={() => scan.startScan()}
+                  className="text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  Rescan
+                </button>
+                <button
+                  onClick={() => onSwitchToAdvanced('smartmoney')}
+                  className="text-[11px] text-green-400/50 hover:text-green-400 transition-colors"
+                >
+                  See all {scan.markets.length} markets →
+                </button>
+              </div>
             )}
-          </button>
+          </div>
+        </div>
+
+        {/* ======== ANALYZE + EXECUTE ======== */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="md:col-span-2 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                <Search className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-neutral-200">Analyze</h2>
+                <p className="text-[11px] text-neutral-500">Deep dive any market</p>
+              </div>
+            </div>
+            <AnalyzePanel onSwitchToAdvanced={() => onSwitchToAdvanced('market')} />
+          </div>
+
+          <div className="md:col-span-3 bg-[#131313] border border-neutral-800 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-medium text-neutral-200">Execute</h2>
+                <p className="text-[11px] text-neutral-500">Real on-chain swaps</p>
+              </div>
+            </div>
+            <ExecutePanel />
+          </div>
+        </div>
+
+        {/* Footer badge */}
+        <div className="flex items-center justify-center flex-wrap gap-3 mt-8 text-[11px] text-neutral-600">
+          <span>Powered by</span>
+          <span className="font-bold text-neutral-400">OKX</span>
+          <span className="text-neutral-700">·</span>
+          <span>X Layer</span>
+          <span className="text-neutral-700">·</span>
+          <span>DEX Aggregator</span>
+          <span className="text-neutral-700">·</span>
+          <span>OnchainOS</span>
+          <span className="text-neutral-700">·</span>
+          <span>Agent Trade Kit</span>
+          <span className="text-neutral-700">·</span>
+          <span>Polymarket API</span>
+          <span className="text-neutral-700">·</span>
+          <span>Claude AI</span>
         </div>
       </div>
     </div>
