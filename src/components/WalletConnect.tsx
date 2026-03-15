@@ -43,6 +43,7 @@ export const WalletConnect: React.FC = () => {
       case 42161: return 'Arbitrum';
       case 10: return 'Optimism';
       case 8453: return 'Base';
+      case 196: return 'X Layer';
       default: return `Chain ${chainId}`;
     }
   };

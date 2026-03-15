@@ -2,12 +2,22 @@
 import { createAppKit } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { mainnet, polygon, arbitrum, optimism, base } from '@reown/appkit/networks'
+import type { AppKitNetwork } from '@reown/appkit/networks'
 
 // 1. Get projectId from https://cloud.reown.com
 export const projectId = import.meta.env.VITE_REOWN_PROJECT_ID || '4d0d8421a091e769c3306153621ea088'
 
+// X Layer (OKX L2 — chain 196)
+const xlayer = {
+  id: 196,
+  name: 'X Layer',
+  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.xlayer.tech'] } },
+  blockExplorers: { default: { name: 'OKLink', url: 'https://www.oklink.com/xlayer' } },
+} as const satisfies AppKitNetwork
+
 // 2. Set up Wagmi adapter
-export const networks = [mainnet, polygon, arbitrum, optimism, base]
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [xlayer, mainnet, polygon, arbitrum, optimism, base]
 
 export const wagmiAdapter = new WagmiAdapter({
   networks,
