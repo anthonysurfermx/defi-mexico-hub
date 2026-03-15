@@ -26,7 +26,7 @@ export interface AdvisorProfile {
 
 // ---- Constants ----
 
-const ADVISOR_SUGGESTIONS = ['Adams', 'Jarvis', 'Friday', 'Oracle', 'Satoshi', 'Alpha'];
+const ADVISOR_SUGGESTIONS = ['Bobby', 'Axe', 'Jarvis', 'Oracle', 'Satoshi', 'Alpha'];
 
 const CATEGORIES = [
   { key: 'crypto',       label: 'Crypto',              icon: Gem },
@@ -210,7 +210,7 @@ export function AdvisorSetup({ onComplete }: Props) {
     const profile: AdvisorProfile = {
       walletAddress: address.toLowerCase(),
       userName: userName.trim() || 'Anon',
-      advisorName: advisorName.trim() || 'Adams',
+      advisorName: advisorName.trim() || 'Bobby',
       categories,
       language,
       scanIntervalHours: scanInterval,
@@ -305,7 +305,7 @@ export function AdvisorSetup({ onComplete }: Props) {
               value={advisorName}
               onChange={e => setAdvisorName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && advisorName.trim() && setStep(3)}
-              placeholder="Adams"
+              placeholder="Bobby"
               autoFocus
               className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-4 text-lg text-white placeholder-neutral-600 outline-none focus:border-green-500/40 transition-colors text-center"
             />

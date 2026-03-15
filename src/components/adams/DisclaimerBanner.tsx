@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
-const STORAGE_KEY = 'adams_disclaimer_dismissed';
+const STORAGE_KEY = 'bobby_disclaimer_dismissed';
 
 export function DisclaimerBanner() {
   const [dismissed, setDismissed] = useState(() => {
@@ -15,7 +15,7 @@ export function DisclaimerBanner() {
       <div className="max-w-2xl mx-auto flex items-center gap-3">
         <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
         <p className="text-[11px] text-amber-300/90 flex-1">
-          <span className="font-bold">EXPERIMENTAL</span> — Adams Agent Trader is a hackathon prototype.
+          <span className="font-bold">EXPERIMENTAL</span> — Bobby Agent Trader is a hackathon prototype.
           Not financial advice. Trade at your own risk. Real funds at stake when executing.
         </p>
         <button

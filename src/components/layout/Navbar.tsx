@@ -72,7 +72,7 @@ const Navbar = () => {
 
   const agenticItems = [
     { label: "Polymarket Agent Radar", href: "/agentic-world/polymarket", icon: ScanSearch },
-    { label: "Adams Agent Trader", href: "/agentic-world/adams", icon: Bot },
+    { label: "Bobby Agent Trader", href: "/agentic-world/bobby", icon: Bot },
     { label: "DefiLlama Leaderboard", href: "/agentic-world/leaderboard", icon: BarChart3 },
   ];
 
