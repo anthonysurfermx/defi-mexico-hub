@@ -149,7 +149,7 @@ function filterSignals(signals: RawSignal[]): FilteredSignal[] {
 }
 
 // ---- Claude reasoning ----
-async function analyzeWithClaude(signals: FilteredSignal[]): Promise<{ decisions: TradeDecision[]; reasoning: string }> {
+async function analyzeWithClaude(signals: FilteredSignal[], polyConsensusData?: SmartMoneyConsensus[]): Promise<{ decisions: TradeDecision[]; reasoning: string }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { decisions: [], reasoning: 'No API key' };
 
@@ -157,9 +157,16 @@ async function analyzeWithClaude(signals: FilteredSignal[]): Promise<{ decisions
 RULES: Max 3 trades, max $50 each, min 0.7 confidence. Prefer low sold ratio (<20%), multiple wallet triggers.
 SKIP honeypots, rug pulls, low liquidity. Be concise. Call execute_decisions with your analysis.`;
 
+  // Build Polymarket context if available
+  const polyContext = polyConsensusData && polyConsensusData.length > 0
+    ? `\n\nPolymarket Smart Money Consensus (${polyConsensusData.length} markets with 2+ top traders):\n${polyConsensusData.slice(0, 5).map((m, i) =>
+        `[P${i + 1}] "${m.title}" — ${m.traderCount} traders, ${m.topOutcomePct.toFixed(0)}% on ${m.topOutcome}, price ${Math.round(m.currentPrice * 100)}¢, entry ${Math.round(m.avgEntryPrice * 100)}¢, edge ${m.edgePct.toFixed(1)}%`
+      ).join('\n')}\nConsider these prediction markets when assessing macro sentiment.`
+    : '';
+
   const userMsg = `Signals (${signals.length}):\n${signals.map((s, i) =>
     `[${i + 1}] ${s.tokenSymbol} (chain ${s.chain}) — $${s.amountUsd.toLocaleString()} — score ${s.filterScore} — ${s.reasons.join(', ')}`
-  ).join('\n')}\n\nAnalyze and call execute_decisions.`;
+  ).join('\n')}${polyContext}\n\nAnalyze and call execute_decisions.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -252,6 +259,185 @@ function applyRiskGate(decisions: TradeDecision[]): { approved: TradeDecision[];
   return { approved, blocked: decisions.length - approved.length };
 }
 
+// ---- Polymarket Intelligence — Direct API calls ----
+
+const POLY_DATA = 'https://data-api.polymarket.com';
+const POLY_GAMMA = 'https://gamma-api.polymarket.com';
+
+interface PolyLeaderboardEntry {
+  proxyWallet: string;
+  userName: string;
+  rank: number;
+  pnl: number;
+  volume: number;
+}
+
+interface PolyPosition {
+  conditionId: string;
+  title: string;
+  outcome: string;
+  size: number;
+  avgPrice: number;
+  curPrice: number;
+  currentValue: number;
+  slug: string;
+}
+
+interface SmartMoneyConsensus {
+  conditionId: string;
+  title: string;
+  slug: string;
+  traderCount: number;
+  totalCapital: number;
+  topOutcome: string;
+  topOutcomePct: number;
+  avgEntryPrice: number;
+  currentPrice: number;
+  edgePct: number;
+}
+
+async function fetchPolyLeaderboard(limit = 20): Promise<PolyLeaderboardEntry[]> {
+  try {
+    const res = await fetch(`${POLY_DATA}/v1/leaderboard?limit=${limit}&timePeriod=MONTH&category=OVERALL`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data.map((t: Record<string, unknown>) => ({
+      proxyWallet: String(t.proxyWallet || ''),
+      userName: String(t.userName || 'Unknown'),
+      rank: Number(t.rank || 0),
+      pnl: Number(t.pnl || 0),
+      volume: Number(t.volume || 0),
+    }));
+  } catch { return []; }
+}
+
+async function fetchPolyPositions(wallet: string): Promise<PolyPosition[]> {
+  try {
+    const res = await fetch(`${POLY_DATA}/positions?user=${wallet}&limit=100&sortBy=CURRENT`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((p: Record<string, unknown>) => Number(p.currentValue || 0) > 0.5)
+      .map((p: Record<string, unknown>) => ({
+        conditionId: String(p.conditionId || ''),
+        title: String(p.title || ''),
+        outcome: String(p.outcome || ''),
+        size: Number(p.size || 0),
+        avgPrice: Number(p.avgPrice || 0),
+        curPrice: Number(p.curPrice || 0),
+        currentValue: Number(p.currentValue || 0),
+        slug: String(p.slug || ''),
+      }));
+  } catch { return []; }
+}
+
+function aggregatePolyConsensus(
+  traders: PolyLeaderboardEntry[],
+  positionsByWallet: Map<string, PolyPosition[]>
+): SmartMoneyConsensus[] {
+  // Group all positions by conditionId
+  const marketMap = new Map<string, {
+    title: string;
+    slug: string;
+    traders: Set<string>;
+    outcomeCapital: Map<string, number>;
+    totalCapital: number;
+    entryPrices: number[];
+    currentPrices: number[];
+  }>();
+
+  for (const trader of traders) {
+    const positions = positionsByWallet.get(trader.proxyWallet) || [];
+    for (const pos of positions) {
+      if (!pos.conditionId) continue;
+      let market = marketMap.get(pos.conditionId);
+      if (!market) {
+        market = {
+          title: pos.title,
+          slug: pos.slug,
+          traders: new Set(),
+          outcomeCapital: new Map(),
+          totalCapital: 0,
+          entryPrices: [],
+          currentPrices: [],
+        };
+        marketMap.set(pos.conditionId, market);
+      }
+      market.traders.add(trader.proxyWallet);
+      market.outcomeCapital.set(
+        pos.outcome,
+        (market.outcomeCapital.get(pos.outcome) || 0) + pos.currentValue
+      );
+      market.totalCapital += pos.currentValue;
+      market.entryPrices.push(pos.avgPrice);
+      market.currentPrices.push(pos.curPrice);
+    }
+  }
+
+  // Convert to consensus array, filter 2+ traders
+  const results: SmartMoneyConsensus[] = [];
+  for (const [conditionId, m] of marketMap) {
+    if (m.traders.size < 2) continue;
+
+    // Find top outcome
+    let topOutcome = '';
+    let topCapital = 0;
+    for (const [outcome, capital] of m.outcomeCapital) {
+      if (capital > topCapital) {
+        topOutcome = outcome;
+        topCapital = capital;
+      }
+    }
+
+    const avgEntry = m.entryPrices.reduce((a, b) => a + b, 0) / m.entryPrices.length;
+    const avgCurrent = m.currentPrices.reduce((a, b) => a + b, 0) / m.currentPrices.length;
+
+    results.push({
+      conditionId,
+      title: m.title,
+      slug: m.slug,
+      traderCount: m.traders.size,
+      totalCapital: m.totalCapital,
+      topOutcome,
+      topOutcomePct: m.totalCapital > 0 ? (topCapital / m.totalCapital) * 100 : 0,
+      avgEntryPrice: avgEntry,
+      currentPrice: avgCurrent,
+      edgePct: avgCurrent > 0 ? ((avgCurrent - avgEntry) / avgEntry) * 100 : 0,
+    });
+  }
+
+  results.sort((a, b) => b.traderCount - a.traderCount || b.totalCapital - a.totalCapital);
+  return results.slice(0, 10);
+}
+
+async function collectPolymarketIntelligence(): Promise<SmartMoneyConsensus[]> {
+  console.log('[Agent] Fetching Polymarket leaderboard...');
+  const traders = await fetchPolyLeaderboard(15);
+  if (traders.length === 0) return [];
+
+  console.log(`[Agent] ${traders.length} top traders, fetching positions...`);
+  const positionsByWallet = new Map<string, PolyPosition[]>();
+
+  // Batch fetch: 5 at a time
+  for (let i = 0; i < traders.length; i += 5) {
+    const batch = traders.slice(i, i + 5);
+    const results = await Promise.allSettled(
+      batch.map(t => fetchPolyPositions(t.proxyWallet))
+    );
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        positionsByWallet.set(batch[idx].proxyWallet, r.value);
+      }
+    });
+  }
+
+  const consensus = aggregatePolyConsensus(traders, positionsByWallet);
+  console.log(`[Agent] ${consensus.length} Polymarket consensus markets found`);
+  return consensus;
+}
+
 // ---- Fetch advisor profiles for personalized greetings ----
 interface AdvisorProfile {
   wallet_address: string;
@@ -259,6 +445,7 @@ interface AdvisorProfile {
   advisor_name: string;
   categories: string[];
   language: string;
+  scan_interval_hours: number;
 }
 
 async function fetchAdvisorProfiles(): Promise<AdvisorProfile[]> {
@@ -276,73 +463,210 @@ async function fetchAdvisorProfiles(): Promise<AdvisorProfile[]> {
   } catch { return []; }
 }
 
-function generateGreeting(
-  profile: AdvisorProfile,
-  cycle: { signals_found: number; signals_filtered: number; trades_executed: number; llm_reasoning: string; total_usd_deployed: number },
-): string {
+interface GreetingContext {
+  cycle: {
+    signals_found: number;
+    signals_filtered: number;
+    trades_executed: number;
+    trades_blocked: number;
+    llm_reasoning: string;
+    total_usd_deployed: number;
+    latency_ms: number;
+  };
+  topFilteredSignals: FilteredSignal[];
+  trades: Array<{ tokenSymbol: string; amountUsd: number; confidence: number; chain: string }>;
+  polymarketData: SmartMoneyConsensus[];
+}
+
+function generateGreeting(profile: AdvisorProfile, ctx: GreetingContext): string {
   const hour = new Date().getUTCHours();
-  const isES = profile.language === 'es';
+  const lang = profile.language || 'es';
+  const hrs = profile.scan_interval_hours || 8;
+  const { cycle, topFilteredSignals, trades, polymarketData } = ctx;
 
   // Time-aware greeting
-  let greeting: string;
-  if (hour >= 5 && hour < 12) {
-    greeting = isES ? `Buenos días ${profile.user_name}!` : `Good morning ${profile.user_name}!`;
-  } else if (hour >= 12 && hour < 18) {
-    greeting = isES ? `Buenas tardes ${profile.user_name}!` : `Good afternoon ${profile.user_name}!`;
-  } else {
-    greeting = isES ? `Buenas noches ${profile.user_name}!` : `Good evening ${profile.user_name}!`;
-  }
+  const greetingMap: Record<string, [string, string, string]> = {
+    es: [`Buenos días ${profile.user_name}!`, `Buenas tardes ${profile.user_name}!`, `Buenas noches ${profile.user_name}!`],
+    pt: [`Bom dia ${profile.user_name}!`, `Boa tarde ${profile.user_name}!`, `Boa noite ${profile.user_name}!`],
+    en: [`Good morning ${profile.user_name}!`, `Good afternoon ${profile.user_name}!`, `Good evening ${profile.user_name}!`],
+  };
+  const greetings = greetingMap[lang] || greetingMap.en;
+  const greeting = hour >= 5 && hour < 12 ? greetings[0] : hour >= 12 && hour < 18 ? greetings[1] : greetings[2];
 
-  const lines: string[] = [
+  const chainName = (c: string) => c === '1' ? 'ETH' : c === '501' ? 'SOL' : c === '8453' ? 'Base' : c;
+
+  const L: string[] = [
     `*${profile.advisor_name}*`,
     '',
     greeting,
     '',
   ];
 
-  if (isES) {
-    lines.push(`Acabo de completar mi análisis del mercado.`);
-    lines.push(`Escaneé ${cycle.signals_found} señales y ${cycle.signals_filtered} pasaron mis filtros.`);
+  // ── OKX SECTION: COLLECT → FILTER → THINK → EXECUTE ──
 
-    if (cycle.trades_executed > 0) {
-      lines.push('');
-      lines.push(`Ejecuté ${cycle.trades_executed} operaciones por un total de $${cycle.total_usd_deployed.toFixed(2)}.`);
-    } else {
-      lines.push('');
-      lines.push('No encontré oportunidades que cumplan mis criterios de riesgo esta vez. Seguiré monitoreando.');
+  if (lang === 'es') {
+    // COLLECT
+    L.push(`--- OKX OnchainOS ---`);
+    L.push(`Escaneé ${cycle.signals_found} señales on-chain (ETH, SOL, Base).`);
+    if (topFilteredSignals.length > 0) {
+      L.push(`Top señales detectadas:`);
+      for (const s of topFilteredSignals.slice(0, 3)) {
+        L.push(`  • ${s.tokenSymbol} (${chainName(s.chain)}) — $${(s.amountUsd / 1000).toFixed(1)}K — ${s.reasons.join(', ')}`);
+      }
     }
+
+    // FILTER
+    L.push('');
+    L.push(`${cycle.signals_found} → ${cycle.signals_filtered} pasaron filtros de calidad.`);
+
+    // THINK
+    if (cycle.llm_reasoning) {
+      L.push('');
+      L.push(`Mi análisis: _${cycle.llm_reasoning}_`);
+    }
+
+    // EXECUTE
+    if (trades.length > 0) {
+      L.push('');
+      for (const t of trades) {
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confianza ${(t.confidence * 100).toFixed(0)}%`);
+      }
+      L.push(`Total desplegado: $${cycle.total_usd_deployed.toFixed(2)}`);
+      if (cycle.trades_blocked > 0) {
+        L.push(`${cycle.trades_blocked} operación(es) bloqueada(s) por risk gate.`);
+      }
+    } else {
+      L.push('');
+      L.push('Sin operaciones esta vez — seguiré monitoreando.');
+    }
+
+    // ── POLYMARKET SECTION ──
+    if (polymarketData.length > 0) {
+      L.push('');
+      L.push(`--- Polymarket Smart Money ---`);
+      L.push(`${polymarketData.length} mercados con consenso de 2+ top traders:`);
+      for (const m of polymarketData.slice(0, 3)) {
+        const price = Math.round(m.currentPrice * 100);
+        const entry = Math.round(m.avgEntryPrice * 100);
+        const dir = m.edgePct > 0 ? '+' : '';
+        L.push(`  • "${m.title}"`);
+        L.push(`    ${m.traderCount} traders → ${m.topOutcome} (${m.topOutcomePct.toFixed(0)}%) | ${price}¢ (entrada ${entry}¢, edge ${dir}${m.edgePct.toFixed(1)}%)`);
+      }
+      const best = polymarketData[0];
+      L.push('');
+      L.push(`Recomendación: "${best.title}" → ${best.topOutcome} a ${Math.round(best.currentPrice * 100)}¢.`);
+      L.push(`Si en ${hrs}h se confirma, potencial ${(1 / best.currentPrice).toFixed(2)}x.`);
+    }
+
+    L.push('');
+    L.push(`Latencia: ${(cycle.latency_ms / 1000).toFixed(1)}s | Categorías: ${profile.categories.join(', ')}`);
+    L.push(`Nos vemos en ${hrs} horas.`);
+
+  } else if (lang === 'pt') {
+    L.push(`--- OKX OnchainOS ---`);
+    L.push(`Escaneei ${cycle.signals_found} sinais on-chain (ETH, SOL, Base).`);
+    if (topFilteredSignals.length > 0) {
+      L.push(`Top sinais detectados:`);
+      for (const s of topFilteredSignals.slice(0, 3)) {
+        L.push(`  • ${s.tokenSymbol} (${chainName(s.chain)}) — $${(s.amountUsd / 1000).toFixed(1)}K — ${s.reasons.join(', ')}`);
+      }
+    }
+
+    L.push('');
+    L.push(`${cycle.signals_found} → ${cycle.signals_filtered} passaram filtros de qualidade.`);
 
     if (cycle.llm_reasoning) {
-      lines.push('');
-      lines.push(`Mi análisis: _${cycle.llm_reasoning}_`);
+      L.push('');
+      L.push(`Minha análise: _${cycle.llm_reasoning}_`);
     }
 
-    lines.push('');
-    lines.push(`Tus categorías: ${profile.categories.join(', ')}`);
-    lines.push('Nos vemos en 8 horas.');
+    if (trades.length > 0) {
+      L.push('');
+      for (const t of trades) {
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confiança ${(t.confidence * 100).toFixed(0)}%`);
+      }
+      L.push(`Total: $${cycle.total_usd_deployed.toFixed(2)}`);
+    } else {
+      L.push('');
+      L.push('Sem operações desta vez — continuarei monitorando.');
+    }
+
+    if (polymarketData.length > 0) {
+      L.push('');
+      L.push(`--- Polymarket Smart Money ---`);
+      L.push(`${polymarketData.length} mercados com consenso de 2+ top traders:`);
+      for (const m of polymarketData.slice(0, 3)) {
+        const price = Math.round(m.currentPrice * 100);
+        const entry = Math.round(m.avgEntryPrice * 100);
+        const dir = m.edgePct > 0 ? '+' : '';
+        L.push(`  • "${m.title}"`);
+        L.push(`    ${m.traderCount} traders → ${m.topOutcome} (${m.topOutcomePct.toFixed(0)}%) | ${price}¢ (entrada ${entry}¢, edge ${dir}${m.edgePct.toFixed(1)}%)`);
+      }
+      const best = polymarketData[0];
+      L.push('');
+      L.push(`Recomendação: "${best.title}" → ${best.topOutcome} a ${Math.round(best.currentPrice * 100)}¢.`);
+      L.push(`Se em ${hrs}h a tendência confirmar, potencial ${(1 / best.currentPrice).toFixed(2)}x.`);
+    }
+
+    L.push('');
+    L.push(`Latência: ${(cycle.latency_ms / 1000).toFixed(1)}s | Categorias: ${profile.categories.join(', ')}`);
+    L.push(`Nos vemos em ${hrs} horas.`);
+
   } else {
-    lines.push(`I just completed my market analysis.`);
-    lines.push(`Scanned ${cycle.signals_found} signals, ${cycle.signals_filtered} passed my filters.`);
-
-    if (cycle.trades_executed > 0) {
-      lines.push('');
-      lines.push(`Executed ${cycle.trades_executed} trades totaling $${cycle.total_usd_deployed.toFixed(2)}.`);
-    } else {
-      lines.push('');
-      lines.push('No opportunities met my risk criteria this cycle. Still watching.');
+    L.push(`--- OKX OnchainOS ---`);
+    L.push(`Scanned ${cycle.signals_found} on-chain signals (ETH, SOL, Base).`);
+    if (topFilteredSignals.length > 0) {
+      L.push(`Top signals detected:`);
+      for (const s of topFilteredSignals.slice(0, 3)) {
+        L.push(`  • ${s.tokenSymbol} (${chainName(s.chain)}) — $${(s.amountUsd / 1000).toFixed(1)}K — ${s.reasons.join(', ')}`);
+      }
     }
+
+    L.push('');
+    L.push(`${cycle.signals_found} → ${cycle.signals_filtered} passed quality filters.`);
 
     if (cycle.llm_reasoning) {
-      lines.push('');
-      lines.push(`My analysis: _${cycle.llm_reasoning}_`);
+      L.push('');
+      L.push(`My analysis: _${cycle.llm_reasoning}_`);
     }
 
-    lines.push('');
-    lines.push(`Your categories: ${profile.categories.join(', ')}`);
-    lines.push('See you in 8 hours.');
+    if (trades.length > 0) {
+      L.push('');
+      for (const t of trades) {
+        L.push(`  BUY ${t.tokenSymbol} — $${t.amountUsd} — confidence ${(t.confidence * 100).toFixed(0)}%`);
+      }
+      L.push(`Total deployed: $${cycle.total_usd_deployed.toFixed(2)}`);
+      if (cycle.trades_blocked > 0) {
+        L.push(`${cycle.trades_blocked} trade(s) blocked by risk gate.`);
+      }
+    } else {
+      L.push('');
+      L.push('No trades this cycle — still watching.');
+    }
+
+    if (polymarketData.length > 0) {
+      L.push('');
+      L.push(`--- Polymarket Smart Money ---`);
+      L.push(`${polymarketData.length} markets with 2+ top trader consensus:`);
+      for (const m of polymarketData.slice(0, 3)) {
+        const price = Math.round(m.currentPrice * 100);
+        const entry = Math.round(m.avgEntryPrice * 100);
+        const dir = m.edgePct > 0 ? '+' : '';
+        L.push(`  • "${m.title}"`);
+        L.push(`    ${m.traderCount} traders → ${m.topOutcome} (${m.topOutcomePct.toFixed(0)}%) | ${price}¢ (entry ${entry}¢, edge ${dir}${m.edgePct.toFixed(1)}%)`);
+      }
+      const best = polymarketData[0];
+      L.push('');
+      L.push(`Recommendation: "${best.title}" → ${best.topOutcome} at ${Math.round(best.currentPrice * 100)}¢.`);
+      L.push(`If trend holds in ${hrs}h, potential ${(1 / best.currentPrice).toFixed(2)}x return.`);
+    }
+
+    L.push('');
+    L.push(`Latency: ${(cycle.latency_ms / 1000).toFixed(1)}s | Categories: ${profile.categories.join(', ')}`);
+    L.push(`See you in ${hrs} hours.`);
   }
 
-  return lines.join('\n');
+  return L.join('\n');
 }
 
 // ---- Save greeting messages to Supabase ----
@@ -415,10 +739,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startedAt = new Date().toISOString();
 
   try {
-    // Phase 1: Collect
-    console.log('[Agent] Collecting signals...');
-    const raw = await collectDexSignals();
-    console.log(`[Agent] ${raw.length} raw signals`);
+    // Phase 0: Polymarket Intelligence (parallel with OKX)
+    console.log('[Agent] Collecting signals + Polymarket intelligence...');
+    const [raw, polyConsensus] = await Promise.all([
+      collectDexSignals(),
+      collectPolymarketIntelligence(),
+    ]);
+    console.log(`[Agent] ${raw.length} raw signals, ${polyConsensus.length} Polymarket consensus markets`);
 
     // Phase 2: Filter
     const filtered = filterSignals(raw);
@@ -435,17 +762,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         trades_blocked: 0,
         total_usd_deployed: 0,
         latency_ms: Date.now() - startMs,
-        llm_reasoning: 'No actionable signals this cycle.',
+        llm_reasoning: polyConsensus.length > 0
+          ? `No OKX signals, but ${polyConsensus.length} Polymarket consensus markets detected.`
+          : 'No actionable signals this cycle.',
         status: 'completed',
       };
       await logToSupabase(result);
+
+      // Still generate greetings with Polymarket data even if no OKX signals
+      const allProfiles0 = await fetchAdvisorProfiles();
+      const profiles0 = isManual
+        ? allProfiles0
+        : allProfiles0.filter(p => new Date().getUTCHours() % (p.scan_interval_hours || 8) === 0);
+      const greetings0 = profiles0.map(p => ({
+        wallet_address: p.wallet_address,
+        advisor_name: p.advisor_name,
+        message: generateGreeting(p, {
+          cycle: { ...result, trades_blocked: 0 },
+          topFilteredSignals: [],
+          trades: [],
+          polymarketData: polyConsensus,
+        }),
+      }));
+      await saveGreetings(greetings0);
+
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ ok: true, cycle: result });
+      return res.status(200).json({
+        ok: true,
+        cycle: result,
+        greetings: greetings0.map(g => ({ advisor: g.advisor_name, wallet: g.wallet_address.slice(0, 8) + '...' })),
+        polymarket: polyConsensus.slice(0, 5).map(m => ({
+          title: m.title,
+          traders: m.traderCount,
+          consensus: `${m.topOutcome} ${m.topOutcomePct.toFixed(0)}%`,
+          price: `${Math.round(m.currentPrice * 100)}¢`,
+          edge: `${m.edgePct.toFixed(1)}%`,
+        })),
+      });
     }
 
     // Phase 3: Claude analysis
     console.log('[Agent] Claude analyzing...');
-    const { decisions, reasoning } = await analyzeWithClaude(filtered);
+    const { decisions, reasoning } = await analyzeWithClaude(filtered, polyConsensus);
     console.log(`[Agent] ${decisions.length} decisions`);
 
     // Phase 4: Risk gate
@@ -479,13 +837,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await logToSupabase(result);
 
-    // Phase 7: Generate personalized greetings for all advisors
+    // Phase 7: Generate personalized greetings for advisors whose interval matches
     console.log('[Agent] Generating greetings...');
-    const profiles = await fetchAdvisorProfiles();
+    const allProfiles = await fetchAdvisorProfiles();
+    const currentHour = new Date().getUTCHours();
+
+    // For manual triggers, send to all profiles. For cron, only send to profiles
+    // whose scan_interval_hours divides evenly into the current hour.
+    const profiles = isManual
+      ? allProfiles
+      : allProfiles.filter(p => {
+          const interval = p.scan_interval_hours || 8;
+          return currentHour % interval === 0;
+        });
+
     const greetings = profiles.map(p => ({
       wallet_address: p.wallet_address,
       advisor_name: p.advisor_name,
-      message: generateGreeting(p, result),
+      message: generateGreeting(p, {
+        cycle: result,
+        topFilteredSignals: filtered,
+        trades: trades.map(t => ({ tokenSymbol: t.tokenSymbol, amountUsd: t.amountUsd, confidence: t.confidence, chain: t.chain })),
+        polymarketData: polyConsensus,
+      }),
     }));
     await saveGreetings(greetings);
     console.log(`[Agent] ${greetings.length} greetings sent`);
@@ -503,6 +877,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         chain: s.chain,
         score: s.filterScore,
         reasons: s.reasons,
+      })),
+      polymarket: polyConsensus.slice(0, 5).map(m => ({
+        title: m.title,
+        traders: m.traderCount,
+        consensus: `${m.topOutcome} ${m.topOutcomePct.toFixed(0)}%`,
+        price: `${Math.round(m.currentPrice * 100)}¢`,
+        edge: `${m.edgePct.toFixed(1)}%`,
       })),
     });
   } catch (error) {

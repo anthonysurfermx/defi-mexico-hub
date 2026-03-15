@@ -3,7 +3,7 @@
 // With personalized AI advisor onboarding + greeting messages
 // ============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, TrendingUp, Search, Zap, Bot, ChevronRight, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PixelLobster } from '@/components/ui/pixel-icons';
@@ -50,6 +50,65 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// ---- Typewriter effect for greeting ----
+
+function TypewriterText({ text, speed = 12, onDone }: { text: string; speed?: number; onDone?: () => void }) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
+  const indexRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const lastRef = useRef(0);
+
+  // Skip animation on click
+  const skip = useCallback(() => {
+    if (!done) {
+      setDisplayed(text);
+      setDone(true);
+      onDone?.();
+    }
+  }, [done, text, onDone]);
+
+  useEffect(() => {
+    indexRef.current = 0;
+    lastRef.current = 0;
+    setDisplayed('');
+    setDone(false);
+
+    const step = (ts: number) => {
+      if (!lastRef.current) lastRef.current = ts;
+      const elapsed = ts - lastRef.current;
+
+      if (elapsed >= speed) {
+        const charsToAdd = Math.min(Math.floor(elapsed / speed), 3); // max 3 chars per frame for smoothness
+        const nextIdx = Math.min(indexRef.current + charsToAdd, text.length);
+        indexRef.current = nextIdx;
+        lastRef.current = ts;
+        setDisplayed(text.slice(0, nextIdx));
+
+        if (nextIdx >= text.length) {
+          setDone(true);
+          onDone?.();
+          return;
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(step);
+    };
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [text, speed, onDone]);
+
+  return (
+    <div onClick={skip} className="cursor-pointer">
+      <span>{displayed}</span>
+      {!done && (
+        <span className="inline-block w-[6px] h-[14px] bg-green-400 ml-[1px] align-middle animate-pulse" />
+      )}
+    </div>
+  );
+}
+
 // ---- Component ----
 
 interface Props {
@@ -62,6 +121,8 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
   const [showSetup, setShowSetup] = useState(false);
   const [greetings, setGreetings] = useState<GreetingMessage[]>([]);
   const [expandedGreeting, setExpandedGreeting] = useState<string | null>(null);
+  const [typewriterDone, setTypewriterDone] = useState(false);
+  const seenGreetingRef = useRef<string | null>(null);
 
   // Show setup when wallet connects and no profile exists
   useEffect(() => {
@@ -71,7 +132,14 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
   // Fetch greetings when profile is loaded
   useEffect(() => {
     if (!profile?.walletAddress) return;
-    fetchGreetings(profile.walletAddress).then(setGreetings);
+    fetchGreetings(profile.walletAddress).then(g => {
+      setGreetings(g);
+      // Reset typewriter if new greeting arrived
+      if (g.length > 0 && g[0].id !== seenGreetingRef.current) {
+        seenGreetingRef.current = g[0].id;
+        setTypewriterDone(false);
+      }
+    });
   }, [profile?.walletAddress]);
 
   const handleSetupComplete = (p: AdvisorProfile) => {
@@ -154,22 +222,43 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
                 )}
               </div>
 
-              {/* Latest greeting */}
-              <div
-                className="text-sm text-neutral-300 leading-relaxed whitespace-pre-line cursor-pointer"
-                onClick={() => setExpandedGreeting(expandedGreeting === greetings[0].id ? null : greetings[0].id)}
-              >
-                {expandedGreeting === greetings[0].id
-                  ? greetings[0].message.replace(/\*/g, '').replace(/_/g, '')
-                  : greetings[0].message.replace(/\*/g, '').replace(/_/g, '').split('\n').slice(0, 4).join('\n') + (greetings[0].message.split('\n').length > 4 ? '\n...' : '')
-                }
+              {/* Latest greeting — typewriter on first view, static after */}
+              <div className="text-sm text-green-300/90 leading-relaxed whitespace-pre-line font-mono">
+                {(() => {
+                  const clean = greetings[0].message.replace(/\*/g, '').replace(/_/g, '');
+                  const isExpanded = expandedGreeting === greetings[0].id;
+                  const preview = clean.split('\n').slice(0, 6).join('\n') + (clean.split('\n').length > 6 ? '\n...' : '');
+                  const content = isExpanded ? clean : preview;
+
+                  if (typewriterDone) {
+                    return (
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => setExpandedGreeting(isExpanded ? null : greetings[0].id)}
+                      >
+                        {content}
+                        {!isExpanded && clean.split('\n').length > 6 && (
+                          <span className="text-green-400/40 text-xs ml-1">[click to expand]</span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <TypewriterText
+                      text={preview}
+                      speed={8}
+                      onDone={() => setTypewriterDone(true)}
+                    />
+                  );
+                })()}
               </div>
 
               {/* Older messages */}
               {greetings.length > 1 && expandedGreeting === greetings[0].id && (
                 <div className="mt-4 pt-4 border-t border-neutral-800 space-y-3">
                   {greetings.slice(1, 3).map(g => (
-                    <div key={g.id} className="text-xs text-neutral-500 leading-relaxed">
+                    <div key={g.id} className="text-xs text-neutral-500 leading-relaxed font-mono">
                       <span className="text-neutral-600">{timeAgo(g.created_at)}</span>
                       <span className="text-neutral-700 mx-1">—</span>
                       {g.message.replace(/\*/g, '').replace(/_/g, '').split('\n').slice(2, 4).join(' ')}
@@ -274,10 +363,26 @@ export function AgentRadarLanding({ onSwitchToAdvanced }: Props) {
                 <h2 className="text-sm font-medium text-neutral-200">
                   {profile ? profile.advisorName : 'Autonomous Agent'}
                 </h2>
-                <p className="text-[11px] text-neutral-500">AI trades every 8h — collect, analyze, execute</p>
+                <p className="text-[11px] text-neutral-500">
+                  AI trades every {profile?.scanIntervalHours || 8}h — collect, analyze, execute
+                </p>
               </div>
             </div>
-            <AgentDashboard />
+            <AgentDashboard
+              advisorName={profile?.advisorName}
+              scanIntervalHours={profile?.scanIntervalHours}
+              onCycleComplete={() => {
+                if (profile?.walletAddress) {
+                  setTypewriterDone(false);
+                  fetchGreetings(profile.walletAddress).then(g => {
+                    setGreetings(g);
+                    if (g.length > 0) {
+                      seenGreetingRef.current = g[0].id;
+                    }
+                  });
+                }
+              }}
+            />
           </div>
         </div>
 

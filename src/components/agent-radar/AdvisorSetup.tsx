@@ -1,6 +1,6 @@
 // ============================================================
 // AdvisorSetup — Iron Man-style AI advisor onboarding
-// 3 steps: Your Name → Name Your Advisor → Pick Categories
+// 4 steps: Your Name → Name Your Advisor → Pick Categories → Language
 // Stores profile in Supabase + localStorage
 // ============================================================
 
@@ -9,7 +9,7 @@ import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import {
   Wallet, ArrowRight, Sparkles, TrendingUp, BarChart3,
-  Globe, Gem, Bot, LineChart, Brain, Landmark, Layers,
+  Globe, Gem, Bot, LineChart, Brain, Landmark, Layers, Languages,
 } from 'lucide-react';
 import { PixelLobster } from '@/components/ui/pixel-icons';
 
@@ -21,6 +21,7 @@ export interface AdvisorProfile {
   advisorName: string;
   categories: string[];
   language: string;
+  scanIntervalHours: number;
 }
 
 // ---- Constants ----
@@ -75,6 +76,7 @@ async function upsertProfileToSupabase(profile: AdvisorProfile) {
           advisor_name: profile.advisorName,
           categories: profile.categories,
           language: profile.language,
+          scan_interval_hours: profile.scanIntervalHours,
           updated_at: new Date().toISOString(),
         }),
       }
@@ -104,6 +106,7 @@ async function upsertProfileToSupabase(profile: AdvisorProfile) {
             advisor_name: profile.advisorName,
             categories: profile.categories,
             language: profile.language,
+            scan_interval_hours: profile.scanIntervalHours,
           }),
         });
       }
@@ -129,6 +132,7 @@ async function fetchProfileFromSupabase(wallet: string): Promise<AdvisorProfile 
       advisorName: r.advisor_name,
       categories: r.categories,
       language: r.language,
+      scanIntervalHours: r.scan_interval_hours || 8,
     };
   } catch { return null; }
 }
@@ -183,10 +187,12 @@ export function AdvisorSetup({ onComplete }: Props) {
   const { address, isConnected } = useAccount();
   const { open: openWallet } = useAppKit();
 
-  const [step, setStep] = useState(0); // 0=connect, 1=your name, 2=advisor name, 3=categories
+  const [step, setStep] = useState(0); // 0=connect, 1=your name, 2=advisor name, 3=categories, 4=language, 5=interval
   const [userName, setUserName] = useState('');
   const [advisorName, setAdvisorName] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
+  const [language, setLanguage] = useState('es');
+  const [scanInterval, setScanInterval] = useState(8);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
@@ -206,7 +212,8 @@ export function AdvisorSetup({ onComplete }: Props) {
       userName: userName.trim() || 'Anon',
       advisorName: advisorName.trim() || 'Adams',
       categories,
-      language: 'es',
+      language,
+      scanIntervalHours: scanInterval,
     };
     onComplete(profile);
   };
@@ -225,7 +232,7 @@ export function AdvisorSetup({ onComplete }: Props) {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {[1, 2, 3].map(s => (
+          {[1, 2, 3, 4, 5].map(s => (
             <div
               key={s}
               className={`h-1 rounded-full transition-all duration-300 ${
@@ -394,15 +401,122 @@ export function AdvisorSetup({ onComplete }: Props) {
             </div>
 
             <button
-              onClick={handleComplete}
+              onClick={() => setStep(4)}
               disabled={categories.length !== 3}
-              className="w-full py-4 bg-green-500 text-black font-bold rounded-xl hover:bg-green-400 transition-colors disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              Continue
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button onClick={() => setStep(2)} className="w-full text-center text-neutral-600 text-xs hover:text-neutral-400 transition-colors">
+              Back
+            </button>
+          </div>
+        )}
+
+        {/* STEP 4: Language */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Choose your language</h2>
+              <p className="text-neutral-500 text-sm">
+                {advisorName} will communicate in this language
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { code: 'es', label: 'Español', flag: '🇲🇽', desc: 'Tu asesor hablará en español' },
+                { code: 'en', label: 'English', flag: '🇺🇸', desc: 'Your advisor will speak English' },
+                { code: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Seu assessor falará em português' },
+              ].map(lang => (
+                <button
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                    language === lang.code
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'
+                  }`}
+                >
+                  <span className="text-2xl">{lang.flag}</span>
+                  <div className="text-left">
+                    <div className="font-medium">{lang.label}</div>
+                    <div className={`text-xs ${language === lang.code ? 'text-neutral-500' : 'text-neutral-600'}`}>
+                      {lang.desc}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setStep(5)}
+              className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+            >
+              Continue
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button onClick={() => setStep(3)} className="w-full text-center text-neutral-600 text-xs hover:text-neutral-400 transition-colors">
+              Back
+            </button>
+          </div>
+        )}
+
+        {/* STEP 5: Scan Interval */}
+        {step === 5 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Analysis frequency</h2>
+              <p className="text-neutral-500 text-sm">
+                How often should {advisorName} scan the market?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-5 gap-2">
+              {[4, 8, 12, 16, 20].map(hours => (
+                <button
+                  key={hours}
+                  onClick={() => setScanInterval(hours)}
+                  className={`flex flex-col items-center gap-1 py-4 rounded-xl border transition-all ${
+                    scanInterval === hours
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-neutral-200'
+                  }`}
+                >
+                  <span className="text-lg font-bold">{hours}h</span>
+                  <span className={`text-[9px] ${scanInterval === hours ? 'text-neutral-500' : 'text-neutral-600'}`}>
+                    {hours === 4 ? 'Aggressive' : hours === 8 ? 'Standard' : hours === 12 ? 'Balanced' : hours === 16 ? 'Relaxed' : 'Passive'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Preview */}
+            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
+              <div className="text-xs text-neutral-400 text-center">
+                {advisorName} {language === 'es' ? 'analizará el mercado' : language === 'pt' ? 'analisará o mercado' : 'will analyze the market'}{' '}
+                <span className="text-green-400 font-bold">{Math.floor(24 / scanInterval)}x</span>{' '}
+                {language === 'es' ? 'al día' : language === 'pt' ? 'por dia' : 'per day'}
+                {scanInterval === 4 && (
+                  <span className="block mt-1 text-amber-400/60 text-[10px]">
+                    {language === 'es' ? 'Más análisis = más oportunidades detectadas' : language === 'pt' ? 'Mais análises = mais oportunidades detectadas' : 'More scans = more opportunities detected'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleComplete}
+              className="w-full py-4 bg-green-500 text-black font-bold rounded-xl hover:bg-green-400 transition-colors flex items-center justify-center gap-2"
             >
               <Brain className="w-5 h-5" />
               Launch {advisorName || 'Advisor'}
             </button>
 
-            <button onClick={() => setStep(2)} className="w-full text-center text-neutral-600 text-xs hover:text-neutral-400 transition-colors">
+            <button onClick={() => setStep(4)} className="w-full text-center text-neutral-600 text-xs hover:text-neutral-400 transition-colors">
               Back
             </button>
           </div>

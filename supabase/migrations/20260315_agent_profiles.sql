@@ -9,7 +9,8 @@ CREATE TABLE agent_profiles (
   user_name TEXT NOT NULL,
   advisor_name TEXT NOT NULL DEFAULT 'Adams',
   categories TEXT[] NOT NULL DEFAULT '{Crypto}',
-  language TEXT NOT NULL DEFAULT 'es' CHECK (language IN ('en', 'es')),
+  language TEXT NOT NULL DEFAULT 'es' CHECK (language IN ('en', 'es', 'pt')),
+  scan_interval_hours INT NOT NULL DEFAULT 8 CHECK (scan_interval_hours IN (4, 8, 12, 16, 20)),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

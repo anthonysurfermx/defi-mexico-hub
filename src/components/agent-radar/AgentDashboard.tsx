@@ -244,7 +244,13 @@ function PlaceholderChart() {
 
 // ---- Main Dashboard ----
 
-export function AgentDashboard() {
+interface DashboardProps {
+  advisorName?: string;
+  scanIntervalHours?: number;
+  onCycleComplete?: () => void;
+}
+
+export function AgentDashboard({ advisorName, scanIntervalHours, onCycleComplete }: DashboardProps = {}) {
   const [cycles, setCycles] = useState<AgentCycle[]>([]);
   const [trades, setTrades] = useState<AgentTrade[]>([]);
   const [positions, setPositions] = useState<AgentPosition[]>([]);
@@ -274,6 +280,7 @@ export function AgentDashboard() {
       const data = await res.json();
       if (data.ok) {
         await loadData();
+        onCycleComplete?.();
       }
     } catch (err) {
       console.error('Manual trigger failed:', err);
@@ -298,9 +305,9 @@ export function AgentDashboard() {
             <Bot className="w-5 h-5 text-green-400" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-neutral-100">Agent Radar Autonomous</h3>
+            <h3 className="text-base font-semibold text-neutral-100">{advisorName || 'Agent Radar'} Autonomous</h3>
             <p className="text-[10px] text-neutral-500">
-              Every 8h: Scans {'>'}200 signals · Claude reasons · Executes on-chain
+              Every {scanIntervalHours || 8}h: Scans {'>'}200 signals · Claude reasons · Executes on-chain
             </p>
           </div>
         </div>
@@ -312,12 +319,12 @@ export function AgentDashboard() {
           {triggerLoading ? (
             <>
               <Activity className="w-3.5 h-3.5 animate-spin" />
-              Running cycle...
+              Analyzing...
             </>
           ) : (
             <>
               <Zap className="w-3.5 h-3.5" />
-              Run Now
+              Analyze Market
             </>
           )}
         </button>
