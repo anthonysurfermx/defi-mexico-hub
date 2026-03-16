@@ -47,6 +47,10 @@ DATA FORMAT: Your intelligence arrives in XML-tagged JSON blocks:
 - <PREDICTION_MARKETS> — {title, traders, outcome, consensus_pct, price_cents, entry_cents, edge_pct}
 - <STOCK_INTEL> — {symbol, name, price, change_pct}
 - <PRICE_INTEL> — {symbol, price, change_24h_pct, funding_rate, funding_apr}
+- <OPEN_INTEREST> — {symbol, open_interest_contracts, open_interest_coins}. High OI + flat price = someone building a position. OI dropping = positions closing. OI spike + price pump = leveraged FOMO.
+- <TOP_TRADERS_POSITIONING> — {symbol, top_traders_long_pct, top_traders_short_pct, bias}. CRITICAL: if top traders are 70%+ one direction while retail is opposite = smart money divergence. "The big boys are long while everyone on Twitter is screaming short."
+- <SENTIMENT> — {fear_greed_index (0-100), classification, signal}. EXTREME_FEAR_BUY_ZONE (<25) historically = accumulation zone. EXTREME_GREED_SELL_ZONE (>75) = distribution. Use this to gauge crowd psychology.
+- <MACRO_CONTEXT> — {dxy_index, interpretation}. DXY > 104 = strong dollar headwind for crypto. DXY < 100 = weak dollar tailwind. BTC and DXY tend to move inversely on 1-2 week lag.
 - <AGENT_META> — {win_rate_pct, mood, safe_mode, latency_s}
 Use these numbers naturally in your narrative. Cite them as evidence for your thesis, not as a list.
 

@@ -452,6 +452,89 @@ async function fetchFundingRates(): Promise<FundingRate[]> {
   } catch { return []; }
 }
 
+// ---- Open Interest (Crowded Trade Detection) ----
+interface OpenInterestData { symbol: string; oi: number; oiCcy: number }
+
+async function fetchOpenInterest(): Promise<OpenInterestData[]> {
+  const instruments = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP', 'SOL-USDT-SWAP'];
+  try {
+    const results = await Promise.all(instruments.map(async (instId) => {
+      try {
+        const res = await fetch(`https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=${instId}`);
+        if (!res.ok) return null;
+        const json = await res.json() as { code: string; data: Array<{ instId: string; oi: string; oiCcy: string; ts: string }> };
+        if (json.code !== '0' || !json.data?.[0]) return null;
+        return {
+          symbol: instId.split('-')[0],
+          oi: parseInt(json.data[0].oi),
+          oiCcy: parseFloat(json.data[0].oiCcy),
+        };
+      } catch { return null; }
+    }));
+    return results.filter(Boolean) as OpenInterestData[];
+  } catch { return []; }
+}
+
+// ---- Top Traders Long/Short Ratio (Smart Money Positioning) ----
+interface LongShortRatio { symbol: string; longRatio: number; shortRatio: number; ts: string }
+
+async function fetchTopTradersLSRatio(): Promise<LongShortRatio[]> {
+  const families = ['BTC', 'ETH', 'SOL'];
+  try {
+    const results = await Promise.all(families.map(async (instFamily) => {
+      try {
+        const res = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-ratio-top-traders?instFamily=${instFamily}&period=1H`);
+        if (!res.ok) return null;
+        const json = await res.json() as { code: string; data: string[][] };
+        if (json.code !== '0' || !json.data?.[0]) return null;
+        const latest = json.data[0]; // [timestamp, longRatio, shortRatio]
+        return {
+          symbol: instFamily,
+          longRatio: parseFloat((parseFloat(latest[1]) * 100).toFixed(1)),
+          shortRatio: parseFloat((parseFloat(latest[2]) * 100).toFixed(1)),
+          ts: latest[0],
+        };
+      } catch { return null; }
+    }));
+    return results.filter(Boolean) as LongShortRatio[];
+  } catch { return []; }
+}
+
+// ---- Fear & Greed Index (Market Sentiment) ----
+interface FearGreedData { value: number; classification: string }
+
+async function fetchFearGreed(): Promise<FearGreedData | null> {
+  try {
+    const res = await fetch('https://api.alternative.me/fng/?limit=1&format=json');
+    if (!res.ok) return null;
+    const json = await res.json() as { data: Array<{ value: string; value_classification: string }> };
+    if (!json.data?.[0]) return null;
+    return {
+      value: parseInt(json.data[0].value),
+      classification: json.data[0].value_classification,
+    };
+  } catch { return null; }
+}
+
+// ---- DXY (US Dollar Index — calculated from ECB forex rates) ----
+async function fetchDXY(): Promise<{ dxy: number } | null> {
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,JPY,GBP,CAD,SEK,CHF');
+    if (!res.ok) return null;
+    const json = await res.json() as { rates: { EUR: number; JPY: number; GBP: number; CAD: number; SEK: number; CHF: number } };
+    const r = json.rates;
+    // ICE DXY formula: 50.14348112 × (1/EUR)^0.576 × JPY^0.136 × (1/GBP)^0.119 × CAD^0.091 × SEK^0.042 × CHF^0.036
+    const dxy = 50.14348112
+      * Math.pow(1 / r.EUR, 0.576)
+      * Math.pow(r.JPY, 0.136)
+      * Math.pow(1 / r.GBP, 0.119)
+      * Math.pow(r.CAD, 0.091)
+      * Math.pow(r.SEK, 0.042)
+      * Math.pow(r.CHF, 0.036);
+    return { dxy: parseFloat(dxy.toFixed(2)) };
+  } catch { return null; }
+}
+
 // ============================================================
 // HANDLER — Runs all intelligence pipelines in parallel
 // ============================================================
@@ -463,14 +546,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startMs = Date.now();
 
   try {
-    // Run all intelligence sources in parallel (5 pipelines)
-    const [rawSignals, polyConsensus, recentCycles, livePrices, fundingRates] = await Promise.all([
+    // Run all intelligence sources in parallel (9 pipelines)
+    const [rawSignals, polyConsensus, recentCycles, livePrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData] = await Promise.allSettled([
       collectDexSignals(),
       collectPolymarketIntelligence(),
       fetchRecentCycles(5),
       fetchLivePrices(),
       fetchFundingRates(),
-    ]);
+      fetchOpenInterest(),
+      fetchTopTradersLSRatio(),
+      fetchFearGreed(),
+      fetchDXY(),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : (r.status === 'rejected' ? (console.warn('[Bobby Intel] pipeline failed:', r.reason), null) : null))) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null];
 
     const filtered = filterSignals(rawSignals);
     const signalAgeMs = 0; // Fresh signals, just collected
@@ -530,7 +617,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const latencyMs = Date.now() - startMs;
 
     // Build the intelligence briefing text for Bobby's brain
-    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices, fundingRates, performance, regime, latencyMs);
+    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData);
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
@@ -539,8 +626,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       briefing,           // Pre-formatted XML-tagged block for injection into LLM context
       signals: signalsWithConviction,
       polymarket: polyFormatted,
-      prices: livePrices,
-      fundingRates,
+      prices: livePrices || [],
+      fundingRates: fundingRates || [],
+      openInterest: openInterest || [],
+      topTradersLS: topTradersLS || [],
+      fearGreed,
+      dxy: dxyData,
       performance,
       regime: regime.label,
       meta: {
@@ -569,6 +660,10 @@ function buildBriefing(
   performance: { winRate: number; mood: string; isSafeMode: boolean },
   regime: { regime: MarketRegime; label: string },
   latencyMs: number,
+  openInterest: OpenInterestData[],
+  topTradersLS: LongShortRatio[],
+  fearGreed: FearGreedData | null,
+  dxyData: { dxy: number } | null,
 ): string {
   const blocks: string[] = [];
 
@@ -618,6 +713,37 @@ function buildBriefing(
     blocks.push(`<PREDICTION_MARKETS count="${polymarket.length}">\n${JSON.stringify(polyData)}\n</PREDICTION_MARKETS>`);
   } else {
     blocks.push(`<PREDICTION_MARKETS count="0">No strong smart money consensus detected.</PREDICTION_MARKETS>`);
+  }
+
+  // Open Interest (crowded trade detection)
+  if (openInterest.length > 0) {
+    const oiData = openInterest.map(o => ({
+      symbol: o.symbol,
+      open_interest_contracts: o.oi,
+      open_interest_coins: parseFloat(o.oiCcy.toFixed(2)),
+    }));
+    blocks.push(`<OPEN_INTEREST>\n${JSON.stringify(oiData)}\n</OPEN_INTEREST>`);
+  }
+
+  // Top traders long/short ratio (smart money positioning)
+  if (topTradersLS.length > 0) {
+    const lsData = topTradersLS.map(ls => ({
+      symbol: ls.symbol,
+      top_traders_long_pct: ls.longRatio,
+      top_traders_short_pct: ls.shortRatio,
+      bias: ls.longRatio > 60 ? 'HEAVILY_LONG' : ls.shortRatio > 60 ? 'HEAVILY_SHORT' : 'BALANCED',
+    }));
+    blocks.push(`<TOP_TRADERS_POSITIONING>\n${JSON.stringify(lsData)}\n</TOP_TRADERS_POSITIONING>`);
+  }
+
+  // Fear & Greed Index (market sentiment)
+  if (fearGreed) {
+    blocks.push(`<SENTIMENT>\n${JSON.stringify({ fear_greed_index: fearGreed.value, classification: fearGreed.classification, signal: fearGreed.value <= 25 ? 'EXTREME_FEAR_BUY_ZONE' : fearGreed.value >= 75 ? 'EXTREME_GREED_SELL_ZONE' : 'NEUTRAL' })}\n</SENTIMENT>`);
+  }
+
+  // DXY (US Dollar strength — inverse correlation with crypto)
+  if (dxyData) {
+    blocks.push(`<MACRO_CONTEXT>\n${JSON.stringify({ dxy_index: dxyData.dxy, interpretation: dxyData.dxy > 104 ? 'STRONG_DOLLAR_HEADWIND' : dxyData.dxy < 100 ? 'WEAK_DOLLAR_TAILWIND' : 'NEUTRAL_DOLLAR' })}\n</MACRO_CONTEXT>`);
   }
 
   // Performance / metacognition
