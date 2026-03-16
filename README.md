@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/bobby-cover.png" alt="Bobby Agent Trader — It doesn't just trade. It thinks. Trading with Metacognition." width="100%" />
+![Bobby Agent Trader — It doesn't just trade. It thinks. Trading with Metacognition.](./public/bobby-cover.png)
 
 # Bobby Agent Trader
 
