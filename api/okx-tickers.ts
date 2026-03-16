@@ -9,7 +9,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OKX_BASE = 'https://www.okx.com';
 
-const DEFAULT_INSTRUMENTS = ['BTC-USDT', 'ETH-USDT', 'OKB-USDT', 'SOL-USDT', 'MATIC-USDT'];
+const DEFAULT_INSTRUMENTS = ['BTC-USDT', 'ETH-USDT', 'OKB-USDT', 'SOL-USDT', 'MATIC-USDT', 'XAUT-USDT', 'PAXG-USDT'];
+// XAG (silver) is only available as SWAP, handled separately
+const SWAP_INSTRUMENTS = ['XAG-USDT-SWAP'];
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, {
@@ -73,6 +75,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await Promise.all(fundingPromises);
     }
 
+    // Also fetch SWAP tickers for commodities like XAG (silver)
+    let swapTickerMap = new Map<string, RawTicker>();
+    try {
+      const swapTickers = await fetchJSON<RawTicker[]>(
+        `${OKX_BASE}/api/v5/market/tickers?instType=SWAP`
+      );
+      swapTickerMap = new Map(swapTickers.map(t => [t.instId, t]));
+    } catch { /* non-critical */ }
+
     const tickers = instruments.map(inst => {
       const t = tickerMap.get(inst);
       if (!t) return null;
@@ -98,6 +109,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } : null,
       };
     }).filter(Boolean);
+
+    // Add SWAP-only instruments (XAG silver)
+    for (const swapInst of SWAP_INSTRUMENTS) {
+      const st = swapTickerMap.get(swapInst);
+      if (!st) continue;
+      const last = parseFloat(st.last);
+      const open24h = parseFloat(st.open24h);
+      const change24h = open24h > 0 ? ((last - open24h) / open24h) * 100 : 0;
+      const symbol = swapInst.split('-')[0]; // XAG
+      tickers.push({
+        instId: swapInst,
+        symbol,
+        last,
+        high24h: parseFloat(st.high24h),
+        low24h: parseFloat(st.low24h),
+        vol24h: parseFloat(st.volCcy24h),
+        change24h: parseFloat(change24h.toFixed(2)),
+        funding: null,
+      });
+    }
 
     // Cache 30 seconds
     res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=15');

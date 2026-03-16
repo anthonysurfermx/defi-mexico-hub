@@ -13,7 +13,7 @@ import { AdvisorSetup, useAdvisorProfile } from '@/components/agent-radar/Adviso
 import type { AdvisorProfile } from '@/components/agent-radar/AdvisorSetup';
 import { fetchTickers, fetchMarketDetail, formatVolume, type OKXTicker } from '@/services/okx-market.service';
 import { SwapConfirm, type TradeExecution } from './SwapConfirm';
-import { VoiceOrb } from './VoiceOrb';
+import { VoiceOrb, type OrbState } from './VoiceOrb';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 
 // ---- Supabase ----
@@ -50,6 +50,10 @@ const TOKEN_MAP: Record<string, string> = {
   sol: 'SOL-USDT', solana: 'SOL-USDT',
   okb: 'OKB-USDT',
   matic: 'MATIC-USDT', polygon: 'MATIC-USDT',
+  // Commodities — Bobby is a Macro-Sovereign Agent
+  gold: 'XAUT-USDT', oro: 'XAUT-USDT', xaut: 'XAUT-USDT', xau: 'XAUT-USDT',
+  paxg: 'PAXG-USDT', 'pax gold': 'PAXG-USDT',
+  silver: 'XAG-USDT-SWAP', plata: 'XAG-USDT-SWAP', xag: 'XAG-USDT-SWAP',
 };
 
 function detectTokens(text: string): string[] {
@@ -212,10 +216,14 @@ function fmtPrice(n: number): string {
 
 // ---- Inline Price Card ----
 
-function InlinePriceCard({ price }: { price: PriceCard }) {
+function InlinePriceCard({ price, highlighted }: { price: PriceCard; highlighted?: boolean }) {
   const isUp = price.change24h >= 0;
   return (
-    <div className="border border-neutral-700/50 bg-neutral-900/50 rounded-lg p-3 font-mono text-[11px]">
+    <div className={`border rounded-lg p-3 font-mono text-[11px] transition-all duration-500 ${
+      highlighted
+        ? 'border-green-500/40 bg-green-500/[0.06] shadow-[0_0_20px_rgba(34,197,94,0.15)]'
+        : 'border-neutral-700/50 bg-neutral-900/50'
+    }`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-white">{price.symbol}</span>
@@ -379,6 +387,8 @@ export function AdamsChat() {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
+  const [highlightedSymbols, setHighlightedSymbols] = useState<Set<string>>(new Set());
+  const highlightTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -407,6 +417,35 @@ export function AdamsChat() {
     lastSpokenRef.current = text;
     speak(clean);
   }, [voiceEnabled, speak]);
+
+  // ---- Keyword-to-UI: scan streaming text and highlight mentioned symbols ----
+  const scanAndHighlight = useCallback((text: string) => {
+    const symbols = ['BTC', 'ETH', 'SOL', 'OKB', 'MATIC', 'XAUT', 'PAXG', 'XAG', 'GOLD', 'ORO', 'PLATA', 'SILVER', 'NVDA'];
+    const upper = text.toUpperCase();
+    for (const sym of symbols) {
+      if (upper.includes(sym)) {
+        // Normalize to display symbol
+        const displaySym = sym === 'GOLD' || sym === 'ORO' ? 'XAUT' : sym === 'PLATA' || sym === 'SILVER' ? 'XAG' : sym;
+        // 200ms delay — feels like Bobby is "calling" the data
+        const existingTimeout = highlightTimeoutRef.current.get(displaySym);
+        if (!existingTimeout) {
+          const t = setTimeout(() => {
+            setHighlightedSymbols(prev => new Set(prev).add(displaySym));
+            // Auto-remove highlight after 4 seconds
+            setTimeout(() => {
+              setHighlightedSymbols(prev => {
+                const next = new Set(prev);
+                next.delete(displaySym);
+                return next;
+              });
+              highlightTimeoutRef.current.delete(displaySym);
+            }, 4000);
+          }, 200);
+          highlightTimeoutRef.current.set(displaySym, t);
+        }
+      }
+    }
+  }, []);
 
   // ---- Speech Recognition (user talks back to Bobby) ----
   const [isListening, setIsListening] = useState(false);
@@ -460,12 +499,15 @@ export function AdamsChat() {
     if (!profile?.walletAddress) return;
     fetchDBMessages(profile.walletAddress).then(dbMsgs => {
       if (dbMsgs.length === 0) {
-        // Proactive: show prices in welcome message
+        // First time onboarding — Bobby introduces himself
+        const introText = `I'm Bobby Agent Trader. Not a trading bot — I'm your agent with metacognition. I scan whale flows, cross-reference smart money, and debate myself before I speak. Crypto, gold, silver — I see it all.\n\nAre you ready?`;
+
         fetchTickers().then(tickers => {
           tickerCacheRef.current = tickers;
           const btc = tickers.find(t => t.symbol === 'BTC');
           const eth = tickers.find(t => t.symbol === 'ETH');
-          const priceCards: PriceCard[] = [btc, eth].filter(Boolean).map(t => ({
+          const gold = tickers.find(t => t.symbol === 'XAUT');
+          const priceCards: PriceCard[] = [btc, eth, gold].filter(Boolean).map(t => ({
             symbol: t!.symbol,
             price: t!.last,
             change24h: t!.change24h,
@@ -478,17 +520,23 @@ export function AdamsChat() {
           setMessages([{
             id: 'welcome',
             role: 'advisor',
-            text: `${advisorName} here. I scan OKX whale flows + Polymarket smart money every ${profile.scanIntervalHours || 8}h. When I find a divergence between what the crowd believes and what the money does — that's where we strike.\n\nHere's what the market looks like right now:`,
+            text: introText,
             timestamp: Date.now(),
             prices: priceCards,
+            isLive: true,
           }]);
+
+          // Auto-speak the introduction
+          speakIfEnabled(introText);
         }).catch(() => {
           setMessages([{
             id: 'welcome',
             role: 'advisor',
-            text: `${advisorName} here. OKX data feed is warming up — ask me anything. Try a token name, "Analyze Market" for a full scan, or just talk to me. I don't bite. Much.`,
+            text: introText,
             timestamp: Date.now(),
+            isLive: true,
           }]);
+          speakIfEnabled(introText);
         });
         return;
       }
@@ -882,6 +930,8 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
+                // Keyword-to-UI: scan as text flows in
+                scanAndHighlight(delta);
               }
             } catch { /* skip non-JSON lines */ }
           }
@@ -919,118 +969,209 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, scanAndHighlight]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
 
+  // ---- Orb state ----
+  const orbState: OrbState = isListening ? 'listening' : isSpeaking ? 'speaking' : isProcessing ? 'thinking' : 'idle';
+
+  // Get the latest advisor message for the "stage" display
+  const latestAdvisor = [...messages].reverse().find(m => m.role === 'advisor');
+  const latestUser = [...messages].reverse().find(m => m.role === 'user');
+
   return (
-    <div className="h-[calc(100vh-4rem)] bg-black text-white flex flex-col">
+    <div className="h-[calc(100vh-4rem)] text-white flex flex-col" style={{ background: '#050505' }}>
       {showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
 
-      {/* Header */}
-      <div className="flex-shrink-0 border-b border-white/[0.06] bg-black">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* ===== MINIMAL HEADER BAR ===== */}
+      <div className="flex-shrink-0 border-b border-white/[0.04]">
+        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/agentic-world" className="text-white/20 hover:text-white/50 transition-colors">
-              <ArrowLeft className="w-4 h-4" />
+            <Link to="/agentic-world" className="text-white/15 hover:text-white/40 transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
-            {/* Avatar / VoiceOrb — swaps when Bobby speaks */}
-            {isSpeaking ? (
-              <VoiceOrb analyser={analyser} isSpeaking={isSpeaking} mood="confident" onToggleMute={toggleVoice} isMuted={!voiceEnabled} />
-            ) : (
-              <div className="w-8 h-8 border border-green-500/20 bg-green-500/5 flex items-center justify-center">
-                <span className="text-[11px] font-bold text-green-400">{advisorName.charAt(0).toUpperCase()}</span>
-              </div>
-            )}
-            <div>
-              <h1 className="text-[14px] font-semibold text-white/90">{advisorName}</h1>
-              <p className="text-[10px] text-white/30 font-mono">
-                {isSpeaking ? 'Speaking...' : isProcessing ? 'Working...' : 'Online'} · Scans every {profile?.scanIntervalHours || 8}h
-              </p>
-            </div>
+            <span className="text-[12px] font-mono font-bold text-white/40 tracking-[1px]">{advisorName.toUpperCase()}</span>
+            <span className="text-[9px] font-mono text-white/15">
+              {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Voice toggle */}
+          <div className="flex items-center gap-1.5">
             <button onClick={toggleVoice}
-              className={`p-2 border transition-colors ${voiceEnabled ? 'border-green-500/30 text-green-400 hover:bg-green-500/10' : 'border-white/[0.06] text-white/20 hover:border-white/20 hover:text-white/40'}`}
-              title={voiceEnabled ? 'Voice ON — click to mute' : 'Voice OFF — click to enable'}>
+              className={`p-1.5 transition-colors ${voiceEnabled ? 'text-green-400/70 hover:text-green-400' : 'text-white/15 hover:text-white/30'}`}
+              title={voiceEnabled ? 'Voice ON' : 'Voice OFF'}>
               {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
             {address ? (
-              <button onClick={() => openWallet()}
-                className="flex items-center gap-1.5 text-[11px] text-green-400/70 border border-green-500/20 px-2.5 py-1.5 hover:bg-green-500/10 transition-colors font-mono">
-                <Wallet className="w-3 h-3" />
+              <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-2">
                 {address.slice(0, 6)}...{address.slice(-4)}
               </button>
             ) : (
-              <button onClick={() => openWallet()}
-                className="flex items-center gap-1.5 text-[11px] text-green-400 border border-green-500/30 px-2.5 py-1.5 hover:bg-green-500/10 transition-colors">
-                <Wallet className="w-3 h-3" />
+              <button onClick={() => openWallet()} className="text-[10px] text-green-400/50 hover:text-green-400 transition-colors px-2 font-mono">
                 Connect
               </button>
             )}
             {isConnected && profile && (
-              <button onClick={() => setShowSetup(true)}
-                className="p-2 border border-white/[0.06] hover:border-white/20 transition-colors">
-                <Settings className="w-3.5 h-3.5 text-white/30" />
-              </button>
-            )}
-            {isConnected && !profile && (
-              <button onClick={() => setShowSetup(true)}
-                className="text-[11px] text-green-400/60 border border-green-500/20 px-3 py-1.5 hover:bg-green-500/10 transition-colors">
-                Setup
+              <button onClick={() => setShowSetup(true)} className="text-white/10 hover:text-white/30 transition-colors p-1.5">
+                <Settings className="w-3 h-3" />
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-          {messages.map((msg, i) => (
-            <ChatBubble key={msg.id} msg={msg} advisorName={advisorName}
-              isLatest={i === messages.length - 1 && msg.role === 'advisor'} walletAddress={address} />
-          ))}
+      {/* ===== COMMAND CENTER: ORB + STAGE ===== */}
+      <div className="flex-1 overflow-y-auto flex flex-col" ref={scrollRef}>
+        <div className="max-w-4xl mx-auto w-full px-4 flex flex-col items-center flex-1">
+
+          {/* THE ORB — always visible, center stage */}
+          <div className="flex-shrink-0 py-6 sm:py-8">
+            <VoiceOrb analyser={analyser} state={orbState} mood="confident" size={140} />
+          </div>
+
+          {/* ANALYSIS PHASES — thinking state */}
           <AnimatePresence>
             {isProcessing && analysisPhases.length > 0 && (
-              <LiveAnalysisBubble phases={analysisPhases} advisorName={advisorName} />
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="w-full max-w-md mb-4"
+              >
+                <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 space-y-1.5">
+                  {analysisPhases.map((phase, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-2 font-mono text-[10px]">
+                      <span className={i === analysisPhases.length - 1 ? 'text-green-400' : 'text-white/15'}>{i === analysisPhases.length - 1 ? '>' : '+'}</span>
+                      <span className={i === analysisPhases.length - 1 ? 'text-green-300/80' : 'text-white/25'}>{phase}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
-          <div ref={messagesEndRef} />
+
+          {/* THE STAGE — Bobby's latest response + data panels */}
+          <div className="w-full flex-1 space-y-3 pb-4">
+            {/* Latest Bobby message — the main "stage" text */}
+            {latestAdvisor && (
+              <motion.div
+                key={latestAdvisor.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="w-full max-w-2xl mx-auto"
+              >
+                <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-5">
+                  <div className="text-[13px] leading-relaxed text-white/80 font-mono whitespace-pre-line">
+                    {latestAdvisor === messages[messages.length - 1] && latestAdvisor.isLive !== false ? (
+                      <Typewriter text={latestAdvisor.text} speed={6} />
+                    ) : (
+                      latestAdvisor.text
+                    )}
+                  </div>
+                </div>
+
+                {/* Trade execution cards */}
+                {latestAdvisor.trades && latestAdvisor.trades.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {latestAdvisor.trades.map((trade, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                        <SwapConfirm trade={trade} walletAddress={address} />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* DATA PANELS — price cards emerge from darkness */}
+            {latestAdvisor?.prices && latestAdvisor.prices.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="w-full max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3"
+              >
+                {latestAdvisor.prices.map((p, i) => (
+                  <motion.div
+                    key={p.symbol}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                  >
+                    <InlinePriceCard price={p} highlighted={highlightedSymbols.has(p.symbol)} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* CONVERSATION HISTORY — compact, behind the stage */}
+            {messages.length > 1 && (
+              <div className="w-full max-w-2xl mx-auto pt-4 border-t border-white/[0.03]">
+                <div className="space-y-2">
+                  {messages.slice(0, -1).map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] px-3 py-1.5 text-[11px] ${
+                        msg.role === 'user'
+                          ? 'bg-white/[0.06] text-white/50'
+                          : 'text-white/30 font-mono'
+                      }`}>
+                        {msg.text.length > 200 ? msg.text.slice(0, 200) + '...' : msg.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
         </div>
       </div>
 
-      {/* Quick Actions + Input */}
-      <div className="flex-shrink-0 border-t border-white/[0.06] bg-black">
-        <div className="max-w-2xl mx-auto px-4 pt-2.5 pb-0">
-          <QuickActions onAction={sendMessage} disabled={isProcessing} />
+      {/* ===== INPUT BAR — Bottom ===== */}
+      <div className="flex-shrink-0 border-t border-white/[0.04]" style={{ background: '#080808' }}>
+        <div className="max-w-4xl mx-auto px-4 pt-2 pb-1">
+          <div className="flex gap-2 flex-wrap justify-center">
+            {[
+              { label: 'BTC', icon: '₿' },
+              { label: 'ETH', icon: 'Ξ' },
+              { label: 'Gold', icon: '◆' },
+              { label: 'Silver', icon: '◇' },
+              { label: 'All Prices', icon: '$' },
+              { label: 'Analyze Market', icon: '>' },
+            ].map(a => (
+              <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
+                className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono">
+                <span className="text-green-400/60">{a.icon}</span>
+                {a.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-          {/* Mic button */}
+        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-2">
           <button onClick={toggleListening} disabled={isProcessing}
-            className={`w-10 h-10 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 ${
+            className={`w-9 h-9 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 rounded-full ${
               isListening
-                ? 'bg-red-500 border-red-500 text-white animate-pulse'
-                : 'border-white/[0.08] text-white/30 hover:border-green-500/30 hover:text-green-400'
-            }`}
-            title={isListening ? 'Listening...' : 'Hold to talk'}>
-            {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
+                : 'border-white/[0.06] text-white/20 hover:border-green-500/20 hover:text-green-400/60'
+            }`}>
+            {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
           </button>
           <input type="text" value={inputText}
             onChange={e => setInputText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder={isListening ? 'Listening...' : `Ask ${advisorName} — try "BTC" or "Analyze Market"...`}
-            className={`flex-1 bg-transparent border px-4 py-2.5 text-[14px] text-white placeholder:text-white/20 outline-none transition-colors ${
-              isListening ? 'border-red-500/30 placeholder:text-red-400/50' : 'border-white/[0.08] focus:border-white/20'
+            placeholder={isListening ? 'Listening...' : `Talk to ${advisorName}...`}
+            className={`flex-1 bg-transparent border-0 border-b px-3 py-2 text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
+              isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
             }`}
             disabled={isProcessing} />
           <button onClick={() => sendMessage()} disabled={!inputText.trim() || isProcessing}
-            className={`w-10 h-10 flex items-center justify-center border transition-all active:scale-[0.95] ${
-              inputText.trim() && !isProcessing ? 'bg-white border-white text-black' : 'border-white/[0.08] text-white/20 cursor-not-allowed'
+            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-[0.95] rounded-full ${
+              inputText.trim() && !isProcessing ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'text-white/10 cursor-not-allowed'
             }`}>
-            {isProcessing ? <Activity className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
+            {isProcessing ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>

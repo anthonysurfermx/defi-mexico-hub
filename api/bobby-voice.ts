@@ -7,8 +7,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
-// "Adam" — deep masculine voice, authoritative
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB';
+// "Daniel" — sophisticated, mature, 40-50s, controlled cadence — Bobby Axelrod energy
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
