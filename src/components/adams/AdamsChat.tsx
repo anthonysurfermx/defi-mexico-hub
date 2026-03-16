@@ -4,7 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock, LogOut, Trash2, MoreVertical, X, Share2, Download } from 'lucide-react';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock, LogOut, Trash2, MoreVertical, X, Share2, Download, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -640,6 +640,16 @@ export function AdamsChat() {
     try { localStorage.setItem('bobby_voice_enabled', String(next)); } catch {}
     if (!next) stopVoice();
   }, [voiceEnabled, stopVoice]);
+
+  // ---- Trading Room mode (multi-agent debate with 3 voices) ----
+  const [tradingRoom, setTradingRoom] = useState(() => {
+    try { return localStorage.getItem('bobby_trading_room') === 'true'; } catch { return false; }
+  });
+  const toggleTradingRoom = useCallback(() => {
+    const next = !tradingRoom;
+    setTradingRoom(next);
+    try { localStorage.setItem('bobby_trading_room', String(next)); } catch {}
+  }, [tradingRoom]);
 
   // Auto-speak new advisor messages when voice is enabled
   const lastSpokenRef = useRef<string>('');
@@ -1616,6 +1626,11 @@ export function AdamsChat() {
         }
       } catch (err) { console.warn('[Bobby] ❌ context enrichment failed:', err); }
 
+      // Trading Room mode: inject debate instruction
+      if (tradingRoom) {
+        enrichedMessage += '\n\n[TRADING ROOM MODE ACTIVE: You MUST respond as three distinct agents. Start with **ALPHA HUNTER:** (bull case, 1-2 paragraphs), then **RED TEAM:** (bear case, destroy the thesis, 1-2 paragraphs), then **MY VERDICT:** (Bobby CIO decides, conviction score + specific play). Each agent has a different voice — make their personalities distinct.]';
+      }
+
       console.log('[Bobby] 📤 Sending to OpenClaw:', enrichedMessage.substring(0, 300), enrichedMessage.length > 300 ? `... (${enrichedMessage.length} total chars)` : '');
       const res = await fetch('/api/openclaw-chat', {
         method: 'POST',
@@ -1943,6 +1958,11 @@ export function AdamsChat() {
               className={`p-1.5 transition-colors ${voiceEnabled ? 'text-green-400/70 hover:text-green-400' : 'text-white/15 hover:text-white/30'}`}
               title={voiceEnabled ? 'Voice ON' : 'Voice OFF'}>
               {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            </button>
+            <button onClick={toggleTradingRoom}
+              className={`p-1.5 transition-colors ${tradingRoom ? 'text-yellow-400/70 hover:text-yellow-400' : 'text-white/15 hover:text-white/30'}`}
+              title={tradingRoom ? 'Trading Room ON' : 'Solo Trader'}>
+              <Users className="w-3.5 h-3.5" />
             </button>
             {address ? (
               <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-1">
