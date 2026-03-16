@@ -398,7 +398,10 @@ export function AdamsChat() {
   // ---- Bobby's Voice ----
   const { speak, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
-    try { return localStorage.getItem('bobby_voice_enabled') === 'true'; } catch { return false; }
+    try {
+      const stored = localStorage.getItem('bobby_voice_enabled');
+      return stored === null ? true : stored === 'true'; // ON by default for first-time users
+    } catch { return true; }
   });
   const toggleVoice = useCallback(() => {
     const next = !voiceEnabled;
@@ -517,17 +520,25 @@ export function AdamsChat() {
             funding: t!.funding,
           }));
 
+          // Start with just the text — typewriter + voice simultaneously
           setMessages([{
             id: 'welcome',
             role: 'advisor',
             text: introText,
             timestamp: Date.now(),
-            prices: priceCards,
             isLive: true,
           }]);
 
-          // Auto-speak the introduction
-          speakIfEnabled(introText);
+          // Auto-speak the introduction (direct call, not gated by speakIfEnabled)
+          const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
+          speak(cleanIntro);
+
+          // Price cards appear 2.5s later — WHILE Bobby is still speaking
+          setTimeout(() => {
+            setMessages(prev => prev.map(m =>
+              m.id === 'welcome' ? { ...m, prices: priceCards } : m
+            ));
+          }, 2500);
         }).catch(() => {
           setMessages([{
             id: 'welcome',
@@ -536,7 +547,8 @@ export function AdamsChat() {
             timestamp: Date.now(),
             isLive: true,
           }]);
-          speakIfEnabled(introText);
+          const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
+          speak(cleanIntro);
         });
         return;
       }
@@ -560,6 +572,7 @@ export function AdamsChat() {
       }
       setMessages(chatMsgs);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.walletAddress, advisorName]);
 
   // Auto-scroll
@@ -905,12 +918,20 @@ export function AdamsChat() {
         let fullText = '';
         const replyId = uid();
 
-        // Add empty advisor message with price cards already visible
+        // Add empty advisor message — price cards will appear mid-speech
         setMessages(prev => [...prev, {
           id: replyId, role: 'advisor', timestamp: Date.now(),
           text: '', isLive: false,
-          prices: responsePrices.length > 0 ? responsePrices : undefined,
         }]);
+
+        // Price cards appear 1.5s later — WHILE Bobby is speaking
+        if (responsePrices.length > 0) {
+          setTimeout(() => {
+            setMessages(prev => prev.map(m =>
+              m.id === replyId ? { ...m, prices: responsePrices } : m
+            ));
+          }, 1500);
+        }
 
         while (true) {
           const { done, value } = await reader.read();
