@@ -1714,28 +1714,23 @@ export function AdamsChat() {
         let sentenceBuffer = '';
         const sentenceSplitter = /(?<=[.!?])\s+|(?<=\n\n)/;
 
-        // Detect which agent is speaking based on markers in the text
+        // Detect which agent is speaking based on section headers (not inline mentions)
+        // Only match markers that appear as headers: after newline or at start, with ** bold **
         let currentVoice: string = 'cio';
         const detectAgent = (text: string) => {
-          // Find the LAST agent marker — flexible matching (bold, plain, caps, partial)
-          const patterns: Array<[RegExp, string, 'alpha' | 'redteam' | 'cio']> = [
-            [/alpha\s*hunter/gi, 'alpha', 'alpha'],
-            [/red\s*team/gi, 'redteam', 'redteam'],
-            [/my\s*verdict/gi, 'cio', 'cio'],
-            [/mi\s*veredicto/gi, 'cio', 'cio'],
-            [/my\s*play/gi, 'cio', 'cio'],
-            [/bobby.*decides/gi, 'cio', 'cio'],
-          ];
+          // Match ONLY section headers like "**ALPHA HUNTER:**" — not inline mentions like "Red Team's concerns"
+          const headerPattern = /\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT|MI\s*VEREDICTO)\s*:?\s*\*\*/gi;
           let lastIdx = -1;
           let lastAgent: 'alpha' | 'redteam' | 'cio' = 'cio';
-          for (const [regex, , agent] of patterns) {
-            let match: RegExpExecArray | null;
-            regex.lastIndex = 0;
-            while ((match = regex.exec(text)) !== null) {
-              if (match.index > lastIdx) {
-                lastIdx = match.index;
-                lastAgent = agent;
-              }
+          let match: RegExpExecArray | null;
+          headerPattern.lastIndex = 0;
+          while ((match = headerPattern.exec(text)) !== null) {
+            if (match.index > lastIdx) {
+              lastIdx = match.index;
+              const label = match[1].toLowerCase().replace(/\s+/g, '');
+              if (label.includes('alpha')) lastAgent = 'alpha';
+              else if (label.includes('red')) lastAgent = 'redteam';
+              else lastAgent = 'cio';
             }
           }
           if (lastIdx >= 0 && lastAgent !== currentVoice) {
