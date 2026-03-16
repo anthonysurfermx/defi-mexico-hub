@@ -14,6 +14,7 @@ import type { AdvisorProfile } from '@/components/agent-radar/AdvisorSetup';
 import { fetchTickers, fetchMarketDetail, formatVolume, type OKXTicker } from '@/services/okx-market.service';
 import { SwapConfirm, type TradeExecution } from './SwapConfirm';
 import { VoiceOrb, type OrbState } from './VoiceOrb';
+import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 
 // ---- Supabase ----
@@ -153,6 +154,10 @@ interface ChatMsg {
   isLive?: boolean;
   trades?: TradeExecution[];
   prices?: PriceCard[];
+  debate?: DebateData;
+  metacognition?: MetacognitionData;
+  topSignals?: SignalData[];
+  polymarket?: PolyData[];
 }
 
 // ---- Typewriter ----
@@ -761,6 +766,14 @@ export function AdamsChat() {
     if (intent === 'analyze') {
       setIsProcessing(true);
       setAnalysisPhases([]);
+
+      // Bobby announces the full scan — voice filler during the 2min cycle
+      const analyzeFillers = [
+        "Alright, full scan. I'm deploying the Alpha Hunter, Red Team, and running the dialectic. This takes a minute — I don't rush decisions.",
+        "Running the complete intelligence cycle. Three agents debating your money. Give me a moment.",
+        "Initiating sovereign scan. Whale signals, Polymarket consensus, conviction scoring. The real work starts now.",
+      ];
+      speakIfEnabled(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
       phaseTimerRef.current.forEach(clearTimeout);
       phaseTimerRef.current = [];
 
@@ -825,22 +838,33 @@ export function AdamsChat() {
             } catch {}
           }
 
-          const newMsgs: ChatMsg[] = [{
+          const mainMsg: ChatMsg = {
             id: uid(), role: 'advisor', timestamp: Date.now(),
             text: greetingText, isLive: true,
             trades: trades.length > 0 ? trades : undefined,
-          }];
+          };
 
-          // The Axe Retort — show why Bobby almost said no
-          if (data.debate?.redTeamView && data.debate?.judgeVerdict) {
-            newMsgs.push({
-              id: uid(), role: 'advisor', timestamp: Date.now() + 1,
-              text: `--- Why I almost said no ---\n${data.debate.redTeamView}\n\n--- My verdict ---\n${data.debate.judgeVerdict}`,
-              isLive: false,
-            });
+          // Attach Intelligence Feed data — visible metacognition
+          if (data.debate?.alphaView || data.debate?.redTeamView || data.debate?.judgeVerdict) {
+            mainMsg.debate = {
+              alphaView: data.debate.alphaView || '',
+              redTeamView: data.debate.redTeamView || '',
+              judgeVerdict: data.debate.judgeVerdict || '',
+              selfOptimized: data.debate.selfOptimized,
+              sizingMethod: data.debate.sizingMethod,
+            };
+          }
+          if (data.metacognition) {
+            mainMsg.metacognition = data.metacognition;
+          }
+          if (data.topSignals) {
+            mainMsg.topSignals = data.topSignals;
+          }
+          if (data.polymarket) {
+            mainMsg.polymarket = data.polymarket;
           }
 
-          setMessages(prev => [...prev, ...newMsgs]);
+          setMessages(prev => [...prev, mainMsg]);
           speakIfEnabled(greetingText);
         } else {
           // API returned ok:false — still show what we got
@@ -875,15 +899,42 @@ export function AdamsChat() {
     // ========================
     setIsProcessing(true);
 
-    // Fetch price data in parallel if tokens mentioned (Bobby shows data while he talks)
+    // Voice filler — Bobby "thinks out loud" while intelligence loads
+    // Transforms network lag into narrative tension
+    const FILLERS_EN = [
+      "The tape is moving fast, let me cross-reference the flows...",
+      "Give me a second, I'm scanning the whale activity...",
+      "Let me check what the smart money is doing...",
+      "Interesting question. Let me pull the real data before I answer...",
+      "Hold on, I want to see what's actually happening on-chain...",
+    ];
+    const FILLERS_ES = [
+      "El mercado se mueve rápido, déjame cruzar los flujos...",
+      "Un momento, estoy escaneando la actividad de las ballenas...",
+      "Déjame revisar qué está haciendo el smart money...",
+      "Pregunta interesante. Déjame jalar los datos reales...",
+      "Espera, quiero ver qué está pasando realmente on-chain...",
+    ];
+    const isSpanish = msg.match(/[áéíóúñ¿¡]/) || msg.match(/\b(qué|cómo|cuál|quiero|opinas|crees|dime)\b/i);
+    const fillers = isSpanish ? FILLERS_ES : FILLERS_EN;
+    const filler = fillers[Math.floor(Math.random() * fillers.length)];
+    speakIfEnabled(filler);
+
+    // Fetch FULL intelligence + price data in parallel (Bobby's brain needs everything)
     const contextPricesPromise = tokens.length > 0 ? getPriceCards(tokens) : Promise.resolve([]);
+    const intelPromise = fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null);
 
     try {
-      // Enrich the message with live market context so Bobby has real data
+      // Enrich the message with FULL intelligence context — whale signals, Polymarket, conviction
       let enrichedMessage = msg;
       try {
-        const contextPrices = await contextPricesPromise;
-        if (contextPrices.length > 0) {
+        const [contextPrices, intel] = await Promise.all([contextPricesPromise, intelPromise]);
+
+        // Bobby's brain: inject the full intelligence briefing
+        if (intel?.briefing) {
+          enrichedMessage = `${msg}\n\n${intel.briefing}`;
+        } else if (contextPrices.length > 0) {
+          // Fallback: at least inject price context
           const priceContext = contextPrices.map(p =>
             `${p.symbol}: $${fmtPrice(p.price)} (${p.change24h > 0 ? '+' : ''}${p.change24h.toFixed(2)}% 24h, vol ${formatVolume(p.vol24h)}${p.funding ? `, funding ${(p.funding.rate * 100).toFixed(4)}%` : ''})`
           ).join('; ');
@@ -1104,6 +1155,17 @@ export function AdamsChat() {
                   </div>
                 )}
               </motion.div>
+            )}
+
+            {/* INTELLIGENCE FEED — visible metacognition (debate Alpha vs Red Team vs Bobby CIO) */}
+            {latestAdvisor?.debate && (
+              <IntelligenceFeed
+                debate={latestAdvisor.debate}
+                metacognition={latestAdvisor.metacognition}
+                topSignals={latestAdvisor.topSignals}
+                polymarket={latestAdvisor.polymarket}
+                isLive={latestAdvisor === messages[messages.length - 1]}
+              />
             )}
 
             {/* DATA PANELS — price cards emerge from darkness */}

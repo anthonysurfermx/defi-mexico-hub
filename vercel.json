@@ -62,6 +62,10 @@
     "api/bobby-voice.ts": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/bobby-intel.ts": {
+      "maxDuration": 30,
+      "memory": 512
     }
   }
 }
