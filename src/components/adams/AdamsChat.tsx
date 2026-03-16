@@ -388,7 +388,21 @@ export function AdamsChat() {
   const { address } = useAccount();
   const { open: openWallet } = useAppKit();
   const [showSetup, setShowSetup] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    // Restore conversation from localStorage
+    try {
+      const saved = localStorage.getItem('bobby_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMsg[];
+        // Only restore if less than 24h old
+        const newest = parsed[parsed.length - 1];
+        if (newest && Date.now() - newest.timestamp < 24 * 60 * 60 * 1000) {
+          return parsed.map(m => ({ ...m, isLive: false }));
+        }
+      }
+    } catch {}
+    return [];
+  });
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
@@ -502,9 +516,16 @@ export function AdamsChat() {
     if (needsSetup) setShowSetup(true);
   }, [needsSetup]);
 
-  // Load conversation history
+  // Load conversation — prefer localStorage, fallback to DB, then onboarding
+  const hasInitialized = useRef(false);
   useEffect(() => {
+    if (hasInitialized.current) return;
     if (!profile?.walletAddress) return;
+    hasInitialized.current = true;
+
+    // If we already restored from localStorage, skip DB fetch
+    if (messages.length > 0) return;
+
     fetchDBMessages(profile.walletAddress).then(dbMsgs => {
       if (dbMsgs.length === 0) {
         // First time onboarding — Bobby introduces himself
@@ -525,35 +546,28 @@ export function AdamsChat() {
             funding: t!.funding,
           }));
 
-          // Start with just the text — typewriter + voice simultaneously
           setMessages([{
             id: 'welcome',
             role: 'advisor',
             text: introText,
             timestamp: Date.now(),
             isLive: true,
+            prices: priceCards, // Show prices immediately with intro
           }]);
 
-          // Auto-speak the introduction (direct call, not gated by speakIfEnabled)
-          const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
-          speak(cleanIntro);
-
-          // Price cards appear 2.5s later — WHILE Bobby is still speaking
+          // Auto-speak with small delay (needs user gesture from disclaimer click)
           setTimeout(() => {
-            setMessages(prev => prev.map(m =>
-              m.id === 'welcome' ? { ...m, prices: priceCards } : m
-            ));
-          }, 2500);
+            const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
+            speak(cleanIntro);
+          }, 500);
         }).catch(() => {
           setMessages([{
             id: 'welcome',
             role: 'advisor',
-            text: introText,
+            text: `I'm Bobby Agent Trader. Not a trading bot — I'm your agent with metacognition. Ask me about any market.`,
             timestamp: Date.now(),
             isLive: true,
           }]);
-          const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
-          speak(cleanIntro);
         });
         return;
       }
@@ -580,9 +594,22 @@ export function AdamsChat() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.walletAddress, advisorName]);
 
-  // Auto-scroll
+  // Persist conversation to localStorage (keep last 30 messages)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) return;
+    try {
+      const toSave = messages.slice(-30).map(m => ({
+        ...m, isLive: false, // don't replay typewriter on restore
+      }));
+      localStorage.setItem('bobby_chat_history', JSON.stringify(toSave));
+    } catch {}
+  }, [messages]);
+
+  // Auto-scroll — but only scroll the internal container, not the page
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [messages, analysisPhases]);
 
   const handleSetupComplete = (p: AdvisorProfile) => {
@@ -956,10 +983,25 @@ export function AdamsChat() {
 
       if (!res.ok) throw new Error(`OpenClaw: ${res.status}`);
 
-      // Get price cards to show alongside Bobby's response
+      // Get price cards — from token detection OR from bobby-intel response
       let responsePrices: PriceCard[] = [];
       try {
-        responsePrices = tokens.length > 0 ? await contextPricesPromise : [];
+        if (tokens.length > 0) {
+          responsePrices = await contextPricesPromise;
+        } else {
+          // Even without specific tokens, show top prices from intel
+          const cachedTickers = tickerCacheRef.current.length > 0
+            ? tickerCacheRef.current
+            : await fetchTickers().then(t => { tickerCacheRef.current = t; return t; });
+          const topSymbols = ['BTC', 'ETH', 'SOL'];
+          responsePrices = topSymbols
+            .map(s => cachedTickers.find(t => t.symbol === s))
+            .filter(Boolean)
+            .map(t => ({
+              symbol: t!.symbol, price: t!.last, change24h: t!.change24h,
+              high24h: t!.high24h, low24h: t!.low24h, vol24h: t!.vol24h, funding: t!.funding,
+            }));
+        }
       } catch { /* no prices */ }
 
       // Try to parse SSE stream
@@ -1065,9 +1107,14 @@ export function AdamsChat() {
               <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
             <span className="text-[12px] font-mono font-bold text-white/40 tracking-[1px]">{advisorName.toUpperCase()}</span>
-            <span className="text-[9px] font-mono text-white/15">
+            <span className="text-[9px] font-mono text-white/15 hidden sm:inline">
               {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
             </span>
+            <span className="text-[8px] font-mono text-white/10 hidden sm:inline">×</span>
+            <a href="https://www.okx.com" target="_blank" rel="noopener noreferrer"
+              className="text-[8px] font-mono text-white/15 hover:text-white/40 transition-colors hidden sm:inline">
+              OKX OnchainOS
+            </a>
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={toggleVoice}
@@ -1254,6 +1301,10 @@ export function AdamsChat() {
                 {a.label}
               </button>
             ))}
+            <Link to="/agentic-world/polymarket"
+              className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono">
+              <span>◉</span> Dashboard
+            </Link>
           </div>
         </div>
         <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-2">
