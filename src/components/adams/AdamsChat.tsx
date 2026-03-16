@@ -511,6 +511,176 @@ export function AdamsChat() {
   }, [isListening]);
 
   const advisorName = profile?.advisorName || 'Bobby';
+  const lang = profile?.language || 'en'; // user's chosen language
+
+  // ---- i18n strings keyed by language ----
+  const i18n = {
+    intro: {
+      es: `Soy Bobby Agent Trader. No soy un bot de trading — soy tu agente con metacognición. Escaneo flujos de ballenas, cruzo datos de smart money, y debato conmigo mismo antes de hablar. Crypto, oro, plata — lo veo todo.\n\n¿Estás listo?`,
+      en: `I'm Bobby Agent Trader. Not a trading bot — I'm your agent with metacognition. I scan whale flows, cross-reference smart money, and debate myself before I speak. Crypto, gold, silver — I see it all.\n\nAre you ready?`,
+      pt: `Sou Bobby Agent Trader. Não sou um bot de trading — sou seu agente com metacognição. Escaneio fluxos de baleias, cruzo dados de smart money, e debato comigo mesmo antes de falar. Crypto, ouro, prata — vejo tudo.\n\nVocê está pronto?`,
+    },
+    introShort: {
+      es: `Soy Bobby Agent Trader. No soy un bot — soy tu agente con metacognición. Pregúntame sobre cualquier mercado.`,
+      en: `I'm Bobby Agent Trader. Not a bot — I'm your agent with metacognition. Ask me about any market.`,
+      pt: `Sou Bobby Agent Trader. Não sou um bot — sou seu agente com metacognição. Pergunte sobre qualquer mercado.`,
+    },
+    analyzeFillers: {
+      es: [
+        "Escáner completo. Desplegando Alpha Hunter, Red Team, y corriendo la dialéctica. Esto toma un minuto — no apresuro mis decisiones.",
+        "Corriendo el ciclo completo de inteligencia. Tres agentes debatiendo tu dinero. Dame un momento.",
+        "Iniciando escaneo soberano. Señales de ballenas, consenso de Polymarket, conviction scoring. El trabajo real empieza ahora.",
+      ],
+      en: [
+        "Full scan. Deploying Alpha Hunter, Red Team, and running the dialectic. This takes a minute — I don't rush decisions.",
+        "Running the complete intelligence cycle. Three agents debating your money. Give me a moment.",
+        "Initiating sovereign scan. Whale signals, Polymarket consensus, conviction scoring. The real work starts now.",
+      ],
+      pt: [
+        "Escaneamento completo. Implantando Alpha Hunter, Red Team, e rodando a dialética. Isso leva um minuto — não apresso decisões.",
+        "Rodando o ciclo completo de inteligência. Três agentes debatendo seu dinheiro. Me dê um momento.",
+        "Iniciando escaneamento soberano. Sinais de baleias, consenso Polymarket, conviction scoring. O trabalho real começa agora.",
+      ],
+    },
+    chatFillers: {
+      es: [
+        "El mercado se mueve rápido, déjame cruzar los flujos...",
+        "Un momento, estoy escaneando la actividad de las ballenas...",
+        "Déjame revisar qué está haciendo el smart money...",
+        "Pregunta interesante. Déjame jalar los datos reales antes de contestar...",
+        "Espera, quiero ver qué está pasando realmente on-chain...",
+        "Dame un segundo, estoy analizando los flujos de capital...",
+        "Checando las señales de los whales... esto se pone bueno...",
+      ],
+      en: [
+        "The tape is moving fast, let me cross-reference the flows...",
+        "Give me a second, I'm scanning the whale activity...",
+        "Let me check what the smart money is doing...",
+        "Interesting question. Let me pull the real data before I answer...",
+        "Hold on, I want to see what's actually happening on-chain...",
+        "One sec, analyzing the capital flows...",
+        "Checking the whale signals... this is getting interesting...",
+      ],
+      pt: [
+        "O mercado se move rápido, deixa eu cruzar os fluxos...",
+        "Um momento, estou escaneando a atividade das baleias...",
+        "Deixa eu ver o que o smart money está fazendo...",
+        "Pergunta interessante. Deixa eu puxar os dados reais...",
+        "Espera, quero ver o que está acontecendo on-chain...",
+      ],
+    },
+    phases: {
+      es: [
+        { text: 'Conectando a OKX OnchainOS...', delay: 0 },
+        { text: 'Escaneando señales whale en ETH, SOL, Base...', delay: 1200 },
+        { text: 'Filtrando señales (score > 20)...', delay: 3000 },
+        { text: 'Obteniendo leaderboard Polymarket (top 15)...', delay: 5000 },
+        { text: 'Auto-optimizando prompt del Alpha Hunter...', delay: 7500 },
+        { text: 'Alpha Hunter analizando...', delay: 10000 },
+        { text: 'Red Team stress-testing...', delay: 15000 },
+        { text: 'Judge emitiendo veredicto final...', delay: 20000 },
+        { text: 'Kelly Criterion sizing...', delay: 25000 },
+        { text: 'Generando reporte...', delay: 28000 },
+        { text: 'Sigo trabajando (el ciclo puede tomar hasta 2 min)...', delay: 60000 },
+        { text: 'Casi listo...', delay: 90000 },
+      ],
+      en: [
+        { text: 'Connecting to OKX OnchainOS...', delay: 0 },
+        { text: 'Scanning whale signals across ETH, SOL, Base...', delay: 1200 },
+        { text: 'Filtering signals (score > 20)...', delay: 3000 },
+        { text: 'Fetching Polymarket leaderboard (top 15)...', delay: 5000 },
+        { text: 'Self-optimizing Alpha prompt...', delay: 7500 },
+        { text: 'Alpha Hunter analyzing...', delay: 10000 },
+        { text: 'Red Team stress-testing...', delay: 15000 },
+        { text: 'Judge making final verdict...', delay: 20000 },
+        { text: 'Kelly Criterion sizing...', delay: 25000 },
+        { text: 'Generating report...', delay: 28000 },
+        { text: 'Still working (agent runs can take up to 2 min)...', delay: 60000 },
+        { text: 'Almost done...', delay: 90000 },
+      ],
+      pt: [
+        { text: 'Conectando ao OKX OnchainOS...', delay: 0 },
+        { text: 'Escaneando sinais whale em ETH, SOL, Base...', delay: 1200 },
+        { text: 'Filtrando sinais (score > 20)...', delay: 3000 },
+        { text: 'Obtendo leaderboard Polymarket (top 15)...', delay: 5000 },
+        { text: 'Auto-otimizando prompt do Alpha Hunter...', delay: 7500 },
+        { text: 'Alpha Hunter analisando...', delay: 10000 },
+        { text: 'Red Team stress-testing...', delay: 15000 },
+        { text: 'Judge emitindo veredicto final...', delay: 20000 },
+        { text: 'Kelly Criterion sizing...', delay: 25000 },
+        { text: 'Gerando relatório...', delay: 28000 },
+        { text: 'Ainda trabalhando (ciclo pode levar até 2 min)...', delay: 60000 },
+        { text: 'Quase pronto...', delay: 90000 },
+      ],
+    },
+    priceSingle: {
+      es: (sym: string, price: string, up: boolean, change: string) =>
+        `${sym} está en $${price} — ${up ? 'subió' : 'bajó'} ${change}% en las últimas 24 horas.`,
+      en: (sym: string, price: string, up: boolean, change: string) =>
+        `${sym} is at $${price} — ${up ? 'up' : 'down'} ${change}% in the last 24h.`,
+      pt: (sym: string, price: string, up: boolean, change: string) =>
+        `${sym} está em $${price} — ${up ? 'subiu' : 'caiu'} ${change}% nas últimas 24h.`,
+    },
+    priceMulti: {
+      es: (names: string) => `Aquí tienes lo último de ${names}:`,
+      en: (names: string) => `Here's the latest on ${names}:`,
+      pt: (names: string) => `Aqui está o mais recente de ${names}:`,
+    },
+    priceError: {
+      es: (err: string) => `No pude obtener precios ahorita: ${err}. Intenta de nuevo en un momento.`,
+      en: (err: string) => `Couldn't fetch prices right now: ${err}. Try again in a moment.`,
+      pt: (err: string) => `Não consegui obter preços agora: ${err}. Tente de novo em um momento.`,
+    },
+    scanSummary: {
+      es: (time: string, found: number, filtered: number, trades: number, usd: string | null) =>
+        [`Escaneo completo en ${time}s`, `${found} señales encontradas, ${filtered} pasaron filtros`, `${trades} trades recomendados`, usd ? `$${usd} posición total` : null].filter(Boolean).join('\n'),
+      en: (time: string, found: number, filtered: number, trades: number, usd: string | null) =>
+        [`Scan complete in ${time}s`, `${found} signals found, ${filtered} passed filters`, `${trades} trades recommended`, usd ? `$${usd} total position` : null].filter(Boolean).join('\n'),
+      pt: (time: string, found: number, filtered: number, trades: number, usd: string | null) =>
+        [`Escaneamento completo em ${time}s`, `${found} sinais encontrados, ${filtered} passaram filtros`, `${trades} trades recomendados`, usd ? `$${usd} posição total` : null].filter(Boolean).join('\n'),
+    },
+    noTrades: {
+      es: (reason: string) => `Análisis completo, pero no recomiendo trades. ${reason}`,
+      en: (reason: string) => `Analysis complete but no trades recommended. ${reason}`,
+      pt: (reason: string) => `Análise completa, mas não recomendo trades. ${reason}`,
+    },
+    timeout: {
+      es: 'El análisis tardó demasiado (>2 min). El ciclo puede seguir corriendo en segundo plano. Intenta "Analyze Market" de nuevo en unos minutos.',
+      en: 'Analysis timed out (>2 min). The agent cycle may still be running in the background. Try "Analyze Market" again in a few minutes.',
+      pt: 'A análise demorou demais (>2 min). O ciclo pode estar rodando em segundo plano. Tente "Analyze Market" de novo em alguns minutos.',
+    },
+    analysisError: {
+      es: (err: string) => `Error en el análisis: ${err}. Suele ser temporal — intenta de nuevo.`,
+      en: (err: string) => `Analysis error: ${err}. This is usually temporary — try again.`,
+      pt: (err: string) => `Erro na análise: ${err}. Geralmente é temporário — tente de novo.`,
+    },
+    noData: {
+      es: (msg: string) => `No tengo datos sobre "${msg}". Prueba con "BTC", "ETH", o "Analyze Market".`,
+      en: (msg: string) => `I don't have data on "${msg}". Try "BTC", "ETH", or "Analyze Market".`,
+      pt: (msg: string) => `Não tenho dados sobre "${msg}". Tente "BTC", "ETH", ou "Analyze Market".`,
+    },
+    fallbackWithPrices: {
+      es: 'Aquí tienes los datos más recientes. Para un análisis completo, prueba "Analyze Market" — ahí despliego el debate multi-agente completo.',
+      en: 'Here\'s the latest data. For a full Bobby analysis, try "Analyze Market" — that\'s where I deploy the full multi-agent debate.',
+      pt: 'Aqui estão os dados mais recentes. Para uma análise completa, tente "Analyze Market" — é onde eu faço o debate multi-agente completo.',
+    },
+    fallbackNoPrices: {
+      es: 'Te puedo ayudar con precios y análisis de mercado. Prueba:\n\n"BTC" o "ETH" — Precio en vivo\n"All Prices" — Panorama del mercado\n"Analyze Market" — Escaneo completo',
+      en: 'I can help with prices and market analysis. Try:\n\n"BTC" or "ETH" — Live price\n"All Prices" — Market overview\n"Analyze Market" — Full agent scan',
+      pt: 'Posso ajudar com preços e análise de mercado. Tente:\n\n"BTC" ou "ETH" — Preço ao vivo\n"All Prices" — Visão do mercado\n"Analyze Market" — Escaneamento completo',
+    },
+    walletConnected: {
+      es: (addr: string) => `Wallet conectada: ${addr}\n\nPortfolio tracking próximamente en v2. Por ahora, corre "Analyze Market" — escaneo señales y recomiendo trades con Kelly Criterion para tu perfil de riesgo.`,
+      en: (addr: string) => `Wallet connected: ${addr}\n\nPortfolio tracking coming in v2. For now, run "Analyze Market" — I'll scan signals and recommend trades sized with Kelly Criterion for your risk profile.`,
+      pt: (addr: string) => `Wallet conectada: ${addr}\n\nPortfolio tracking em breve na v2. Por agora, rode "Analyze Market" — escaneio sinais e recomendo trades com Kelly Criterion para seu perfil de risco.`,
+    },
+  } as const;
+
+  // Helper to get text for current language with fallback to English
+  function t<K extends keyof typeof i18n>(key: K): (typeof i18n)[K][keyof (typeof i18n)[K]] {
+    const entry = i18n[key];
+    return (entry as Record<string, unknown>)[lang] ?? (entry as Record<string, unknown>)['en'] as any;
+  }
 
   useEffect(() => {
     if (needsSetup) setShowSetup(true);
@@ -529,7 +699,7 @@ export function AdamsChat() {
     fetchDBMessages(profile.walletAddress).then(dbMsgs => {
       if (dbMsgs.length === 0) {
         // First time onboarding — Bobby introduces himself
-        const introText = `Soy Bobby Agent Trader. No soy un bot de trading — soy tu agente con metacognición. Escaneo flujos de ballenas, cruzo datos de smart money, y debato conmigo mismo antes de hablar. Crypto, oro, plata — lo veo todo.\n\n¿Estás listo?`;
+        const introText = t('intro') as string;
 
         fetchTickers().then(tickers => {
           tickerCacheRef.current = tickers;
@@ -564,7 +734,7 @@ export function AdamsChat() {
           setMessages([{
             id: 'welcome',
             role: 'advisor',
-            text: `Soy Bobby Agent Trader. No soy un bot — soy tu agente con metacognición. Pregúntame sobre cualquier mercado.`,
+            text: t('introShort') as string,
             timestamp: Date.now(),
             isLive: true,
           }]);
@@ -679,9 +849,11 @@ export function AdamsChat() {
         const cards = await getPriceCards(targetTokens);
         const names = cards.map(c => c.symbol).join(', ');
         const isUp = cards.length > 0 && cards[0].change24h >= 0;
+        const priceFn = t('priceSingle') as (sym: string, price: string, up: boolean, change: string) => string;
+        const multiPriceFn = t('priceMulti') as (names: string) => string;
         const priceText = cards.length === 1
-          ? `${cards[0].symbol} está en $${fmtPrice(cards[0].price)} — ${isUp ? 'subió' : 'bajó'} ${Math.abs(cards[0].change24h).toFixed(2)}% en las últimas 24 horas.`
-          : `Aquí tienes lo último de ${names}:`;
+          ? priceFn(cards[0].symbol, fmtPrice(cards[0].price), isUp, Math.abs(cards[0].change24h).toFixed(2))
+          : multiPriceFn(names);
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
           text: priceText,
@@ -691,7 +863,7 @@ export function AdamsChat() {
       } catch (err) {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: `No pude obtener precios ahorita: ${err instanceof Error ? err.message : 'error de red'}. Intenta de nuevo en un momento.`,
+          text: (t('priceError') as (err: string) => string)(err instanceof Error ? err.message : 'network error'),
         }]);
       }
       setIsProcessing(false);
@@ -765,12 +937,15 @@ export function AdamsChat() {
       if (!address) {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: 'Connect your wallet first — use the "Connect" button in the top right. Once connected, I can show your on-chain positions.',
+          text: lang === 'es' ? 'Conecta tu wallet primero — usa el botón "Connect" arriba a la derecha. Una vez conectada, puedo mostrar tus posiciones on-chain.'
+            : lang === 'pt' ? 'Conecte sua wallet primeiro — use o botão "Connect" no canto superior direito. Uma vez conectada, posso mostrar suas posições on-chain.'
+            : 'Connect your wallet first — use the "Connect" button in the top right. Once connected, I can show your on-chain positions.',
         }]);
       } else {
+        const walletFn = t('walletConnected') as (addr: string) => string;
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: `Wallet connected: ${address.slice(0, 6)}...${address.slice(-4)}\n\nPortfolio tracking coming in v2. For now, run "Analyze Market" — I'll scan signals and recommend trades sized with Kelly Criterion for your risk profile.`,
+          text: walletFn(`${address.slice(0, 6)}...${address.slice(-4)}`),
         }]);
       }
       return;
@@ -795,29 +970,12 @@ export function AdamsChat() {
       setAnalysisPhases([]);
 
       // Bobby announces the full scan — voice filler during the 2min cycle
-      const analyzeFillers = [
-        "Escáner completo. Desplegando Alpha Hunter, Red Team, y corriendo la dialéctica. Esto toma un minuto — no apresuro mis decisiones.",
-        "Corriendo el ciclo completo de inteligencia. Tres agentes debatiendo tu dinero. Dame un momento.",
-        "Iniciando escaneo soberano. Señales de ballenas, consenso de Polymarket, conviction scoring. El trabajo real empieza ahora.",
-      ];
+      const analyzeFillers = t('analyzeFillers') as string[];
       speakIfEnabled(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
       phaseTimerRef.current.forEach(clearTimeout);
       phaseTimerRef.current = [];
 
-      const phases = [
-        { text: 'Conectando a OKX OnchainOS...', delay: 0 },
-        { text: 'Escaneando señales whale en ETH, SOL, Base...', delay: 1200 },
-        { text: 'Filtrando señales (score > 20)...', delay: 3000 },
-        { text: 'Obteniendo leaderboard Polymarket (top 15)...', delay: 5000 },
-        { text: 'Auto-optimizando prompt del Alpha Hunter...', delay: 7500 },
-        { text: 'Alpha Hunter analizando...', delay: 10000 },
-        { text: 'Red Team stress-testing...', delay: 15000 },
-        { text: 'Judge emitiendo veredicto final...', delay: 20000 },
-        { text: 'Kelly Criterion sizing...', delay: 25000 },
-        { text: 'Generando reporte...', delay: 28000 },
-        { text: 'Sigo trabajando (el ciclo puede tomar hasta 2 min)...', delay: 60000 },
-        { text: 'Casi listo...', delay: 90000 },
-      ];
+      const phases = t('phases') as Array<{ text: string; delay: number }>;
       phases.forEach(p => {
         const t = setTimeout(() => setAnalysisPhases(prev => [...prev, p.text]), p.delay);
         phaseTimerRef.current.push(t);
@@ -846,12 +1004,14 @@ export function AdamsChat() {
             }));
 
           // Build a summary from the response
-          const summary = [
-            `Escaneo completo en ${((data.cycle?.latency_ms || 0) / 1000).toFixed(1)}s`,
-            `${data.cycle?.signals_found || 0} señales encontradas, ${data.cycle?.signals_filtered || 0} pasaron filtros`,
-            `${data.cycle?.trades_executed || 0} trades recomendados`,
-            data.cycle?.total_usd_deployed ? `$${data.cycle.total_usd_deployed.toFixed(2)} posición total` : null,
-          ].filter(Boolean).join('\n');
+          const summaryFn = t('scanSummary') as (time: string, found: number, filtered: number, trades: number, usd: string | null) => string;
+          const summary = summaryFn(
+            ((data.cycle?.latency_ms || 0) / 1000).toFixed(1),
+            data.cycle?.signals_found || 0,
+            data.cycle?.signals_filtered || 0,
+            data.cycle?.trades_executed || 0,
+            data.cycle?.total_usd_deployed ? data.cycle.total_usd_deployed.toFixed(2) : null,
+          );
 
           // Try to get the greeting from DB
           let greetingText = summary;
@@ -895,11 +1055,12 @@ export function AdamsChat() {
           speakIfEnabled(greetingText);
         } else {
           // API returned ok:false — still show what we got
-          const reason = data.cycle?.llm_reasoning || data.error || 'Sin señales accionables este ciclo.';
-          const noTradeText = `Análisis completo, pero no recomiendo trades. ${reason}`;
+          const reason = data.cycle?.llm_reasoning || data.error || (lang === 'es' ? 'Sin señales accionables este ciclo.' : 'No actionable signals this cycle.');
+          const noTradeFn = t('noTrades') as (reason: string) => string;
+          const noTradeText = noTradeFn(reason);
           setMessages(prev => [...prev, {
             id: uid(), role: 'advisor', timestamp: Date.now(),
-            text: `Análisis completo, pero no recomiendo trades.\n\n${reason}`,
+            text: noTradeText,
           }]);
           speakIfEnabled(noTradeText);
         }
@@ -912,8 +1073,8 @@ export function AdamsChat() {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
           text: isAbort
-            ? 'El análisis tardó demasiado (>2 min). El ciclo puede seguir corriendo en segundo plano. Intenta "Analyze Market" de nuevo en unos minutos.'
-            : `Error en el análisis: ${err instanceof Error ? err.message : 'Error desconocido'}. Suele ser temporal — intenta de nuevo.`,
+            ? t('timeout') as string
+            : (t('analysisError') as (err: string) => string)(err instanceof Error ? err.message : 'Unknown error'),
         }]);
       }
       setIsProcessing(false);
@@ -928,16 +1089,7 @@ export function AdamsChat() {
 
     // Voice filler — Bobby "thinks out loud" while intelligence loads
     // Transforms network lag into narrative tension
-    // Bobby ALWAYS speaks Spanish — consistent voice for ElevenLabs
-    const fillers = [
-      "El mercado se mueve rápido, déjame cruzar los flujos...",
-      "Un momento, estoy escaneando la actividad de las ballenas...",
-      "Déjame revisar qué está haciendo el smart money...",
-      "Pregunta interesante. Déjame jalar los datos reales antes de contestar...",
-      "Espera, quiero ver qué está pasando realmente on-chain...",
-      "Dame un segundo, estoy analizando los flujos de capital...",
-      "Checando las señales de los whales... esto se pone bueno...",
-    ];
+    const fillers = t('chatFillers') as string[];
     const filler = fillers[Math.floor(Math.random() * fillers.length)];
     speakIfEnabled(filler);
 
@@ -968,6 +1120,7 @@ export function AdamsChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: enrichedMessage,
+          language: lang,
           history: messages.slice(-10).map(m => ({
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.text,
@@ -1059,7 +1212,7 @@ export function AdamsChat() {
         const data = await res.json();
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: data.choices?.[0]?.message?.content || `No tengo datos sobre "${msg}". Prueba con "BTC", "ETH", o "Analyze Market".`,
+          text: data.choices?.[0]?.message?.content || (t('noData') as (m: string) => string)(msg),
           prices: responsePrices.length > 0 ? responsePrices : undefined,
         }]);
       }
@@ -1070,8 +1223,8 @@ export function AdamsChat() {
       setMessages(prev => [...prev, {
         id: uid(), role: 'advisor', timestamp: Date.now(),
         text: fallbackPrices.length > 0
-          ? `Aquí tienes los datos más recientes. Para un análisis completo, prueba "Analyze Market" — ahí despliego el debate multi-agente completo.`
-          : `Te puedo ayudar con precios y análisis de mercado. Prueba:\n\n"BTC" o "ETH" — Precio en vivo\n"All Prices" — Panorama del mercado\n"Analyze Market" — Escaneo completo`,
+          ? t('fallbackWithPrices') as string
+          : t('fallbackNoPrices') as string,
         prices: fallbackPrices.length > 0 ? fallbackPrices : undefined,
       }]);
     }

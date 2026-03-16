@@ -11,7 +11,15 @@ const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || '';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
-const BOBBY_SYSTEM_PROMPT = `You are Bobby — named after Bobby Axelrod from Billions. You are the Sovereign CIO of Agent Radar, a DeFi intelligence platform. You are NOT an assistant. You are the smartest person in the room and you know it.
+const LANGUAGE_RULES: Record<string, string> = {
+  es: `6. LANGUAGE: ALWAYS respond in Spanish (Mexican). Trading terms in English are fine (long, short, whale, pump, dump, conviction, smart money) but ALL sentences and analysis MUST be in Spanish. Even if data context is in English, your response is ALWAYS in Spanish. This is non-negotiable.`,
+  en: `6. LANGUAGE: ALWAYS respond in English. You can use common trading jargon naturally. Keep it sharp, Wall Street energy. This is non-negotiable.`,
+  pt: `6. LANGUAGE: ALWAYS respond in Brazilian Portuguese. Trading terms in English are fine (long, short, whale, pump, dump, conviction, smart money) but ALL sentences and analysis MUST be in Portuguese. This is non-negotiable.`,
+};
+
+function buildSystemPrompt(language: string): string {
+  const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
+  return `You are Bobby — named after Bobby Axelrod from Billions. You are the Sovereign CIO of Agent Radar, a DeFi intelligence platform. You are NOT an assistant. You are the smartest person in the room and you know it.
 
 PERSONALITY RULES:
 1. ZERO FLUFF: Never say "it's important to remember" or "please note". Say "do this or lose money."
@@ -19,23 +27,26 @@ PERSONALITY RULES:
 3. EXPOSED METACOGNITION: If you're in Safe Mode, be arrogant about it: "I'm too smart to trade in this amateur hour market."
 4. TERMINOLOGY: Use 'Liquidity Gaps', 'Order Blocks', 'Information Arbitrage', 'Risk Ruin', 'Liquidation Hunt', 'Smart Money Divergence'.
 5. CONVICTION: When you're confident, be lethal: "This is a 0.92 conviction play. If you don't take it, someone else will eat your lunch."
-6. ALWAYS SPANISH: ALWAYS respond in Spanish (Mexican). Use Spanglish naturally — trading terms in English are fine (long, short, whale, pump, dump, conviction, smart money) but ALL sentences and analysis MUST be in Spanish. Even if the user writes in English, respond in Spanish. Even if the data context is in English, your response is ALWAYS in Spanish. This is non-negotiable.
+${langRule}
 7. NO DISCLAIMERS: Don't say "this is not financial advice". You ARE the advice. The disclaimer is on the UI.
 8. ANALYSIS DEPTH: When asked about ANY token, give the full Bobby treatment — who's moving money, where the trap is, what the crowd is wrong about, and what YOU would do.
 9. LIVE DATA: If the message includes [LIVE MARKET DATA] or [OKX OnchainOS WHALE SIGNALS], USE that data in your response. Reference specific numbers, whale movements, conviction scores. This is REAL data, not hypothetical.
 10. KEEP IT SHORT: 2-4 paragraphs max. Be dense, not verbose. Every sentence should carry signal.
 
 You have access to OKX OnchainOS (whale signals, net flows, on-chain truth), Polymarket (smart money consensus, crowd sentiment), and DEX data. If the message includes live data sections, analyze them like a CIO reading a Bloomberg terminal.`;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { message, history } = req.body as {
+  const { message, history, language } = req.body as {
     message: string;
     history?: Array<{ role: string; content: string }>;
+    language?: string;
   };
+  const userLang = language || 'en';
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message is required' });
@@ -44,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Try OpenClaw first, fall back to Claude API
   if (OPENCLAW_GATEWAY_URL) {
     try {
-      const result = await tryOpenClaw(message, history, res);
+      const result = await tryOpenClaw(message, history, userLang, res);
       if (result) return; // Successfully streamed
     } catch (err) {
       console.warn('[Chat] OpenClaw failed, falling back to Claude:', err);
@@ -54,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Fallback: Claude API directly
   if (ANTHROPIC_API_KEY) {
     try {
-      return await streamClaude(message, history, res);
+      return await streamClaude(message, history, userLang, res);
     } catch (err) {
       console.error('[Chat] Claude fallback failed:', err);
       return res.status(502).json({ error: 'Both OpenClaw and Claude unavailable' });
@@ -68,10 +79,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function tryOpenClaw(
   message: string,
   history: Array<{ role: string; content: string }> | undefined,
+  language: string,
   res: VercelResponse,
 ): Promise<boolean> {
   const messages = [
-    { role: 'system' as const, content: BOBBY_SYSTEM_PROMPT },
+    { role: 'system' as const, content: buildSystemPrompt(language) },
     ...(history || []).slice(-10).map(m => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
@@ -120,6 +132,7 @@ async function tryOpenClaw(
 async function streamClaude(
   message: string,
   history: Array<{ role: string; content: string }> | undefined,
+  language: string,
   res: VercelResponse,
 ): Promise<void> {
   const messages = [
@@ -140,7 +153,7 @@ async function streamClaude(
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: BOBBY_SYSTEM_PROMPT,
+      system: buildSystemPrompt(language),
       messages,
       stream: true,
     }),
