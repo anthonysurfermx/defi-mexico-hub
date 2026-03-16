@@ -1913,6 +1913,57 @@ export function AdamsChat() {
         // Reset agent mood after response completes
         setTimeout(() => setActiveAgent(null), 2000);
 
+        // Auto-publish debate to forum (if Trading Room mode + debate markers present)
+        if (tradingRoom && fullText.includes('**ALPHA HUNTER:**') && fullText.includes('**RED TEAM:**')) {
+          try {
+            // Parse sections
+            const sectionRx = /\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT|MI\s*VEREDICTO)\s*:?\s*\*\*:?\s*/gi;
+            const sectionMatches: Array<{ idx: number; end: number; agent: string }> = [];
+            let sm: RegExpExecArray | null;
+            sectionRx.lastIndex = 0;
+            while ((sm = sectionRx.exec(fullText)) !== null) {
+              const label = sm[1].toLowerCase().replace(/\s+/g, '');
+              sectionMatches.push({ idx: sm.index, end: sm.index + sm[0].length, agent: label.includes('alpha') ? 'alpha' : label.includes('red') ? 'redteam' : 'cio' });
+            }
+            if (sectionMatches.length >= 2) {
+              const posts: Array<{ agent: string; content: string }> = [];
+              for (let si = 0; si < sectionMatches.length; si++) {
+                const start = sectionMatches[si].end;
+                const end = si + 1 < sectionMatches.length ? sectionMatches[si + 1].idx : fullText.length;
+                posts.push({ agent: sectionMatches[si].agent, content: fullText.slice(start, end).trim() });
+              }
+              // Extract topic from user message
+              const topic = msg.length > 60 ? msg.slice(0, 60) + '...' : msg;
+              // Conviction from CIO post
+              const cioContent = posts.find(p => p.agent === 'cio')?.content || '';
+              const convM = cioContent.match(/(\d+)\s*\/\s*10/);
+              const convScore = convM ? parseInt(convM[1]) / 10 : null;
+
+              // Insert thread
+              const threadRes = await fetch(`${SB_URL}/rest/v1/forum_threads`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: 'return=representation' },
+                body: JSON.stringify({ topic, trigger_reason: 'User debate in Bobby Chat', language: lang, conviction_score: convScore, price_at_creation: {} }),
+              });
+              if (threadRes.ok) {
+                const threadData = await threadRes.json();
+                const threadId = threadData[0]?.id;
+                if (threadId) {
+                  // Insert posts
+                  for (const post of posts) {
+                    await fetch(`${SB_URL}/rest/v1/forum_posts`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+                      body: JSON.stringify({ thread_id: threadId, agent: post.agent, content: post.content, data_snapshot: {} }),
+                    });
+                  }
+                  console.log('[Bobby] ✅ Debate published to forum:', threadId);
+                }
+              }
+            }
+          } catch (forumErr) { console.warn('[Bobby] Forum publish failed:', forumErr); }
+        }
+
         // If we got no text from stream, set a fallback
         if (!fullText) {
           setMessages(prev => prev.map(m =>
