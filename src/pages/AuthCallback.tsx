@@ -250,10 +250,10 @@ export default function AuthCallback() {
                 return;
               }
               
-              // Si no es admin/editor pero tiene email verificado, ir al panel de usuario
+              // Regular verified users → Bobby Agent Trader (main experience)
               if (currentUser.email_confirmed_at || currentUser.confirmed_at) {
-                console.log(`🎯 Redirecting verified user to user dashboard`);
-                setTimeout(() => navigate('/user', { replace: true }), 800);
+                console.log(`🎯 Redirecting verified user to Bobby Agent Trader`);
+                setTimeout(() => navigate('/agentic-world/bobby', { replace: true }), 800);
                 return;
               }
             }
