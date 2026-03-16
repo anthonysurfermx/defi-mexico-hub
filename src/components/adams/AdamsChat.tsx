@@ -1102,7 +1102,30 @@ export function AdamsChat() {
             <VoiceOrb analyser={analyser} state={orbState} mood="confident" size={140} />
           </div>
 
-          {/* ANALYSIS PHASES — thinking state */}
+          {/* THINKING INDICATOR — conversational queries (no phases) */}
+          <AnimatePresence>
+            {isProcessing && analysisPhases.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="w-full max-w-md mb-3"
+              >
+                <div className="border border-green-500/10 bg-green-500/[0.03] backdrop-blur-sm px-4 py-3 flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-[10px] font-mono text-green-400/60">
+                    Scanning intelligence feeds...
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ANALYSIS PHASES — full agent-run thinking state */}
           <AnimatePresence>
             {isProcessing && analysisPhases.length > 0 && (
               <motion.div
