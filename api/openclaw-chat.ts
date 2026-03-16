@@ -80,17 +80,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'message is required' });
   }
 
-  // Try OpenClaw first, fall back to Claude API
-  if (OPENCLAW_GATEWAY_URL) {
+  // If message contains XML intel blocks, use Claude directly (needs strong model for data parsing)
+  const hasXMLContext = message.includes('<ONCHAIN_INTEL>') || message.includes('<PRICE_INTEL>') || message.includes('<STOCK_INTEL>');
+
+  // Try OpenClaw first for simple messages, Claude for enriched ones
+  if (OPENCLAW_GATEWAY_URL && !hasXMLContext) {
     try {
       const result = await tryOpenClaw(message, history, userLang, res);
       if (result) return; // Successfully streamed
     } catch (err) {
       console.warn('[Chat] OpenClaw failed, falling back to Claude:', err);
     }
+  } else if (hasXMLContext) {
+    console.log('[Chat] Enriched message detected — routing to Claude for XML parsing');
   }
 
-  // Fallback: Claude API directly
+  // Claude API — primary for enriched messages, fallback for simple ones
   if (ANTHROPIC_API_KEY) {
     try {
       return await streamClaude(message, history, userLang, res);
