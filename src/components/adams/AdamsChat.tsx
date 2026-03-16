@@ -409,6 +409,11 @@ export function AdamsChat() {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
+  // Block-by-block analysis: queue of paragraphs waiting to be revealed
+  const [pendingBlocks, setPendingBlocks] = useState<string[]>([]);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const pendingMsgIdRef = useRef<string>('');
+  const pendingExtrasRef = useRef<Partial<ChatMsg>>({});
   const [highlightedSymbols, setHighlightedSymbols] = useState<Set<string>>(new Set());
   const highlightTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -522,6 +527,46 @@ export function AdamsChat() {
 
   // Cleanup thinking sound on unmount
   useEffect(() => () => { stopThinkingSound(); }, [stopThinkingSound]);
+
+  // ---- Block-by-block: reveal next paragraph ----
+  const revealNextBlock = useCallback(() => {
+    setPendingBlocks(prev => {
+      if (prev.length === 0) return prev;
+      const [nextBlock, ...rest] = prev;
+      const msgId = pendingMsgIdRef.current;
+
+      // Append block to existing message text
+      setMessages(msgs => {
+        const existing = msgs.find(m => m.id === msgId);
+        const currentText = existing?.text || '';
+        const newText = currentText ? `${currentText}\n\n${nextBlock}` : nextBlock;
+
+        // If this is the last block, also attach extras (debate, trades, etc.)
+        if (rest.length === 0) {
+          return msgs.map(m => m.id === msgId ? { ...m, text: newText, ...pendingExtrasRef.current } : m);
+        }
+        return msgs.map(m => m.id === msgId ? { ...m, text: newText } : m);
+      });
+
+      // Speak this block
+      speakIfEnabled(nextBlock);
+
+      // Auto-scroll to show new content
+      setTimeout(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }, 100);
+
+      if (rest.length > 0) {
+        // More blocks remaining — ask "Continue?"
+        setAwaitingContinue(true);
+      } else {
+        // All blocks revealed
+        setAwaitingContinue(false);
+        pendingExtrasRef.current = {};
+      }
+      return rest;
+    });
+  }, [speakIfEnabled]);
 
   // ---- Keyword-to-UI: scan streaming text and highlight mentioned symbols ----
   const scanAndHighlight = useCallback((text: string) => {
@@ -1111,15 +1156,13 @@ export function AdamsChat() {
           }
 
           const msgId = uid();
-          const mainMsg: ChatMsg = {
-            id: msgId, role: 'advisor', timestamp: Date.now(),
-            text: '', isLive: true, // start empty — typewriter fills it
-            trades: trades.length > 0 ? trades : undefined,
-          };
+          pendingMsgIdRef.current = msgId;
 
-          // Attach Intelligence Feed data — visible metacognition
+          // Build extras to attach when all blocks are revealed
+          const extras: Partial<ChatMsg> = {};
+          if (trades.length > 0) extras.trades = trades;
           if (data.debate?.alphaView || data.debate?.redTeamView || data.debate?.judgeVerdict) {
-            mainMsg.debate = {
+            extras.debate = {
               alphaView: data.debate.alphaView || '',
               redTeamView: data.debate.redTeamView || '',
               judgeVerdict: data.debate.judgeVerdict || '',
@@ -1127,19 +1170,32 @@ export function AdamsChat() {
               sizingMethod: data.debate.sizingMethod,
             };
           }
-          if (data.metacognition) {
-            mainMsg.metacognition = data.metacognition;
-          }
-          if (data.topSignals) {
-            mainMsg.topSignals = data.topSignals;
-          }
-          if (data.polymarket) {
-            mainMsg.polymarket = data.polymarket;
-          }
+          if (data.metacognition) extras.metacognition = data.metacognition;
+          if (data.topSignals) extras.topSignals = data.topSignals;
+          if (data.polymarket) extras.polymarket = data.polymarket;
+          pendingExtrasRef.current = extras;
 
-          setMessages(prev => [...prev, mainMsg]);
-          // Typewriter reveal + speak when done
-          typewriterText(msgId, greetingText, () => speakIfEnabled(greetingText));
+          // Split analysis into paragraphs for block-by-block reveal
+          const blocks = greetingText.split(/\n\n+/).filter((b: string) => b.trim().length > 0);
+
+          // Add empty message shell
+          setMessages(prev => [...prev, {
+            id: msgId, role: 'advisor', timestamp: Date.now(),
+            text: '', isLive: true,
+          }]);
+
+          if (blocks.length <= 1) {
+            // Short response — just show it all
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: greetingText, ...extras } : m));
+            speakIfEnabled(greetingText);
+          } else {
+            // Multi-block: show first block immediately, queue the rest
+            const [firstBlock, ...restBlocks] = blocks;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, text: firstBlock } : m));
+            speakIfEnabled(firstBlock);
+            setPendingBlocks(restBlocks);
+            setAwaitingContinue(true);
+          }
         } else {
           // API returned ok:false — still show what we got
           const reason = data.cycle?.llm_reasoning || data.error || (lang === 'es' ? 'Sin señales accionables este ciclo.' : 'No actionable signals this cycle.');
@@ -1345,9 +1401,6 @@ export function AdamsChat() {
               <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
             <span className="text-[12px] font-mono font-bold text-white/40 tracking-[1px]">{advisorName.toUpperCase()}</span>
-            <span className="text-[9px] font-mono text-white/15 hidden sm:inline">
-              {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
-            </span>
             <span className="text-[8px] font-mono text-white/10 hidden sm:inline">×</span>
             <a href="https://www.okx.com" target="_blank" rel="noopener noreferrer"
               className="text-[8px] font-mono text-white/15 hover:text-white/40 transition-colors hidden sm:inline">
@@ -1386,14 +1439,17 @@ export function AdamsChat() {
         </div>
       </div>
 
-      {/* ===== COMMAND CENTER: ORB + STAGE ===== */}
+      {/* ===== ORB — always visible, sticky above content ===== */}
+      <div className="flex-shrink-0 flex flex-col items-center py-3 sm:py-4 border-b border-white/[0.02]" style={{ background: '#050505' }}>
+        <VoiceOrb analyser={analyser} state={orbState} mood="confident" size={100} />
+        <span className="text-[9px] font-mono text-green-400/40 mt-1.5 tracking-[2px]">
+          {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
+        </span>
+      </div>
+
+      {/* ===== COMMAND CENTER: STAGE ===== */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" ref={scrollRef}>
         <div className="max-w-4xl mx-auto w-full px-4 flex flex-col items-center flex-1">
-
-          {/* THE ORB — always visible, center stage */}
-          <div className="flex-shrink-0 py-6 sm:py-8">
-            <VoiceOrb analyser={analyser} state={orbState} mood="confident" size={140} />
-          </div>
 
           {/* THINKING INDICATOR — conversational queries (no phases) */}
           <AnimatePresence>
@@ -1504,6 +1560,31 @@ export function AdamsChat() {
                 ))}
               </motion.div>
             )}
+
+            {/* CONTINUE PROMPT — block-by-block analysis */}
+            <AnimatePresence>
+              {awaitingContinue && pendingBlocks.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="w-full max-w-2xl mx-auto"
+                >
+                  <div className="border border-green-500/15 bg-green-500/[0.03] backdrop-blur-sm p-3 flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-mono text-green-400/50">
+                      {pendingBlocks.length} {lang === 'es' ? (pendingBlocks.length === 1 ? 'bloque restante' : 'bloques restantes')
+                        : lang === 'pt' ? (pendingBlocks.length === 1 ? 'bloco restante' : 'blocos restantes')
+                        : (pendingBlocks.length === 1 ? 'block remaining' : 'blocks remaining')}
+                    </span>
+                    <button
+                      onClick={() => { setAwaitingContinue(false); revealNextBlock(); }}
+                      className="text-[11px] px-4 py-1.5 bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors font-mono tracking-wider animate-pulse">
+                      {lang === 'es' ? 'CONTINUAR ▸' : lang === 'pt' ? 'CONTINUAR ▸' : 'CONTINUE ▸'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* CONVERSATION HISTORY — compact, behind the stage */}
             {messages.length > 1 && (
