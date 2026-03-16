@@ -1804,8 +1804,6 @@ export function AdamsChat() {
         const feedSentenceStream = (delta: string) => {
           if (!voiceEnabled) return;
           sentenceBuffer += delta;
-          // Detect agent transitions using FULL text (not just buffer)
-          detectAgent(fullText);
           // Extract complete sentences
           const parts = sentenceBuffer.split(sentenceSplitter);
           if (parts.length > 1) {
@@ -1856,6 +1854,8 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
+                // Auto-scroll as Bobby writes
+                if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
                 // Sentence-level voice: fire each sentence to TTS as it completes
                 feedSentenceStream(delta);
                 // Keyword-to-UI: scan as text flows in
@@ -2171,11 +2171,7 @@ export function AdamsChat() {
               >
                 <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-3 sm:p-5">
                   <div className="text-[12px] sm:text-[13px] leading-relaxed text-white/80 font-mono">
-                    {latestAdvisor === messages[messages.length - 1] && latestAdvisor.isLive !== false ? (
-                      <Typewriter text={latestAdvisor.text} speed={6} />
-                    ) : (
-                      <DebateText text={latestAdvisor.text} />
-                    )}
+                    <DebateText text={latestAdvisor.text} />
                   </div>
                 </div>
 
