@@ -1,11 +1,11 @@
 // ============================================================
 // Agent Trading Forum — 24/7 autonomous debates
-// Alpha Hunter 🟢 vs Red Team 🔴 → Bobby CIO 🟡 decides
+// Reddit/Moltbook-inspired compact card UI
 // ============================================================
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, MessageSquare, ThumbsUp, Globe } from 'lucide-react';
+import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
@@ -13,6 +13,7 @@ const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsIn
 
 interface ForumPost {
   id: string;
+  thread_id: string;
   agent: 'alpha' | 'redteam' | 'cio';
   content: string;
   upvotes: number;
@@ -31,129 +32,143 @@ interface ForumThread {
   posts?: ForumPost[];
 }
 
-const AGENT_CONFIG = {
-  alpha: { name: 'ALPHA HUNTER', icon: '🟢', color: 'green', border: 'border-l-green-500/60', nameClass: 'text-green-400', bgClass: 'bg-green-500/5' },
-  redteam: { name: 'RED TEAM', icon: '🔴', color: 'red', border: 'border-l-red-500/60', nameClass: 'text-red-400', bgClass: 'bg-red-500/5' },
-  cio: { name: 'BOBBY CIO', icon: '🟡', color: 'yellow', border: 'border-l-yellow-500/60', nameClass: 'text-yellow-400', bgClass: 'bg-yellow-500/5' },
+const AGENTS: Record<string, { name: string; icon: string; color: string; border: string; bg: string; text: string }> = {
+  alpha:   { name: 'Alpha Hunter', icon: '🟢', color: '#22c55e', border: 'border-l-green-500', bg: 'bg-green-500/[0.04]', text: 'text-green-400' },
+  redteam: { name: 'Red Team',     icon: '🔴', color: '#ef4444', border: 'border-l-red-500',   bg: 'bg-red-500/[0.04]',   text: 'text-red-400' },
+  cio:     { name: 'Bobby CIO',    icon: '🟡', color: '#eab308', border: 'border-l-yellow-500',bg: 'bg-yellow-500/[0.04]', text: 'text-yellow-400' },
 };
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
-function ConvictionBar({ score }: { score: number }) {
-  const pct = Math.round(score * 100);
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[9px] font-mono text-yellow-400/70">CONVICTION</span>
-      <div className="flex-1 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-[120px]">
-        <div
-          className={`h-full rounded-full ${score >= 0.7 ? 'bg-green-500' : score >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className={`text-[10px] font-mono font-bold ${score >= 0.7 ? 'text-green-400' : score >= 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
-        {Math.round(score * 10)}/10
-      </span>
-    </div>
-  );
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max).replace(/\s+\S*$/, '') + '...';
 }
 
-function ThreadCard({ thread, onExpand, expanded }: { thread: ForumThread; onExpand: () => void; expanded: boolean }) {
-  const priceStr = Object.entries(thread.price_at_creation || {})
-    .slice(0, 3)
-    .map(([sym, price]) => `${sym} $${typeof price === 'number' ? price.toLocaleString() : price}`)
-    .join(' · ');
+function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expanded: boolean; onToggle: () => void }) {
+  const alphaPost = thread.posts?.find(p => p.agent === 'alpha');
+  const redPost = thread.posts?.find(p => p.agent === 'redteam');
+  const cioPost = thread.posts?.find(p => p.agent === 'cio');
+  const conviction = thread.conviction_score;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm overflow-hidden"
-    >
-      {/* Thread header */}
-      <div className="px-4 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={onExpand}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full ${
-                thread.status === 'active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                thread.status === 'stale' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                'bg-white/5 text-white/30 border border-white/10'
-              }`}>
-                {thread.status === 'active' ? '● LIVE' : thread.status === 'stale' ? '⚠ STALE' : '✓ RESOLVED'}
-              </span>
-              <span className="text-[9px] font-mono text-white/20">{timeAgo(thread.created_at)}</span>
-              <span className="text-[9px] font-mono text-white/15 uppercase">{thread.language}</span>
-            </div>
-            <h3 className="text-[13px] sm:text-[14px] font-mono font-bold text-white/80 truncate">{thread.topic}</h3>
-            <p className="text-[10px] font-mono text-white/30 mt-0.5">{thread.trigger_reason}</p>
+    <div className="border border-white/[0.06] bg-white/[0.015] hover:bg-white/[0.025] transition-colors overflow-hidden">
+      {/* Compact header — always visible */}
+      <div className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-stretch">
+          {/* Conviction sidebar */}
+          <div className={`w-12 sm:w-14 flex flex-col items-center justify-center gap-0.5 border-r border-white/[0.04] flex-shrink-0 ${
+            conviction !== null && conviction >= 0.7 ? 'bg-green-500/[0.06]' : conviction !== null && conviction >= 0.4 ? 'bg-yellow-500/[0.06]' : 'bg-red-500/[0.06]'
+          }`}>
+            <span className={`text-[16px] sm:text-[18px] font-mono font-black ${
+              conviction !== null && conviction >= 0.7 ? 'text-green-400' : conviction !== null && conviction >= 0.4 ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {conviction !== null ? Math.round(conviction * 10) : '?'}
+            </span>
+            <span className="text-[7px] font-mono text-white/20 uppercase">/10</span>
           </div>
-          {thread.conviction_score !== null && (
-            <div className="flex-shrink-0">
-              <ConvictionBar score={thread.conviction_score} />
+
+          {/* Main content */}
+          <div className="flex-1 min-w-0 px-3 py-2.5">
+            {/* Title row */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${
+                thread.status === 'active' ? 'bg-green-500/15 text-green-400' : 'bg-white/5 text-white/25'
+              }`}>
+                {thread.status === 'active' ? 'LIVE' : thread.status.toUpperCase()}
+              </span>
+              <h3 className="text-[12px] sm:text-[13px] font-mono font-bold text-white/80 truncate flex-1">{thread.topic}</h3>
+              <span className="text-[9px] font-mono text-white/15 flex-shrink-0">{timeAgo(thread.created_at)}</span>
+              {expanded ? <ChevronUp className="w-3 h-3 text-white/20" /> : <ChevronDown className="w-3 h-3 text-white/20" />}
             </div>
-          )}
+
+            {/* Agent previews — one line each */}
+            {!expanded && (
+              <div className="space-y-0.5 mt-1">
+                {alphaPost && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-[9px] flex-shrink-0">🟢</span>
+                    <p className="text-[10px] font-mono text-white/35 truncate">{truncate(alphaPost.content, 80)}</p>
+                  </div>
+                )}
+                {redPost && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-[9px] flex-shrink-0">🔴</span>
+                    <p className="text-[10px] font-mono text-white/35 truncate">{truncate(redPost.content, 80)}</p>
+                  </div>
+                )}
+                {cioPost && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-[9px] flex-shrink-0">🟡</span>
+                    <p className="text-[10px] font-mono text-white/35 truncate">{truncate(cioPost.content, 80)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        {priceStr && (
-          <div className="text-[9px] font-mono text-white/15 mt-1.5">{priceStr}</div>
-        )}
       </div>
 
-      {/* Expanded posts */}
+      {/* Expanded view */}
       <AnimatePresence>
         {expanded && thread.posts && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="border-t border-white/[0.04]"
+            transition={{ duration: 0.25 }}
           >
-            <div className="p-4 space-y-3">
+            <div className="border-t border-white/[0.04] px-3 py-3 space-y-2.5">
+              {/* Trigger reason */}
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap className="w-3 h-3 text-amber-400/40" />
+                <span className="text-[9px] font-mono text-white/25">{thread.trigger_reason}</span>
+              </div>
+
               {thread.posts.map((post) => {
-                const cfg = AGENT_CONFIG[post.agent];
+                const agent = AGENTS[post.agent];
                 return (
-                  <div key={post.id} className={`border-l-2 ${cfg.border} pl-3 py-2 ${cfg.bgClass} rounded-r`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className={`text-[10px] font-bold tracking-wider ${cfg.nameClass}`}>
-                        {cfg.icon} {cfg.name}
-                      </span>
-                      <span className="text-[9px] font-mono text-white/20">{timeAgo(post.created_at)}</span>
+                  <div key={post.id} className={`border-l-2 ${agent.border} ${agent.bg} pl-3 pr-2 py-2 rounded-r`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`text-[9px] font-bold tracking-wider ${agent.text}`}>{agent.icon} {agent.name}</span>
+                      <span className="text-[8px] font-mono text-white/15">· {timeAgo(post.created_at)}</span>
                     </div>
-                    <p className="text-[12px] font-mono text-white/70 leading-relaxed whitespace-pre-line">{post.content}</p>
-                    {post.agent === 'cio' && thread.conviction_score !== null && (
-                      <div className="mt-2">
-                        <ConvictionBar score={thread.conviction_score} />
-                      </div>
-                    )}
+                    <p className="text-[11px] font-mono text-white/65 leading-relaxed whitespace-pre-line">{post.content}</p>
                   </div>
                 );
               })}
 
-              {/* Action bar */}
-              <div className="flex items-center gap-3 pt-2 border-t border-white/[0.04]">
+              {/* Actions */}
+              <div className="flex items-center gap-4 pt-1.5">
                 <Link
                   to="/agentic-world/bobby"
-                  className="flex items-center gap-1 text-[10px] font-mono text-green-400/50 hover:text-green-400 transition-colors"
+                  className="flex items-center gap-1 text-[9px] font-mono text-yellow-400/40 hover:text-yellow-400 transition-colors"
                 >
                   <MessageSquare className="w-3 h-3" />
-                  Ask Bobby about this
+                  Ask Bobby
                 </Link>
+                {/* Price context */}
+                {Object.keys(thread.price_at_creation || {}).length > 0 && (
+                  <span className="text-[8px] font-mono text-white/15">
+                    {Object.entries(thread.price_at_creation).slice(0, 3).map(([s, p]) =>
+                      `${s} $${typeof p === 'number' ? p.toLocaleString(undefined, { maximumFractionDigits: 0 }) : p}`
+                    ).join(' · ')}
+                  </span>
+                )}
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -167,7 +182,6 @@ export default function AgentForumPage() {
   const fetchThreads = async () => {
     setLoading(true);
     try {
-      // Fetch threads
       const res = await fetch(
         `${SB_URL}/rest/v1/forum_threads?language=eq.${lang}&order=created_at.desc&limit=20`,
         { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
@@ -175,7 +189,6 @@ export default function AgentForumPage() {
       if (!res.ok) { setLoading(false); return; }
       const threadData: ForumThread[] = await res.json();
 
-      // Fetch posts for all threads
       const threadIds = threadData.map(t => t.id);
       if (threadIds.length > 0) {
         const postsRes = await fetch(
@@ -185,7 +198,7 @@ export default function AgentForumPage() {
         if (postsRes.ok) {
           const posts: ForumPost[] = await postsRes.json();
           for (const thread of threadData) {
-            thread.posts = posts.filter(p => p.thread_id === (thread as any).id);
+            thread.posts = posts.filter(p => p.thread_id === thread.id);
           }
         }
       }
@@ -206,10 +219,7 @@ export default function AgentForumPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: lang }),
       });
-      if (res.ok) {
-        // Refresh threads after generation
-        setTimeout(() => fetchThreads(), 1000);
-      }
+      if (res.ok) setTimeout(() => fetchThreads(), 1500);
     } catch (e) { console.error('[Forum] Generate error:', e); }
     setGenerating(false);
   };
@@ -217,78 +227,76 @@ export default function AgentForumPage() {
   return (
     <div className="min-h-screen" style={{ background: '#050505' }}>
       {/* Header */}
-      <div className="border-b border-white/[0.04]">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/agentic-world" className="text-white/15 hover:text-white/40 transition-colors">
+      <div className="sticky top-0 z-10 border-b border-white/[0.06] backdrop-blur-md" style={{ background: 'rgba(5,5,5,0.9)' }}>
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Link to="/agentic-world" className="text-white/20 hover:text-white/50 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-[14px] font-mono font-bold text-white/80 tracking-wide">AGENT TRADING FORUM</h1>
-              <p className="text-[9px] font-mono text-white/25">Autonomous debates · Alpha Hunter vs Red Team vs Bobby CIO</p>
+              <h1 className="text-[13px] font-mono font-bold text-white/80 tracking-wide">⚔ AGENT TRADING FORUM</h1>
+              <p className="text-[8px] font-mono text-white/20">Alpha Hunter vs Red Team vs Bobby CIO · Autonomous 24/7</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Language toggle */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setLang(l => l === 'en' ? 'es' : 'en')}
-              className="flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono border border-white/10 text-white/40 hover:text-white/60 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-mono border border-white/[0.08] text-white/30 hover:text-white/60 transition-colors"
             >
               <Globe className="w-3 h-3" />
               {lang.toUpperCase()}
             </button>
-            {/* Generate new debate */}
             <button
               onClick={generateDebate}
               disabled={generating}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-mono font-bold border transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-[9px] font-mono font-bold border transition-all ${
                 generating
-                  ? 'border-amber-500/30 text-amber-400/60 bg-amber-500/10 animate-pulse'
-                  : 'border-green-500/20 text-green-400/60 bg-green-500/5 hover:bg-green-500/10 hover:text-green-400'
+                  ? 'border-amber-500/30 text-amber-400/50 bg-amber-500/10 animate-pulse'
+                  : 'border-green-500/20 text-green-400/50 bg-green-500/[0.06] hover:bg-green-500/10 hover:text-green-400'
               }`}
             >
               <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />
-              {generating ? 'Generating...' : 'New Debate'}
+              {generating ? 'Debating...' : 'New'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="flex gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-yellow-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="flex flex-col items-center py-20 gap-3">
+            <div className="flex gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
-            <span className="text-[10px] font-mono text-white/30">Loading debates...</span>
+            <span className="text-[10px] font-mono text-white/25">Loading debates...</span>
           </div>
         ) : threads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="text-4xl">⚔️</div>
-            <h2 className="text-[14px] font-mono font-bold text-white/50">No debates yet</h2>
-            <p className="text-[11px] font-mono text-white/25 text-center max-w-md">
-              The agents haven't started debating yet. Click "New Debate" to trigger the first one, or wait for the next market scan.
+          <div className="flex flex-col items-center py-16 gap-3">
+            <span className="text-3xl">⚔️</span>
+            <h2 className="text-[13px] font-mono font-bold text-white/40">No debates yet</h2>
+            <p className="text-[10px] font-mono text-white/20 text-center max-w-sm">
+              The agents are standing by. Start the first debate or wait for the next market scan.
             </p>
             <button
               onClick={generateDebate}
               disabled={generating}
-              className="mt-2 flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-mono font-bold border border-green-500/30 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all"
+              className="mt-1 flex items-center gap-1.5 px-4 py-2 rounded text-[10px] font-mono font-bold border border-green-500/30 text-green-400 bg-green-500/10 hover:bg-green-500/15 transition-all"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin' : ''}`} />
-              {generating ? 'Agents are debating...' : 'Start First Debate'}
+              <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />
+              {generating ? 'Agents debating...' : 'Start First Debate'}
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {threads.map((thread) => (
               <ThreadCard
                 key={thread.id}
                 thread={thread}
                 expanded={expandedId === thread.id}
-                onExpand={() => setExpandedId(expandedId === thread.id ? null : thread.id)}
+                onToggle={() => setExpandedId(expandedId === thread.id ? null : thread.id)}
               />
             ))}
           </div>

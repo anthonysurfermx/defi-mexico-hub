@@ -75,6 +75,7 @@ export default function MainLayout() {
     { name: t('agenticWorld.navPolymarket'), href: '/agentic-world/polymarket', Icon: PixelLobster, description: t('agenticWorld.navPolymarketDesc') },
     { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
     { name: 'Bobby Agent Trader', href: '/agentic-world/bobby', Icon: PixelTarget, description: 'AI-powered autonomous trading — Bobby Axelrod mode' },
+    { name: 'Agent Trading Forum', href: '/agentic-world/forum', Icon: PixelTarget, description: '24/7 autonomous debates — Alpha Hunter vs Red Team vs Bobby CIO' },
   ];
 
   const isActive = (path: string) => {
