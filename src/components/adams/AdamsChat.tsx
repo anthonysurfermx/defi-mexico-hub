@@ -643,7 +643,7 @@ export function AdamsChat() {
 
   // ---- Trading Room mode (multi-agent debate with 3 voices) ----
   const [tradingRoom, setTradingRoom] = useState(() => {
-    try { return localStorage.getItem('bobby_trading_room') === 'true'; } catch { return false; }
+    try { const v = localStorage.getItem('bobby_trading_room'); return v === null ? true : v === 'true'; } catch { return true; }
   });
   const toggleTradingRoom = useCallback(() => {
     const next = !tradingRoom;
@@ -1960,9 +1960,10 @@ export function AdamsChat() {
               {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
             <button onClick={toggleTradingRoom}
-              className={`p-1.5 transition-colors ${tradingRoom ? 'text-yellow-400/70 hover:text-yellow-400' : 'text-white/15 hover:text-white/30'}`}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono font-bold tracking-wider transition-all ${tradingRoom ? 'bg-yellow-400/15 text-yellow-400 border border-yellow-400/30' : 'bg-white/5 text-white/30 border border-white/10 hover:text-white/50'}`}
               title={tradingRoom ? 'Trading Room ON' : 'Solo Trader'}>
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3 h-3" />
+              {tradingRoom ? 'ROOM' : 'SOLO'}
             </button>
             {address ? (
               <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-1">
