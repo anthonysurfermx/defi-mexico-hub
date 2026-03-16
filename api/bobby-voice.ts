@@ -12,9 +12,9 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const VOICE_PROFILES: Record<string, { id: string; stability: number; similarity: number; style: number }> = {
   // Bobby CIO — "Josh": confident, measured, authoritative (the boss)
   cio:     { id: process.env.ELEVENLABS_VOICE_ID || 'TxGEqnHWrfWFTfGW9XjX', stability: 0.35, similarity: 0.85, style: 0.3 },
-  // Alpha Hunter — "Adam": energetic, fast, aggressive (the opportunist)
-  alpha:   { id: 'pNInz6obpgDQGcFmaJgB', stability: 0.25, similarity: 0.80, style: 0.5 },
-  // Red Team — "Antoni": deep, slow, skeptical (the risk manager)
+  // Alpha Hunter — "Rachel": sharp, confident woman — the one who spots alpha before anyone else
+  alpha:   { id: '21m00Tcm4TlvDq8ikWAM', stability: 0.25, similarity: 0.80, style: 0.5 },
+  // Red Team — "Antoni": deep, slow, skeptical man (the risk manager)
   redteam: { id: 'ErXwobaYiN019PkySvjV', stability: 0.50, similarity: 0.85, style: 0.15 },
 };
 
