@@ -17,6 +17,7 @@ import { VoiceOrb, type OrbState } from './VoiceOrb';
 import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 
 // ---- Supabase ----
 
@@ -277,17 +278,125 @@ function fmtPrice(n: number): string {
   return n.toFixed(6);
 }
 
-// ---- Inline Price Card ----
+// ---- Inline Price Card with Expandable Chart ----
+
+interface CandlePoint { ts: number; close: number; date: string }
+
+const candleCache: Record<string, { data: CandlePoint[]; exp: number }> = {};
+
+async function fetchCandles(symbol: string): Promise<CandlePoint[]> {
+  const key = symbol;
+  const cached = candleCache[key];
+  if (cached && cached.exp > Date.now()) return cached.data;
+
+  try {
+    const instId = `${symbol}-USDT`;
+    const res = await fetch(`/api/okx-candles?instId=${encodeURIComponent(instId)}&bar=1D&limit=7`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    const candles: CandlePoint[] = (json.candles || []).map((c: { ts: number; close: number }) => ({
+      ts: c.ts,
+      close: c.close,
+      date: new Date(c.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    }));
+    candleCache[key] = { data: candles, exp: Date.now() + 5 * 60_000 };
+    return candles;
+  } catch { return []; }
+}
+
+function MiniChart({ symbol, isUp }: { symbol: string; isUp: boolean }) {
+  const [data, setData] = useState<CandlePoint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchCandles(symbol).then(d => { setData(d); setLoading(false); });
+  }, [symbol]);
+
+  const color = isUp ? '#22c55e' : '#ef4444';
+  const gradientId = `chart-${symbol}`;
+
+  if (loading) {
+    return (
+      <div className="h-[120px] flex items-center justify-center">
+        <div className="w-4 h-4 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (data.length < 2) {
+    return (
+      <div className="h-[120px] flex items-center justify-center text-[10px] text-neutral-600 font-mono">
+        No chart data available
+      </div>
+    );
+  }
+
+  const minPrice = Math.min(...data.map(d => d.close));
+  const maxPrice = Math.max(...data.map(d => d.close));
+  const padding = (maxPrice - minPrice) * 0.1 || maxPrice * 0.01;
+
+  return (
+    <div className="h-[120px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 9, fill: '#6B7280' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[minPrice - padding, maxPrice + padding]}
+            hide
+          />
+          <Tooltip
+            contentStyle={{
+              background: '#161A1D',
+              border: '1px solid rgba(34,197,94,0.2)',
+              borderRadius: 6,
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: '#E5E7EB',
+            }}
+            formatter={(value: number) => [`$${fmtPrice(value)}`, 'Price']}
+            labelStyle={{ color: '#6B7280', fontSize: 9 }}
+          />
+          <Area
+            type="monotone"
+            dataKey="close"
+            stroke={color}
+            strokeWidth={1.5}
+            fill={`url(#${gradientId})`}
+            dot={false}
+            activeDot={{ r: 3, fill: color, stroke: '#161A1D', strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; highlighted?: boolean; labels?: { high: string; low: string; volume: string; funding: string } }) {
   const lb = labels || { high: '24h High', low: '24h Low', volume: 'Volume', funding: 'Funding' };
   const isUp = price.change24h >= 0;
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className={`border rounded-lg p-3 font-mono text-[11px] transition-all duration-500 ${
-      highlighted
-        ? 'border-green-500/40 bg-green-500/[0.06] shadow-[0_0_20px_rgba(34,197,94,0.15)]'
-        : 'border-neutral-700/50 bg-neutral-900/50'
-    }`}>
+    <div
+      className={`border rounded-lg p-3 font-mono text-[11px] transition-all duration-500 cursor-pointer ${
+        highlighted
+          ? 'border-green-500/40 bg-green-500/[0.06] shadow-[0_0_20px_rgba(34,197,94,0.15)]'
+          : 'border-neutral-700/50 bg-neutral-900/50 hover:border-neutral-600/60'
+      }`}
+      onClick={() => setExpanded(prev => !prev)}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-white">{price.symbol}</span>
@@ -298,7 +407,10 @@ function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; hig
             {isUp ? '+' : ''}{price.change24h.toFixed(2)}%
           </span>
         </div>
-        <span className="text-[15px] font-bold text-white">${fmtPrice(price.price)}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[15px] font-bold text-white">${fmtPrice(price.price)}</span>
+          <span className={`text-[9px] transition-transform duration-200 ${expanded ? 'rotate-180' : ''} text-neutral-600`}>▼</span>
+        </div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-neutral-500">
         <div>
@@ -321,6 +433,15 @@ function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; hig
             {(price.funding.rate * 100).toFixed(4)}%
           </span>
           <span className="text-neutral-600">({price.funding.annualized.toFixed(1)}% APR)</span>
+        </div>
+      )}
+      {/* Expandable 7-day chart */}
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-neutral-800/50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] text-neutral-600 uppercase tracking-wider">7D Price</span>
+          </div>
+          <MiniChart symbol={price.symbol} isUp={isUp} />
         </div>
       )}
     </div>

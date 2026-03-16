@@ -70,6 +70,10 @@
     "api/stock-price.ts": {
       "maxDuration": 10,
       "memory": 256
+    },
+    "api/okx-candles.ts": {
+      "maxDuration": 10,
+      "memory": 256
     }
   }
 }
