@@ -443,14 +443,85 @@ export function AdamsChat() {
     speak(clean);
   }, [voiceEnabled, speak]);
 
+  // ---- Ambient thinking sound (Web Audio API — no external files) ----
+  const thinkingAudioRef = useRef<{ osc: OscillatorNode; gain: GainNode; ctx: AudioContext } | null>(null);
+  const startThinkingSound = useCallback(() => {
+    try {
+      if (thinkingAudioRef.current) return; // already playing
+      const ctx = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const lfo = ctx.createOscillator(); // subtle modulation
+      const lfoGain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.value = 220; // low ambient hum
+      gain.gain.value = 0;
+      // Fade in smoothly
+      gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.5);
+
+      // LFO for subtle pulsing
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.5; // slow pulse
+      lfoGain.gain.value = 0.03;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      lfo.start();
+
+      thinkingAudioRef.current = { osc, gain, ctx };
+    } catch { /* silent — audio not critical */ }
+  }, []);
+
+  const stopThinkingSound = useCallback(() => {
+    const ref = thinkingAudioRef.current;
+    if (!ref) return;
+    try {
+      ref.gain.gain.linearRampToValueAtTime(0, ref.ctx.currentTime + 0.3);
+      setTimeout(() => {
+        try { ref.osc.stop(); ref.ctx.close(); } catch {}
+      }, 400);
+    } catch {}
+    thinkingAudioRef.current = null;
+  }, []);
+
+  // ---- Typewriter effect for analyze results ----
+  const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typewriterText = useCallback((msgId: string, fullText: string, onDone?: () => void) => {
+    let i = 0;
+    const speed = Math.max(8, Math.min(25, 2000 / fullText.length)); // adaptive speed: longer text = faster
+    const step = () => {
+      // Reveal in chunks of 2-4 chars for natural feel
+      const chunk = Math.min(fullText.length, i + (Math.random() > 0.7 ? 4 : 2));
+      i = chunk;
+      setMessages(prev => prev.map(m =>
+        m.id === msgId ? { ...m, text: fullText.slice(0, i) } : m
+      ));
+      if (i < fullText.length) {
+        typewriterRef.current = setTimeout(step, speed);
+      } else {
+        onDone?.();
+      }
+    };
+    step();
+  }, []);
+
   // ---- Stop everything: voice + processing ----
   const stopAll = useCallback(() => {
     stopVoice();
+    stopThinkingSound();
+    if (typewriterRef.current) { clearTimeout(typewriterRef.current); typewriterRef.current = null; }
     setIsProcessing(false);
     setAnalysisPhases([]);
     phaseTimerRef.current.forEach(clearTimeout);
     phaseTimerRef.current = [];
-  }, [stopVoice]);
+  }, [stopVoice, stopThinkingSound]);
+
+  // Cleanup thinking sound on unmount
+  useEffect(() => () => { stopThinkingSound(); }, [stopThinkingSound]);
 
   // ---- Keyword-to-UI: scan streaming text and highlight mentioned symbols ----
   const scanAndHighlight = useCallback((text: string) => {
@@ -980,6 +1051,7 @@ export function AdamsChat() {
     if (intent === 'analyze') {
       setIsProcessing(true);
       setAnalysisPhases([]);
+      startThinkingSound(); // ambient hum while analyzing
 
       // Bobby announces the full scan — voice filler during the 2min cycle
       const analyzeFillers = t('analyzeFillers') as string[];
@@ -1005,6 +1077,7 @@ export function AdamsChat() {
         phaseTimerRef.current.forEach(clearTimeout);
         phaseTimerRef.current = [];
         setAnalysisPhases([]);
+        stopThinkingSound();
 
         if (data.ok) {
           const trades: TradeExecution[] = (data.trades || [])
@@ -1037,9 +1110,10 @@ export function AdamsChat() {
             } catch {}
           }
 
+          const msgId = uid();
           const mainMsg: ChatMsg = {
-            id: uid(), role: 'advisor', timestamp: Date.now(),
-            text: greetingText, isLive: true,
+            id: msgId, role: 'advisor', timestamp: Date.now(),
+            text: '', isLive: true, // start empty — typewriter fills it
             trades: trades.length > 0 ? trades : undefined,
           };
 
@@ -1064,7 +1138,8 @@ export function AdamsChat() {
           }
 
           setMessages(prev => [...prev, mainMsg]);
-          speakIfEnabled(greetingText);
+          // Typewriter reveal + speak when done
+          typewriterText(msgId, greetingText, () => speakIfEnabled(greetingText));
         } else {
           // API returned ok:false — still show what we got
           const reason = data.cycle?.llm_reasoning || data.error || (lang === 'es' ? 'Sin señales accionables este ciclo.' : 'No actionable signals this cycle.');
@@ -1080,6 +1155,7 @@ export function AdamsChat() {
         phaseTimerRef.current.forEach(clearTimeout);
         phaseTimerRef.current = [];
         setAnalysisPhases([]);
+        stopThinkingSound();
 
         const isAbort = err instanceof DOMException && err.name === 'AbortError';
         setMessages(prev => [...prev, {
@@ -1098,6 +1174,7 @@ export function AdamsChat() {
     // If user mentions tokens, fetch live data in parallel for context
     // ========================
     setIsProcessing(true);
+    startThinkingSound(); // ambient hum while thinking
 
     // Voice filler — Bobby "thinks out loud" while intelligence loads
     // Transforms network lag into narrative tension
@@ -1164,6 +1241,7 @@ export function AdamsChat() {
       } catch { /* no prices */ }
 
       // Try to parse SSE stream
+      stopThinkingSound(); // stop hum once response arrives
       const reader = res.body?.getReader();
       if (reader) {
         const decoder = new TextDecoder();
@@ -1229,6 +1307,7 @@ export function AdamsChat() {
         }]);
       }
     } catch {
+      stopThinkingSound();
       // OpenClaw unavailable — fallback with prices if available
       let fallbackPrices: PriceCard[] = [];
       try { fallbackPrices = await contextPricesPromise; } catch { /* silent */ }
@@ -1242,7 +1321,7 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, scanAndHighlight]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, scanAndHighlight, startThinkingSound, stopThinkingSound, typewriterText, lang, t]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);

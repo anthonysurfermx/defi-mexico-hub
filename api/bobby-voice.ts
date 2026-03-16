@@ -7,8 +7,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
-// "Daniel" — sophisticated, mature, 40-50s, controlled cadence — Bobby Axelrod energy
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'onwK4e9ZLuTAKqWW03F9';
+// "Josh" — young, confident, sharp American male — Bobby Axelrod energy
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'TxGEqnHWrfWFTfGW9XjX';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -41,8 +41,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           text: safeText,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.45,
-            similarity_boost: 0.8,
+            stability: 0.35,        // lower = more expressive/dynamic
+            similarity_boost: 0.85,  // high fidelity to voice
+            style: 0.3,             // subtle stylistic emphasis
           },
         }),
       }
