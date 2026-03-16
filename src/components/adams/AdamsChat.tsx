@@ -1609,9 +1609,13 @@ export function AdamsChat() {
 
         if (contextBlocks.length > 0) {
           enrichedMessage = `${msg}\n\n${contextBlocks.join('\n\n')}`;
+          console.log(`[Bobby] ✅ Enriched with ${contextBlocks.length} XML blocks (${enrichedMessage.length} chars)`);
+        } else {
+          console.warn('[Bobby] ⚠️ No XML blocks generated. fetchIntel:', fetchIntel, 'intel:', !!intel, 'briefing:', !!intel?.briefing, 'prices:', contextPrices.length, 'stocks:', stockQuotes.length);
         }
-      } catch (err) { console.warn('[Bobby] context enrichment failed:', err); }
+      } catch (err) { console.warn('[Bobby] ❌ context enrichment failed:', err); }
 
+      console.log('[Bobby] 📤 Sending to OpenClaw:', enrichedMessage.substring(0, 300), enrichedMessage.length > 300 ? `... (${enrichedMessage.length} total chars)` : '');
       const res = await fetch('/api/openclaw-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
