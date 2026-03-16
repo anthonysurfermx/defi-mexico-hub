@@ -1841,7 +1841,7 @@ export function AdamsChat() {
 
       {/* ===== MINIMAL HEADER BAR ===== */}
       <div className="flex-shrink-0 border-b border-white/[0.04]">
-        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/agentic-world" className="text-white/15 hover:text-white/40 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -1922,16 +1922,17 @@ export function AdamsChat() {
       </div>
 
       {/* ===== ORB — always visible, sticky above content ===== */}
-      <div className="flex-shrink-0 flex flex-col items-center py-3 sm:py-4 border-b border-white/[0.02]" style={{ background: '#050505' }}>
-        <VoiceOrb analyser={analyser} state={orbState} mood="confident" size={100} />
-        <span className="text-[9px] font-mono text-green-400/40 mt-1.5 tracking-[2px]">
+      <div className="flex-shrink-0 flex flex-col items-center py-1.5 sm:py-4 border-b border-white/[0.02]" style={{ background: '#050505' }}>
+        <div className="sm:hidden"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={60} /></div>
+        <div className="hidden sm:block"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={100} /></div>
+        <span className="text-[8px] sm:text-[9px] font-mono text-green-400/40 mt-1 sm:mt-1.5 tracking-[2px]">
           {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
         </span>
       </div>
 
       {/* ===== COMMAND CENTER: STAGE ===== */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" ref={scrollRef}>
-        <div className="max-w-4xl mx-auto w-full px-4 flex flex-col items-center flex-1">
+        <div className="max-w-4xl mx-auto w-full px-2 sm:px-4 flex flex-col items-center flex-1">
 
           {/* THINKING INDICATOR — conversational queries (no phases) */}
           <AnimatePresence>
@@ -1988,8 +1989,8 @@ export function AdamsChat() {
                 transition={{ duration: 0.4, ease: 'easeOut' }}
                 className="w-full max-w-2xl mx-auto"
               >
-                <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-5">
-                  <div className="text-[13px] leading-relaxed text-white/80 font-mono whitespace-pre-line">
+                <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-3 sm:p-5">
+                  <div className="text-[12px] sm:text-[13px] leading-relaxed text-white/80 font-mono whitespace-pre-line">
                     {latestAdvisor === messages[messages.length - 1] && latestAdvisor.isLive !== false ? (
                       <Typewriter text={latestAdvisor.text} speed={6} />
                     ) : (
@@ -2093,11 +2094,11 @@ export function AdamsChat() {
       </div>
 
       {/* ===== INPUT BAR — Bottom ===== */}
-      <div className="flex-shrink-0 border-t border-white/[0.04]" style={{ background: '#080808' }}>
+      <div className="flex-shrink-0 border-t border-white/[0.04]" style={{ background: '#080808', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {isAuthenticated ? (
           <>
-            <div className="max-w-4xl mx-auto px-4 pt-2 pb-1">
-              <div className="flex gap-2 flex-wrap justify-center">
+            <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-1.5 sm:pt-2 pb-0.5 sm:pb-1">
+              <div className="flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar justify-start sm:justify-center sm:flex-wrap">
                 {(() => {
                   const qa = t('quickActions') as { gold: string; silver: string; allPrices: string; analyze: string };
                   return [
@@ -2110,39 +2111,39 @@ export function AdamsChat() {
                   ];
                 })().map(a => (
                   <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono">
+                    className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono whitespace-nowrap flex-shrink-0">
                     <span className="text-green-400/60">{a.icon}</span>
                     {a.display}
                   </button>
                 ))}
                 <Link to="/agentic-world/polymarket"
-                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono">
+                  className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono whitespace-nowrap flex-shrink-0">
                   <span>◉</span> Dashboard
                 </Link>
               </div>
             </div>
-            <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-2">
+            <div className="max-w-4xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2.5 flex items-center gap-1.5 sm:gap-2">
               <button onClick={toggleListening} disabled={isProcessing}
-                className={`w-9 h-9 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 rounded-full ${
+                className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 rounded-full ${
                   isListening
                     ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
                     : 'border-white/[0.06] text-white/20 hover:border-green-500/20 hover:text-green-400/60'
                 }`}>
-                {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                {isListening ? <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <MicOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
               </button>
               <input type="text" value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder={isListening ? t('listening') as string : `${lang === 'es' ? 'Habla con' : lang === 'pt' ? 'Fale com' : 'Talk to'} ${advisorName}...`}
-                className={`flex-1 bg-transparent border-0 border-b px-3 py-2 text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
+                className={`flex-1 bg-transparent border-0 border-b px-2 sm:px-3 py-1.5 sm:py-2 text-[12px] sm:text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
                   isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
                 }`}
                 disabled={isProcessing} />
               <button onClick={() => sendMessage()} disabled={!inputText.trim() || isProcessing}
-                className={`w-9 h-9 flex items-center justify-center transition-all active:scale-[0.95] rounded-full ${
+                className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center transition-all active:scale-[0.95] rounded-full ${
                   inputText.trim() && !isProcessing ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'text-white/10 cursor-not-allowed'
                 }`}>
-                {isProcessing ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                {isProcessing ? <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
               </button>
             </div>
           </>
