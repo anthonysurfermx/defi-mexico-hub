@@ -1717,22 +1717,38 @@ export function AdamsChat() {
         // Detect which agent is speaking based on markers in the text
         let currentVoice: string = 'cio';
         const detectAgent = (text: string) => {
-          // Find the LAST agent marker in the text (most recent speaker)
-          const alphaIdx = Math.max(text.lastIndexOf('**ALPHA HUNTER:**'), text.lastIndexOf('ALPHA HUNTER:'));
-          const redIdx = Math.max(text.lastIndexOf('**RED TEAM:**'), text.lastIndexOf('RED TEAM:'));
-          const cioIdx = Math.max(text.lastIndexOf('**MY VERDICT:**'), text.lastIndexOf('MY VERDICT:'), text.lastIndexOf('**MI VEREDICTO:**'));
-          const maxIdx = Math.max(alphaIdx, redIdx, cioIdx);
-          if (maxIdx === -1) return;
-          if (maxIdx === alphaIdx) { currentVoice = 'alpha'; setActiveAgent('alpha'); }
-          else if (maxIdx === redIdx) { currentVoice = 'redteam'; setActiveAgent('redteam'); }
-          else if (maxIdx === cioIdx) { currentVoice = 'cio'; setActiveAgent('cio'); }
+          // Find the LAST agent marker — flexible matching (bold, plain, caps, partial)
+          const patterns: Array<[RegExp, string, 'alpha' | 'redteam' | 'cio']> = [
+            [/alpha\s*hunter/gi, 'alpha', 'alpha'],
+            [/red\s*team/gi, 'redteam', 'redteam'],
+            [/my\s*verdict/gi, 'cio', 'cio'],
+            [/mi\s*veredicto/gi, 'cio', 'cio'],
+            [/my\s*play/gi, 'cio', 'cio'],
+            [/bobby.*decides/gi, 'cio', 'cio'],
+          ];
+          let lastIdx = -1;
+          let lastAgent: 'alpha' | 'redteam' | 'cio' = 'cio';
+          for (const [regex, , agent] of patterns) {
+            let match: RegExpExecArray | null;
+            regex.lastIndex = 0;
+            while ((match = regex.exec(text)) !== null) {
+              if (match.index > lastIdx) {
+                lastIdx = match.index;
+                lastAgent = agent;
+              }
+            }
+          }
+          if (lastIdx >= 0 && lastAgent !== currentVoice) {
+            currentVoice = lastAgent;
+            setActiveAgent(lastAgent);
+          }
         };
 
         const feedSentenceStream = (delta: string) => {
           if (!voiceEnabled) return;
           sentenceBuffer += delta;
-          // Detect agent transitions in the stream
-          detectAgent(sentenceBuffer);
+          // Detect agent transitions using FULL text (not just buffer)
+          detectAgent(fullText);
           // Extract complete sentences
           const parts = sentenceBuffer.split(sentenceSplitter);
           if (parts.length > 1) {
