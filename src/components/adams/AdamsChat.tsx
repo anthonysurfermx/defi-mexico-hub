@@ -1388,9 +1388,11 @@ export function AdamsChat() {
       setAnalysisPhases([]);
       startThinkingSound(); // ambient hum while analyzing
 
-      // Bobby announces the full scan — voice filler during the 2min cycle
-      const analyzeFillers = t('analyzeFillers') as string[];
-      speakFillerLocal(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
+      // Bobby announces the full scan — ElevenLabs voice for consistency
+      if (voiceEnabled) {
+        const analyzeFillers = t('analyzeFillers') as readonly string[];
+        queueSentence(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
+      }
       phaseTimerRef.current.forEach(clearTimeout);
       phaseTimerRef.current = [];
 
@@ -1524,10 +1526,12 @@ export function AdamsChat() {
     startThinkingSound(); // ambient hum while thinking
 
     // Voice filler — Bobby "thinks out loud" while intelligence loads
-    // Transforms network lag into narrative tension
-    const fillers = t('chatFillers') as string[];
-    const filler = fillers[Math.floor(Math.random() * fillers.length)];
-    speakFillerLocal(filler);
+    // Uses ElevenLabs (not Web Speech) so Bobby's voice is consistent
+    if (voiceEnabled) {
+      const fillers = t('chatFillers') as readonly string[];
+      const filler = fillers[Math.floor(Math.random() * fillers.length)];
+      queueSentence(filler);
+    }
 
     // ---- Autonomous Reasoning: Bobby decides what data to fetch based on the question ----
     // The key insight: Bobby should ALWAYS have real data when giving opinions.
