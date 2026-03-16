@@ -78,6 +78,10 @@
     "api/stock-candles.ts": {
       "maxDuration": 10,
       "memory": 256
+    },
+    "api/forum-generate.ts": {
+      "maxDuration": 120,
+      "memory": 512
     }
   }
 }
