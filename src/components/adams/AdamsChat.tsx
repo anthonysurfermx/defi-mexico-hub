@@ -1054,7 +1054,7 @@ export function AdamsChat() {
   const latestUser = [...messages].reverse().find(m => m.role === 'user');
 
   return (
-    <div className="h-[calc(100vh-4rem)] text-white flex flex-col" style={{ background: '#050505' }}>
+    <div className="h-full text-white flex flex-col overflow-hidden" style={{ background: '#050505' }}>
       {showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
 
       {/* ===== MINIMAL HEADER BAR ===== */}
