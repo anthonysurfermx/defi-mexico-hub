@@ -1260,9 +1260,9 @@ export function AdamsChat() {
     }
 
     // ========================
-    // PRICE QUERY — specific token(s)
+    // PRICE QUERY — specific token(s) (short direct commands only)
     // ========================
-    if (intent === 'price' || (intent === 'chat' && tokens.length > 0)) {
+    if (intent === 'price') {
       const targetTokens = tokens.length > 0 ? tokens : ['BTC-USDT'];
       setIsProcessing(true);
       try {
