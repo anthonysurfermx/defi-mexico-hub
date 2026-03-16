@@ -4,7 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock } from 'lucide-react';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock, LogOut, Trash2, MoreVertical, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -388,7 +388,7 @@ export function AdamsChat() {
   const { profile, needsSetup, saveNewProfile, isConnected } = useAdvisorProfile();
   const { address } = useAccount();
   const { open: openWallet } = useAppKit();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
   const [showSetup, setShowSetup] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
@@ -409,6 +409,8 @@ export function AdamsChat() {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [analysisPhases, setAnalysisPhases] = useState<string[]>([]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   // Block-by-block analysis: queue of paragraphs waiting to be revealed
   const [pendingBlocks, setPendingBlocks] = useState<string[]>([]);
   const [awaitingContinue, setAwaitingContinue] = useState(false);
@@ -527,6 +529,35 @@ export function AdamsChat() {
 
   // Cleanup thinking sound on unmount
   useEffect(() => () => { stopThinkingSound(); }, [stopThinkingSound]);
+
+  // ---- Clear chat history (localStorage + Supabase) ----
+  const clearChats = useCallback(async () => {
+    // Clear localStorage
+    try { localStorage.removeItem('bobby_chat_history'); } catch {}
+    // Clear Supabase messages for this wallet
+    if (profile?.walletAddress) {
+      try {
+        await fetch(
+          `${SB_URL}/rest/v1/agent_messages?wallet_address=eq.${profile.walletAddress}`,
+          { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: 'return=minimal' } }
+        );
+      } catch {}
+    }
+    // Reset UI
+    setMessages([]);
+    setConfirmClear(false);
+    setShowMenu(false);
+    stopAll();
+  }, [profile?.walletAddress, stopAll]);
+
+  // ---- Logout ----
+  const handleLogout = useCallback(async () => {
+    stopAll();
+    setShowMenu(false);
+    try { localStorage.removeItem('bobby_chat_history'); } catch {}
+    await signOut();
+    navigate('/login');
+  }, [signOut, navigate, stopAll]);
 
   // ---- Block-by-block: reveal next paragraph ----
   const revealNextBlock = useCallback(() => {
@@ -1393,6 +1424,52 @@ export function AdamsChat() {
     <div className="h-full text-white flex flex-col overflow-hidden" style={{ background: '#050505' }}>
       {showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
 
+      {/* ===== CONFIRM CLEAR CHATS DIALOG ===== */}
+      <AnimatePresence>
+        {confirmClear && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            onClick={() => setConfirmClear(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#111] border border-white/[0.08] p-6 max-w-sm w-full space-y-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2.5">
+                <Trash2 className="w-4 h-4 text-red-400/80" />
+                <h3 className="text-[13px] font-mono font-bold text-white/80">
+                  {lang === 'es' ? 'Borrar historial de chat' : lang === 'pt' ? 'Limpar histórico de chat' : 'Clear chat history'}
+                </h3>
+              </div>
+              <p className="text-[11px] font-mono text-white/40 leading-relaxed">
+                {lang === 'es' ? 'Esto eliminará todos los mensajes de la conversación. Esta acción no se puede deshacer.'
+                  : lang === 'pt' ? 'Isso excluirá todas as mensagens da conversa. Esta ação não pode ser desfeita.'
+                  : 'This will delete all conversation messages. This action cannot be undone.'}
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setConfirmClear(false)}
+                  className="px-4 py-1.5 text-[10px] font-mono text-white/40 border border-white/[0.08] hover:text-white/60 hover:border-white/15 transition-colors">
+                  {lang === 'es' ? 'CANCELAR' : lang === 'pt' ? 'CANCELAR' : 'CANCEL'}
+                </button>
+                <button onClick={clearChats}
+                  className="px-4 py-1.5 text-[10px] font-mono text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+                  {lang === 'es' ? 'BORRAR TODO' : lang === 'pt' ? 'LIMPAR TUDO' : 'DELETE ALL'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Close menu when clicking outside */}
+      {showMenu && <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />}
+
       {/* ===== MINIMAL HEADER BAR ===== */}
       <div className="flex-shrink-0 border-b border-white/[0.04]">
         <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
@@ -1407,7 +1484,7 @@ export function AdamsChat() {
               OKX OnchainOS
             </a>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {/* Stop button — visible when speaking or processing */}
             {(isSpeaking || isProcessing) && (
               <button onClick={stopAll}
@@ -1422,19 +1499,55 @@ export function AdamsChat() {
               {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
             {address ? (
-              <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-2">
-                {address.slice(0, 6)}...{address.slice(-4)}
+              <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-1">
+                {address.slice(0, 4)}..{address.slice(-3)}
               </button>
             ) : (
-              <button onClick={() => openWallet()} className="text-[10px] text-green-400/50 hover:text-green-400 transition-colors px-2 font-mono">
+              <button onClick={() => openWallet()} className="text-[10px] text-green-400/50 hover:text-green-400 transition-colors px-1 font-mono">
                 Connect
               </button>
             )}
-            {isConnected && profile && (
-              <button onClick={() => setShowSetup(true)} className="text-white/10 hover:text-white/30 transition-colors p-1.5">
-                <Settings className="w-3 h-3" />
+            {/* Menu button — always visible */}
+            <div className="relative">
+              <button onClick={() => setShowMenu(!showMenu)}
+                className="p-1.5 text-white/20 hover:text-white/50 transition-colors">
+                <MoreVertical className="w-3.5 h-3.5" />
               </button>
-            )}
+
+              {/* Dropdown menu */}
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-1 z-50 w-48 border border-white/[0.08] bg-[#111] backdrop-blur-xl shadow-2xl"
+                  >
+                    {/* Settings / Language */}
+                    <button onClick={() => { setShowMenu(false); setShowSetup(true); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-mono text-white/50 hover:text-white/80 hover:bg-white/[0.04] transition-colors">
+                      <Settings className="w-3.5 h-3.5" />
+                      {lang === 'es' ? 'Configuración' : lang === 'pt' ? 'Configurações' : 'Settings'}
+                    </button>
+                    {/* Clear chats */}
+                    <button onClick={() => { setShowMenu(false); setConfirmClear(true); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-mono text-white/50 hover:text-amber-400/80 hover:bg-white/[0.04] transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {lang === 'es' ? 'Borrar chats' : lang === 'pt' ? 'Limpar chats' : 'Clear chats'}
+                    </button>
+                    {/* Logout */}
+                    {isAuthenticated && (
+                      <button onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-mono text-white/50 hover:text-red-400/80 hover:bg-white/[0.04] transition-colors border-t border-white/[0.04]">
+                        <LogOut className="w-3.5 h-3.5" />
+                        {lang === 'es' ? 'Cerrar sesión' : lang === 'pt' ? 'Sair' : 'Sign out'}
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
