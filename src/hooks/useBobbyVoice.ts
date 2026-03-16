@@ -111,6 +111,9 @@ export interface BobbyVoiceState {
   queueSentence: (sentence: string) => void;
   flushQueue: () => void;
   stop: () => void;
+  getLastResponseAudio: () => Blob | null;
+  clearResponseAudio: () => void;
+  hasResponseAudio: boolean;
   isSpeaking: boolean;
   analyser: AnalyserNode | null;
   audioElement: HTMLAudioElement | null;
@@ -131,6 +134,10 @@ export function useBobbyVoice(): BobbyVoiceState {
   const sentenceQueueRef = useRef<Array<{ text: string; audio: Promise<ArrayBuffer | null> }>>([]);
   const isPlayingQueueRef = useRef(false);
   const queueStoppedRef = useRef(false);
+
+  // ---- Response audio accumulator (for voice note sharing) ----
+  const responseAudioChunksRef = useRef<ArrayBuffer[]>([]);
+  const [hasResponseAudio, setHasResponseAudio] = useState(false);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -220,6 +227,10 @@ export function useBobbyVoice(): BobbyVoiceState {
       if (queueStoppedRef.current) break;
       if (!audioData) continue; // Skip failed fetches
 
+      // Accumulate for voice note sharing
+      responseAudioChunksRef.current.push(audioData);
+      setHasResponseAudio(true);
+
       try {
         await playAudioData(audioData);
       } catch { /* skip failed playback, continue queue */ }
@@ -285,6 +296,20 @@ export function useBobbyVoice(): BobbyVoiceState {
     }
   }, []);
 
+  // ---- Voice note sharing: concatenate all sentence audio into one blob ----
+
+  const getLastResponseAudio = useCallback((): Blob | null => {
+    const chunks = responseAudioChunksRef.current;
+    if (chunks.length === 0) return null;
+    // Concatenate all MP3 chunks — MP3 is frame-based so raw concat works
+    return new Blob(chunks, { type: 'audio/mpeg' });
+  }, []);
+
+  const clearResponseAudio = useCallback(() => {
+    responseAudioChunksRef.current = [];
+    setHasResponseAudio(false);
+  }, []);
+
   // ---- Full text speak (legacy — for greetings, one-shot phrases) ----
 
   const speak = useCallback(async (text: string) => {
@@ -311,5 +336,5 @@ export function useBobbyVoice(): BobbyVoiceState {
     setIsSpeaking(false);
   }, [stop]);
 
-  return { speak, speakLocal, queueSentence, flushQueue, stop, isSpeaking, analyser, audioElement };
+  return { speak, speakLocal, queueSentence, flushQueue, stop, getLastResponseAudio, clearResponseAudio, hasResponseAudio, isSpeaking, analyser, audioElement };
 }

@@ -4,7 +4,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock, LogOut, Trash2, MoreVertical, X } from 'lucide-react';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock, LogOut, Trash2, MoreVertical, X, Share2, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -627,7 +627,7 @@ export function AdamsChat() {
   const advisorName = profile?.advisorName || 'Bobby';
 
   // ---- Bobby's Voice ----
-  const { speak, speakLocal, queueSentence, flushQueue, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
+  const { speak, speakLocal, queueSentence, flushQueue, stop: stopVoice, getLastResponseAudio, clearResponseAudio, hasResponseAudio, isSpeaking, analyser } = useBobbyVoice();
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
     try {
       const stored = localStorage.getItem('bobby_voice_enabled');
@@ -1520,6 +1520,7 @@ export function AdamsChat() {
     // If user mentions tokens, fetch live data in parallel for context
     // ========================
     setIsProcessing(true);
+    clearResponseAudio(); // Reset voice note accumulator for new response
     startThinkingSound(); // ambient hum while thinking
 
     // Voice filler — Bobby "thinks out loud" while intelligence loads
@@ -1777,10 +1778,40 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, stopVoice, typewriterText, lang, t, voiceEnabled, queueSentence, flushQueue]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, stopVoice, typewriterText, lang, t, voiceEnabled, queueSentence, flushQueue, clearResponseAudio]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
+
+  // ---- Share voice note ----
+  const shareVoiceNote = useCallback(async () => {
+    const blob = getLastResponseAudio();
+    if (!blob) return;
+
+    const file = new File([blob], 'bobby-voice-note.mp3', { type: 'audio/mpeg' });
+
+    // Web Share API (native share sheet on mobile — WhatsApp, Telegram, etc.)
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: 'Bobby Agent Trader',
+          text: lang === 'es' ? 'Escucha lo que dice Bobby sobre el mercado' : lang === 'pt' ? 'Ouça o que Bobby diz sobre o mercado' : 'Listen to Bobby\'s market analysis',
+          files: [file],
+        });
+        return;
+      } catch { /* user cancelled or share failed — fall through to download */ }
+    }
+
+    // Fallback: direct download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bobby-voice-note.mp3';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [getLastResponseAudio, lang]);
 
   // ---- Orb state ----
   const orbState: OrbState = isListening ? 'listening' : isSpeaking ? 'speaking' : isProcessing ? 'thinking' : 'idle';
@@ -1998,6 +2029,23 @@ export function AdamsChat() {
                     )}
                   </div>
                 </div>
+
+                {/* Share voice note — appears when Bobby has finished speaking */}
+                {hasResponseAudio && !isProcessing && !isSpeaking && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2 flex justify-end"
+                  >
+                    <button
+                      onClick={shareVoiceNote}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-white/30 border border-white/[0.06] bg-white/[0.02] hover:text-green-400/70 hover:border-green-500/20 hover:bg-green-500/[0.05] transition-all active:scale-[0.97]"
+                    >
+                      <Share2 className="w-3 h-3" />
+                      {lang === 'es' ? 'Compartir nota de voz' : lang === 'pt' ? 'Compartilhar nota de voz' : 'Share voice note'}
+                    </button>
+                  </motion.div>
+                )}
 
                 {/* Trade execution cards */}
                 {latestAdvisor.trades && latestAdvisor.trades.length > 0 && (
