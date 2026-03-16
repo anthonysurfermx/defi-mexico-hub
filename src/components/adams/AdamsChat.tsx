@@ -1700,11 +1700,17 @@ export function AdamsChat() {
         const sentenceSplitter = /(?<=[.!?])\s+|(?<=\n\n)/;
 
         // Detect which agent is speaking based on markers in the text
+        let currentVoice: string = 'cio';
         const detectAgent = (text: string) => {
-          const lower = text.toLowerCase();
-          if (lower.includes('alpha hunter') || lower.includes('🟢')) setActiveAgent('alpha');
-          else if (lower.includes('red team') || lower.includes('🔴')) setActiveAgent('redteam');
-          else if (lower.includes('my verdict') || lower.includes('my play') || lower.includes('mi veredicto') || lower.includes('bobby')) setActiveAgent('cio');
+          // Find the LAST agent marker in the text (most recent speaker)
+          const alphaIdx = Math.max(text.lastIndexOf('**ALPHA HUNTER:**'), text.lastIndexOf('ALPHA HUNTER:'));
+          const redIdx = Math.max(text.lastIndexOf('**RED TEAM:**'), text.lastIndexOf('RED TEAM:'));
+          const cioIdx = Math.max(text.lastIndexOf('**MY VERDICT:**'), text.lastIndexOf('MY VERDICT:'), text.lastIndexOf('**MI VEREDICTO:**'));
+          const maxIdx = Math.max(alphaIdx, redIdx, cioIdx);
+          if (maxIdx === -1) return;
+          if (maxIdx === alphaIdx) { currentVoice = 'alpha'; setActiveAgent('alpha'); }
+          else if (maxIdx === redIdx) { currentVoice = 'redteam'; setActiveAgent('redteam'); }
+          else if (maxIdx === cioIdx) { currentVoice = 'cio'; setActiveAgent('cio'); }
         };
 
         const feedSentenceStream = (delta: string) => {
@@ -1719,7 +1725,8 @@ export function AdamsChat() {
             for (let i = 0; i < parts.length - 1; i++) {
               const sentence = parts[i].trim();
               if (sentence.length >= 8) {
-                queueSentence(sentence);
+                // Pass current agent voice to TTS — each sentence uses the right voice
+                queueSentence(sentence, currentVoice);
               }
             }
             sentenceBuffer = parts[parts.length - 1];

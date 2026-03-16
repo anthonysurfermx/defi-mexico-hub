@@ -7,8 +7,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || '';
-// "Josh" — young, confident, sharp American male — Bobby Axelrod energy
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'TxGEqnHWrfWFTfGW9XjX';
+
+// Multi-agent voice system — each agent has a distinct voice personality
+const VOICE_PROFILES: Record<string, { id: string; stability: number; similarity: number; style: number }> = {
+  // Bobby CIO — "Josh": confident, measured, authoritative (the boss)
+  cio:     { id: process.env.ELEVENLABS_VOICE_ID || 'TxGEqnHWrfWFTfGW9XjX', stability: 0.35, similarity: 0.85, style: 0.3 },
+  // Alpha Hunter — "Adam": energetic, fast, aggressive (the opportunist)
+  alpha:   { id: 'pNInz6obpgDQGcFmaJgB', stability: 0.25, similarity: 0.80, style: 0.5 },
+  // Red Team — "Antoni": deep, slow, skeptical (the risk manager)
+  redteam: { id: 'ErXwobaYiN019PkySvjV', stability: 0.50, similarity: 0.85, style: 0.15 },
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -19,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'ElevenLabs API key not configured' });
   }
 
-  const { text } = req.body as { text?: string };
+  const { text, voice } = req.body as { text?: string; voice?: string };
 
   if (!text || typeof text !== 'string') {
     return res.status(400).json({ error: 'text is required' });
@@ -29,8 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const safeText = text.slice(0, 5000);
 
   try {
+    const profile = VOICE_PROFILES[voice || 'cio'] || VOICE_PROFILES.cio;
+
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${profile.id}/stream`,
       {
         method: 'POST',
         headers: {
@@ -41,9 +51,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           text: safeText,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.35,        // lower = more expressive/dynamic
-            similarity_boost: 0.85,  // high fidelity to voice
-            style: 0.3,             // subtle stylistic emphasis
+            stability: profile.stability,
+            similarity_boost: profile.similarity,
+            style: profile.style,
           },
         }),
       }
