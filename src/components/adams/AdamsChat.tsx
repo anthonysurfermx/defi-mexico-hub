@@ -4,8 +4,8 @@
 // ============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowUp, ArrowLeft, Activity, Settings, Wallet, TrendingUp, TrendingDown, Volume2, VolumeX, Mic, MicOff, Square, Lock } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
@@ -16,6 +16,7 @@ import { SwapConfirm, type TradeExecution } from './SwapConfirm';
 import { VoiceOrb, type OrbState } from './VoiceOrb';
 import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
+import { useAuth } from '@/hooks/useAuth';
 
 // ---- Supabase ----
 
@@ -387,6 +388,8 @@ export function AdamsChat() {
   const { profile, needsSetup, saveNewProfile, isConnected } = useAdvisorProfile();
   const { address } = useAccount();
   const { open: openWallet } = useAppKit();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [showSetup, setShowSetup] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>(() => {
     // Restore conversation from localStorage
@@ -439,6 +442,15 @@ export function AdamsChat() {
     lastSpokenRef.current = text;
     speak(clean);
   }, [voiceEnabled, speak]);
+
+  // ---- Stop everything: voice + processing ----
+  const stopAll = useCallback(() => {
+    stopVoice();
+    setIsProcessing(false);
+    setAnalysisPhases([]);
+    phaseTimerRef.current.forEach(clearTimeout);
+    phaseTimerRef.current = [];
+  }, [stopVoice]);
 
   // ---- Keyword-to-UI: scan streaming text and highlight mentioned symbols ----
   const scanAndHighlight = useCallback((text: string) => {
@@ -1264,6 +1276,14 @@ export function AdamsChat() {
             </a>
           </div>
           <div className="flex items-center gap-1.5">
+            {/* Stop button — visible when speaking or processing */}
+            {(isSpeaking || isProcessing) && (
+              <button onClick={stopAll}
+                className="p-1.5 text-red-400/70 hover:text-red-400 transition-colors animate-pulse"
+                title="Stop">
+                <Square className="w-3.5 h-3.5 fill-current" />
+              </button>
+            )}
             <button onClick={toggleVoice}
               className={`p-1.5 transition-colors ${voiceEnabled ? 'text-green-400/70 hover:text-green-400' : 'text-white/15 hover:text-white/30'}`}
               title={voiceEnabled ? 'Voice ON' : 'Voice OFF'}>
@@ -1432,52 +1452,80 @@ export function AdamsChat() {
 
       {/* ===== INPUT BAR — Bottom ===== */}
       <div className="flex-shrink-0 border-t border-white/[0.04]" style={{ background: '#080808' }}>
-        <div className="max-w-4xl mx-auto px-4 pt-2 pb-1">
-          <div className="flex gap-2 flex-wrap justify-center">
-            {[
-              { label: 'BTC', icon: '₿' },
-              { label: 'ETH', icon: 'Ξ' },
-              { label: 'Gold', icon: '◆' },
-              { label: 'Silver', icon: '◇' },
-              { label: 'All Prices', icon: '$' },
-              { label: 'Analyze Market', icon: '>' },
-            ].map(a => (
-              <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
-                className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono">
-                <span className="text-green-400/60">{a.icon}</span>
-                {a.label}
+        {isAuthenticated ? (
+          <>
+            <div className="max-w-4xl mx-auto px-4 pt-2 pb-1">
+              <div className="flex gap-2 flex-wrap justify-center">
+                {[
+                  { label: 'BTC', icon: '₿' },
+                  { label: 'ETH', icon: 'Ξ' },
+                  { label: 'Gold', icon: '◆' },
+                  { label: 'Silver', icon: '◇' },
+                  { label: 'All Prices', icon: '$' },
+                  { label: 'Analyze Market', icon: '>' },
+                ].map(a => (
+                  <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
+                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono">
+                    <span className="text-green-400/60">{a.icon}</span>
+                    {a.label}
+                  </button>
+                ))}
+                <Link to="/agentic-world/polymarket"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono">
+                  <span>◉</span> Dashboard
+                </Link>
+              </div>
+            </div>
+            <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-2">
+              <button onClick={toggleListening} disabled={isProcessing}
+                className={`w-9 h-9 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 rounded-full ${
+                  isListening
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
+                    : 'border-white/[0.06] text-white/20 hover:border-green-500/20 hover:text-green-400/60'
+                }`}>
+                {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
               </button>
-            ))}
-            <Link to="/agentic-world/polymarket"
-              className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono">
-              <span>◉</span> Dashboard
-            </Link>
+              <input type="text" value={inputText}
+                onChange={e => setInputText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder={isListening ? 'Listening...' : `Talk to ${advisorName}...`}
+                className={`flex-1 bg-transparent border-0 border-b px-3 py-2 text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
+                  isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
+                }`}
+                disabled={isProcessing} />
+              <button onClick={() => sendMessage()} disabled={!inputText.trim() || isProcessing}
+                className={`w-9 h-9 flex items-center justify-center transition-all active:scale-[0.95] rounded-full ${
+                  inputText.trim() && !isProcessing ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'text-white/10 cursor-not-allowed'
+                }`}>
+                {isProcessing ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* ===== AUTH GATE — Login prompt for unauthenticated users ===== */
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="border border-amber-500/20 bg-amber-500/[0.03] backdrop-blur-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-4 h-4 text-amber-400/80 flex-shrink-0" />
+                <span className="text-amber-400/80 text-[11px] font-mono">
+                  {lang === 'es' ? 'Inicia sesión para hablar con Bobby' : lang === 'pt' ? 'Faça login para falar com Bobby' : 'Sign in to talk to Bobby'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/login?redirect=' + encodeURIComponent(window.location.pathname))}
+                  className="text-[10px] px-4 py-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-colors font-mono tracking-wider">
+                  {lang === 'es' ? 'INICIAR SESIÓN' : lang === 'pt' ? 'ENTRAR' : 'SIGN IN'}
+                </button>
+                <button
+                  onClick={() => navigate('/register?redirect=' + encodeURIComponent(window.location.pathname))}
+                  className="text-[10px] px-4 py-1.5 border border-green-500/30 text-green-400/60 hover:text-green-400 hover:border-green-500/50 transition-colors font-mono tracking-wider">
+                  {lang === 'es' ? 'CREAR CUENTA' : lang === 'pt' ? 'CRIAR CONTA' : 'SIGN UP'}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-2">
-          <button onClick={toggleListening} disabled={isProcessing}
-            className={`w-9 h-9 flex items-center justify-center border transition-all active:scale-[0.95] flex-shrink-0 rounded-full ${
-              isListening
-                ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
-                : 'border-white/[0.06] text-white/20 hover:border-green-500/20 hover:text-green-400/60'
-            }`}>
-            {isListening ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-          </button>
-          <input type="text" value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder={isListening ? 'Listening...' : `Talk to ${advisorName}...`}
-            className={`flex-1 bg-transparent border-0 border-b px-3 py-2 text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
-              isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
-            }`}
-            disabled={isProcessing} />
-          <button onClick={() => sendMessage()} disabled={!inputText.trim() || isProcessing}
-            className={`w-9 h-9 flex items-center justify-center transition-all active:scale-[0.95] rounded-full ${
-              inputText.trim() && !isProcessing ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'text-white/10 cursor-not-allowed'
-            }`}>
-            {isProcessing ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-3.5 h-3.5" />}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
