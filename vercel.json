@@ -66,6 +66,10 @@
     "api/bobby-intel.ts": {
       "maxDuration": 30,
       "memory": 512
+    },
+    "api/stock-price.ts": {
+      "maxDuration": 10,
+      "memory": 256
     }
   }
 }

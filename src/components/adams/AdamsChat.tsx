@@ -62,12 +62,55 @@ function detectTokens(text: string): string[] {
   const lower = text.toLowerCase();
   const found: string[] = [];
   for (const [key, instId] of Object.entries(TOKEN_MAP)) {
-    // Word boundary match
     if (new RegExp(`\\b${key}\\b`).test(lower) && !found.includes(instId)) {
       found.push(instId);
     }
   }
   return found;
+}
+
+// ---- Stock symbol detection ----
+// Bobby also understands traditional finance — stocks, ETFs, indices
+
+const STOCK_MAP: Record<string, string> = {
+  nvidia: 'NVDA', nvda: 'NVDA',
+  apple: 'AAPL', aapl: 'AAPL',
+  tesla: 'TSLA', tsla: 'TSLA',
+  meta: 'META', facebook: 'META',
+  google: 'GOOGL', googl: 'GOOGL', alphabet: 'GOOGL',
+  amazon: 'AMZN', amzn: 'AMZN',
+  microsoft: 'MSFT', msft: 'MSFT',
+  amd: 'AMD',
+  intel: 'INTC', intc: 'INTC',
+  coinbase: 'COIN', coin: 'COIN',
+  microstrategy: 'MSTR', mstr: 'MSTR',
+  palantir: 'PLTR', pltr: 'PLTR',
+  netflix: 'NFLX', nflx: 'NFLX',
+  disney: 'DIS', dis: 'DIS',
+  jpmorgan: 'JPM', jpm: 'JPM',
+  goldman: 'GS',
+  'sp500': 'SPY', 'spy': 'SPY', 's&p': 'SPY',
+  nasdaq: 'QQQ', qqq: 'QQQ',
+};
+
+function detectStocks(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: string[] = [];
+  for (const [key, ticker] of Object.entries(STOCK_MAP)) {
+    if (new RegExp(`\\b${key.replace('&', '\\&')}\\b`).test(lower) && !found.includes(ticker)) {
+      found.push(ticker);
+    }
+  }
+  return found;
+}
+
+async function fetchStockPrices(symbols: string[]): Promise<Array<{ symbol: string; name: string; price: number; change24h: number; dayHigh: number; dayLow: number; volume: number }>> {
+  try {
+    const res = await fetch(`/api/stock-price?symbols=${symbols.join(',')}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.quotes || [];
+  } catch { return []; }
 }
 
 // ---- Interest tag auto-save ----
@@ -116,22 +159,36 @@ async function saveInterestTags(wallet: string, tokens: string[], context: strin
 
 function detectIntent(text: string): 'price' | 'analyze' | 'portfolio' | 'trending' | 'prices_all' | 'help' | 'chat' {
   const l = text.toLowerCase();
+  const wordCount = l.split(/\s+/).length;
 
-  // Conversational / opinion questions → always go to OpenClaw (Bobby's brain)
-  // "qué opinas", "what do you think", "crees que", "deberíamos", "tell me about", etc.
-  if (/\b(opin|piens|crees|think|deberi|should|recomiend|recommend|tell me|dime|explica|explain|por ?qu[eé]|why|como ves|how do you see|que onda|what.?s your|cual es tu)\b/i.test(l)) return 'chat';
+  // RULE 1: Opinion / analysis / outlook questions → ALWAYS Bobby's brain (chat)
+  // This catches: "¿Cuál es tu análisis del oro esta semana?", "What do you think about BTC?",
+  // "¿Crees que el mercado va a subir?", "How do you see ETH this week?"
+  // Key: if the sentence is a QUESTION with opinion markers, it's always chat — even if it
+  // contains words like "análisis" or token names.
+  const isOpinionQuestion = /\b(opin|piens|crees|think|deberi|should|recomiend|recommend|tell me|dime|explica|explain|por ?qu[eé]|why|como ves|how do you see|que onda|what.?s your|cual es tu|an[aá]lisis|analysis|outlook|perspectiv|pronos|predict|forecast|va a (subir|bajar)|will .* (go|rise|fall|drop|pump|dump)|esta semana|this week|este mes|this month|próxim[oa]|next|futuro|future|qué har[ií]as|what would you|cómo est[aá]|how.?s the|sentiment|sentimiento|mercado va|market going|afectar[aá]?|impact|affect|benefici|perjudic|compar[ae]|versus|vs\.?|entre|between|conviene|mejor|worse|better|riesg|risk|oportunid|opportunity|estrategi|strategy|jugada|play|movida|move)\b/i.test(l);
 
-  if (/\b(pric|precio|coti|cuanto|how much|what.?s .* at|dame .* precio|give me|show me)\b/i.test(l)) return 'price';
-  if (/\b(analyz|analiz|scan|escan|run|ejecut)\b/i.test(l)) return 'analyze';
+  // Also route to chat if stocks are detected (any stock question needs Bobby's brain)
+  if ((isOpinionQuestion && wordCount > 3) || (detectStocks(text).length > 0 && wordCount > 2)) return 'chat';
+
+  // RULE 2: Short, direct commands → specific handlers
+  if (/\b(pric|precio|coti|cuanto|how much|what.?s .* at|dame .* precio)\b/i.test(l) && wordCount <= 5) return 'price';
+
+  // "Analyze Market" or "Run scan" — explicit full-cycle command (short, imperative)
+  if (/\b(analyz|analiz|scan|escan|run|ejecut)\b/i.test(l) && wordCount <= 4) return 'analyze';
+
   if (/\b(portfolio|position|posicion|balance|cartera|wallet)\b/i.test(l)) return 'portfolio';
-  if (/\b(trend|trending|hot|popular|whats up|que hay)\b/i.test(l)) return 'trending';
-  if (/\b(prices|precios|all|todos|overview|resumen)\b/i.test(l)) return 'prices_all';
+  if (/\b(trend|trending|hot|popular|whats up|que hay)\b/i.test(l) && wordCount <= 5) return 'trending';
+  if (/\b(prices|precios|all|todos|overview|resumen)\b/i.test(l) && wordCount <= 4) return 'prices_all';
   if (/\b(help|ayuda|command)\b/i.test(l)) return 'help';
-  // If tokens detected but it's a longer sentence, route to chat for Bobby's analysis
-  // Short inputs like "BTC" or "ETH SOL" → price; longer questions → Bobby's brain
+
+  // RULE 3: Token mentioned in a longer sentence → Bobby's brain analyzes it
+  // Short inputs like "BTC" or "ETH SOL" → price card; anything longer → Bobby thinks
   if (detectTokens(text).length > 0) {
-    return l.split(/\s+/).length <= 3 ? 'price' : 'chat';
+    return wordCount <= 2 ? 'price' : 'chat';
   }
+
+  // Default: everything else goes to Bobby's brain
   return 'chat';
 }
 
@@ -222,7 +279,8 @@ function fmtPrice(n: number): string {
 
 // ---- Inline Price Card ----
 
-function InlinePriceCard({ price, highlighted }: { price: PriceCard; highlighted?: boolean }) {
+function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; highlighted?: boolean; labels?: { high: string; low: string; volume: string; funding: string } }) {
+  const lb = labels || { high: '24h High', low: '24h Low', volume: 'Volume', funding: 'Funding' };
   const isUp = price.change24h >= 0;
   return (
     <div className={`border rounded-lg p-3 font-mono text-[11px] transition-all duration-500 ${
@@ -244,21 +302,21 @@ function InlinePriceCard({ price, highlighted }: { price: PriceCard; highlighted
       </div>
       <div className="grid grid-cols-3 gap-2 text-neutral-500">
         <div>
-          <div className="text-[9px] text-neutral-600 uppercase">24h High</div>
+          <div className="text-[9px] text-neutral-600 uppercase">{lb.high}</div>
           <div className="text-neutral-400">${fmtPrice(price.high24h)}</div>
         </div>
         <div>
-          <div className="text-[9px] text-neutral-600 uppercase">24h Low</div>
+          <div className="text-[9px] text-neutral-600 uppercase">{lb.low}</div>
           <div className="text-neutral-400">${fmtPrice(price.low24h)}</div>
         </div>
         <div>
-          <div className="text-[9px] text-neutral-600 uppercase">Volume</div>
+          <div className="text-[9px] text-neutral-600 uppercase">{lb.volume}</div>
           <div className="text-neutral-400">{formatVolume(price.vol24h)}</div>
         </div>
       </div>
       {price.funding && (
         <div className="mt-2 pt-2 border-t border-neutral-800 flex items-center gap-3">
-          <span className="text-neutral-600">Funding:</span>
+          <span className="text-neutral-600">{lb.funding}:</span>
           <span className={price.funding.rate > 0 ? 'text-green-400' : 'text-red-400'}>
             {(price.funding.rate * 100).toFixed(4)}%
           </span>
@@ -425,7 +483,7 @@ export function AdamsChat() {
   const tickerCacheRef = useRef<OKXTicker[]>([]);
 
   // ---- Bobby's Voice ----
-  const { speak, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
+  const { speak, speakLocal, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
     try {
       const stored = localStorage.getItem('bobby_voice_enabled');
@@ -443,12 +501,17 @@ export function AdamsChat() {
   const lastSpokenRef = useRef<string>('');
   const speakIfEnabled = useCallback((text: string) => {
     if (!voiceEnabled || !text || text === lastSpokenRef.current) return;
-    // Strip markdown-ish formatting for cleaner speech
     const clean = text.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
-    if (clean.length < 10) return; // too short to speak
+    if (clean.length < 10) return;
     lastSpokenRef.current = text;
     speak(clean);
   }, [voiceEnabled, speak]);
+
+  // Speak fillers via free Web Speech API — saves ElevenLabs quota
+  const speakFillerLocal = useCallback((text: string) => {
+    if (!voiceEnabled || !text) return;
+    speakLocal(text, lang);
+  }, [voiceEnabled, speakLocal, lang]);
 
   // ---- Ambient thinking sound (Web Audio API — no external files) ----
   const thinkingAudioRef = useRef<{ osc: OscillatorNode; gain: GainNode; ctx: AudioContext } | null>(null);
@@ -644,7 +707,7 @@ export function AdamsChat() {
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'es-MX';
+    recognition.lang = lang === 'es' ? 'es-MX' : lang === 'pt' ? 'pt-BR' : 'en-US';
     recognition.interimResults = true;
     recognition.continuous = false;
     recognitionRef.current = recognition;
@@ -832,6 +895,61 @@ export function AdamsChat() {
       es: (addr: string) => `Wallet conectada: ${addr}\n\nPortfolio tracking próximamente en v2. Por ahora, corre "Analyze Market" — escaneo señales y recomiendo trades con Kelly Criterion para tu perfil de riesgo.`,
       en: (addr: string) => `Wallet connected: ${addr}\n\nPortfolio tracking coming in v2. For now, run "Analyze Market" — I'll scan signals and recommend trades sized with Kelly Criterion for your risk profile.`,
       pt: (addr: string) => `Wallet conectada: ${addr}\n\nPortfolio tracking em breve na v2. Por agora, rode "Analyze Market" — escaneio sinais e recomendo trades com Kelly Criterion para seu perfil de risco.`,
+    },
+    help: {
+      es: 'Esto es lo que puedo hacer:\n\n"BTC" o "ETH" — Precio en vivo + funding rate\n"All Prices" — Panorama del mercado\n"What\'s trending?" — Mayores movimientos\n"Analyze Market" — Escaneo completo OKX + Polymarket (debate multi-agente + Kelly sizing)\n"Portfolio" — Revisar wallet conectada\n\nO escribe cualquier token — SOL, OKB, MATIC...',
+      en: 'Here\'s what I can do:\n\n"BTC" or "ETH" — Live price + funding rate\n"All Prices" — Full market overview\n"What\'s trending?" — Biggest movers\n"Analyze Market" — Full OKX + Polymarket scan (multi-agent debate + Kelly sizing)\n"Portfolio" — Check connected wallet\n\nOr just type any token name — SOL, OKB, MATIC...',
+      pt: 'Aqui está o que posso fazer:\n\n"BTC" ou "ETH" — Preço ao vivo + funding rate\n"All Prices" — Visão do mercado\n"What\'s trending?" — Maiores movimentos\n"Analyze Market" — Escaneamento completo OKX + Polymarket (debate multi-agente + Kelly sizing)\n"Portfolio" — Verificar wallet conectada\n\nOu digite qualquer token — SOL, OKB, MATIC...',
+    },
+    marketOverview: {
+      es: (sym: string, change: string) => `Panorama del mercado — ${sym} liderando con ${change}%:`,
+      en: (sym: string, change: string) => `Market overview — ${sym} leading with ${change}%:`,
+      pt: (sym: string, change: string) => `Panorama do mercado — ${sym} liderando com ${change}%:`,
+    },
+    marketError: {
+      es: 'No pude obtener datos del mercado. La API de OKX puede estar temporalmente fuera de servicio.',
+      en: 'Failed to fetch market data. OKX API might be temporarily unavailable.',
+      pt: 'Não consegui obter dados do mercado. A API da OKX pode estar temporariamente indisponível.',
+    },
+    trending: {
+      es: (movers: string) => `Mayores movimientos ahorita: ${movers}\n\nPara posiciones de smart money y señales de ballenas, corre "Analyze Market".`,
+      en: (movers: string) => `Biggest movers right now: ${movers}\n\nFor smart money positions and whale signals, run "Analyze Market".`,
+      pt: (movers: string) => `Maiores movimentos agora: ${movers}\n\nPara posições de smart money e sinais de baleias, rode "Analyze Market".`,
+    },
+    trendingError: {
+      es: 'No pude obtener datos de tendencia. Intenta de nuevo en un momento.',
+      en: 'Failed to fetch trending data. Try again in a moment.',
+      pt: 'Não consegui obter dados de tendência. Tente de novo em um momento.',
+    },
+    connectWallet: {
+      es: 'Conecta tu wallet primero — usa el botón "Connect" arriba a la derecha. Una vez conectada, puedo mostrar tus posiciones on-chain.',
+      en: 'Connect your wallet first — use the "Connect" button in the top right. Once connected, I can show your on-chain positions.',
+      pt: 'Conecte sua wallet primeiro — use o botão "Connect" no canto superior direito. Uma vez conectada, posso mostrar suas posições on-chain.',
+    },
+    streamFallback: {
+      es: (msg: string) => `Entendí "${msg}" pero no pude generar respuesta. Prueba con precios ("BTC", "ETH") o corre "Analyze Market".`,
+      en: (msg: string) => `I understood "${msg}" but couldn't generate a response. Try asking about prices ("BTC", "ETH") or run "Analyze Market".`,
+      pt: (msg: string) => `Entendi "${msg}" mas não consegui gerar resposta. Tente preços ("BTC", "ETH") ou rode "Analyze Market".`,
+    },
+    thinkingLabel: {
+      es: 'Escaneando feeds de inteligencia...',
+      en: 'Scanning intelligence feeds...',
+      pt: 'Escaneando feeds de inteligência...',
+    },
+    listening: {
+      es: 'Escuchando...',
+      en: 'Listening...',
+      pt: 'Ouvindo...',
+    },
+    quickActions: {
+      es: { gold: 'Oro', silver: 'Plata', allPrices: 'Todos', analyze: 'Analizar Mercado' },
+      en: { gold: 'Gold', silver: 'Silver', allPrices: 'All Prices', analyze: 'Analyze Market' },
+      pt: { gold: 'Ouro', silver: 'Prata', allPrices: 'Todos', analyze: 'Analisar Mercado' },
+    },
+    priceLabels: {
+      es: { high: 'Máx 24h', low: 'Mín 24h', volume: 'Volumen', funding: 'Funding' },
+      en: { high: '24h High', low: '24h Low', volume: 'Volume', funding: 'Funding' },
+      pt: { high: 'Máx 24h', low: 'Mín 24h', volume: 'Volume', funding: 'Funding' },
     },
   } as const;
 
@@ -1045,13 +1163,13 @@ export function AdamsChat() {
         const top = winners[0];
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: `Market overview — ${top.symbol} leading with ${top.change24h > 0 ? '+' : ''}${top.change24h.toFixed(2)}%:`,
+          text: (t('marketOverview') as (sym: string, change: string) => string)(top.symbol, `${top.change24h > 0 ? '+' : ''}${top.change24h.toFixed(2)}`),
           prices: cards,
         }]);
       } catch {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: 'Failed to fetch market data. OKX API might be temporarily unavailable.',
+          text: t('marketError') as string,
         }]);
       }
       setIsProcessing(false);
@@ -1076,13 +1194,13 @@ export function AdamsChat() {
         ).join(', ');
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: `Biggest movers right now: ${movers}\n\nFor smart money positions and whale signals, run "Analyze Market".`,
+          text: (t('trending') as (movers: string) => string)(movers),
           prices: cards,
         }]);
       } catch {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: 'Failed to fetch trending data. Try again in a moment.',
+          text: t('trendingError') as string,
         }]);
       }
       setIsProcessing(false);
@@ -1096,9 +1214,7 @@ export function AdamsChat() {
       if (!address) {
         setMessages(prev => [...prev, {
           id: uid(), role: 'advisor', timestamp: Date.now(),
-          text: lang === 'es' ? 'Conecta tu wallet primero — usa el botón "Connect" arriba a la derecha. Una vez conectada, puedo mostrar tus posiciones on-chain.'
-            : lang === 'pt' ? 'Conecte sua wallet primeiro — use o botão "Connect" no canto superior direito. Uma vez conectada, posso mostrar suas posições on-chain.'
-            : 'Connect your wallet first — use the "Connect" button in the top right. Once connected, I can show your on-chain positions.',
+          text: t('connectWallet') as string,
         }]);
       } else {
         const walletFn = t('walletConnected') as (addr: string) => string;
@@ -1116,7 +1232,7 @@ export function AdamsChat() {
     if (intent === 'help') {
       setMessages(prev => [...prev, {
         id: uid(), role: 'advisor', timestamp: Date.now(),
-        text: `Here's what I can do:\n\n"BTC" or "ETH" — Live price + funding rate\n"All Prices" — Full market overview\n"What's trending?" — Biggest movers\n"Analyze Market" — Full OKX + Polymarket scan (multi-agent debate + Kelly sizing)\n"Portfolio" — Check connected wallet\n\nOr just type any token name — SOL, OKB, MATIC...`,
+        text: t('help') as string,
       }]);
       return;
     }
@@ -1131,7 +1247,7 @@ export function AdamsChat() {
 
       // Bobby announces the full scan — voice filler during the 2min cycle
       const analyzeFillers = t('analyzeFillers') as string[];
-      speakIfEnabled(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
+      speakFillerLocal(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
       phaseTimerRef.current.forEach(clearTimeout);
       phaseTimerRef.current = [];
 
@@ -1267,27 +1383,69 @@ export function AdamsChat() {
     // Transforms network lag into narrative tension
     const fillers = t('chatFillers') as string[];
     const filler = fillers[Math.floor(Math.random() * fillers.length)];
-    speakIfEnabled(filler);
+    speakFillerLocal(filler);
 
-    // Fetch FULL intelligence + price data in parallel (Bobby's brain needs everything)
-    const contextPricesPromise = tokens.length > 0 ? getPriceCards(tokens) : Promise.resolve([]);
-    const intelPromise = fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null);
+    // ---- Autonomous Reasoning: Bobby decides what data to fetch based on the question ----
+    // The key insight: Bobby should ALWAYS have real data when giving opinions.
+    // A CIO doesn't guess — they look at the terminal first.
+    const needsOKX = /\b(btc|eth|sol|bitcoin|ethereum|solana|crypto|market|precio|price|whale|trade|trading|bull|bear|oro|gold|silver|plata|mercado|dex|defi|token|coin|nft|xaut|paxg|okb|matic|subir|bajar|pump|dump|long|short)\b/i.test(msg);
+    const needsPoly = /\b(trump|biden|election|politic|war|recession|fed|rate|inflation|regulat|sec|congress|senate|law|ban|approve|etf|macro|econom|geopolit|president|gobierno|guerra|recesi[oó]n|inflaci[oó]n|elecciones?|pol[ií]tic|tariff|arancel|china|rusia|iran)\b/i.test(msg);
+    const isGeneralOpinion = /\b(opin|piens|crees|think|semana|week|month|mes|futuro|future|outlook|pronos|predict|forecast|esta semana|this week|próxim[oa]|next|an[aá]lisis|analysis|qué har[ií]as|what would|cómo ves|how do you see|va a|will .* go|mercado va|market going)\b/i.test(msg);
+    const hasTokens = tokens.length > 0;
+
+    // Detect stocks in the message
+    const stocks = detectStocks(msg);
+    const hasStocks = stocks.length > 0;
+
+    // Bobby ALWAYS fetches intel for anything beyond casual chat
+    const fetchIntel = needsOKX || needsPoly || isGeneralOpinion || hasTokens || hasStocks;
+    const contextPricesPromise = hasTokens ? getPriceCards(tokens) : Promise.resolve([]);
+    const stockPricesPromise = hasStocks ? fetchStockPrices(stocks) : Promise.resolve([]);
+    const intelPromise = fetchIntel
+      ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
+      : Promise.resolve(null);
 
     try {
-      // Enrich the message with FULL intelligence context — whale signals, Polymarket, conviction
+      // Enrich the message with intelligence context — Bobby reasons about what data to include
       let enrichedMessage = msg;
       try {
-        const [contextPrices, intel] = await Promise.all([contextPricesPromise, intelPromise]);
+        const [contextPrices, stockQuotes, intel] = await Promise.all([contextPricesPromise, stockPricesPromise, intelPromise]);
 
-        // Bobby's brain: inject the full intelligence briefing
+        const contextBlocks: string[] = [];
+
+        // Add reasoning directive so Bobby knows what was fetched and why
+        if (fetchIntel) {
+          const sources: string[] = [];
+          if (needsOKX || hasTokens) sources.push('OKX OnchainOS (whale flows, on-chain truth)');
+          if (needsPoly) sources.push('Polymarket (smart money consensus, political/macro signals)');
+          if (hasStocks) sources.push('Yahoo Finance (real-time stock prices)');
+          if (isGeneralOpinion && !needsOKX && !needsPoly && !hasStocks) sources.push('OKX + Polymarket (full spectrum)');
+          contextBlocks.push(`[AUTONOMOUS REASONING: I consulted ${sources.join(' + ')} for this question. Use ALL the live data below to inform your answer. Be specific — cite numbers, price movements, whale flows, consensus percentages. Cross-reference crypto and stock data when both are available.]`);
+        }
+
+        // Inject stock data if available
+        if (stockQuotes.length > 0) {
+          const stockLines = stockQuotes.map(s =>
+            `${s.symbol} (${s.name}): $${s.price.toLocaleString()} (${s.change24h > 0 ? '+' : ''}${s.change24h}% today, high $${s.dayHigh.toLocaleString()}, low $${s.dayLow.toLocaleString()}, vol ${(s.volume / 1e6).toFixed(1)}M)`
+          ).join('\n');
+          contextBlocks.push(`[STOCK MARKET DATA — Real-time]\n${stockLines}`);
+        }
+
+        // Inject the full intelligence briefing
         if (intel?.briefing) {
-          enrichedMessage = `${msg}\n\n${intel.briefing}`;
-        } else if (contextPrices.length > 0) {
-          // Fallback: at least inject price context
+          contextBlocks.push(intel.briefing);
+        }
+
+        // Add price context if available
+        if (contextPrices.length > 0) {
           const priceContext = contextPrices.map(p =>
             `${p.symbol}: $${fmtPrice(p.price)} (${p.change24h > 0 ? '+' : ''}${p.change24h.toFixed(2)}% 24h, vol ${formatVolume(p.vol24h)}${p.funding ? `, funding ${(p.funding.rate * 100).toFixed(4)}%` : ''})`
           ).join('; ');
-          enrichedMessage = `${msg}\n\n[LIVE DATA: ${priceContext}]`;
+          contextBlocks.push(`[LIVE PRICES: ${priceContext}]`);
+        }
+
+        if (contextBlocks.length > 0) {
+          enrichedMessage = `${msg}\n\n${contextBlocks.join('\n\n')}`;
         }
       } catch { /* continue without context */ }
 
@@ -1306,18 +1464,30 @@ export function AdamsChat() {
 
       if (!res.ok) throw new Error(`OpenClaw: ${res.status}`);
 
-      // Get price cards — from token detection OR from bobby-intel response
+      // Get price cards — from token detection OR infer from question context
       let responsePrices: PriceCard[] = [];
       try {
         if (tokens.length > 0) {
           responsePrices = await contextPricesPromise;
         } else {
-          // Even without specific tokens, show top prices from intel
+          // Infer relevant tokens from the question text for price cards
           const cachedTickers = tickerCacheRef.current.length > 0
             ? tickerCacheRef.current
             : await fetchTickers().then(t => { tickerCacheRef.current = t; return t; });
-          const topSymbols = ['BTC', 'ETH', 'SOL'];
-          responsePrices = topSymbols
+
+          // Smart token inference: what assets is the user asking about?
+          const inferredSymbols: string[] = [];
+          const lm = msg.toLowerCase();
+          if (/\b(oro|gold|xaut)\b/i.test(lm)) inferredSymbols.push('XAUT');
+          if (/\b(plata|silver|xag)\b/i.test(lm)) inferredSymbols.push('XAG');
+          if (/\b(btc|bitcoin)\b/i.test(lm)) inferredSymbols.push('BTC');
+          if (/\b(eth|ethereum)\b/i.test(lm)) inferredSymbols.push('ETH');
+          if (/\b(sol|solana)\b/i.test(lm)) inferredSymbols.push('SOL');
+          if (/\b(okb)\b/i.test(lm)) inferredSymbols.push('OKB');
+
+          // If we inferred specific assets, show those. Otherwise show top 3.
+          const symbolsToShow = inferredSymbols.length > 0 ? inferredSymbols : ['BTC', 'ETH', 'SOL'];
+          responsePrices = symbolsToShow
             .map(s => cachedTickers.find(t => t.symbol === s))
             .filter(Boolean)
             .map(t => ({
@@ -1378,7 +1548,7 @@ export function AdamsChat() {
         // If we got no text from stream, set a fallback
         if (!fullText) {
           setMessages(prev => prev.map(m =>
-            m.id === replyId ? { ...m, text: `I understood "${msg}" but couldn't generate a response. Try asking about prices ("BTC", "ETH") or run "Analyze Market".` } : m
+            m.id === replyId ? { ...m, text: (t('streamFallback') as (m: string) => string)(msg) } : m
           ));
         } else {
           // Bobby speaks the complete response
@@ -1408,7 +1578,7 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, scanAndHighlight, startThinkingSound, stopThinkingSound, typewriterText, lang, t]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, typewriterText, lang, t]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
@@ -1580,7 +1750,7 @@ export function AdamsChat() {
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                   <span className="text-[10px] font-mono text-green-400/60">
-                    Scanning intelligence feeds...
+                    {t('thinkingLabel') as string}
                   </span>
                 </div>
               </motion.div>
@@ -1668,7 +1838,7 @@ export function AdamsChat() {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 + i * 0.1 }}
                   >
-                    <InlinePriceCard price={p} highlighted={highlightedSymbols.has(p.symbol)} />
+                    <InlinePriceCard price={p} highlighted={highlightedSymbols.has(p.symbol)} labels={t('priceLabels') as { high: string; low: string; volume: string; funding: string }} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -1729,18 +1899,21 @@ export function AdamsChat() {
           <>
             <div className="max-w-4xl mx-auto px-4 pt-2 pb-1">
               <div className="flex gap-2 flex-wrap justify-center">
-                {[
-                  { label: 'BTC', icon: '₿' },
-                  { label: 'ETH', icon: 'Ξ' },
-                  { label: 'Gold', icon: '◆' },
-                  { label: 'Silver', icon: '◇' },
-                  { label: 'All Prices', icon: '$' },
-                  { label: 'Analyze Market', icon: '>' },
-                ].map(a => (
+                {(() => {
+                  const qa = t('quickActions') as { gold: string; silver: string; allPrices: string; analyze: string };
+                  return [
+                    { label: 'BTC', display: 'BTC', icon: '₿' },
+                    { label: 'ETH', display: 'ETH', icon: 'Ξ' },
+                    { label: 'Gold', display: qa.gold, icon: '◆' },
+                    { label: 'Silver', display: qa.silver, icon: '◇' },
+                    { label: 'All Prices', display: qa.allPrices, icon: '$' },
+                    { label: 'Analyze Market', display: qa.analyze, icon: '>' },
+                  ];
+                })().map(a => (
                   <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
                     className="flex items-center gap-1 px-2.5 py-1 text-[10px] border border-white/[0.05] bg-white/[0.01] text-white/30 hover:bg-white/[0.04] hover:text-white/60 hover:border-white/10 transition-all disabled:opacity-20 font-mono">
                     <span className="text-green-400/60">{a.icon}</span>
-                    {a.label}
+                    {a.display}
                   </button>
                 ))}
                 <Link to="/agentic-world/polymarket"
@@ -1761,7 +1934,7 @@ export function AdamsChat() {
               <input type="text" value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder={isListening ? 'Listening...' : `Talk to ${advisorName}...`}
+                placeholder={isListening ? t('listening') as string : `${lang === 'es' ? 'Habla con' : lang === 'pt' ? 'Fale com' : 'Talk to'} ${advisorName}...`}
                 className={`flex-1 bg-transparent border-0 border-b px-3 py-2 text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
                   isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
                 }`}

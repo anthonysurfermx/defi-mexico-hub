@@ -1,16 +1,17 @@
 // ============================================================
 // useBobbyVoice — Hook that orchestrates Bobby's vocal presence
 // Manages: ElevenLabs API calls, IndexedDB caching, AudioContext + AnalyserNode
-// Returns: speak(), stop(), isSpeaking, analyser (for VoiceOrb)
+// Smart routing: ElevenLabs for key moments, Web Speech API for fillers
+// Returns: speak(), speakLocal(), stop(), isSpeaking, analyser (for VoiceOrb)
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-// ---- IndexedDB cache for audio blobs (30min TTL) ----
+// ---- IndexedDB cache for audio blobs ----
 
 const DB_NAME = 'bobby_voice_cache';
 const STORE_NAME = 'audio';
-const CACHE_TTL = 30 * 60 * 1000; // 30 min
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h (was 30min — greetings reuse well)
 
 function hashText(text: string): string {
   let hash = 0;
@@ -65,10 +66,27 @@ async function setCachedAudio(key: string, data: ArrayBuffer): Promise<void> {
   } catch { /* silent */ }
 }
 
+// ---- Web Speech API wrapper for free local TTS (fillers, short text) ----
+
+function speakWithBrowserTTS(text: string, lang: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window)) { resolve(); return; }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang === 'es' ? 'es-MX' : lang === 'pt' ? 'pt-BR' : 'en-US';
+    utterance.rate = 1.05;
+    utterance.pitch = 0.95;
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 // ---- Hook ----
 
 export interface BobbyVoiceState {
   speak: (text: string) => Promise<void>;
+  speakLocal: (text: string, lang?: string) => Promise<void>;
   stop: () => void;
   isSpeaking: boolean;
   analyser: AnalyserNode | null;
@@ -100,6 +118,7 @@ export function useBobbyVoice(): BobbyVoiceState {
   }, []);
 
   const stop = useCallback(() => {
+    // Stop ElevenLabs audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -108,9 +127,14 @@ export function useBobbyVoice(): BobbyVoiceState {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
+    // Stop browser TTS
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     setIsSpeaking(false);
   }, []);
 
+  // ElevenLabs speak — for key moments (greeting, analysis, final answers)
   const speak = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
@@ -180,7 +204,6 @@ export function useBobbyVoice(): BobbyVoiceState {
       }
     } catch (err) {
       console.warn('AudioContext setup failed:', err);
-      // Still play audio even if visualizer fails
     }
 
     // Play
@@ -204,5 +227,17 @@ export function useBobbyVoice(): BobbyVoiceState {
     }
   }, [stop]);
 
-  return { speak, stop, isSpeaking, analyser, audioElement };
+  // Local speak — Web Speech API for fillers, transitions, short confirmations
+  // FREE, instant, no API calls. Saves ElevenLabs quota for key moments.
+  const speakLocal = useCallback(async (text: string, lang: string = 'en') => {
+    if (!text.trim()) return;
+    stop();
+    setIsSpeaking(true);
+    try {
+      await speakWithBrowserTTS(text, lang);
+    } catch { /* silent */ }
+    setIsSpeaking(false);
+  }, [stop]);
+
+  return { speak, speakLocal, stop, isSpeaking, analyser, audioElement };
 }
