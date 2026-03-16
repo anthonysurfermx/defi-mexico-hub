@@ -479,19 +479,27 @@ async function fetchOpenInterest(): Promise<OpenInterestData[]> {
 interface LongShortRatio { symbol: string; longRatio: number; shortRatio: number; ts: string }
 
 async function fetchTopTradersLSRatio(): Promise<LongShortRatio[]> {
-  const families = ['BTC', 'ETH', 'SOL'];
+  const instruments = [
+    { symbol: 'BTC', instId: 'BTC-USDT-SWAP' },
+    { symbol: 'ETH', instId: 'ETH-USDT-SWAP' },
+    { symbol: 'SOL', instId: 'SOL-USDT-SWAP' },
+  ];
   try {
-    const results = await Promise.all(families.map(async (instFamily) => {
+    const results = await Promise.all(instruments.map(async ({ symbol, instId }) => {
       try {
-        const res = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-ratio-top-traders?instFamily=${instFamily}&period=1H`);
+        const res = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio-contract-top-trader?instId=${instId}&period=1H`);
         if (!res.ok) return null;
         const json = await res.json() as { code: string; data: string[][] };
         if (json.code !== '0' || !json.data?.[0]) return null;
-        const latest = json.data[0]; // [timestamp, longRatio, shortRatio]
+        const latest = json.data[0]; // [timestamp, ratio]
+        const ratio = parseFloat(latest[1]);
+        // ratio > 1 means more longs, < 1 means more shorts
+        const longPct = parseFloat((ratio / (1 + ratio) * 100).toFixed(1));
+        const shortPct = parseFloat((100 - longPct).toFixed(1));
         return {
-          symbol: instFamily,
-          longRatio: parseFloat((parseFloat(latest[1]) * 100).toFixed(1)),
-          shortRatio: parseFloat((parseFloat(latest[2]) * 100).toFixed(1)),
+          symbol,
+          longRatio: longPct,
+          shortRatio: shortPct,
           ts: latest[0],
         };
       } catch { return null; }
