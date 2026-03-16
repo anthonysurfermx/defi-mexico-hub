@@ -42,11 +42,18 @@ async function callClaude(model: string, system: string, userMsg: string, maxTok
 
 async function fetchBriefing(): Promise<{ briefing: string; prices: any[]; fearGreed: any; dxy: any; regime: string } | null> {
   try {
-    // Use internal endpoint — works in both local and Vercel
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://defi-mexico-hub.vercel.app';
-    const res = await fetch(`${baseUrl}/api/bobby-intel`);
-    if (!res.ok) return null;
-    return await res.json();
+    // Fetch directly from production URL — always works
+    const urls = [
+      'https://defimexico.org/api/bobby-intel',
+      'https://defi-mexico-hub.vercel.app/api/bobby-intel',
+    ];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) return await res.json();
+      } catch { continue; }
+    }
+    return null;
   } catch { return null; }
 }
 
