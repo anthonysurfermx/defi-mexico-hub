@@ -1534,8 +1534,10 @@ export function AdamsChat() {
     // A CIO doesn't guess — they look at the terminal first.
     const needsOKX = /\b(btc|eth|sol|bitcoin|ethereum|solana|crypto|market|precio|price|whale|trade|trading|bull|bear|oro|gold|silver|plata|mercado|dex|defi|token|coin|nft|xaut|paxg|okb|matic|subir|bajar|pump|dump|long|short)\b/i.test(msg);
     const needsPoly = /\b(trump|biden|election|politic|war|recession|fed|rate|inflation|regulat|sec|congress|senate|law|ban|approve|etf|macro|econom|geopolit|president|gobierno|guerra|recesi[oó]n|inflaci[oó]n|elecciones?|pol[ií]tic|tariff|arancel|china|rusia|iran)\b/i.test(msg);
-    const isGeneralOpinion = /\b(opin|piens|crees|think|semana|week|month|mes|futuro|future|outlook|pronos|predict|forecast|esta semana|this week|próxim[oa]|next|an[aá]lisis|analysis|qué har[ií]as|what would|cómo ves|how do you see|va a|will .* go|mercado va|market going)\b/i.test(msg);
+    const isGeneralOpinion = /\b(opin|piens|crees|think|semana|week|month|mes|futuro|future|outlook|pronos|predict|forecast|esta semana|this week|próxim[oa]|next|an[aá]lisis|analysis|qué har[ií]as|what would|cómo ves|how do you see|va a|will .* go|mercado va|market going|amanec|hoy|today|morning|ayer|yesterday|tonight|noche)\b/i.test(msg);
     const hasTokens = tokens.length > 0;
+    // General market questions without specific tokens → show BTC/ETH/SOL as default context
+    const isGeneralMarket = !hasTokens && (needsOKX || isGeneralOpinion) && /\b(market|mercado|crypto|cripto|amanec|hoy|today|morning|overview|resumen)\b/i.test(msg);
 
     // Detect stocks in the message
     const stocks = detectStocks(msg);
@@ -1543,7 +1545,7 @@ export function AdamsChat() {
 
     // Bobby ALWAYS fetches intel for anything beyond casual chat
     const fetchIntel = needsOKX || needsPoly || isGeneralOpinion || hasTokens || hasStocks;
-    const contextPricesPromise = hasTokens ? getPriceCards(tokens) : Promise.resolve([]);
+    const contextPricesPromise = (hasTokens || isGeneralMarket) ? getPriceCards(hasTokens ? tokens : ['BTC', 'ETH', 'SOL']) : Promise.resolve([]);
     const stockPricesPromise = hasStocks ? fetchStockPrices(stocks) : Promise.resolve([]);
     const intelPromise = fetchIntel
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
