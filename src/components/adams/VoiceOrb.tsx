@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export type OrbMood = 'confident' | 'cautious' | 'defensive';
+export type OrbMood = 'confident' | 'cautious' | 'defensive' | 'alpha' | 'redteam' | 'cio';
 export type OrbState = 'idle' | 'thinking' | 'speaking' | 'listening';
 
 const MOOD_PALETTES: Record<OrbMood, { primary: string; secondary: string; accent: string; glow: string }> = {
@@ -29,6 +29,25 @@ const MOOD_PALETTES: Record<OrbMood, { primary: string; secondary: string; accen
     secondary: 'rgba(248,113,113,',// red-400
     accent: 'rgba(252,165,165,',   // red-300
     glow: '255, 80, 80',
+  },
+  // Multi-agent debate voices
+  alpha: {
+    primary: 'rgba(34,197,94,',    // green — aggressive, opportunity
+    secondary: 'rgba(74,222,128,', // green-400
+    accent: 'rgba(134,239,172,',   // green-300
+    glow: '0, 255, 120',
+  },
+  redteam: {
+    primary: 'rgba(239,68,68,',    // red — skeptical, risk
+    secondary: 'rgba(220,38,38,',  // red-600
+    accent: 'rgba(248,113,113,',   // red-400
+    glow: '255, 50, 50',
+  },
+  cio: {
+    primary: 'rgba(250,204,21,',   // gold — Bobby CIO, the boss
+    secondary: 'rgba(234,179,8,',  // yellow-500
+    accent: 'rgba(253,224,71,',    // yellow-300
+    glow: '255, 215, 0',
   },
 };
 
@@ -193,14 +212,23 @@ export function VoiceOrb({ analyser, state, mood = 'confident', size = 160 }: Vo
     return () => cancelAnimationFrame(rafRef.current);
   }, [analyser, state, mood, size, palette]);
 
+  const agentName = useMemo(() => {
+    switch (mood) {
+      case 'alpha': return 'ALPHA HUNTER';
+      case 'redteam': return 'RED TEAM';
+      case 'cio': return 'BOBBY CIO';
+      default: return null;
+    }
+  }, [mood]);
+
   const stateLabel = useMemo(() => {
     switch (state) {
       case 'thinking': return 'PROCESSING';
-      case 'speaking': return 'SPEAKING';
+      case 'speaking': return agentName || 'SPEAKING';
       case 'listening': return 'LISTENING';
       default: return 'ONLINE';
     }
-  }, [state]);
+  }, [state, agentName]);
 
   return (
     <motion.div
@@ -218,11 +246,11 @@ export function VoiceOrb({ analyser, state, mood = 'confident', size = 160 }: Vo
         <motion.div
           animate={{ opacity: state === 'idle' ? 0.4 : 1 }}
           className={`w-1.5 h-1.5 rounded-full ${
-            mood === 'confident' ? 'bg-green-400' : mood === 'cautious' ? 'bg-amber-400' : 'bg-red-400'
+            mood === 'alpha' ? 'bg-green-400' : mood === 'redteam' ? 'bg-red-400' : mood === 'cio' ? 'bg-yellow-400' : mood === 'confident' ? 'bg-green-400' : mood === 'cautious' ? 'bg-amber-400' : 'bg-red-400'
           } ${state !== 'idle' ? 'animate-pulse' : ''}`}
         />
         <span className={`text-[9px] font-mono font-bold tracking-[2px] uppercase ${
-          mood === 'confident' ? 'text-green-400/70' : mood === 'cautious' ? 'text-amber-400/70' : 'text-red-400/70'
+          mood === 'alpha' ? 'text-green-400/70' : mood === 'redteam' ? 'text-red-400/70' : mood === 'cio' ? 'text-yellow-400/70' : mood === 'confident' ? 'text-green-400/70' : mood === 'cautious' ? 'text-amber-400/70' : 'text-red-400/70'
         }`}>
           {stateLabel}
         </span>

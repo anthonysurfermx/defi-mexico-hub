@@ -13,7 +13,7 @@ import { AdvisorSetup, useAdvisorProfile } from '@/components/agent-radar/Adviso
 import type { AdvisorProfile } from '@/components/agent-radar/AdvisorSetup';
 import { fetchTickers, fetchMarketDetail, formatVolume, type OKXTicker } from '@/services/okx-market.service';
 import { SwapConfirm, type TradeExecution } from './SwapConfirm';
-import { VoiceOrb, type OrbState } from './VoiceOrb';
+import { VoiceOrb, type OrbState, type OrbMood } from './VoiceOrb';
 import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
@@ -1246,6 +1246,7 @@ export function AdamsChat() {
     if (!msg || isProcessing) return;
     // Voice interruption: stop Bobby speaking when user sends new message
     stopVoice();
+    setActiveAgent(null);
     setInputText('');
 
     const userMsg: ChatMsg = { id: uid(), role: 'user', text: msg, timestamp: Date.now() };
@@ -1698,9 +1699,19 @@ export function AdamsChat() {
         let sentenceBuffer = '';
         const sentenceSplitter = /(?<=[.!?])\s+|(?<=\n\n)/;
 
+        // Detect which agent is speaking based on markers in the text
+        const detectAgent = (text: string) => {
+          const lower = text.toLowerCase();
+          if (lower.includes('alpha hunter') || lower.includes('🟢')) setActiveAgent('alpha');
+          else if (lower.includes('red team') || lower.includes('🔴')) setActiveAgent('redteam');
+          else if (lower.includes('my verdict') || lower.includes('my play') || lower.includes('mi veredicto') || lower.includes('bobby')) setActiveAgent('cio');
+        };
+
         const feedSentenceStream = (delta: string) => {
           if (!voiceEnabled) return;
           sentenceBuffer += delta;
+          // Detect agent transitions in the stream
+          detectAgent(sentenceBuffer);
           // Extract complete sentences
           const parts = sentenceBuffer.split(sentenceSplitter);
           if (parts.length > 1) {
@@ -1745,6 +1756,8 @@ export function AdamsChat() {
               const delta = parsed.choices?.[0]?.delta?.content;
               if (delta) {
                 fullText += delta;
+                // Detect agent voice transitions in real-time
+                detectAgent(fullText);
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
@@ -1762,6 +1775,8 @@ export function AdamsChat() {
           queueSentence(sentenceBuffer.trim());
         }
         flushQueue();
+        // Reset agent mood after response completes
+        setTimeout(() => setActiveAgent(null), 2000);
 
         // If we got no text from stream, set a fallback
         if (!fullText) {
@@ -1835,8 +1850,10 @@ export function AdamsChat() {
     URL.revokeObjectURL(url);
   }, [getLastResponseAudio, lang, messages]);
 
-  // ---- Orb state ----
+  // ---- Orb state + multi-agent mood ----
+  const [activeAgent, setActiveAgent] = useState<'alpha' | 'redteam' | 'cio' | null>(null);
   const orbState: OrbState = isListening ? 'listening' : isSpeaking ? 'speaking' : isProcessing ? 'thinking' : 'idle';
+  const orbMood = activeAgent || 'confident';
 
   // Get the latest advisor message for the "stage" display
   const latestAdvisor = [...messages].reverse().find(m => m.role === 'advisor');
@@ -1983,10 +2000,12 @@ export function AdamsChat() {
           if (orbState !== 'thinking') toggleListening();
         }}
       >
-        <div className="sm:hidden"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={60} /></div>
-        <div className="hidden sm:block"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={100} /></div>
-        <span className="text-[8px] sm:text-[9px] font-mono text-green-400/40 mt-1 sm:mt-1.5 tracking-[2px]">
-          {orbState === 'listening' ? 'TAP TO STOP · LISTENING...' : orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'TAP TO INTERRUPT' : 'TAP TO TALK'}
+        <div className="sm:hidden"><VoiceOrb analyser={analyser} state={orbState} mood={orbMood} size={60} /></div>
+        <div className="hidden sm:block"><VoiceOrb analyser={analyser} state={orbState} mood={orbMood} size={100} /></div>
+        <span className={`text-[8px] sm:text-[9px] font-mono mt-1 sm:mt-1.5 tracking-[2px] ${
+          activeAgent === 'alpha' ? 'text-green-400/60' : activeAgent === 'redteam' ? 'text-red-400/60' : activeAgent === 'cio' ? 'text-yellow-400/60' : 'text-green-400/40'
+        }`}>
+          {orbState === 'listening' ? 'TAP TO STOP · LISTENING...' : orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? '🟡 BOBBY CIO' : 'TAP TO INTERRUPT') : 'TAP TO TALK'}
         </span>
       </div>
 
