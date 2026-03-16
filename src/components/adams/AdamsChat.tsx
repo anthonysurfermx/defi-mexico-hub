@@ -1924,8 +1924,8 @@ export function AdamsChat() {
             {/* Menu button — always visible */}
             <div className="relative">
               <button onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-white/20 hover:text-white/50 transition-colors">
-                <MoreVertical className="w-3.5 h-3.5" />
+                className="p-2 text-white/50 hover:text-white/80 transition-colors">
+                <MoreVertical className="w-4 h-4" />
               </button>
 
               {/* Dropdown menu */}
