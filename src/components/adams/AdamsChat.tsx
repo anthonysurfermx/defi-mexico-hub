@@ -1974,12 +1974,19 @@ export function AdamsChat() {
         </div>
       </div>
 
-      {/* ===== ORB — always visible, sticky above content ===== */}
-      <div className="flex-shrink-0 flex flex-col items-center py-1.5 sm:py-4 border-b border-white/[0.02]" style={{ background: '#050505' }}>
+      {/* ===== ORB — tap to talk, always visible ===== */}
+      <div
+        className="flex-shrink-0 flex flex-col items-center py-1.5 sm:py-4 border-b border-white/[0.02] cursor-pointer select-none"
+        style={{ background: '#050505' }}
+        onClick={() => {
+          if (orbState === 'speaking') { stopVoice(); return; }
+          if (orbState !== 'thinking') toggleListening();
+        }}
+      >
         <div className="sm:hidden"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={60} /></div>
         <div className="hidden sm:block"><VoiceOrb analyser={analyser} state={orbState} mood="confident" size={100} /></div>
         <span className="text-[8px] sm:text-[9px] font-mono text-green-400/40 mt-1 sm:mt-1.5 tracking-[2px]">
-          {orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'SPEAKING' : orbState === 'listening' ? 'LISTENING' : 'ONLINE'}
+          {orbState === 'listening' ? 'TAP TO STOP · LISTENING...' : orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? 'TAP TO INTERRUPT' : 'TAP TO TALK'}
         </span>
       </div>
 
