@@ -6,7 +6,7 @@ import { ProactiveNotification } from '@/components/adams/ProactiveNotification'
 export default function BobbyAgentTraderPage() {
   const { address } = useAccount();
   return (
-    <div className="fixed inset-0 z-30 flex flex-col overflow-hidden" style={{ background: '#050505' }}>
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden" style={{ background: '#050505' }}>
       <DisclaimerBanner />
       <div className="flex-1 min-h-0 overflow-hidden">
         <AdamsChat />
