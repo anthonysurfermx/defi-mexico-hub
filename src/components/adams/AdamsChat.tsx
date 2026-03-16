@@ -482,6 +482,10 @@ export function AdamsChat() {
   // Cache tickers locally for quick re-use
   const tickerCacheRef = useRef<OKXTicker[]>([]);
 
+  // Language must be declared early — used by voice, i18n, and intent detection
+  const lang = profile?.language || 'en';
+  const advisorName = profile?.advisorName || 'Bobby';
+
   // ---- Bobby's Voice ----
   const { speak, speakLocal, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
@@ -731,9 +735,6 @@ export function AdamsChat() {
     recognition.start();
     setIsListening(true);
   }, [isListening]);
-
-  const advisorName = profile?.advisorName || 'Bobby';
-  const lang = profile?.language || 'en'; // user's chosen language
 
   // ---- i18n strings keyed by language ----
   const i18n = {
