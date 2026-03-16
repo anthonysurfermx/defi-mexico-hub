@@ -2,7 +2,8 @@
 // useBobbyVoice — Hook that orchestrates Bobby's vocal presence
 // Manages: ElevenLabs API calls, IndexedDB caching, AudioContext + AnalyserNode
 // Smart routing: ElevenLabs for key moments, Web Speech API for fillers
-// Returns: speak(), speakLocal(), stop(), isSpeaking, analyser (for VoiceOrb)
+// Sentence-level streaming: Bobby speaks first sentence while LLM still generates
+// Returns: speak(), speakLocal(), queueSentence(), flushQueue(), stop()
 // ============================================================
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 
 const DB_NAME = 'bobby_voice_cache';
 const STORE_NAME = 'audio';
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h (was 30min — greetings reuse well)
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
 
 function hashText(text: string): string {
   let hash = 0;
@@ -66,6 +67,26 @@ async function setCachedAudio(key: string, data: ArrayBuffer): Promise<void> {
   } catch { /* silent */ }
 }
 
+// ---- Fetch audio from ElevenLabs (with cache) ----
+
+async function fetchAudio(text: string): Promise<ArrayBuffer | null> {
+  const cacheKey = hashText(text);
+  const cached = await getCachedAudio(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch('/api/bobby-voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return null;
+    const data = await res.arrayBuffer();
+    await setCachedAudio(cacheKey, data);
+    return data;
+  } catch { return null; }
+}
+
 // ---- Web Speech API wrapper for free local TTS (fillers, short text) ----
 
 function speakWithBrowserTTS(text: string, lang: string): Promise<void> {
@@ -87,6 +108,8 @@ function speakWithBrowserTTS(text: string, lang: string): Promise<void> {
 export interface BobbyVoiceState {
   speak: (text: string) => Promise<void>;
   speakLocal: (text: string, lang?: string) => Promise<void>;
+  queueSentence: (sentence: string) => void;
+  flushQueue: () => void;
   stop: () => void;
   isSpeaking: boolean;
   analyser: AnalyserNode | null;
@@ -103,9 +126,16 @@ export function useBobbyVoice(): BobbyVoiceState {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
+  // ---- Sentence queue for streaming TTS ----
+  // Sentences are fetched in parallel, played sequentially
+  const sentenceQueueRef = useRef<Array<{ text: string; audio: Promise<ArrayBuffer | null> }>>([]);
+  const isPlayingQueueRef = useRef(false);
+  const queueStoppedRef = useRef(false);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      queueStoppedRef.current = true;
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -117,7 +147,97 @@ export function useBobbyVoice(): BobbyVoiceState {
     };
   }, []);
 
+  // ---- Shared audio playback (used by speak + queue) ----
+
+  const playAudioData = useCallback((audioData: ArrayBuffer): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const blob = new Blob([audioData], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+
+      // Revoke previous
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = url;
+
+      let audio = audioRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audioRef.current = audio;
+      }
+      audio.src = url;
+      setAudioElement(audio);
+
+      // Set up AudioContext + AnalyserNode for visualizer
+      try {
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        }
+        const ctx = audioContextRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
+
+        if (!sourceRef.current) {
+          const source = ctx.createMediaElementSource(audio);
+          const analyserNode = ctx.createAnalyser();
+          analyserNode.fftSize = 64;
+          source.connect(analyserNode);
+          analyserNode.connect(ctx.destination);
+          sourceRef.current = source;
+          setAnalyser(analyserNode);
+        }
+      } catch { /* AudioContext not critical */ }
+
+      setIsSpeaking(true);
+      audio.onended = () => {
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
+        resolve();
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        reject(new Error('Audio playback error'));
+      };
+
+      audio.play().catch(() => {
+        setIsSpeaking(false);
+        reject(new Error('Audio play failed'));
+      });
+    });
+  }, []);
+
+  // ---- Queue processor: plays sentences sequentially ----
+
+  const processQueue = useCallback(async () => {
+    if (isPlayingQueueRef.current) return; // Already processing
+    isPlayingQueueRef.current = true;
+
+    while (sentenceQueueRef.current.length > 0) {
+      if (queueStoppedRef.current) break;
+
+      const item = sentenceQueueRef.current.shift()!;
+      const audioData = await item.audio;
+
+      if (queueStoppedRef.current) break;
+      if (!audioData) continue; // Skip failed fetches
+
+      try {
+        await playAudioData(audioData);
+      } catch { /* skip failed playback, continue queue */ }
+    }
+
+    isPlayingQueueRef.current = false;
+    // Only set not speaking if queue is truly empty and nothing else playing
+    if (sentenceQueueRef.current.length === 0) {
+      setIsSpeaking(false);
+    }
+  }, [playAudioData]);
+
   const stop = useCallback(() => {
+    // Clear the sentence queue
+    queueStoppedRef.current = true;
+    sentenceQueueRef.current = [];
+    isPlayingQueueRef.current = false;
+
     // Stop ElevenLabs audio
     if (audioRef.current) {
       audioRef.current.pause();
@@ -132,103 +252,55 @@ export function useBobbyVoice(): BobbyVoiceState {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+
+    // Reset stop flag after a tick so new queues can start
+    setTimeout(() => { queueStoppedRef.current = false; }, 0);
   }, []);
 
-  // ElevenLabs speak — for key moments (greeting, analysis, final answers)
+  // ---- Queue a single sentence for streaming TTS ----
+  // Fetches audio immediately (parallel with other sentences)
+  // Plays in order as audio becomes available
+
+  const queueSentence = useCallback((sentence: string) => {
+    const clean = sentence.replace(/[-*_#>]/g, '').replace(/\n+/g, ' ').trim();
+    if (clean.length < 8) return; // Skip trivial fragments
+
+    // Start fetching audio immediately (non-blocking)
+    const audioPromise = fetchAudio(clean);
+
+    sentenceQueueRef.current.push({ text: clean, audio: audioPromise });
+    setIsSpeaking(true);
+
+    // Kick off the processor if not already running
+    processQueue();
+  }, [processQueue]);
+
+  // ---- Flush: signal that no more sentences will be added ----
+  // (Currently a no-op since processQueue auto-drains, but useful for signaling)
+
+  const flushQueue = useCallback(() => {
+    // If queue is empty and not playing, mark done
+    if (sentenceQueueRef.current.length === 0 && !isPlayingQueueRef.current) {
+      setIsSpeaking(false);
+    }
+  }, []);
+
+  // ---- Full text speak (legacy — for greetings, one-shot phrases) ----
+
   const speak = useCallback(async (text: string) => {
     if (!text.trim()) return;
-
-    // Stop any current playback
     stop();
 
-    const cacheKey = hashText(text);
-
-    // Try cache first
-    let audioData = await getCachedAudio(cacheKey);
-
-    if (!audioData) {
-      // Fetch from ElevenLabs via our proxy
-      try {
-        const res = await fetch('/api/bobby-voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-        });
-
-        if (!res.ok) {
-          console.warn('Bobby voice unavailable:', res.status);
-          return;
-        }
-
-        audioData = await res.arrayBuffer();
-        // Cache for next time
-        await setCachedAudio(cacheKey, audioData);
-      } catch (err) {
-        console.warn('Bobby voice error:', err);
-        return;
-      }
-    }
-
-    // Create blob URL and play
-    const blob = new Blob([audioData], { type: 'audio/mpeg' });
-    const url = URL.createObjectURL(blob);
-    objectUrlRef.current = url;
-
-    // Create or reuse audio element
-    let audio = audioRef.current;
-    if (!audio) {
-      audio = new Audio();
-      audioRef.current = audio;
-    }
-    audio.src = url;
-    setAudioElement(audio);
-
-    // Set up AudioContext + AnalyserNode for the visualizer
-    try {
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        audioContextRef.current = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      }
-
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') await ctx.resume();
-
-      // Only create source once per audio element
-      if (!sourceRef.current) {
-        const source = ctx.createMediaElementSource(audio);
-        const analyserNode = ctx.createAnalyser();
-        analyserNode.fftSize = 64;
-        source.connect(analyserNode);
-        analyserNode.connect(ctx.destination);
-        sourceRef.current = source;
-        setAnalyser(analyserNode);
-      }
-    } catch (err) {
-      console.warn('AudioContext setup failed:', err);
-    }
-
-    // Play
-    setIsSpeaking(true);
-    audio.onended = () => {
-      setIsSpeaking(false);
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-    audio.onerror = () => {
-      setIsSpeaking(false);
-    };
+    const audioData = await fetchAudio(text);
+    if (!audioData) return;
 
     try {
-      await audio.play();
-    } catch (err) {
-      console.warn('Audio play failed (user gesture required?):', err);
-      setIsSpeaking(false);
-    }
-  }, [stop]);
+      await playAudioData(audioData);
+    } catch { /* silent */ }
+    setIsSpeaking(false);
+  }, [stop, playAudioData]);
 
-  // Local speak — Web Speech API for fillers, transitions, short confirmations
-  // FREE, instant, no API calls. Saves ElevenLabs quota for key moments.
+  // Local speak — Web Speech API for fillers
   const speakLocal = useCallback(async (text: string, lang: string = 'en') => {
     if (!text.trim()) return;
     stop();
@@ -239,5 +311,5 @@ export function useBobbyVoice(): BobbyVoiceState {
     setIsSpeaking(false);
   }, [stop]);
 
-  return { speak, speakLocal, stop, isSpeaking, analyser, audioElement };
+  return { speak, speakLocal, queueSentence, flushQueue, stop, isSpeaking, analyser, audioElement };
 }

@@ -608,7 +608,7 @@ export function AdamsChat() {
   const advisorName = profile?.advisorName || 'Bobby';
 
   // ---- Bobby's Voice ----
-  const { speak, speakLocal, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
+  const { speak, speakLocal, queueSentence, flushQueue, stop: stopVoice, isSpeaking, analyser } = useBobbyVoice();
   const [voiceEnabled, setVoiceEnabled] = useState(() => {
     try {
       const stored = localStorage.getItem('bobby_voice_enabled');
@@ -1225,6 +1225,8 @@ export function AdamsChat() {
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text || inputText).trim();
     if (!msg || isProcessing) return;
+    // Voice interruption: stop Bobby speaking when user sends new message
+    stopVoice();
     setInputText('');
 
     const userMsg: ChatMsg = { id: uid(), role: 'user', text: msg, timestamp: Date.now() };
@@ -1535,35 +1537,43 @@ export function AdamsChat() {
 
         const contextBlocks: string[] = [];
 
-        // Add reasoning directive so Bobby knows what was fetched and why
+        // ---- XML-tagged structured briefing (Vance strategy) ----
+        // Claude treats XML tags as high-priority structural markers.
+        // Prevents "context hallucination" — Bobby cites specific keys, not vibes.
+
         if (fetchIntel) {
           const sources: string[] = [];
-          if (needsOKX || hasTokens) sources.push('OKX OnchainOS (whale flows, on-chain truth)');
-          if (needsPoly) sources.push('Polymarket (smart money consensus, political/macro signals)');
-          if (hasStocks) sources.push('Yahoo Finance (real-time stock prices)');
-          if (isGeneralOpinion && !needsOKX && !needsPoly && !hasStocks) sources.push('OKX + Polymarket (full spectrum)');
-          contextBlocks.push(`[AUTONOMOUS REASONING: I consulted ${sources.join(' + ')} for this question. Use ALL the live data below to inform your answer. Be specific — cite numbers, price movements, whale flows, consensus percentages. Cross-reference crypto and stock data when both are available.]`);
+          if (needsOKX || hasTokens) sources.push('OKX OnchainOS');
+          if (needsPoly) sources.push('Polymarket');
+          if (hasStocks) sources.push('Yahoo Finance');
+          if (isGeneralOpinion && !needsOKX && !needsPoly && !hasStocks) sources.push('OKX + Polymarket');
+          contextBlocks.push(`<REASONING sources="${sources.join(', ')}">Use ALL live data below. Cite specific numbers, whale flows, consensus %. Cross-reference when multiple sources available.</REASONING>`);
         }
 
-        // Inject stock data if available
+        // Inject stock data as structured XML
         if (stockQuotes.length > 0) {
-          const stockLines = stockQuotes.map(s =>
-            `${s.symbol} (${s.name}): $${s.price.toLocaleString()} (${s.change24h > 0 ? '+' : ''}${s.change24h}% today, high $${s.dayHigh.toLocaleString()}, low $${s.dayLow.toLocaleString()}, vol ${(s.volume / 1e6).toFixed(1)}M)`
-          ).join('\n');
-          contextBlocks.push(`[STOCK MARKET DATA — Real-time]\n${stockLines}`);
+          const stockJson = stockQuotes.map(s => ({
+            symbol: s.symbol, name: s.name, price: s.price,
+            change_pct: s.change24h, high: s.dayHigh, low: s.dayLow,
+            volume_M: parseFloat((s.volume / 1e6).toFixed(1)),
+          }));
+          contextBlocks.push(`<STOCK_INTEL>\n${JSON.stringify(stockJson)}\n</STOCK_INTEL>`);
         }
 
-        // Inject the full intelligence briefing
+        // Inject the full intelligence briefing (already contains OKX + Polymarket data)
         if (intel?.briefing) {
-          contextBlocks.push(intel.briefing);
+          contextBlocks.push(`<ONCHAIN_INTEL>\n${intel.briefing}\n</ONCHAIN_INTEL>`);
         }
 
-        // Add price context if available
+        // Inject live crypto prices as structured XML
         if (contextPrices.length > 0) {
-          const priceContext = contextPrices.map(p =>
-            `${p.symbol}: $${fmtPrice(p.price)} (${p.change24h > 0 ? '+' : ''}${p.change24h.toFixed(2)}% 24h, vol ${formatVolume(p.vol24h)}${p.funding ? `, funding ${(p.funding.rate * 100).toFixed(4)}%` : ''})`
-          ).join('; ');
-          contextBlocks.push(`[LIVE PRICES: ${priceContext}]`);
+          const priceJson = contextPrices.map(p => ({
+            symbol: p.symbol, price: p.price,
+            change_24h_pct: parseFloat(p.change24h.toFixed(2)),
+            volume: p.vol24h,
+            ...(p.funding ? { funding_rate: parseFloat((p.funding.rate * 100).toFixed(4)), funding_apr: parseFloat(p.funding.annualized.toFixed(1)) } : {}),
+          }));
+          contextBlocks.push(`<PRICE_INTEL>\n${JSON.stringify(priceJson)}\n</PRICE_INTEL>`);
         }
 
         if (contextBlocks.length > 0) {
@@ -1627,6 +1637,31 @@ export function AdamsChat() {
         let fullText = '';
         const replyId = uid();
 
+        // ---- Sentence-level TTS streaming ----
+        // Extract sentences as they complete in the stream.
+        // Fire each to ElevenLabs immediately → Bobby speaks first sentence
+        // while the rest of the response is still generating.
+        // Cuts perceived latency from ~12s to ~2s.
+        let sentenceBuffer = '';
+        const sentenceSplitter = /(?<=[.!?])\s+|(?<=\n\n)/;
+
+        const feedSentenceStream = (delta: string) => {
+          if (!voiceEnabled) return;
+          sentenceBuffer += delta;
+          // Extract complete sentences
+          const parts = sentenceBuffer.split(sentenceSplitter);
+          if (parts.length > 1) {
+            // All but last are complete sentences
+            for (let i = 0; i < parts.length - 1; i++) {
+              const sentence = parts[i].trim();
+              if (sentence.length >= 8) {
+                queueSentence(sentence);
+              }
+            }
+            sentenceBuffer = parts[parts.length - 1];
+          }
+        };
+
         // Add empty advisor message — price cards will appear mid-speech
         setMessages(prev => [...prev, {
           id: replyId, role: 'advisor', timestamp: Date.now(),
@@ -1660,6 +1695,8 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
+                // Sentence-level voice: fire each sentence to TTS as it completes
+                feedSentenceStream(delta);
                 // Keyword-to-UI: scan as text flows in
                 scanAndHighlight(delta);
               }
@@ -1667,14 +1704,17 @@ export function AdamsChat() {
           }
         }
 
+        // Flush remaining sentence buffer to voice
+        if (voiceEnabled && sentenceBuffer.trim().length >= 8) {
+          queueSentence(sentenceBuffer.trim());
+        }
+        flushQueue();
+
         // If we got no text from stream, set a fallback
         if (!fullText) {
           setMessages(prev => prev.map(m =>
             m.id === replyId ? { ...m, text: (t('streamFallback') as (m: string) => string)(msg) } : m
           ));
-        } else {
-          // Bobby speaks the complete response
-          speakIfEnabled(fullText);
         }
       } else {
         // Non-streaming fallback
@@ -1700,7 +1740,7 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, typewriterText, lang, t]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, stopVoice, typewriterText, lang, t, voiceEnabled, queueSentence, flushQueue]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);

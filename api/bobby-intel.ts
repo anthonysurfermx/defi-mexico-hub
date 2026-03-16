@@ -168,16 +168,47 @@ function filterSignals(signals: RawSignal[]): FilteredSignal[] {
   return filtered.slice(0, 10);
 }
 
-// ---- Dynamic Conviction Score ----
+// ---- Dynamic Conviction Score (Regime-Aware Weights) ----
+// Vance strategy: in high volatility, trust on-chain data (whales act, crowd lags).
+// In low volatility, trust Polymarket consensus (smart money predicts breakouts).
 function calculateDynamicConviction(
   okxScore: number,
   polyConsensus: number,
-  latencyMs: number
+  latencyMs: number,
+  btcVolatility: number, // absolute 24h change %
 ): number {
   const minutes = latencyMs / 60000;
   const latencyPenalty = minutes <= 5 ? 0 : Math.min(0.5, 0.02 * Math.exp(0.04 * minutes));
-  const raw = (okxScore * 0.4) + (polyConsensus * 0.6) - latencyPenalty;
+
+  // Regime-aware weights: volatility shifts trust between data sources
+  // High vol (>5% daily move): trust on-chain 0.7, crowd 0.3
+  // Low vol (<2%): trust consensus 0.7, on-chain 0.3
+  // Mid vol: balanced 0.5/0.5
+  let okxWeight: number;
+  let polyWeight: number;
+  if (btcVolatility > 5) {
+    okxWeight = 0.7; polyWeight = 0.3;
+  } else if (btcVolatility < 2) {
+    okxWeight = 0.3; polyWeight = 0.7;
+  } else {
+    // Linear interpolation between 2-5% vol
+    const t = (btcVolatility - 2) / 3;
+    okxWeight = 0.3 + t * 0.4;
+    polyWeight = 1 - okxWeight;
+  }
+
+  const raw = (okxScore * okxWeight) + (polyConsensus * polyWeight) - latencyPenalty;
   return Math.max(0, Math.min(1, raw));
+}
+
+// ---- Market Regime Detection ----
+type MarketRegime = 'high_vol' | 'low_vol' | 'normal';
+
+function detectRegime(btcChange24h: number): { regime: MarketRegime; label: string } {
+  const abs = Math.abs(btcChange24h);
+  if (abs > 5) return { regime: 'high_vol', label: `HIGH VOLATILITY (BTC ${btcChange24h > 0 ? '+' : ''}${btcChange24h.toFixed(1)}%)` };
+  if (abs < 2) return { regime: 'low_vol', label: `LOW VOLATILITY (BTC ${btcChange24h > 0 ? '+' : ''}${btcChange24h.toFixed(1)}%)` };
+  return { regime: 'normal', label: `NORMAL (BTC ${btcChange24h > 0 ? '+' : ''}${btcChange24h.toFixed(1)}%)` };
 }
 
 // ---- Polymarket Intelligence ----
@@ -394,6 +425,33 @@ async function fetchLivePrices(): Promise<Array<{ symbol: string; price: number;
   } catch { return []; }
 }
 
+// ---- Funding Rates (Long/Short Squeeze Detection) ----
+// Critical CIO-level data: high positive funding = everyone long → squeeze risk
+interface FundingRate { symbol: string; rate: number; annualized: number; nextFundingTime: string }
+
+async function fetchFundingRates(): Promise<FundingRate[]> {
+  const instruments = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP', 'SOL-USDT-SWAP'];
+  try {
+    const results = await Promise.all(instruments.map(async (instId) => {
+      try {
+        const res = await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${instId}`);
+        if (!res.ok) return null;
+        const json = await res.json() as { code: string; data: Array<{ instId: string; fundingRate: string; nextFundingRate: string; nextFundingTime: string }> };
+        if (json.code !== '0' || !json.data?.[0]) return null;
+        const d = json.data[0];
+        const rate = parseFloat(d.fundingRate);
+        return {
+          symbol: instId.split('-')[0],
+          rate,
+          annualized: parseFloat((rate * 3 * 365 * 100).toFixed(1)), // 3 settlements/day × 365
+          nextFundingTime: d.nextFundingTime,
+        };
+      } catch { return null; }
+    }));
+    return results.filter(Boolean) as FundingRate[];
+  } catch { return []; }
+}
+
 // ============================================================
 // HANDLER — Runs all intelligence pipelines in parallel
 // ============================================================
@@ -405,12 +463,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startMs = Date.now();
 
   try {
-    // Run all intelligence sources in parallel
-    const [rawSignals, polyConsensus, recentCycles, livePrices] = await Promise.all([
+    // Run all intelligence sources in parallel (5 pipelines)
+    const [rawSignals, polyConsensus, recentCycles, livePrices, fundingRates] = await Promise.all([
       collectDexSignals(),
       collectPolymarketIntelligence(),
       fetchRecentCycles(5),
       fetchLivePrices(),
+      fetchFundingRates(),
     ]);
 
     const filtered = filterSignals(rawSignals);
@@ -419,14 +478,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mood = getAgentMood(winRate);
     const isSafeMode = winRate < 0.7;
 
-    // Compute conviction for top signals
+    // Regime detection — BTC 24h volatility drives conviction weights
+    const btcPrice = livePrices.find(p => p.symbol === 'BTC');
+    const btcVol = btcPrice ? Math.abs(btcPrice.change24h) : 3; // default to "normal" if no BTC data
+    const regime = detectRegime(btcPrice?.change24h || 0);
+
+    // Compute conviction for top signals (regime-aware)
     const bestPolyEdge = polyConsensus.length > 0
       ? Math.min(1, Math.max(0, polyConsensus[0].edgePct / 100))
       : 0;
 
     const signalsWithConviction = filtered.map(s => {
       const okxNorm = s.filterScore / 100;
-      const conviction = calculateDynamicConviction(okxNorm, bestPolyEdge, signalAgeMs);
+      const conviction = calculateDynamicConviction(okxNorm, bestPolyEdge, signalAgeMs, btcVol);
       return {
         symbol: s.tokenSymbol,
         chain: s.chain === '1' ? 'ETH' : s.chain === '501' ? 'SOL' : s.chain === '8453' ? 'Base' : s.chain,
@@ -466,17 +530,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const latencyMs = Date.now() - startMs;
 
     // Build the intelligence briefing text for Bobby's brain
-    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices, performance, latencyMs);
+    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices, fundingRates, performance, regime, latencyMs);
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
     return res.status(200).json({
       ok: true,
-      briefing,           // Pre-formatted text block for injection into LLM context
+      briefing,           // Pre-formatted XML-tagged block for injection into LLM context
       signals: signalsWithConviction,
       polymarket: polyFormatted,
       prices: livePrices,
+      fundingRates,
       performance,
+      regime: regime.label,
       meta: {
         signalsRaw: rawSignals.length,
         signalsFiltered: filtered.length,
@@ -492,51 +558,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-// ---- Build pre-formatted intelligence briefing ----
+// ---- Build XML-tagged intelligence briefing ----
+// XML tags = high-priority structural markers for Claude.
+// Prevents context hallucination — Bobby cites specific keys, not vibes.
 function buildBriefing(
   signals: Array<{ symbol: string; chain: string; amountUsd: number; filterScore: number; conviction: number; reasons: string[]; walletType: string }>,
   polymarket: Array<{ title: string; traderCount: number; topOutcome: string; topOutcomePct: number; currentPrice: number; entryPrice: number; edgePct: number }>,
   prices: Array<{ symbol: string; price: number; change24h: number }>,
+  fundingRates: FundingRate[],
   performance: { winRate: number; mood: string; isSafeMode: boolean },
+  regime: { regime: MarketRegime; label: string },
   latencyMs: number,
 ): string {
-  const lines: string[] = [];
+  const blocks: string[] = [];
 
-  // Live prices
-  lines.push('[LIVE MARKET DATA]');
-  for (const p of prices) {
-    const dir = p.change24h >= 0 ? '+' : '';
-    lines.push(`${p.symbol}: $${p.price.toLocaleString()} (${dir}${p.change24h}% 24h)`);
+  // Market regime
+  blocks.push(`<MARKET_REGIME>${regime.label}</MARKET_REGIME>`);
+
+  // Live prices as JSON
+  const priceData = prices.map(p => ({
+    symbol: p.symbol, price: p.price,
+    change_24h_pct: p.change24h,
+  }));
+  blocks.push(`<LIVE_PRICES>\n${JSON.stringify(priceData)}\n</LIVE_PRICES>`);
+
+  // Funding rates (squeeze detection)
+  if (fundingRates.length > 0) {
+    const fundingData = fundingRates.map(f => ({
+      symbol: f.symbol,
+      rate_pct: parseFloat((f.rate * 100).toFixed(4)),
+      annualized_pct: f.annualized,
+      squeeze_risk: Math.abs(f.rate) > 0.01 ? (f.rate > 0 ? 'LONG_SQUEEZE' : 'SHORT_SQUEEZE') : 'NEUTRAL',
+    }));
+    blocks.push(`<FUNDING_RATES>\n${JSON.stringify(fundingData)}\n</FUNDING_RATES>`);
   }
 
-  // OKX whale signals
-  lines.push('');
-  lines.push(`[OKX OnchainOS WHALE SIGNALS — ${signals.length} filtered from on-chain scan]`);
-  if (signals.length === 0) {
-    lines.push('No significant whale movements detected right now.');
+  // OKX whale signals as JSON
+  if (signals.length > 0) {
+    const signalData = signals.slice(0, 5).map(s => ({
+      symbol: s.symbol, chain: s.chain,
+      amount_K: parseFloat((s.amountUsd / 1000).toFixed(1)),
+      wallet_type: s.walletType,
+      conviction_pct: parseFloat((s.conviction * 100).toFixed(0)),
+      reasons: s.reasons,
+    }));
+    blocks.push(`<WHALE_SIGNALS count="${signals.length}">\n${JSON.stringify(signalData)}\n</WHALE_SIGNALS>`);
   } else {
-    for (const s of signals.slice(0, 5)) {
-      lines.push(`• ${s.symbol} (${s.chain}) — $${(s.amountUsd / 1000).toFixed(1)}K — ${s.walletType} — conviction: ${(s.conviction * 100).toFixed(0)}% — ${s.reasons.join(', ')}`);
-    }
+    blocks.push(`<WHALE_SIGNALS count="0">No significant whale movements detected.</WHALE_SIGNALS>`);
   }
 
-  // Polymarket smart money
-  lines.push('');
-  lines.push(`[POLYMARKET SMART MONEY CONSENSUS — ${polymarket.length} markets with 2+ top traders]`);
-  if (polymarket.length === 0) {
-    lines.push('No strong smart money consensus detected.');
+  // Polymarket consensus as JSON
+  if (polymarket.length > 0) {
+    const polyData = polymarket.slice(0, 5).map(m => ({
+      title: m.title, traders: m.traderCount,
+      outcome: m.topOutcome, consensus_pct: m.topOutcomePct,
+      price_cents: m.currentPrice, entry_cents: m.entryPrice,
+      edge_pct: m.edgePct,
+    }));
+    blocks.push(`<PREDICTION_MARKETS count="${polymarket.length}">\n${JSON.stringify(polyData)}\n</PREDICTION_MARKETS>`);
   } else {
-    for (const m of polymarket.slice(0, 5)) {
-      const dir = m.edgePct >= 0 ? '+' : '';
-      lines.push(`• "${m.title}" — ${m.traderCount} traders → ${m.topOutcome} (${m.topOutcomePct}%) — price: ${m.currentPrice}¢ (entry: ${m.entryPrice}¢, edge: ${dir}${m.edgePct}%)`);
-    }
+    blocks.push(`<PREDICTION_MARKETS count="0">No strong smart money consensus detected.</PREDICTION_MARKETS>`);
   }
 
   // Performance / metacognition
-  lines.push('');
-  lines.push(`[AGENT METACOGNITION]`);
-  lines.push(`Win rate: ${performance.winRate}% | Mood: ${performance.mood} | Safe Mode: ${performance.isSafeMode ? 'ACTIVE — reduce position sizes, increase conviction threshold' : 'OFF'}`);
-  lines.push(`Intelligence latency: ${(latencyMs / 1000).toFixed(1)}s`);
+  const metaData = {
+    win_rate_pct: performance.winRate,
+    mood: performance.mood,
+    safe_mode: performance.isSafeMode,
+    latency_s: parseFloat((latencyMs / 1000).toFixed(1)),
+  };
+  blocks.push(`<AGENT_META>\n${JSON.stringify(metaData)}\n</AGENT_META>`);
 
-  return lines.join('\n');
+  return blocks.join('\n\n');
 }
