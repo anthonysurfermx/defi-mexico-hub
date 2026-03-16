@@ -1094,7 +1094,7 @@ export function AdamsChat() {
       </div>
 
       {/* ===== COMMAND CENTER: ORB + STAGE ===== */}
-      <div className="flex-1 overflow-y-auto flex flex-col" ref={scrollRef}>
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" ref={scrollRef}>
         <div className="max-w-4xl mx-auto w-full px-4 flex flex-col items-center flex-1">
 
           {/* THE ORB — always visible, center stage */}
