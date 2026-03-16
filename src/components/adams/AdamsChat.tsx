@@ -516,12 +516,42 @@ function DebateText({ text }: { text: string }) {
           return <span key={i} className="whitespace-pre-line">{part.content}</span>;
         }
         const style = AGENT_STYLES[part.agent];
+        // Extract conviction score from CIO verdict (e.g. "Conviction: 7/10" or "conviction score: 0.85")
+        let conviction: number | null = null;
+        if (part.agent === 'cio') {
+          const convMatch = part.content.match(/conviction[:\s]*(\d+(?:\.\d+)?)\s*[\/out of]*\s*10/i)
+            || part.content.match(/conviction[:\s]*(\d+(?:\.\d+)?)\s*\/\s*10/i)
+            || part.content.match(/conviction[:\s]+(\d+(?:\.\d+)?)/i);
+          if (convMatch) {
+            let val = parseFloat(convMatch[1]);
+            if (val > 1) val = val / 10; // normalize 7/10 → 0.7
+            conviction = Math.min(1, Math.max(0, val));
+          }
+        }
         return (
           <div key={i} className={`border-l-2 ${style.border} pl-3 py-1`}>
             <div className={`text-[10px] font-bold tracking-wider mb-1 ${style.nameColor}`}>
               {style.icon} {style.name}
             </div>
             <div className="whitespace-pre-line">{part.content}</div>
+            {conviction !== null && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[9px] font-mono text-yellow-400/70">CONVICTION</span>
+                <div className="flex-1 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-[150px]">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      conviction >= 0.7 ? 'bg-green-500' : conviction >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${conviction * 100}%` }}
+                  />
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${
+                  conviction >= 0.7 ? 'text-green-400' : conviction >= 0.4 ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {(conviction * 10).toFixed(0)}/10
+                </span>
+              </div>
+            )}
           </div>
         );
       })}
@@ -702,6 +732,16 @@ export function AdamsChat() {
     try { localStorage.setItem('bobby_voice_enabled', String(next)); } catch {}
     if (!next) stopVoice();
   }, [voiceEnabled, stopVoice]);
+
+  // ---- Live market sentiment badge (Fear & Greed + DXY) ----
+  const [marketBadge, setMarketBadge] = useState<{ fgi: number; fgiLabel: string; dxy: number } | null>(null);
+  useEffect(() => {
+    fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.fearGreed && d?.dxy) {
+        setMarketBadge({ fgi: d.fearGreed.value, fgiLabel: d.fearGreed.classification, dxy: d.dxy.dxy });
+      }
+    }).catch(() => {});
+  }, []);
 
   // ---- Trading Room mode (multi-agent debate with 3 voices) ----
   const [tradingRoom, setTradingRoom] = useState(() => {
@@ -951,14 +991,14 @@ export function AdamsChat() {
   // ---- i18n strings keyed by language ----
   const i18n = {
     intro: {
-      es: `Soy Bobby Agent Trader. No soy un bot de trading — soy tu agente con metacognición. Escaneo flujos de ballenas, cruzo datos de smart money, y debato conmigo mismo antes de hablar. Crypto, oro, plata — lo veo todo.\n\n¿Estás listo?`,
-      en: `I'm Bobby Agent Trader. Not a trading bot — I'm your agent with metacognition. I scan whale flows, cross-reference smart money, and debate myself before I speak. Crypto, gold, silver — I see it all.\n\nAre you ready?`,
-      pt: `Sou Bobby Agent Trader. Não sou um bot de trading — sou seu agente com metacognição. Escaneio fluxos de baleias, cruzo dados de smart money, e debato comigo mesmo antes de falar. Crypto, ouro, prata — vejo tudo.\n\nVocê está pronto?`,
+      es: `Soy Bobby, tu CIO. Tengo a mi Alpha Hunter buscando oportunidades y a mi Red Team destruyendo cada tesis débil. 9 fuentes de datos en tiempo real — whale flows, funding rates, Fear & Greed, DXY, y más. Cuando hablo, es porque sobreviví mi propio debate interno.\n\n¿Qué quieres que analice?`,
+      en: `I'm Bobby, your CIO. I've got my Alpha Hunter scanning for opportunities and my Red Team tearing apart every weak thesis. 9 real-time data sources — whale flows, funding rates, Fear & Greed, DXY, and more. When I speak, it's because I survived my own internal debate.\n\nWhat do you want me to analyze?`,
+      pt: `Sou Bobby, seu CIO. Tenho minha Alpha Hunter buscando oportunidades e meu Red Team destruindo cada tese fraca. 9 fontes de dados em tempo real — whale flows, funding rates, Fear & Greed, DXY, e mais. Quando falo, é porque sobrevivi meu próprio debate interno.\n\nO que quer que eu analise?`,
     },
     introShort: {
-      es: `Soy Bobby Agent Trader. No soy un bot — soy tu agente con metacognición. Pregúntame sobre cualquier mercado.`,
-      en: `I'm Bobby Agent Trader. Not a bot — I'm your agent with metacognition. Ask me about any market.`,
-      pt: `Sou Bobby Agent Trader. Não sou um bot — sou seu agente com metacognição. Pergunte sobre qualquer mercado.`,
+      es: `Soy Bobby, tu CIO. Alpha Hunter + Red Team + 9 fuentes de datos. Pregúntame lo que quieras.`,
+      en: `I'm Bobby, your CIO. Alpha Hunter + Red Team + 9 data sources. Ask me anything.`,
+      pt: `Sou Bobby, seu CIO. Alpha Hunter + Red Team + 9 fontes de dados. Pergunte o que quiser.`,
     },
     analyzeFillers: {
       es: [
@@ -2108,6 +2148,25 @@ export function AdamsChat() {
         }`}>
           {orbState === 'listening' ? 'TAP TO STOP · LISTENING...' : orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? '🟡 BOBBY CIO' : 'TAP TO INTERRUPT') : 'TAP TO TALK'}
         </span>
+        {/* Live market sentiment badges */}
+        {marketBadge && orbState === 'idle' && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded-full border ${
+              marketBadge.fgi <= 25 ? 'text-red-400/80 border-red-500/20 bg-red-500/5' :
+              marketBadge.fgi >= 75 ? 'text-green-400/80 border-green-500/20 bg-green-500/5' :
+              'text-amber-400/80 border-amber-500/20 bg-amber-500/5'
+            }`}>
+              FGI {marketBadge.fgi} · {marketBadge.fgiLabel}
+            </span>
+            <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded-full border ${
+              marketBadge.dxy > 104 ? 'text-red-400/60 border-red-500/15 bg-red-500/5' :
+              marketBadge.dxy < 100 ? 'text-green-400/60 border-green-500/15 bg-green-500/5' :
+              'text-white/30 border-white/10 bg-white/[0.02]'
+            }`}>
+              DXY {marketBadge.dxy}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ===== COMMAND CENTER: STAGE ===== */}
@@ -2301,6 +2360,7 @@ export function AdamsChat() {
                     { label: 'Silver', display: qa.silver, icon: '◇' },
                     { label: 'All Prices', display: qa.allPrices, icon: '$' },
                     { label: 'Analyze Market', display: qa.analyze, icon: '>' },
+                    { label: "What's your read on the market right now? Give me the full debate.", display: lang === 'es' ? 'Debate' : 'Debate', icon: '⚔' },
                   ];
                 })().map(a => (
                   <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
