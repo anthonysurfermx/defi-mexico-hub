@@ -254,10 +254,10 @@ function Typewriter({ text, speed = 8, onDone }: { text: string; speed?: number;
   }, [text, speed, onDone]);
 
   return (
-    <span onClick={skip} className="cursor-pointer">
-      {displayed}
+    <div onClick={skip} className="cursor-pointer">
+      <DebateText text={displayed} />
       {!done && <span className="inline-block w-[5px] h-[13px] bg-green-400 ml-[1px] align-middle animate-pulse" />}
-    </span>
+    </div>
   );
 }
 
@@ -463,6 +463,68 @@ function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; hig
           <MiniChart symbol={price.symbol} isUp={isUp} />
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Debate Text Renderer ----
+// Splits text by agent markers and renders each section with distinct visual style
+
+const AGENT_STYLES: Record<string, { border: string; name: string; nameColor: string; icon: string }> = {
+  alpha:   { border: 'border-l-green-500/60', name: 'ALPHA HUNTER', nameColor: 'text-green-400', icon: '🟢' },
+  redteam: { border: 'border-l-red-500/60',   name: 'RED TEAM',     nameColor: 'text-red-400',   icon: '🔴' },
+  cio:     { border: 'border-l-yellow-500/60', name: 'BOBBY CIO',   nameColor: 'text-yellow-400', icon: '🟡' },
+};
+
+function DebateText({ text }: { text: string }) {
+  // Split text into agent sections
+  const sectionRegex = /\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT|MI\s*VEREDICTO)\s*:?\s*\*\*:?\s*/gi;
+  const parts: Array<{ agent: string | null; content: string }> = [];
+  let match: RegExpExecArray | null;
+  const matches: Array<{ index: number; end: number; agent: string }> = [];
+
+  sectionRegex.lastIndex = 0;
+  while ((match = sectionRegex.exec(text)) !== null) {
+    const label = match[1].toLowerCase().replace(/\s+/g, '');
+    const agent = label.includes('alpha') ? 'alpha' : label.includes('red') ? 'redteam' : 'cio';
+    matches.push({ index: match.index, end: match.index + match[0].length, agent });
+  }
+
+  if (matches.length === 0) {
+    // No debate markers — render as plain text
+    return <span className="whitespace-pre-line">{text}</span>;
+  }
+
+  // Text before first marker
+  if (matches[0].index > 0) {
+    const preamble = text.slice(0, matches[0].index).trim();
+    if (preamble) parts.push({ agent: null, content: preamble });
+  }
+
+  // Each agent section
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].end;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const content = text.slice(start, end).trim();
+    if (content) parts.push({ agent: matches[i].agent, content });
+  }
+
+  return (
+    <div className="space-y-3">
+      {parts.map((part, i) => {
+        if (!part.agent) {
+          return <span key={i} className="whitespace-pre-line">{part.content}</span>;
+        }
+        const style = AGENT_STYLES[part.agent];
+        return (
+          <div key={i} className={`border-l-2 ${style.border} pl-3 py-1`}>
+            <div className={`text-[10px] font-bold tracking-wider mb-1 ${style.nameColor}`}>
+              {style.icon} {style.name}
+            </div>
+            <div className="whitespace-pre-line">{part.content}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -2108,11 +2170,11 @@ export function AdamsChat() {
                 className="w-full max-w-2xl mx-auto"
               >
                 <div className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-3 sm:p-5">
-                  <div className="text-[12px] sm:text-[13px] leading-relaxed text-white/80 font-mono whitespace-pre-line">
+                  <div className="text-[12px] sm:text-[13px] leading-relaxed text-white/80 font-mono">
                     {latestAdvisor === messages[messages.length - 1] && latestAdvisor.isLive !== false ? (
                       <Typewriter text={latestAdvisor.text} speed={6} />
                     ) : (
-                      latestAdvisor.text
+                      <DebateText text={latestAdvisor.text} />
                     )}
                   </div>
                 </div>
