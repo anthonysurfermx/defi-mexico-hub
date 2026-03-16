@@ -1553,14 +1553,19 @@ export function AdamsChat() {
       // Enrich the message with intelligence context — Bobby reasons about what data to include
       let enrichedMessage = msg;
       try {
-        const [contextPrices, stockQuotes, intel] = await Promise.all([contextPricesPromise, stockPricesPromise, intelPromise]);
+        // Promise.allSettled: partial failures don't kill the entire context
+        const [pricesResult, stocksResult, intelResult] = await Promise.allSettled([contextPricesPromise, stockPricesPromise, intelPromise]);
+        const contextPrices = pricesResult.status === 'fulfilled' ? pricesResult.value : [];
+        const stockQuotes = stocksResult.status === 'fulfilled' ? stocksResult.value : [];
+        const intel = intelResult.status === 'fulfilled' ? intelResult.value : null;
+
+        if (pricesResult.status === 'rejected') console.warn('[Bobby] price fetch failed:', pricesResult.reason);
+        if (stocksResult.status === 'rejected') console.warn('[Bobby] stock fetch failed:', stocksResult.reason);
+        if (intelResult.status === 'rejected') console.warn('[Bobby] intel fetch failed:', intelResult.reason);
 
         const contextBlocks: string[] = [];
 
         // ---- XML-tagged structured briefing (Vance strategy) ----
-        // Claude treats XML tags as high-priority structural markers.
-        // Prevents "context hallucination" — Bobby cites specific keys, not vibes.
-
         if (fetchIntel) {
           const sources: string[] = [];
           if (needsOKX || hasTokens) sources.push('OKX OnchainOS');
@@ -1599,7 +1604,7 @@ export function AdamsChat() {
         if (contextBlocks.length > 0) {
           enrichedMessage = `${msg}\n\n${contextBlocks.join('\n\n')}`;
         }
-      } catch { /* continue without context */ }
+      } catch (err) { console.warn('[Bobby] context enrichment failed:', err); }
 
       const res = await fetch('/api/openclaw-chat', {
         method: 'POST',
@@ -1663,9 +1668,9 @@ export function AdamsChat() {
                 funding: null,
               });
             }
-          } catch { /* no stock cards */ }
+          } catch (err) { console.warn('[Bobby] stock cards failed:', err); }
         }
-      } catch { /* no prices */ }
+      } catch (err) { console.warn('[Bobby] price cards failed:', err); }
 
       // Try to parse SSE stream
       stopThinkingSound(); // stop hum once response arrives
@@ -1738,7 +1743,7 @@ export function AdamsChat() {
                 // Keyword-to-UI: scan as text flows in
                 scanAndHighlight(delta);
               }
-            } catch { /* skip non-JSON lines */ }
+            } catch { /* skip non-JSON SSE lines (e.g. empty lines, comments) */ }
           }
         }
 
@@ -1763,11 +1768,12 @@ export function AdamsChat() {
           prices: responsePrices.length > 0 ? responsePrices : undefined,
         }]);
       }
-    } catch {
+    } catch (err) {
+      console.error('[Bobby] chat handler error:', err);
       stopThinkingSound();
       // OpenClaw unavailable — fallback with prices if available
       let fallbackPrices: PriceCard[] = [];
-      try { fallbackPrices = await contextPricesPromise; } catch { /* silent */ }
+      try { fallbackPrices = await contextPricesPromise; } catch { /* prices also failed */ }
       setMessages(prev => [...prev, {
         id: uid(), role: 'advisor', timestamp: Date.now(),
         text: fallbackPrices.length > 0
@@ -1788,14 +1794,20 @@ export function AdamsChat() {
     const blob = getLastResponseAudio();
     if (!blob) return;
 
-    const file = new File([blob], 'bobby-voice-note.mp3', { type: 'audio/mpeg' });
+    // Smart filename: include topic from last user message + date
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    const topic = lastUserMsg?.text?.slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'market';
+    const date = new Date().toISOString().slice(0, 10);
+    const fileName = `bobby-${topic}-${date}.mp3`;
+
+    const file = new File([blob], fileName, { type: 'audio/mpeg' });
 
     // Web Share API (native share sheet on mobile — WhatsApp, Telegram, etc.)
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
           title: 'Bobby Agent Trader',
-          text: lang === 'es' ? 'Escucha lo que dice Bobby sobre el mercado' : lang === 'pt' ? 'Ouça o que Bobby diz sobre o mercado' : 'Listen to Bobby\'s market analysis',
+          text: lang === 'es' ? 'Escucha lo que dice Bobby sobre el mercado 🎙️' : lang === 'pt' ? 'Ouça o que Bobby diz sobre o mercado 🎙️' : "Listen to Bobby's market analysis 🎙️",
           files: [file],
         });
         return;
@@ -1806,12 +1818,12 @@ export function AdamsChat() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'bobby-voice-note.mp3';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [getLastResponseAudio, lang]);
+  }, [getLastResponseAudio, lang, messages]);
 
   // ---- Orb state ----
   const orbState: OrbState = isListening ? 'listening' : isSpeaking ? 'speaking' : isProcessing ? 'thinking' : 'idle';
