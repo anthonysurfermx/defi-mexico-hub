@@ -74,6 +74,10 @@
     "api/okx-candles.ts": {
       "maxDuration": 10,
       "memory": 256
+    },
+    "api/stock-candles.ts": {
+      "maxDuration": 10,
+      "memory": 256
     }
   }
 }

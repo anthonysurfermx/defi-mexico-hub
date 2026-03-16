@@ -284,21 +284,40 @@ interface CandlePoint { ts: number; close: number; date: string }
 
 const candleCache: Record<string, { data: CandlePoint[]; exp: number }> = {};
 
+// Known stock symbols — used to route chart requests to Yahoo Finance vs OKX
+const KNOWN_STOCK_SYMBOLS = new Set(Object.values(STOCK_MAP));
+
 async function fetchCandles(symbol: string): Promise<CandlePoint[]> {
   const key = symbol;
   const cached = candleCache[key];
   if (cached && cached.exp > Date.now()) return cached.data;
 
   try {
-    const instId = `${symbol}-USDT`;
-    const res = await fetch(`/api/okx-candles?instId=${encodeURIComponent(instId)}&bar=1D&limit=7`);
-    if (!res.ok) return [];
-    const json = await res.json();
-    const candles: CandlePoint[] = (json.candles || []).map((c: { ts: number; close: number }) => ({
-      ts: c.ts,
-      close: c.close,
-      date: new Date(c.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    }));
+    let candles: CandlePoint[];
+
+    if (KNOWN_STOCK_SYMBOLS.has(symbol)) {
+      // Stock → Yahoo Finance chart API
+      const res = await fetch(`/api/stock-candles?symbol=${encodeURIComponent(symbol)}&range=7d`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      candles = (json.candles || []).map((c: { ts: number; close: number }) => ({
+        ts: c.ts,
+        close: c.close,
+        date: new Date(c.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      }));
+    } else {
+      // Crypto → OKX candles API
+      const instId = `${symbol}-USDT`;
+      const res = await fetch(`/api/okx-candles?instId=${encodeURIComponent(instId)}&bar=1D&limit=7`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      candles = (json.candles || []).map((c: { ts: number; close: number }) => ({
+        ts: c.ts,
+        close: c.close,
+        date: new Date(c.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      }));
+    }
+
     candleCache[key] = { data: candles, exp: Date.now() + 5 * 60_000 };
     return candles;
   } catch { return []; }
@@ -1626,6 +1645,24 @@ export function AdamsChat() {
               symbol: t!.symbol, price: t!.last, change24h: t!.change24h,
               high24h: t!.high24h, low24h: t!.low24h, vol24h: t!.vol24h, funding: t!.funding,
             }));
+        }
+
+        // Add stock price cards — stocks detected in the question get visual cards too
+        if (hasStocks) {
+          try {
+            const stockQuotesForCards = await stockPricesPromise;
+            for (const sq of stockQuotesForCards) {
+              responsePrices.push({
+                symbol: sq.symbol,
+                price: sq.price,
+                change24h: sq.change24h,
+                high24h: sq.dayHigh,
+                low24h: sq.dayLow,
+                vol24h: sq.volume,
+                funding: null,
+              });
+            }
+          } catch { /* no stock cards */ }
         }
       } catch { /* no prices */ }
 
