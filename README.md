@@ -1,6 +1,6 @@
 <div align="center">
 
-![Bobby Agent Trader — It doesn't just trade. It thinks. Trading with Metacognition.](./public/bobby-cover.png)
+![Bobby Agent Trader — It doesn't just trade. It thinks. Trading with Metacognition.](./public/bobby-hero.png)
 
 # Bobby Agent Trader
 
