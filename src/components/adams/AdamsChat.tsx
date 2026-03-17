@@ -2000,6 +2000,9 @@ export function AdamsChat() {
           text: '', isLive: false,
         }]);
 
+        // Scroll to top so user sees Bobby's response from the start
+        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+
         // Price cards + TA chart appear 1.5s later — WHILE Bobby is speaking
         if (responsePrices.length > 0 || taData) {
           setTimeout(() => {
