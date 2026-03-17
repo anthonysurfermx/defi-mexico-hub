@@ -94,6 +94,10 @@
     "api/forum-resolve.ts": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/forum-morning.ts": {
+      "maxDuration": 120,
+      "memory": 512
     }
   }
 }

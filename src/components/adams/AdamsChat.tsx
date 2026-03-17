@@ -1863,6 +1863,21 @@ export function AdamsChat() {
         }
       } catch (err) { console.warn('[Bobby] ❌ context enrichment failed:', err); }
 
+      // Episodic Memory: inject Bobby's track record from forum
+      try {
+        const memRes = await fetch(`${SB_URL}/rest/v1/forum_threads?resolution=neq.pending&resolution=not.is.null&select=symbol,direction,conviction_score,resolution,resolution_pnl_pct&order=resolved_at.desc&limit=5`,
+          { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
+        if (memRes.ok) {
+          const memory = await memRes.json() as Array<{ symbol: string; direction: string; conviction_score: number; resolution: string; resolution_pnl_pct: number }>;
+          if (memory.length > 0) {
+            const wins = memory.filter(m => m.resolution === 'win').length;
+            const total = memory.length;
+            const calls = memory.map(m => `${m.direction?.toUpperCase()} ${m.symbol}: ${m.resolution?.toUpperCase()} (${m.resolution_pnl_pct > 0 ? '+' : ''}${m.resolution_pnl_pct}%, conviction was ${Math.round((m.conviction_score || 0) * 10)}/10)`).join(' | ');
+            enrichedMessage += `\n\n<EPISODIC_MEMORY>\nYour last ${total} resolved trades: ${calls}\nRecent win rate: ${Math.round((wins / total) * 100)}%\n${wins / total < 0.5 ? 'WARNING: You have been WRONG more than right recently. Be humble. Red Team should challenge you harder.' : wins / total > 0.8 ? 'You are on a streak but overconfidence kills. Stay sharp.' : ''}\n</EPISODIC_MEMORY>`;
+          }
+        }
+      } catch { /* non-critical */ }
+
       // Trading Room mode: inject debate instruction
       if (tradingRoom) {
         enrichedMessage += '\n\n[TRADING ROOM MODE ACTIVE: You MUST respond as three distinct agents. Start with **ALPHA HUNTER:** (bull case, 1-2 paragraphs), then **RED TEAM:** (bear case, destroy the thesis, 1-2 paragraphs), then **MY VERDICT:** (Bobby CIO decides, conviction score + specific play). Each agent has a different voice — make their personalities distinct.]';
