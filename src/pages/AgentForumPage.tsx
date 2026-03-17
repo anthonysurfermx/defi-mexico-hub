@@ -316,7 +316,16 @@ export default function AgentForumPage() {
     setLoading(false);
   };
 
+  // Ghost Wallet data
+  const [ghostWallet, setGhostWallet] = useState<{ currentCapital: number; totalPnl: number; totalPnlPct: number; wins: number; losses: number; winRate: number } | null>(null);
+
   useEffect(() => { fetchThreads(); }, []);
+
+  useEffect(() => {
+    fetch('/api/ghost-wallet').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.ghostWallet) setGhostWallet(d.ghostWallet);
+    }).catch(() => {});
+  }, []);
 
   const generateDebate = async () => {
     setGenerating(true);
@@ -462,6 +471,27 @@ export default function AgentForumPage() {
               );
             })()}
           </div>
+
+          {/* Ghost Wallet */}
+          {ghostWallet && (
+            <div className="border-t border-white/[0.04] mt-3 pt-3">
+              <div className="text-[9px] font-mono text-white/20 uppercase tracking-wider mb-2 px-2">👻 Ghost Wallet</div>
+              <div className="px-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono text-white/25">If you followed Bobby:</span>
+                </div>
+                <div className={`text-[16px] font-mono font-black ${ghostWallet.totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ${ghostWallet.currentCapital.toLocaleString()}
+                </div>
+                <div className={`text-[10px] font-mono ${ghostWallet.totalPnl >= 0 ? 'text-green-400/60' : 'text-red-400/60'}`}>
+                  {ghostWallet.totalPnl >= 0 ? '+' : ''}{ghostWallet.totalPnl.toLocaleString()} ({ghostWallet.totalPnlPct.toFixed(1)}%)
+                </div>
+                <div className="text-[8px] font-mono text-white/15">
+                  from $10,000 · {ghostWallet.winRate}% win rate
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="border-t border-white/[0.04] mt-3 pt-3 px-2">
