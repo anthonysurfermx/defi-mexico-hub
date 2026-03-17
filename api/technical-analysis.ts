@@ -46,6 +46,62 @@ function sma(data: number[], period: number): number[] {
   return result;
 }
 
+// EMA (Exponential Moving Average) — more responsive than SMA
+function ema(data: number[], period: number): number[] {
+  const result: number[] = [];
+  const k = 2 / (period + 1);
+  let prev = data[0];
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) { result.push(NaN); continue; }
+    if (i === period - 1) {
+      // First EMA = SMA of first 'period' values
+      prev = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+      result.push(prev);
+    } else {
+      prev = data[i] * k + prev * (1 - k);
+      result.push(prev);
+    }
+  }
+  return result;
+}
+
+// MACD (Moving Average Convergence Divergence) — TradingView's #1 indicator
+function macd(closes: number[]): { macdLine: number[]; signal: number[]; histogram: number[] } {
+  const ema12 = ema(closes, 12);
+  const ema26 = ema(closes, 26);
+  const macdLine: number[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (isNaN(ema12[i]) || isNaN(ema26[i])) { macdLine.push(NaN); continue; }
+    macdLine.push(ema12[i] - ema26[i]);
+  }
+  // Signal line = 9-period EMA of MACD
+  const validMacd = macdLine.filter(v => !isNaN(v));
+  const signalRaw = ema(validMacd, 9);
+  const signal: number[] = new Array(closes.length).fill(NaN);
+  let si = 0;
+  for (let i = 0; i < closes.length; i++) {
+    if (!isNaN(macdLine[i])) {
+      signal[i] = si < signalRaw.length ? signalRaw[si] : NaN;
+      si++;
+    }
+  }
+  // Histogram = MACD - Signal
+  const histogram: number[] = macdLine.map((m, i) => isNaN(m) || isNaN(signal[i]) ? NaN : m - signal[i]);
+  return { macdLine, signal, histogram };
+}
+
+// VWAP (Volume Weighted Average Price) — institutional favorite
+function vwap(candles: Candle[]): number[] {
+  let cumVol = 0;
+  let cumTP = 0;
+  return candles.map(c => {
+    const tp = (c.h + c.l + c.c) / 3;
+    cumVol += c.vol;
+    cumTP += tp * c.vol;
+    return cumVol > 0 ? parseFloat((cumTP / cumVol).toFixed(2)) : tp;
+  });
+}
+
 function rsi(closes: number[], period: number = 14): number[] {
   const result: number[] = new Array(closes.length).fill(NaN);
   if (closes.length < period + 1) return result;
@@ -164,18 +220,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const closes = candles.map(c => c.c);
     const currentPrice = closes[closes.length - 1];
 
-    // Calculate indicators
+    // Calculate ALL indicators (TradingView's most popular)
     const sma20 = sma(closes, 20);
     const sma50 = sma(closes, 50);
+    const ema12 = ema(closes, 12);
+    const ema26 = ema(closes, 26);
     const rsi14 = rsi(closes, 14);
     const bb = bollingerBands(closes, 20, 2);
+    const macdData = macd(closes);
+    const vwapData = vwap(candles);
     const sr = findSupportResistance(candles, 10);
+    const volumes = candles.map(c => c.vol);
 
     const currentRSI = rsi14.filter(v => !isNaN(v)).pop() || 50;
     const currentSMA20 = sma20.filter(v => !isNaN(v)).pop() || currentPrice;
     const currentSMA50 = sma50.filter(v => !isNaN(v)).pop() || currentPrice;
     const currentBBUpper = bb.upper.filter(v => !isNaN(v)).pop() || currentPrice;
     const currentBBLower = bb.lower.filter(v => !isNaN(v)).pop() || currentPrice;
+    const currentMACD = macdData.macdLine.filter(v => !isNaN(v)).pop() || 0;
+    const currentSignal = macdData.signal.filter(v => !isNaN(v)).pop() || 0;
+    const macdCrossover = currentMACD > currentSignal ? 'BULLISH_CROSS' : currentMACD < currentSignal ? 'BEARISH_CROSS' : 'NEUTRAL';
 
     // Trend detection
     const trend = currentPrice > currentSMA20 && currentSMA20 > currentSMA50 ? 'BULLISH'
@@ -186,7 +250,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const bbWidth = (currentBBUpper - currentBBLower) / currentPrice;
     const bollingerSqueeze = bbWidth < 0.03; // <3% width = squeeze
 
-    // Summary for Bobby's prompt
+    // Summary for Bobby's prompt — TradingView-grade analysis
     const summary = {
       symbol,
       price: currentPrice,
@@ -194,6 +258,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sma50: parseFloat(currentSMA50.toFixed(2)),
       rsi: parseFloat(currentRSI.toFixed(1)),
       rsi_signal: currentRSI > 70 ? 'OVERBOUGHT' : currentRSI < 30 ? 'OVERSOLD' : 'NEUTRAL',
+      macd: parseFloat(currentMACD.toFixed(2)),
+      macd_signal: parseFloat(currentSignal.toFixed(2)),
+      macd_crossover: macdCrossover,
       trend,
       bollinger_squeeze: bollingerSqueeze,
       bollinger_width_pct: parseFloat((bbWidth * 100).toFixed(2)),
@@ -201,6 +268,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       resistance: sr.resistance,
       price_vs_sma20: parseFloat(((currentPrice / currentSMA20 - 1) * 100).toFixed(2)),
       price_vs_sma50: parseFloat(((currentPrice / currentSMA50 - 1) * 100).toFixed(2)),
+      vwap: parseFloat(vwapData[vwapData.length - 1].toFixed(2)),
+      price_vs_vwap: parseFloat(((currentPrice / vwapData[vwapData.length - 1] - 1) * 100).toFixed(2)),
     };
 
     // Only send last 72 candles to frontend (3 days for chart)
@@ -215,9 +284,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       indicators: {
         sma20: sma20.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
         sma50: sma50.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
+        ema12: ema12.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
+        ema26: ema26.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
         rsi14: rsi14.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(1))),
+        macdLine: macdData.macdLine.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
+        macdSignal: macdData.signal.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
+        macdHistogram: macdData.histogram.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
         bollingerUpper: bb.upper.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
         bollingerLower: bb.lower.slice(-72).map(v => isNaN(v) ? null : parseFloat(v.toFixed(2))),
+        vwap: vwapData.slice(-72).map(v => parseFloat(v.toFixed(2))),
+        volume: volumes.slice(-72).map(v => parseFloat(v.toFixed(2))),
       },
       support: sr.support,
       resistance: sr.resistance,
