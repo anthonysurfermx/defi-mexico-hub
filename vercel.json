@@ -114,6 +114,10 @@
     "api/xlayer-record.ts": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/mcp-bobby.ts": {
+      "maxDuration": 60,
+      "memory": 512
     }
   }
 }
