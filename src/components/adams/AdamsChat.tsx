@@ -2085,14 +2085,36 @@ export function AdamsChat() {
               const topic = msg.length > 60 ? msg.slice(0, 60) + '...' : msg;
               // Conviction from CIO post
               const cioContent = posts.find(p => p.agent === 'cio')?.content || '';
+              const allContent = fullText;
               const convM = cioContent.match(/(\d+)\s*\/\s*10/);
               const convScore = convM ? parseInt(convM[1]) / 10 : null;
 
-              // Insert thread
+              // Extract trading parameters from Bobby's text
+              const entryMatch = allContent.match(/(?:entry|entr[ao]|buy(?:ing)?\s+(?:at|en))\s*\$?([\d,]+(?:\.\d+)?)/i);
+              const stopMatch = allContent.match(/(?:stop(?:\s*loss)?|sl)\s*(?:at|en)?\s*\$?([\d,]+(?:\.\d+)?)/i);
+              const targetMatch = allContent.match(/(?:target|tp|take\s*profit|objetivo)\s*(?:at|en|of)?\s*\$?([\d,]+(?:\.\d+)?)/i);
+              const dirMatch = allContent.match(/\b(long|short|comprar?|vender?)\b/i);
+              const symMatch = msg.match(/\b(BTC|ETH|SOL|HYPE|XRP|UNI|MATIC|DOGE|AVAX|LINK|DOT)\b/i);
+
+              const entryPrice = entryMatch ? parseFloat(entryMatch[1].replace(/,/g, '')) : null;
+              const stopPrice = stopMatch ? parseFloat(stopMatch[1].replace(/,/g, '')) : null;
+              const targetPrice = targetMatch ? parseFloat(targetMatch[1].replace(/,/g, '')) : null;
+              const direction = dirMatch ? (/short|vender/i.test(dirMatch[1]) ? 'short' : 'long') : 'long';
+              const symbol = symMatch ? symMatch[1].toUpperCase() : (taSymbol || 'BTC');
+
+              // Expires in 48h for swing trades
+              const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+              // Insert thread with trading params
               const threadRes = await fetch(`${SB_URL}/rest/v1/forum_threads`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: 'return=representation' },
-                body: JSON.stringify({ topic, trigger_reason: 'User debate in Bobby Chat', language: lang, conviction_score: convScore, price_at_creation: {} }),
+                body: JSON.stringify({
+                  topic, trigger_reason: 'User debate in Bobby Chat', language: lang,
+                  conviction_score: convScore, price_at_creation: {},
+                  symbol, direction, entry_price: entryPrice, stop_price: stopPrice,
+                  target_price: targetPrice, expires_at: expiresAt,
+                }),
               });
               if (threadRes.ok) {
                 const threadData = await threadRes.json();

@@ -90,6 +90,10 @@
     "api/bobby-voice-free.ts": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/forum-resolve.ts": {
+      "maxDuration": 30,
+      "memory": 256
     }
   }
 }

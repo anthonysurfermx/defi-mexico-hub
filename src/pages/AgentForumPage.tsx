@@ -31,6 +31,16 @@ interface ForumThread {
   price_at_creation: Record<string, number>;
   created_at: string;
   posts?: ForumPost[];
+  symbol?: string;
+  direction?: string;
+  entry_price?: number;
+  stop_price?: number;
+  target_price?: number;
+  resolution?: string;
+  resolution_price?: number;
+  resolution_pnl_pct?: number;
+  resolved_at?: string;
+  expires_at?: string;
 }
 
 const AGENTS: Record<string, { name: string; icon: string; badge: string; text: string }> = {
@@ -190,13 +200,28 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
             {/* Top row: badges + title */}
             <div className="flex items-center gap-1.5 mb-1 flex-wrap">
               <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
-                thread.status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-white/5 text-white/20 border-white/10'
+                thread.resolution === 'win' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                thread.resolution === 'loss' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                thread.resolution === 'break_even' ? 'bg-amber-500/15 text-amber-400 border-amber-500/20' :
+                thread.status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                'bg-white/5 text-white/20 border-white/10'
               }`}>
-                {thread.status === 'active' ? '● LIVE' : thread.status.toUpperCase()}
+                {thread.resolution === 'win' ? `✅ WIN ${thread.resolution_pnl_pct ? `+${thread.resolution_pnl_pct}%` : ''}` :
+                 thread.resolution === 'loss' ? `❌ LOSS ${thread.resolution_pnl_pct ? `${thread.resolution_pnl_pct}%` : ''}` :
+                 thread.resolution === 'break_even' ? '➖ BREAK EVEN' :
+                 thread.resolution === 'expired' ? '⏰ EXPIRED' :
+                 thread.status === 'active' ? '● LIVE' : thread.status.toUpperCase()}
               </span>
               <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25 border border-white/[0.06]">
                 {catInfo.icon} {catInfo.label}
               </span>
+              {thread.direction && thread.symbol && (
+                <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
+                  thread.direction === 'long' ? 'bg-green-500/5 text-green-400/50 border-green-500/10' : 'bg-red-500/5 text-red-400/50 border-red-500/10'
+                }`}>
+                  {thread.direction === 'long' ? '↑' : '↓'} {thread.symbol}
+                </span>
+              )}
               {/* Agent badges */}
               <div className="flex -space-x-0.5">
                 <span className="text-[10px]">🟢</span>
@@ -244,8 +269,32 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 <span className="text-[9px] font-mono text-white/20">{thread.trigger_reason}</span>
               </div>
 
+              {/* Trade parameters — entry/stop/target */}
+              {thread.entry_price && (
+                <div className="flex items-center gap-3 px-3 py-2 rounded bg-white/[0.02] border border-white/[0.04]">
+                  <div className="flex items-center gap-1">
+                    <span className={`text-[9px] font-mono font-bold ${thread.direction === 'long' ? 'text-green-400' : 'text-red-400'}`}>
+                      {thread.direction === 'long' ? '↑ LONG' : '↓ SHORT'}
+                    </span>
+                    <span className="text-[9px] font-mono text-white/40">{thread.symbol}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[8px] font-mono">
+                    <span className="text-white/30">Entry: <span className="text-white/60">${thread.entry_price.toLocaleString()}</span></span>
+                    {thread.stop_price && <span className="text-red-400/40">Stop: <span className="text-red-400/70">${thread.stop_price.toLocaleString()}</span></span>}
+                    {thread.target_price && <span className="text-green-400/40">Target: <span className="text-green-400/70">${thread.target_price.toLocaleString()}</span></span>}
+                  </div>
+                  {thread.resolution && thread.resolution !== 'pending' && (
+                    <span className={`text-[9px] font-mono font-bold ml-auto ${
+                      thread.resolution === 'win' ? 'text-green-400' : thread.resolution === 'loss' ? 'text-red-400' : 'text-amber-400'
+                    }`}>
+                      {thread.resolution === 'win' ? `✅ +${thread.resolution_pnl_pct}%` : thread.resolution === 'loss' ? `❌ ${thread.resolution_pnl_pct}%` : '➖ B/E'}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Technical Analysis Chart */}
-              <ForumChart symbol={detectCategory(thread.topic) === 'eth' ? 'ETH' : detectCategory(thread.topic) === 'sol' ? 'SOL' : 'BTC'} />
+              <ForumChart symbol={thread.symbol || (detectCategory(thread.topic) === 'eth' ? 'ETH' : detectCategory(thread.topic) === 'sol' ? 'SOL' : 'BTC')} />
 
               {thread.posts.map((post) => {
                 const agent = AGENTS[post.agent];
