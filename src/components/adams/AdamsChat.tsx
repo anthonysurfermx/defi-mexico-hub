@@ -892,11 +892,11 @@ export function AdamsChat() {
     queueSentence(clean, 'cio', lang);
   }, [voiceEnabled, queueSentence, lang]);
 
-  // Speak fillers via free Web Speech API — saves ElevenLabs quota
+  // Speak fillers via Edge TTS (same quality as main voice — no more robotic browser TTS)
   const speakFillerLocal = useCallback((text: string) => {
     if (!voiceEnabled || !text) return;
-    speakLocal(text, lang);
-  }, [voiceEnabled, speakLocal, lang]);
+    queueSentence(text, 'cio', lang);
+  }, [voiceEnabled, queueSentence, lang]);
 
   // ---- Ambient thinking sound (Web Audio API — no external files) ----
   const thinkingAudioRef = useRef<{ osc: OscillatorNode; gain: GainNode; ctx: AudioContext } | null>(null);
