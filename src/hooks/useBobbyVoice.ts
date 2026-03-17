@@ -246,10 +246,16 @@ export function useBobbyVoice(): BobbyVoiceState {
       if (queueStoppedRef.current) break;
 
       const item = sentenceQueueRef.current.shift()!;
-      const audioData = await item.audio;
+      let audioData: ArrayBuffer | null = null;
+      try {
+        audioData = await item.audio;
+      } catch (e) {
+        console.warn('[Voice] Audio fetch failed for sentence, skipping:', e);
+        continue;
+      }
 
       if (queueStoppedRef.current) break;
-      if (!audioData) continue; // Skip failed fetches
+      if (!audioData || audioData.byteLength < 100) continue; // Skip failed/empty fetches
 
       // Accumulate for voice note sharing
       responseAudioChunksRef.current.push(audioData);
@@ -257,7 +263,10 @@ export function useBobbyVoice(): BobbyVoiceState {
 
       try {
         await playAudioData(audioData);
-      } catch { /* skip failed playback, continue queue */ }
+      } catch (e) {
+        console.warn('[Voice] Playback failed, continuing queue:', e);
+        continue;
+      }
     }
 
     isPlayingQueueRef.current = false;

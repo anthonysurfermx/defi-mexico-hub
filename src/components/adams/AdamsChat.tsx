@@ -2001,7 +2001,10 @@ export function AdamsChat() {
         }]);
 
         // Scroll to top so user sees Bobby's response from the start
-        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+        // Use requestAnimationFrame to ensure DOM has updated first
+        requestAnimationFrame(() => {
+          if (scrollRef.current) scrollRef.current.scrollTop = 0;
+        });
 
         // Price cards + TA chart appear 1.5s later — WHILE Bobby is speaking
         if (responsePrices.length > 0 || taData) {
@@ -2036,8 +2039,11 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
-                // No auto-scroll during streaming — user controls scroll
-                // Initial scroll to top already happened when reply was created
+                // Keep scroll at top for the first 3 seconds of streaming
+                // After that, user controls scroll
+                if (scrollRef.current && fullText.length < 500) {
+                  scrollRef.current.scrollTop = 0;
+                }
                 // Sentence-level voice: fire each sentence to TTS as it completes
                 feedSentenceStream(delta);
                 // Keyword-to-UI: scan as text flows in
