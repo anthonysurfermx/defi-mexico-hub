@@ -2100,18 +2100,22 @@ export function AdamsChat() {
               const topic = msg.length > 60 ? msg.slice(0, 60) + '...' : msg;
               // Conviction from CIO post
               const cioContent = posts.find(p => p.agent === 'cio')?.content || '';
-              const allContent = fullText;
               const convM = cioContent.match(/(\d+)\s*\/\s*10/);
               const convScore = convM ? parseInt(convM[1]) / 10 : null;
 
-              // Extract trading parameters from Bobby's text
-              const entryMatch = allContent.match(/(?:entry|entr[ao]|buy(?:ing)?\s+(?:at|en))\s*\$?([\d,]+(?:\.\d+)?)/i);
-              const stopMatch = allContent.match(/(?:stop(?:\s*loss)?|sl)\s*(?:at|en)?\s*\$?([\d,]+(?:\.\d+)?)/i);
-              const targetMatch = allContent.match(/(?:target|tp|take\s*profit|objetivo)\s*(?:at|en|of)?\s*\$?([\d,]+(?:\.\d+)?)/i);
-              const dirMatch = allContent.match(/\b(long|short|comprar?|vender?)\b/i);
-              const symMatch = msg.match(/\b(BTC|ETH|SOL|HYPE|XRP|UNI|MATIC|DOGE|AVAX|LINK|DOT)\b/i);
+              // Extract trading parameters from Bobby's CIO text (flexible regex)
+              // Bobby says things like: "short ETH en $2,340-2,350", "stop loss ajustado en $2,375", "target inicial en $2,250"
+              const entryMatch = cioContent.match(/(?:entry|entr[ao]|buy(?:ing)?|short(?:ear)?|comprar?)\s+(?:\w+\s+)*?(?:en|at|a)\s*\$?([\d,]+(?:\.\d+)?)/i)
+                || cioContent.match(/(?:en|at)\s*\$?([\d,]+(?:\.\d+)?)\s*[-–]\s*\$?([\d,]+)/i);
+              const stopMatch = cioContent.match(/stop\s*(?:loss)?\s*(?:\w+\s+)*?(?:en|at|a|in)?\s*\$?([\d,]+(?:\.\d+)?)/i);
+              const targetMatch = cioContent.match(/target\s*(?:\w+\s+)*?(?:en|at|a|in)?\s*\$?([\d,]+(?:\.\d+)?)/i)
+                || cioContent.match(/(?:objetivo|soporte\s+real)\s*(?:\w+\s+)*?(?:en|at|a|in)?\s*\$?([\d,]+(?:\.\d+)?)/i);
+              const dirMatch = cioContent.match(/\b(long|short(?:ear)?|comprar?|vender?)\b/i);
+              const symMatch = msg.match(/\b(BTC|ETH|SOL|HYPE|XRP|UNI|MATIC|DOGE|AVAX|LINK|DOT|ADA|ATOM|ARB|OP)\b/i)
+                || cioContent.match(/\b(BTC|ETH|SOL|HYPE|XRP)\b/);
 
-              const entryPrice = entryMatch ? parseFloat(entryMatch[1].replace(/,/g, '')) : null;
+              // For range entries like "$2,340-2,350", take the first number
+              const entryPrice = entryMatch ? parseFloat((entryMatch[2] || entryMatch[1]).replace(/,/g, '')) : null;
               const stopPrice = stopMatch ? parseFloat(stopMatch[1].replace(/,/g, '')) : null;
               const targetPrice = targetMatch ? parseFloat(targetMatch[1].replace(/,/g, '')) : null;
               const direction = dirMatch ? (/short|vender/i.test(dirMatch[1]) ? 'short' : 'long') : 'long';
