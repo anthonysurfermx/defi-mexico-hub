@@ -2497,20 +2497,43 @@ export function AdamsChat() {
                   </div>
                 )}
 
-                {/* Share voice note — appears when Bobby has finished speaking */}
-                {hasResponseAudio && !isProcessing && !isSpeaking && (
+                {/* Action buttons — appear when Bobby finishes */}
+                {!isProcessing && !isSpeaking && latestAdvisor.text.length > 50 && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 flex justify-end"
+                    className="mt-2 flex items-center gap-2 flex-wrap"
                   >
+                    {/* Deep dive — expand the argument */}
                     <button
-                      onClick={shareVoiceNote}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-white/30 border border-white/[0.06] bg-white/[0.02] hover:text-green-400/70 hover:border-green-500/20 hover:bg-green-500/[0.05] transition-all active:scale-[0.97]"
+                      onClick={() => sendMessage(lang === 'es'
+                        ? 'Profundiza más en el análisis. ¿Por qué exactamente? Dame los datos específicos, los precedentes históricos, y los escenarios de riesgo que no mencionaste.'
+                        : 'Deep dive. Why exactly? Give me the specific data, historical precedents, and risk scenarios you didn\'t mention.'
+                      )}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-white/30 border border-white/[0.06] bg-white/[0.02] hover:text-yellow-400/70 hover:border-yellow-500/20 hover:bg-yellow-500/[0.05] transition-all active:scale-[0.97]"
                     >
-                      <Share2 className="w-3 h-3" />
-                      {lang === 'es' ? 'Compartir nota de voz' : lang === 'pt' ? 'Compartilhar nota de voz' : 'Share voice note'}
+                      🔍 {lang === 'es' ? 'Profundizar' : 'Deep Dive'}
                     </button>
+                    {/* Challenge — argue against Bobby */}
+                    <button
+                      onClick={() => sendMessage(lang === 'es'
+                        ? 'No estoy de acuerdo. Arguye en contra de tu propia posición. ¿Qué podría salir mal?'
+                        : 'I disagree. Argue against your own position. What could go wrong?'
+                      )}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-white/30 border border-white/[0.06] bg-white/[0.02] hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/[0.05] transition-all active:scale-[0.97]"
+                    >
+                      ⚡ {lang === 'es' ? 'Desafiar' : 'Challenge'}
+                    </button>
+                    {/* Share voice note */}
+                    {hasResponseAudio && (
+                      <button
+                        onClick={shareVoiceNote}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-white/30 border border-white/[0.06] bg-white/[0.02] hover:text-green-400/70 hover:border-green-500/20 hover:bg-green-500/[0.05] transition-all active:scale-[0.97]"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        {lang === 'es' ? 'Compartir' : 'Share'}
+                      </button>
+                    )}
                   </motion.div>
                 )}
 
