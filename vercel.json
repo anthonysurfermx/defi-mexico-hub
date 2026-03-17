@@ -82,6 +82,10 @@
     "api/forum-generate.ts": {
       "maxDuration": 120,
       "memory": 512
+    },
+    "api/technical-analysis.ts": {
+      "maxDuration": 15,
+      "memory": 256
     }
   }
 }

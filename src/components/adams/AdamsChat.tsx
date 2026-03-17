@@ -17,7 +17,7 @@ import { VoiceOrb, type OrbState, type OrbMood } from './VoiceOrb';
 import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, AreaChart, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 
 // ---- Supabase ----
 
@@ -217,6 +217,14 @@ interface ChatMsg {
   metacognition?: MetacognitionData;
   topSignals?: SignalData[];
   polymarket?: PolyData[];
+  technicalAnalysis?: {
+    symbol: string;
+    candles: Array<{ ts: number; o: number; h: number; l: number; c: number; vol: number }>;
+    indicators: { sma20: (number | null)[]; sma50: (number | null)[]; rsi14: (number | null)[]; bollingerUpper: (number | null)[]; bollingerLower: (number | null)[] };
+    support: number[];
+    resistance: number[];
+    summary: Record<string, unknown>;
+  };
 }
 
 // ---- Typewriter ----
@@ -556,6 +564,120 @@ function DebateText({ text }: { text: string }) {
         );
       })}
     </div>
+  );
+}
+
+// ---- Technical Analysis Chart ----
+// Candles + SMA20/50 + Support/Resistance lines + RSI indicator
+
+function TechnicalChart({ data }: { data: ChatMsg['technicalAnalysis'] }) {
+  if (!data || !data.candles || data.candles.length < 10) return null;
+
+  const { candles, indicators, support, resistance, summary } = data;
+  const rsiValue = summary?.rsi as number | undefined;
+
+  // Parse entry/stop/target from Bobby's text would happen here
+  // For now, show candles + SMA + S/R levels
+
+  const chartData = candles.map((c, i) => ({
+    time: new Date(c.ts).toLocaleDateString('en', { month: 'short', day: 'numeric', hour: '2-digit' }),
+    price: c.c,
+    high: c.h,
+    low: c.l,
+    sma20: indicators.sma20[i],
+    sma50: indicators.sma50[i],
+    bbUpper: indicators.bollingerUpper[i],
+    bbLower: indicators.bollingerLower[i],
+  }));
+
+  const prices = candles.map(c => c.c);
+  const allPrices = [...prices, ...support, ...resistance].filter(Boolean);
+  const minPrice = Math.min(...allPrices) * 0.998;
+  const maxPrice = Math.max(...allPrices) * 1.002;
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const trend = summary?.trend as string || 'NEUTRAL';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="border border-white/[0.06] bg-white/[0.02] p-3 sm:p-4"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-mono font-bold text-white/70">{data.symbol}</span>
+          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+            trend === 'BULLISH' ? 'bg-green-500/10 text-green-400' : trend === 'BEARISH' ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-white/30'
+          }`}>
+            {trend}
+          </span>
+          {rsiValue !== undefined && (
+            <span className={`text-[9px] font-mono ${rsiValue > 70 ? 'text-red-400' : rsiValue < 30 ? 'text-green-400' : 'text-white/30'}`}>
+              RSI {rsiValue.toFixed(0)}
+            </span>
+          )}
+          {summary?.bollinger_squeeze && (
+            <span className="text-[8px] font-mono px-1 py-0.5 bg-amber-500/10 text-amber-400 rounded animate-pulse">SQUEEZE</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-[8px] font-mono text-white/20">
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-yellow-400 inline-block" />SMA20</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-blue-400 inline-block" />SMA50</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-[180px] sm:h-[220px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+            <XAxis dataKey="time" tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.15)' }} tickLine={false} axisLine={false} interval={Math.floor(chartData.length / 6)} />
+            <YAxis domain={[minPrice, maxPrice]} tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.15)' }} tickLine={false} axisLine={false} width={55} tickFormatter={v => `$${v.toLocaleString()}`} />
+            <Tooltip
+              contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10, fontFamily: 'monospace' }}
+              labelStyle={{ color: 'rgba(255,255,255,0.4)' }}
+              formatter={(value: number, name: string) => [`$${value?.toLocaleString()}`, name]}
+            />
+
+            {/* Bollinger Bands (shaded area) */}
+            <Area type="monotone" dataKey="bbUpper" stroke="none" fill="rgba(255,255,255,0.02)" />
+            <Area type="monotone" dataKey="bbLower" stroke="none" fill="rgba(255,255,255,0.02)" />
+
+            {/* Price line */}
+            <Area
+              type="monotone" dataKey="price" stroke={isUp ? '#22c55e' : '#ef4444'} strokeWidth={1.5}
+              fill={isUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'}
+            />
+
+            {/* SMA lines */}
+            <Line type="monotone" dataKey="sma20" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="4 2" connectNulls />
+            <Line type="monotone" dataKey="sma50" stroke="#3b82f6" strokeWidth={1} dot={false} strokeDasharray="4 2" connectNulls />
+
+            {/* Support levels */}
+            {support.map((level, i) => (
+              <ReferenceLine key={`s${i}`} y={level} stroke="#22c55e" strokeDasharray="6 3" strokeWidth={0.8} label={{ value: `S $${level.toLocaleString()}`, position: 'left', fontSize: 8, fill: '#22c55e80' }} />
+            ))}
+
+            {/* Resistance levels */}
+            {resistance.map((level, i) => (
+              <ReferenceLine key={`r${i}`} y={level} stroke="#ef4444" strokeDasharray="6 3" strokeWidth={0.8} label={{ value: `R $${level.toLocaleString()}`, position: 'right', fontSize: 8, fill: '#ef444480' }} />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Support/Resistance summary */}
+      <div className="flex items-center justify-between mt-2 text-[8px] font-mono text-white/20">
+        <div className="flex items-center gap-2">
+          {support.length > 0 && <span className="text-green-400/40">Support: {support.map(s => `$${s.toLocaleString()}`).join(', ')}</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {resistance.length > 0 && <span className="text-red-400/40">Resistance: {resistance.map(r => `$${r.toLocaleString()}`).join(', ')}</span>}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -1667,20 +1789,28 @@ export function AdamsChat() {
     const intelPromise = fetchIntel
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
+    // Technical analysis for the primary token mentioned
+    const taSymbol = hasTokens ? tokens[0].split('-')[0] : (isGeneralMarket ? 'BTC' : null);
+    const taPromise = taSymbol
+      ? fetch(`/api/technical-analysis?symbol=${taSymbol}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      : Promise.resolve(null);
 
     try {
       // Enrich the message with intelligence context — Bobby reasons about what data to include
       let enrichedMessage = msg;
+      let taData: any = null;
       try {
         // Promise.allSettled: partial failures don't kill the entire context
-        const [pricesResult, stocksResult, intelResult] = await Promise.allSettled([contextPricesPromise, stockPricesPromise, intelPromise]);
+        const [pricesResult, stocksResult, intelResult, taResult] = await Promise.allSettled([contextPricesPromise, stockPricesPromise, intelPromise, taPromise]);
         const contextPrices = pricesResult.status === 'fulfilled' ? pricesResult.value : [];
         const stockQuotes = stocksResult.status === 'fulfilled' ? stocksResult.value : [];
         const intel = intelResult.status === 'fulfilled' ? intelResult.value : null;
+        taData = taResult.status === 'fulfilled' ? taResult.value : null;
 
         if (pricesResult.status === 'rejected') console.warn('[Bobby] price fetch failed:', pricesResult.reason);
         if (stocksResult.status === 'rejected') console.warn('[Bobby] stock fetch failed:', stocksResult.reason);
         if (intelResult.status === 'rejected') console.warn('[Bobby] intel fetch failed:', intelResult.reason);
+        if (taResult.status === 'rejected') console.warn('[Bobby] TA fetch failed:', taResult.reason);
 
         const contextBlocks: string[] = [];
 
@@ -1718,6 +1848,11 @@ export function AdamsChat() {
             ...(p.funding ? { funding_rate: parseFloat((p.funding.rate * 100).toFixed(4)), funding_apr: parseFloat(p.funding.annualized.toFixed(1)) } : {}),
           }));
           contextBlocks.push(`<PRICE_INTEL>\n${JSON.stringify(priceJson)}\n</PRICE_INTEL>`);
+        }
+
+        // Technical analysis (SMA, RSI, Bollinger, support/resistance)
+        if (taData?.summary) {
+          contextBlocks.push(`<TECHNICAL_ANALYSIS>\n${JSON.stringify(taData.summary)}\n</TECHNICAL_ANALYSIS>`);
         }
 
         if (contextBlocks.length > 0) {
@@ -1865,11 +2000,15 @@ export function AdamsChat() {
           text: '', isLive: false,
         }]);
 
-        // Price cards appear 1.5s later — WHILE Bobby is speaking
-        if (responsePrices.length > 0) {
+        // Price cards + TA chart appear 1.5s later — WHILE Bobby is speaking
+        if (responsePrices.length > 0 || taData) {
           setTimeout(() => {
             setMessages(prev => prev.map(m =>
-              m.id === replyId ? { ...m, prices: responsePrices } : m
+              m.id === replyId ? {
+                ...m,
+                ...(responsePrices.length > 0 ? { prices: responsePrices } : {}),
+                ...(taData ? { technicalAnalysis: taData } : {}),
+              } : m
             ));
           }, 1500);
         }
@@ -2284,6 +2423,13 @@ export function AdamsChat() {
                     <DebateText text={latestAdvisor.text} />
                   </div>
                 </div>
+
+                {/* Technical Analysis Chart — appears with candles, SMA, S/R */}
+                {latestAdvisor.technicalAnalysis && (
+                  <div className="mt-3">
+                    <TechnicalChart data={latestAdvisor.technicalAnalysis} />
+                  </div>
+                )}
 
                 {/* Share voice note — appears when Bobby has finished speaking */}
                 {hasResponseAudio && !isProcessing && !isSpeaking && (

@@ -52,6 +52,12 @@ DATA FORMAT: Your intelligence arrives in XML-tagged JSON blocks:
 - <SENTIMENT> — {fear_greed_index (0-100), classification, signal}. EXTREME_FEAR_BUY_ZONE (<25) historically = accumulation zone. EXTREME_GREED_SELL_ZONE (>75) = distribution. Use this to gauge crowd psychology.
 - <MACRO_CONTEXT> — {dxy_index, interpretation}. DXY > 104 = strong dollar headwind for crypto. DXY < 100 = weak dollar tailwind. BTC and DXY tend to move inversely on 1-2 week lag.
 - <AGENT_META> — {win_rate_pct, mood, safe_mode, latency_s}
+- <TECHNICAL_ANALYSIS> — {symbol, price, sma20, sma50, rsi, rsi_signal, trend, bollinger_squeeze, support[], resistance[]}. This is your chart analysis. Use it like a veteran chartist:
+  * RSI > 70 = overbought, likely pullback. RSI < 30 = oversold, potential bounce.
+  * Price above SMA20 > SMA50 = bullish structure. Below both = bearish.
+  * Bollinger squeeze = volatility compression → breakout imminent (direction unknown).
+  * Support levels = where buyers stepped in before. Resistance = where sellers appeared.
+  * ALWAYS reference specific price levels when giving entry/stop/target: "Support at $2,200 gives us a clean stop. Target the resistance at $2,600."
 Use these numbers naturally in your narrative. Cite them as evidence for your thesis, not as a list.
 
 HOW TO RESPOND:
