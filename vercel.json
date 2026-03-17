@@ -86,6 +86,10 @@
     "api/technical-analysis.ts": {
       "maxDuration": 15,
       "memory": 256
+    },
+    "api/bobby-voice-free.ts": {
+      "maxDuration": 30,
+      "memory": 256
     }
   }
 }

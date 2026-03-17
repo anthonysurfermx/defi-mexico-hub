@@ -67,15 +67,39 @@ async function setCachedAudio(key: string, data: ArrayBuffer): Promise<void> {
   } catch { /* silent */ }
 }
 
-// ---- Fetch audio from ElevenLabs (with cache) ----
+// ---- Fetch audio: ElevenLabs → Edge TTS (free) fallback chain ----
+
+let useFreeTTS = false; // Once ElevenLabs fails, switch to free for the session
 
 async function fetchAudio(text: string, voice?: string): Promise<ArrayBuffer | null> {
   const cacheKey = hashText(text + (voice || 'cio'));
   const cached = await getCachedAudio(cacheKey);
   if (cached) return cached;
 
+  // Try ElevenLabs first (unless we already know it's down)
+  if (!useFreeTTS) {
+    try {
+      const res = await fetch('/api/bobby-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: voice || 'cio' }),
+      });
+      if (res.ok) {
+        const data = await res.arrayBuffer();
+        await setCachedAudio(cacheKey, data);
+        return data;
+      }
+      // ElevenLabs failed (401/402/502) — switch to free TTS for this session
+      console.warn('[Voice] ElevenLabs unavailable, switching to free TTS');
+      useFreeTTS = true;
+    } catch {
+      useFreeTTS = true;
+    }
+  }
+
+  // Fallback: Edge TTS (Microsoft Neural, free forever)
   try {
-    const res = await fetch('/api/bobby-voice', {
+    const res = await fetch('/api/bobby-voice-free', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, voice: voice || 'cio' }),
