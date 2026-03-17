@@ -1790,7 +1790,7 @@ export function AdamsChat() {
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
     // Technical analysis for the primary token mentioned
-    const taSymbol = hasTokens ? tokens[0].split('-')[0] : (isGeneralMarket ? 'BTC' : null);
+    const taSymbol = hasTokens ? tokens[0].split('-')[0] : (isGeneralMarket || tradingRoom || needsOKX || isGeneralOpinion ? 'BTC' : null);
     const taPromise = taSymbol
       ? fetch(`/api/technical-analysis?symbol=${taSymbol}`).then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
@@ -2033,8 +2033,16 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
-                // Auto-scroll as Bobby writes
-                if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                // Auto-scroll: follow Bobby's text as it streams
+                if (scrollRef.current) {
+                  // If user hasn't scrolled down manually, keep following the text
+                  const el = scrollRef.current;
+                  const isNearTop = el.scrollTop < 200;
+                  const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+                  if (isNearTop || isNearBottom) {
+                    el.scrollTop = 0; // Keep stage visible from the top
+                  }
+                }
                 // Sentence-level voice: fire each sentence to TTS as it completes
                 feedSentenceStream(delta);
                 // Keyword-to-UI: scan as text flows in
