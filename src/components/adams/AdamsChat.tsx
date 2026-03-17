@@ -2036,16 +2036,8 @@ export function AdamsChat() {
                 setMessages(prev => prev.map(m =>
                   m.id === replyId ? { ...m, text: fullText } : m
                 ));
-                // Auto-scroll: follow Bobby's text as it streams
-                if (scrollRef.current) {
-                  // If user hasn't scrolled down manually, keep following the text
-                  const el = scrollRef.current;
-                  const isNearTop = el.scrollTop < 200;
-                  const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-                  if (isNearTop || isNearBottom) {
-                    el.scrollTop = 0; // Keep stage visible from the top
-                  }
-                }
+                // No auto-scroll during streaming — user controls scroll
+                // Initial scroll to top already happened when reply was created
                 // Sentence-level voice: fire each sentence to TTS as it completes
                 feedSentenceStream(delta);
                 // Keyword-to-UI: scan as text flows in
