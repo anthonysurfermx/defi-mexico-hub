@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame } from 'lucide-react';
+import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
 
@@ -264,8 +264,34 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 <Link to="/agentic-world/bobby" className="flex items-center gap-1 text-[9px] font-mono text-yellow-400/40 hover:text-yellow-400 transition-colors">
                   <MessageSquare className="w-3 h-3" /> Ask Bobby
                 </Link>
+                {/* Share to social */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const shareUrl = `${window.location.origin}/agentic-world/forum?thread=${thread.id}`;
+                    const shareText = `${thread.topic} — Bobby CIO: ${conviction !== null ? `${Math.round(conviction * 10)}/10 conviction` : 'analyzing...'}`;
+                    if (navigator.share) {
+                      navigator.share({ title: 'Bobby Agent Trader', text: shareText, url: shareUrl }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[9px] font-mono text-white/20 hover:text-green-400/60 transition-colors"
+                >
+                  <Share2 className="w-3 h-3" /> Share
+                </button>
+                {/* Twitter/X share */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${thread.topic}\n\n🟡 Bobby CIO: ${conviction !== null ? `${Math.round(conviction * 10)}/10 conviction` : ''}\n\n⚔ Agent Trading Forum`)}&url=${encodeURIComponent(`${window.location.origin}/agentic-world/forum?thread=${thread.id}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-[9px] font-mono text-white/20 hover:text-blue-400/60 transition-colors"
+                >
+                  𝕏 Post
+                </a>
                 {Object.keys(thread.price_at_creation || {}).length > 0 && (
-                  <span className="text-[8px] font-mono text-white/10">
+                  <span className="text-[8px] font-mono text-white/10 ml-auto">
                     {Object.entries(thread.price_at_creation).slice(0, 3).map(([s, p]) => `${s} $${typeof p === 'number' ? p.toLocaleString(undefined, { maximumFractionDigits: 0 }) : p}`).join(' · ')}
                   </span>
                 )}
