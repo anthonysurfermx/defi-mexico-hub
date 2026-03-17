@@ -2653,6 +2653,13 @@ export function AdamsChat() {
               <input type="text" value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                onFocus={() => {
+                  // Mobile keyboard: scroll input into view
+                  setTimeout(() => {
+                    const el = document.activeElement as HTMLElement;
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                  }, 300);
+                }}
                 placeholder={isListening ? t('listening') as string : `${lang === 'es' ? 'Habla con' : lang === 'pt' ? 'Fale com' : 'Talk to'} ${advisorName}...`}
                 className={`flex-1 bg-transparent border-0 border-b px-2 sm:px-3 py-1.5 sm:py-2 text-[12px] sm:text-[13px] text-white/90 placeholder:text-white/15 outline-none transition-colors font-mono ${
                   isListening ? 'border-red-500/20' : 'border-white/[0.06] focus:border-white/10'
