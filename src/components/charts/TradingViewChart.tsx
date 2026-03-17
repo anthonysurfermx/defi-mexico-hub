@@ -5,7 +5,7 @@
 // ============================================================
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, LineStyle, type IChartApi, type ISeriesApi } from 'lightweight-charts';
+import { createChart, ColorType, LineStyle, CandlestickSeries, LineSeries, HistogramSeries, type IChartApi } from 'lightweight-charts';
 
 interface ChartCandle {
   ts: number;
@@ -108,7 +108,7 @@ export function TradingViewChart({
     chartRef.current = chart;
 
     // Candlestick series
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#22c55e',
       downColor: '#ef4444',
       borderUpColor: '#22c55e',
@@ -126,15 +126,12 @@ export function TradingViewChart({
     }));
     candleSeries.setData(candleData);
 
-    // Volume
-    const volumeSeries = chart.addHistogramSeries({
+    // Volume (overlay with low opacity)
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       color: 'rgba(255,255,255,0.06)',
-      priceFormat: { type: 'volume' as any },
-      priceScaleId: 'volume',
-    });
-    chart.priceScale('volume').applyOptions({
-      scaleMargins: { top: 0.85, bottom: 0 },
-    });
+      lastValueVisible: false,
+      priceLineVisible: false,
+    } as any);
     volumeSeries.setData(data.candles.map(c => ({
       time: Math.floor(c.ts / 1000) as any,
       value: c.vol,
@@ -143,7 +140,7 @@ export function TradingViewChart({
 
     // SMA 20 (yellow)
     if (data.sma20.length > 0) {
-      const sma20Series = chart.addLineSeries({
+      const sma20Series = chart.addSeries(LineSeries, {
         color: '#eab308',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
@@ -160,7 +157,7 @@ export function TradingViewChart({
 
     // SMA 50 (blue)
     if (data.sma50.length > 0) {
-      const sma50Series = chart.addLineSeries({
+      const sma50Series = chart.addSeries(LineSeries, {
         color: '#3b82f6',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
