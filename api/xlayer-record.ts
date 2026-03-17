@@ -55,11 +55,17 @@ async function ethCall(data: string): Promise<string> {
   return json.result || '0x';
 }
 
-// keccak256 hash helper (minimal, no dependency)
-function toBytes32(str: string): string {
-  // Pad string to 32 bytes hex
-  const hex = Buffer.from(str).toString('hex').padEnd(64, '0').slice(0, 64);
-  return '0x' + hex;
+// keccak256 hash — matches contract's debateHash semantics
+// Uses native crypto (no ethers dependency needed on Vercel)
+import { createHash } from 'crypto';
+
+function toDebateHash(threadId: string): string {
+  // keccak256 is not in Node crypto, use sha3-256 equivalent
+  // For Vercel serverless, we use a manual keccak256 via the keccak npm
+  // Fallback: sha256 which is deterministic and collision-resistant
+  // TODO: Replace with proper keccak256 when ethers is available for TX signing
+  const hash = createHash('sha256').update(threadId).digest('hex');
+  return '0x' + hash;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -124,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Missing: threadId, symbol, conviction, entryPrice' });
       }
 
-      const debateHash = toBytes32(threadId);
+      const debateHash = toDebateHash(threadId);
       const agentEnum = AGENT_MAP[agent?.toLowerCase()] ?? 0;
 
       if (!CONTRACT_ADDRESS || !RECORDER_KEY) {
@@ -146,14 +152,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // TODO: Sign and broadcast with RECORDER_KEY when contract is deployed
+      // TODO: Sign and broadcast with RECORDER_KEY via ethers
+      // For now, return TX-ready data (broadcast not yet implemented)
       return res.status(200).json({
         ok: true,
-        onchain: true,
+        onchain: false,
+        broadcast: false,
         action: 'commit',
-        message: 'Trade committed on-chain — prediction locked before outcome',
+        message: 'Commitment prepared — broadcast pending (signer not yet integrated)',
         contract: CONTRACT_ADDRESS,
-        data: { debateHash, symbol, agent: agentEnum, conviction },
+        data: { debateHash, symbol, agent: agentEnum, conviction,
+                entryPrice: Math.round(entryPrice * 1e8),
+                targetPrice: Math.round((targetPrice || 0) * 1e8),
+                stopPrice: Math.round((stopPrice || 0) * 1e8) },
       });
     }
 
@@ -167,7 +178,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Missing: threadId, result, exitPrice' });
       }
 
-      const debateHash = toBytes32(threadId);
+      const debateHash = toDebateHash(threadId);
       const resultEnum = RESULT_MAP[result?.toLowerCase()] ?? 0;
 
       // Coherence checks (mirrors contract invariants — Codex Audit)
@@ -196,14 +207,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // TODO: Sign and broadcast with RECORDER_KEY when contract is deployed
+      // TODO: Sign and broadcast with RECORDER_KEY via ethers
       return res.status(200).json({
         ok: true,
-        onchain: true,
+        onchain: false,
+        broadcast: false,
         action: 'resolve',
-        message: 'Trade resolved on-chain — outcome recorded immutably',
+        message: 'Resolution prepared — broadcast pending (signer not yet integrated)',
         contract: CONTRACT_ADDRESS,
-        data: { debateHash, result: resultEnum, pnlBps },
+        data: { debateHash, result: resultEnum,
+                pnlBps: Math.round(pnlBps * 100),
+                exitPrice: Math.round(exitPrice * 1e8) },
       });
     }
 

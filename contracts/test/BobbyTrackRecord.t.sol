@@ -64,7 +64,7 @@ contract BobbyTrackRecordTest is Test {
         );
 
         assertEq(record.totalCommitments(), 1);
-        assertTrue(record.commitExists(DEBATE_1));
+        assertTrue(record.commitIndex(DEBATE_1) != 0);
     }
 
     function test_commit_ownerCanAlsoCommit() public {
@@ -226,10 +226,20 @@ contract BobbyTrackRecordTest is Test {
     function test_resolve_expired() public {
         _commitAndWarp(DEBATE_1, "SOL", BobbyTrackRecord.Agent.ALPHA);
 
+        /// @dev Gemini v2: EXPIRED must have zero PnL
         vm.prank(bobby);
-        record.resolveTrade(DEBATE_1, -50, BobbyTrackRecord.Result.EXPIRED, 9450000000000);
+        record.resolveTrade(DEBATE_1, 0, BobbyTrackRecord.Result.EXPIRED, 9450000000000);
 
         assertEq(record.totalTrades(), 1);
+        assertEq(record.totalPnlBps(), 0);
+    }
+
+    function test_resolve_expiredRejectsNonZeroPnl() public {
+        _commitAndWarp(DEBATE_1, "SOL", BobbyTrackRecord.Agent.ALPHA);
+
+        vm.prank(bobby);
+        vm.expectRevert("EXPIRED must have zero PnL");
+        record.resolveTrade(DEBATE_1, -50, BobbyTrackRecord.Result.EXPIRED, 9450000000000);
     }
 
     function test_resolve_rejectsTooSoon() public {
@@ -540,7 +550,38 @@ contract BobbyTrackRecordTest is Test {
     function test_setMinCommitAge_onlyOwner() public {
         vm.prank(attacker);
         vm.expectRevert("Not owner");
-        record.setMinCommitAge(0);
+        record.setMinCommitAge(10 minutes);
+    }
+
+    function test_setMinCommitAge_rejectsBelowFloor() public {
+        vm.expectRevert("Below minimum floor");
+        record.setMinCommitAge(5 minutes);
+    }
+
+    /// @dev Codex v2 [P1]: changing minCommitAge should NOT retroactively
+    /// weaken commits that were already made with the old (longer) age
+    function test_setMinCommitAge_notRetroactive() public {
+        // Set 2 hour min commit age
+        record.setMinCommitAge(2 hours);
+
+        // Bobby commits with 2h age — minResolveAt = now + 2h
+        vm.prank(bobby);
+        record.commitTrade(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA, 8, 9500000000000, 10000000000000, 9000000000000);
+
+        // Owner lowers minCommitAge to 10 min
+        record.setMinCommitAge(10 minutes);
+
+        // Warp only 30min — new global allows it, but the COMMITMENT was locked at 2h
+        vm.warp(block.timestamp + 30 minutes);
+        vm.prank(bobby);
+        vm.expectRevert("Too soon to resolve");
+        record.resolveTrade(DEBATE_1, 550, BobbyTrackRecord.Result.WIN, 10000000000000);
+
+        // Warp to full 2h — now the per-commit minResolveAt is satisfied
+        vm.warp(block.timestamp + 1 hours + 31 minutes);
+        vm.prank(bobby);
+        record.resolveTrade(DEBATE_1, 550, BobbyTrackRecord.Result.WIN, 10000000000000);
+        assertEq(record.wins(), 1);
     }
 
     function test_setMinCommitAge_affectsResolve() public {
@@ -560,6 +601,50 @@ contract BobbyTrackRecordTest is Test {
         vm.prank(bobby);
         record.resolveTrade(DEBATE_1, 550, BobbyTrackRecord.Result.WIN, 10000000000000);
         assertEq(record.wins(), 1);
+    }
+
+    // ============================================================
+    //  EXPIRE COMMITMENTS (Gemini v2 Q5)
+    // ============================================================
+
+    function test_expireCommitment_afterTTL() public {
+        vm.prank(bobby);
+        record.commitTrade(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA, 8, 9500000000000, 10000000000000, 9000000000000);
+        assertEq(record.pendingCount(), 1);
+
+        // Warp past MAX_COMMITMENT_TTL (30 days)
+        vm.warp(block.timestamp + 31 days);
+
+        // Anyone can expire a stale commitment (permissionless)
+        vm.prank(attacker);
+        record.expireCommitment(DEBATE_1);
+
+        assertEq(record.pendingCount(), 0);
+    }
+
+    function test_expireCommitment_tooEarly() public {
+        vm.prank(bobby);
+        record.commitTrade(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA, 8, 9500000000000, 10000000000000, 9000000000000);
+
+        // Try to expire after 15 days — should fail (need 30)
+        vm.warp(block.timestamp + 15 days);
+        vm.expectRevert("Not yet expired");
+        record.expireCommitment(DEBATE_1);
+    }
+
+    function test_expireCommitment_alreadyResolved() public {
+        _commitAndWarp(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA);
+        vm.prank(bobby);
+        record.resolveTrade(DEBATE_1, 100, BobbyTrackRecord.Result.WIN, 9600000000000);
+
+        vm.warp(block.timestamp + 31 days);
+        vm.expectRevert("Already resolved");
+        record.expireCommitment(DEBATE_1);
+    }
+
+    function test_expireCommitment_noCommit() public {
+        vm.expectRevert("No commitment found");
+        record.expireCommitment(DEBATE_1);
     }
 
     // ============================================================

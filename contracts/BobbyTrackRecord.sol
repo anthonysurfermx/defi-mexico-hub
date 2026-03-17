@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-/// @title Bobby Agent Trader — On-Chain Track Record (Audited v3)
-/// @notice Commit-reveal track record: predictions are committed BEFORE outcomes are known
+/// @title Bobby Agent Trader — On-Chain Track Record (Audited v4)
+/// @notice Commit-reveal track record: predictions committed BEFORE outcomes known
 /// @dev Deployed on X Layer (Chain ID 196) — the first verifiable AI trader
-/// @dev Audit v2: Gemini Pro (2026-03-17) — duplicates, gas, events, pause
-/// @dev Audit v3: Codex (2026-03-17) — commit-reveal, invariants, Ownable2Step, coherence
+/// @dev Audit v2: Gemini (2026-03-17) — duplicates, gas, events, pause
+/// @dev Audit v3: Codex (2026-03-17) — commit-reveal, invariants, Ownable2Step
+/// @dev Audit v4: Gemini+Codex (2026-03-17) — struct packing, O(1) pending,
+///      minCommitAge floor, EXPIRED invariant, commitment expiry, storage consolidation
 /// @author Bobby Agent Trader × DeFi México
 
 contract BobbyTrackRecord {
@@ -13,48 +15,63 @@ contract BobbyTrackRecord {
     // ---- Types ----
 
     enum Result { PENDING, WIN, LOSS, EXPIRED, BREAK_EVEN }
-
-    /// @dev Fixed enum for sub-agents (Gemini Audit #5)
     enum Agent { CIO, ALPHA, REDTEAM }
 
-    /// @dev Phase 1: Commitment — recorded BEFORE outcome is known
+    /// @dev Phase 1: Commitment — struct-packed for gas efficiency (Gemini v2)
+    /// Slot 1: debateHash (32 bytes)
+    /// Slot 2: entryPrice (12) + targetPrice (12) + committedAt (8) = 32
+    /// Slot 3: stopPrice (12) + recorder (20) = 32
+    /// Slot 4: minResolveAt (8) + agent (1) + conviction (1) + resolved (1) = 11 bytes
+    /// Slot 5+: symbol (dynamic string pointer)
     struct Commitment {
-        bytes32 debateHash;      // keccak256(forumThreadId)
-        string symbol;           // Token symbol
-        Agent agent;             // Which agent made the call
-        uint8 conviction;        // Bobby's conviction 0-10
-        uint256 entryPrice;      // Entry price × 1e8
-        uint256 targetPrice;     // Target price × 1e8
-        uint256 stopPrice;       // Stop loss × 1e8
-        uint256 committedAt;     // Block timestamp of commitment
-        address recorder;        // Who committed this
-        bool resolved;           // Has this been resolved?
+        bytes32 debateHash;      // Slot 1
+        uint96 entryPrice;       // Slot 2: price × 1e8 (max ~79B USD)
+        uint96 targetPrice;      // Slot 2
+        uint64 committedAt;      // Slot 2 (until year 584,942)
+        uint96 stopPrice;        // Slot 3
+        address recorder;        // Slot 3
+        uint64 minResolveAt;     // Slot 4: Codex v2 — locks anti-backfill per commit
+        Agent agent;             // Slot 4 (1 byte)
+        uint8 conviction;        // Slot 4 (1 byte)
+        bool resolved;           // Slot 4 (1 byte)
+        string symbol;           // Slot 5+ (dynamic)
     }
 
-    /// @dev Phase 2: Resolution — recorded AFTER outcome is known
+    /// @dev Phase 2: Resolution — struct-packed
+    /// Slot 1: debateHash (32)
+    /// Slot 2: entryPrice (12) + exitPrice (12) + committedAt (8) = 32
+    /// Slot 3: resolvedAt (8) + recorder (20) + agent (1) + conviction (1) + result (1) = 31
+    /// Slot 4: pnlBps (32) — int256 needs full slot
+    /// Slot 5+: symbol (dynamic)
     struct Trade {
-        bytes32 debateHash;      // Links back to commitment
-        string symbol;
-        Agent agent;
-        int256 pnlBps;           // PnL in basis points
-        uint8 conviction;
-        Result result;
-        uint256 entryPrice;      // × 1e8
-        uint256 exitPrice;       // × 1e8
-        uint256 committedAt;     // When the prediction was made
-        uint256 resolvedAt;      // When the outcome was recorded
-        address recorder;
+        bytes32 debateHash;      // Slot 1
+        uint96 entryPrice;       // Slot 2
+        uint96 exitPrice;        // Slot 2
+        uint64 committedAt;      // Slot 2
+        uint64 resolvedAt;       // Slot 3
+        address recorder;        // Slot 3
+        Agent agent;             // Slot 3
+        uint8 conviction;        // Slot 3
+        Result result;           // Slot 3
+        int256 pnlBps;           // Slot 4
+        string symbol;           // Slot 5+
     }
 
     // ---- State ----
 
     address public owner;
-    address public pendingOwner;  // Ownable2Step (Codex Audit — low)
+    address public pendingOwner;
     address public bobby;
     bool public paused;
 
-    /// @dev Minimum time between commit and resolve (anti-backfill)
+    /// @dev Anti-backfill: minimum time between commit and resolve
     uint256 public minCommitAge = 1 hours;
+
+    /// @dev Gemini v2: enforce a floor so owner can't disable anti-backfill
+    uint256 public constant MIN_COMMIT_AGE_FLOOR = 10 minutes;
+
+    /// @dev Maximum time a commitment can stay unresolved before expiry
+    uint256 public constant MAX_COMMITMENT_TTL = 30 days;
 
     Commitment[] public commitments;
     Trade[] public trades;
@@ -62,11 +79,13 @@ contract BobbyTrackRecord {
     uint256 public losses;
     int256 public totalPnlBps;
 
-    /// @dev Prevent duplicate commits (Gemini Audit #1)
-    mapping(bytes32 => bool) public commitExists;
+    /// @dev Gemini v2: consolidated — commitIndex[hash] = arrayIndex + 1
+    /// Value 0 means "not committed". Eliminates commitExists mapping.
     mapping(bytes32 => uint256) public commitIndex;
 
-    // Per-agent stats (Gemini Audit #5 — enum keys)
+    /// @dev Gemini v2: O(1) pending count instead of loop
+    uint256 public pendingCount;
+
     mapping(Agent => uint256) public agentWins;
     mapping(Agent => uint256) public agentLosses;
     mapping(Agent => uint256) public agentTrades;
@@ -75,7 +94,6 @@ contract BobbyTrackRecord {
 
     // ---- Events ----
 
-    /// @dev Codex Audit — commit phase event
     event TradeCommitted(
         uint256 indexed commitId,
         string symbol,
@@ -93,6 +111,12 @@ contract BobbyTrackRecord {
         int256 pnlBps,
         uint8 conviction,
         bytes32 indexed debateHash
+    );
+
+    event CommitmentExpired(
+        uint256 indexed commitId,
+        bytes32 indexed debateHash,
+        string symbol
     );
 
     event BobbyUpdated(address indexed oldBobby, address indexed newBobby);
@@ -133,24 +157,25 @@ contract BobbyTrackRecord {
     //  PHASE 1: COMMIT — Before the outcome is known
     // ============================================================
 
-    /// @notice Commit a trade prediction BEFORE the outcome is known
-    /// @dev This creates a timestamped, immutable record of the prediction
     function commitTrade(
         bytes32 _debateHash,
         string calldata _symbol,
         Agent _agent,
         uint8 _conviction,
-        uint256 _entryPrice,
-        uint256 _targetPrice,
-        uint256 _stopPrice
+        uint96 _entryPrice,
+        uint96 _targetPrice,
+        uint96 _stopPrice
     ) external onlyBobby whenNotPaused {
         require(_debateHash != bytes32(0), "Invalid debate hash");
-        require(!commitExists[_debateHash], "Already committed");
+        /// @dev Gemini v2: consolidated check — 0 means not committed
+        require(commitIndex[_debateHash] == 0, "Already committed");
         require(_conviction <= 10, "Conviction must be 0-10");
         require(_entryPrice > 0, "Entry price required");
         require(_targetPrice > 0 || _stopPrice > 0, "Target or stop required");
 
-        uint256 commitId = commitments.length;
+        /// @dev Codex v2 [P1]: lock minResolveAt per commitment so future
+        /// changes to minCommitAge don't retroactively weaken older commits
+        uint64 resolveAfter = uint64(block.timestamp + minCommitAge);
 
         commitments.push(Commitment({
             debateHash: _debateHash,
@@ -160,13 +185,18 @@ contract BobbyTrackRecord {
             entryPrice: _entryPrice,
             targetPrice: _targetPrice,
             stopPrice: _stopPrice,
-            committedAt: block.timestamp,
+            committedAt: uint64(block.timestamp),
+            minResolveAt: resolveAfter,
             recorder: msg.sender,
             resolved: false
         }));
 
-        commitExists[_debateHash] = true;
-        commitIndex[_debateHash] = commitId;
+        /// @dev Store index + 1 so that 0 remains the sentinel for "not found"
+        uint256 commitId = commitments.length - 1;
+        commitIndex[_debateHash] = commitId + 1;
+
+        /// @dev Gemini v2: O(1) pending tracking
+        pendingCount++;
 
         emit TradeCommitted(commitId, _symbol, _agent, _conviction, _entryPrice, _debateHash);
     }
@@ -175,35 +205,38 @@ contract BobbyTrackRecord {
     //  PHASE 2: RESOLVE — After the outcome is known
     // ============================================================
 
-    /// @notice Resolve a previously committed trade with the actual outcome
-    /// @dev Must be called AFTER minCommitAge has elapsed since commitment
     function resolveTrade(
         bytes32 _debateHash,
         int256 _pnlBps,
         Result _result,
-        uint256 _exitPrice
+        uint96 _exitPrice
     ) external onlyBobby whenNotPaused {
-        require(commitExists[_debateHash], "No commitment found");
+        uint256 stored = commitIndex[_debateHash];
+        require(stored != 0, "No commitment found");
         require(_result != Result.PENDING, "Cannot resolve as pending");
         require(_exitPrice > 0, "Exit price required");
 
-        uint256 cIdx = commitIndex[_debateHash];
+        uint256 cIdx = stored - 1;
         Commitment storage c = commitments[cIdx];
 
         require(!c.resolved, "Already resolved");
-        /// @dev Codex Audit [Medio-alto] — anti-backfill: enforce time gap
-        require(block.timestamp >= c.committedAt + minCommitAge, "Too soon to resolve");
+        /// @dev Codex v2 [P1]: use per-commitment minResolveAt, not global
+        require(block.timestamp >= c.minResolveAt, "Too soon to resolve");
 
-        /// @dev Codex Audit [Medio] — coherence invariants
+        /// @dev Coherence invariants (Codex Audit)
         if (_result == Result.WIN) {
             require(_pnlBps > 0, "WIN must have positive PnL");
         } else if (_result == Result.LOSS) {
             require(_pnlBps < 0, "LOSS must have negative PnL");
         } else if (_result == Result.BREAK_EVEN) {
             require(_pnlBps == 0, "BREAK_EVEN must have zero PnL");
+        } else if (_result == Result.EXPIRED) {
+            /// @dev Gemini v2: EXPIRED must have zero PnL
+            require(_pnlBps == 0, "EXPIRED must have zero PnL");
         }
 
         c.resolved = true;
+        pendingCount--;
 
         uint256 tradeId = trades.length;
 
@@ -217,7 +250,7 @@ contract BobbyTrackRecord {
             entryPrice: c.entryPrice,
             exitPrice: _exitPrice,
             committedAt: c.committedAt,
-            resolvedAt: block.timestamp,
+            resolvedAt: uint64(block.timestamp),
             recorder: msg.sender
         }));
 
@@ -235,6 +268,28 @@ contract BobbyTrackRecord {
         emit TradeResolved(tradeId, c.symbol, c.agent, _result, _pnlBps, c.conviction, _debateHash);
     }
 
+    // ============================================================
+    //  EXPIRE — Clean up stale commitments (Gemini v2 Q5)
+    // ============================================================
+
+    /// @notice Expire a commitment that has been pending longer than MAX_COMMITMENT_TTL
+    /// @dev Anyone can call this — permissionless cleanup of toxic state
+    function expireCommitment(bytes32 _debateHash) external {
+        uint256 stored = commitIndex[_debateHash];
+        require(stored != 0, "No commitment found");
+
+        uint256 cIdx = stored - 1;
+        Commitment storage c = commitments[cIdx];
+
+        require(!c.resolved, "Already resolved");
+        require(block.timestamp >= c.committedAt + MAX_COMMITMENT_TTL, "Not yet expired");
+
+        c.resolved = true;
+        pendingCount--;
+
+        emit CommitmentExpired(cIdx, _debateHash, c.symbol);
+    }
+
     // ---- View Functions ----
 
     function totalTrades() external view returns (uint256) {
@@ -243,18 +298,6 @@ contract BobbyTrackRecord {
 
     function totalCommitments() external view returns (uint256) {
         return commitments.length;
-    }
-
-    /// @notice Pending commitments that haven't been resolved yet
-    function pendingCount() external view returns (uint256) {
-        uint256 pending = 0;
-        uint256 len = commitments.length;
-        // Cap iteration for gas safety on-chain calls
-        uint256 start = len > MAX_RECENT ? len - MAX_RECENT : 0;
-        for (uint256 i = start; i < len; i++) {
-            if (!commitments[i].resolved) pending++;
-        }
-        return pending;
     }
 
     function getWinRate() external view returns (uint256) {
@@ -302,14 +345,12 @@ contract BobbyTrackRecord {
         bobby = _newBobby;
     }
 
-    /// @dev Codex Audit [Bajo] — Ownable2Step: initiate transfer
     function transferOwnership(address _newOwner) external onlyOwner {
         require(_newOwner != address(0), "Invalid address");
         pendingOwner = _newOwner;
         emit OwnershipTransferStarted(owner, _newOwner);
     }
 
-    /// @dev Ownable2Step: new owner must accept
     function acceptOwnership() external {
         require(msg.sender == pendingOwner, "Not pending owner");
         emit OwnershipTransferred(owner, pendingOwner);
@@ -317,7 +358,9 @@ contract BobbyTrackRecord {
         pendingOwner = address(0);
     }
 
+    /// @dev Gemini v2: enforce minimum floor of 10 minutes
     function setMinCommitAge(uint256 _newAge) external onlyOwner {
+        require(_newAge >= MIN_COMMIT_AGE_FLOOR, "Below minimum floor");
         emit MinCommitAgeUpdated(minCommitAge, _newAge);
         minCommitAge = _newAge;
     }
