@@ -2001,10 +2001,11 @@ export function AdamsChat() {
         }]);
 
         // Scroll to top so user sees Bobby's response from the start
-        // Use requestAnimationFrame to ensure DOM has updated first
-        requestAnimationFrame(() => {
-          if (scrollRef.current) scrollRef.current.scrollTop = 0;
-        });
+        // Multiple attempts to ensure it sticks after React re-renders
+        const scrollToStage = () => { if (scrollRef.current) scrollRef.current.scrollTop = 0; };
+        requestAnimationFrame(scrollToStage);
+        setTimeout(scrollToStage, 100);
+        setTimeout(scrollToStage, 300);
 
         // Price cards + TA chart appear 1.5s later — WHILE Bobby is speaking
         if (responsePrices.length > 0 || taData) {
@@ -2566,7 +2567,7 @@ export function AdamsChat() {
                     { label: 'Silver', display: qa.silver, icon: '◇' },
                     { label: 'All Prices', display: qa.allPrices, icon: '$' },
                     { label: 'Analyze Market', display: qa.analyze, icon: '>' },
-                    { label: "What's your read on the market right now? Give me the full debate.", display: lang === 'es' ? 'Debate' : 'Debate', icon: '⚔' },
+                    { label: lang === 'es' ? '¿Cómo ves el mercado hoy? Dame el debate completo.' : "What's your read on the market right now? Give me the full debate.", display: 'Debate', icon: '⚔' },
                   ];
                 })().map(a => (
                   <button key={a.label} onClick={() => sendMessage(a.label)} disabled={isProcessing}
