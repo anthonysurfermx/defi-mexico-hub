@@ -106,6 +106,10 @@
     "api/forum-agent-register.ts": {
       "maxDuration": 10,
       "memory": 256
+    },
+    "api/xlayer-trade.ts": {
+      "maxDuration": 35,
+      "memory": 256
     }
   }
 }
