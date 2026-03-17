@@ -222,6 +222,8 @@ contract BobbyTrackRecord {
         require(!c.resolved, "Already resolved");
         /// @dev Codex v2 [P1]: use per-commitment minResolveAt, not global
         require(block.timestamp >= c.minResolveAt, "Too soon to resolve");
+        /// @dev Codex v3 [P1]: enforce hard TTL — no late resolutions
+        require(block.timestamp <= c.committedAt + MAX_COMMITMENT_TTL, "Commitment expired, use expireCommitment()");
 
         /// @dev Coherence invariants (Codex Audit)
         if (_result == Result.WIN) {
@@ -274,6 +276,7 @@ contract BobbyTrackRecord {
 
     /// @notice Expire a commitment that has been pending longer than MAX_COMMITMENT_TTL
     /// @dev Anyone can call this — permissionless cleanup of toxic state
+    /// @dev Codex v3 [P2]: unified accounting — creates a Trade like resolveTrade does
     function expireCommitment(bytes32 _debateHash) external {
         uint256 stored = commitIndex[_debateHash];
         require(stored != 0, "No commitment found");
@@ -287,6 +290,26 @@ contract BobbyTrackRecord {
         c.resolved = true;
         pendingCount--;
 
+        /// @dev Codex v3 [P2]: create Trade record so accounting is unified
+        /// Expired trades have zero PnL and don't affect wins/losses
+        uint256 tradeId = trades.length;
+        trades.push(Trade({
+            debateHash: _debateHash,
+            symbol: c.symbol,
+            agent: c.agent,
+            pnlBps: 0,
+            conviction: c.conviction,
+            result: Result.EXPIRED,
+            entryPrice: c.entryPrice,
+            exitPrice: c.entryPrice, // No price change on expiry
+            committedAt: c.committedAt,
+            resolvedAt: uint64(block.timestamp),
+            recorder: msg.sender
+        }));
+
+        agentTrades[c.agent]++;
+
+        emit TradeResolved(tradeId, c.symbol, c.agent, Result.EXPIRED, 0, c.conviction, _debateHash);
         emit CommitmentExpired(cIdx, _debateHash, c.symbol);
     }
 

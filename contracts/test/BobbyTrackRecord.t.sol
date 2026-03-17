@@ -620,6 +620,38 @@ contract BobbyTrackRecordTest is Test {
         record.expireCommitment(DEBATE_1);
 
         assertEq(record.pendingCount(), 0);
+        /// @dev Codex v3 [P2]: expiry creates a Trade with unified accounting
+        assertEq(record.totalTrades(), 1);
+        assertEq(record.wins(), 0);
+        assertEq(record.losses(), 0);
+        assertEq(record.totalPnlBps(), 0);
+    }
+
+    /// @dev Codex v3 [P1]: resolveTrade must revert after MAX_COMMITMENT_TTL
+    function test_resolve_rejectsAfterTTL() public {
+        vm.prank(bobby);
+        record.commitTrade(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA, 8, 9500000000000, 10000000000000, 9000000000000);
+
+        // Warp past 30 days
+        vm.warp(block.timestamp + 31 days);
+
+        vm.prank(bobby);
+        vm.expectRevert("Commitment expired, use expireCommitment()");
+        record.resolveTrade(DEBATE_1, 550, BobbyTrackRecord.Result.WIN, 10000000000000);
+    }
+
+    /// @dev Codex v3 [P2]: expireCommitment increments agentTrades
+    function test_expireCommitment_countsInAgentTrades() public {
+        vm.prank(bobby);
+        record.commitTrade(DEBATE_1, "BTC", BobbyTrackRecord.Agent.ALPHA, 8, 9500000000000, 10000000000000, 9000000000000);
+
+        vm.warp(block.timestamp + 31 days);
+        record.expireCommitment(DEBATE_1);
+
+        (uint256 w, uint256 l, uint256 t, ) = record.getAgentStats(BobbyTrackRecord.Agent.ALPHA);
+        assertEq(w, 0);
+        assertEq(l, 0);
+        assertEq(t, 1); // Expired counts in total trades for agent
     }
 
     function test_expireCommitment_tooEarly() public {
