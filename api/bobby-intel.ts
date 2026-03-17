@@ -554,8 +554,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startMs = Date.now();
 
   try {
-    // Run all intelligence sources in parallel (9 pipelines)
-    const [rawSignals, polyConsensus, recentCycles, livePrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData] = await Promise.allSettled([
+    // Run all intelligence sources in parallel (10 pipelines — including X Layer)
+    const [rawSignals, polyConsensus, recentCycles, livePrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData, xlayerSignals] = await Promise.allSettled([
       collectDexSignals(),
       collectPolymarketIntelligence(),
       fetchRecentCycles(5),
@@ -565,7 +565,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fetchTopTradersLSRatio(),
       fetchFearGreed(),
       fetchDXY(),
-    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : (r.status === 'rejected' ? (console.warn('[Bobby Intel] pipeline failed:', r.reason), null) : null))) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null];
+      // X Layer on-chain signals via OnchainOS
+      fetch('http://143.110.194.171:8788/api/xlayer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signals' }),
+      }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : (r.status === 'rejected' ? (console.warn('[Bobby Intel] pipeline failed:', r.reason), null) : null))) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null, any];
 
     const filtered = filterSignals(rawSignals);
     const signalAgeMs = 0; // Fresh signals, just collected
@@ -624,8 +629,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const latencyMs = Date.now() - startMs;
 
+    // Format X Layer signals
+    const xlayerFormatted = xlayerSignals?.data?.slice(0, 5).map((s: any) => ({
+      token: s.token?.symbol || 'UNKNOWN',
+      amount_usd: parseFloat(parseFloat(s.amountUsd || '0').toFixed(2)),
+      wallets: parseInt(s.triggerWalletCount || '0'),
+      market_cap: parseFloat(parseFloat(s.token?.marketCapUsd || '0').toFixed(0)),
+    })) || [];
+
     // Build the intelligence briefing text for Bobby's brain
-    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData);
+    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData, xlayerFormatted);
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
@@ -640,6 +653,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       topTradersLS: topTradersLS || [],
       fearGreed,
       dxy: dxyData,
+      xlayer: xlayerFormatted,
       performance,
       regime: regime.label,
       meta: {
@@ -672,6 +686,7 @@ function buildBriefing(
   topTradersLS: LongShortRatio[],
   fearGreed: FearGreedData | null,
   dxyData: { dxy: number } | null,
+  xlayerSignals?: Array<{ token: string; amount_usd: number; wallets: number; market_cap: number }>,
 ): string {
   const blocks: string[] = [];
 
@@ -752,6 +767,11 @@ function buildBriefing(
   // DXY (US Dollar strength — inverse correlation with crypto)
   if (dxyData) {
     blocks.push(`<MACRO_CONTEXT>\n${JSON.stringify({ dxy_index: dxyData.dxy, interpretation: dxyData.dxy > 104 ? 'STRONG_DOLLAR_HEADWIND' : dxyData.dxy < 100 ? 'WEAK_DOLLAR_TAILWIND' : 'NEUTRAL_DOLLAR' })}\n</MACRO_CONTEXT>`);
+  }
+
+  // X Layer on-chain signals (smart money activity on OKX L2)
+  if (xlayerSignals && xlayerSignals.length > 0) {
+    blocks.push(`<XLAYER_SIGNALS count="${xlayerSignals.length}">\n${JSON.stringify(xlayerSignals)}\n</XLAYER_SIGNALS>`);
   }
 
   // Performance / metacognition
