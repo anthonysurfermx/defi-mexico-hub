@@ -97,7 +97,7 @@ async function fetchAudio(text: string, voice?: string): Promise<ArrayBuffer | n
     }
   }
 
-  // Fallback: Edge TTS (Microsoft Neural, free forever)
+  // Fallback: Edge TTS (Microsoft Neural, free forever) via Vercel proxy → DO droplet
   try {
     const res = await fetch('/api/bobby-voice-free', {
       method: 'POST',
