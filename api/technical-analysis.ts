@@ -248,7 +248,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Bollinger squeeze (bands narrow = breakout incoming)
     const bbWidth = (currentBBUpper - currentBBLower) / currentPrice;
-    const bollingerSqueeze = bbWidth < 0.03; // <3% width = squeeze
+    // Dynamic squeeze threshold based on asset volatility (altcoins wider bands)
+    const avgChange = candles.slice(-20).reduce((s, c) => s + Math.abs((c.c - c.o) / c.o), 0) / 20;
+    const squeezeThreshold = Math.max(0.02, avgChange * 3); // At least 2%, or 3x avg candle size
+    const bollingerSqueeze = bbWidth < squeezeThreshold;
 
     // Summary for Bobby's prompt — TradingView-grade analysis
     const summary = {

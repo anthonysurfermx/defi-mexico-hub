@@ -241,6 +241,8 @@ export function VoiceOrb({ analyser, state, mood = 'confident', size = 160 }: Vo
         ref={canvasRef}
         style={{ width: size, height: size }}
         className="cursor-pointer"
+        role="img"
+        aria-label={`Bobby voice status: ${stateLabel}${agentName ? ` — ${agentName}` : ''}`}
       />
       <div className="flex items-center gap-2">
         <motion.div

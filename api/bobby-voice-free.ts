@@ -6,7 +6,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const TTS_SERVER = 'http://143.110.194.171:8787/api/tts';
+const TTS_SERVER = process.env.TTS_SERVER_URL || 'http://143.110.194.171:8787/api/tts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

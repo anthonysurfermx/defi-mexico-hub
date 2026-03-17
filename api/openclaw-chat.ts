@@ -112,13 +112,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'message is required' });
   }
 
+  // Sanitize user message: strip XML-like tags and agent markers that could cause prompt injection
+  const sanitizedMessage = message
+    .replace(/<\/?[A-Z_]+>/g, '') // Strip XML tags like <MARKET_REGIME>
+    .replace(/\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT)\s*:?\s*\*\*/gi, '[user text]'); // Strip agent markers
+
   // If message contains XML intel blocks, use Claude directly (needs strong model for data parsing)
   const hasXMLContext = message.includes('<ONCHAIN_INTEL>') || message.includes('<PRICE_INTEL>') || message.includes('<STOCK_INTEL>');
 
   // Try OpenClaw first for simple messages, Claude for enriched ones
   if (OPENCLAW_GATEWAY_URL && !hasXMLContext) {
     try {
-      const result = await tryOpenClaw(message, history, userLang, res);
+      const result = await tryOpenClaw(sanitizedMessage, history, userLang, res);
       if (result) return; // Successfully streamed
     } catch (err) {
       console.warn('[Chat] OpenClaw failed, falling back to Claude:', err);
@@ -130,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Claude API — primary for enriched messages, fallback for simple ones
   if (ANTHROPIC_API_KEY) {
     try {
-      return await streamClaude(message, history, userLang, res);
+      return await streamClaude(sanitizedMessage, history, userLang, res);
     } catch (err) {
       console.error('[Chat] Claude fallback failed:', err);
       return res.status(502).json({ error: 'Both OpenClaw and Claude unavailable' });
