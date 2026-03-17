@@ -882,8 +882,8 @@ export function AdamsChat() {
     const clean = text.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
     if (clean.length < 10) return;
     lastSpokenRef.current = text;
-    speak(clean);
-  }, [voiceEnabled, speak]);
+    queueSentence(clean, 'cio', lang);
+  }, [voiceEnabled, queueSentence, lang]);
 
   // Speak fillers via free Web Speech API — saves ElevenLabs quota
   const speakFillerLocal = useCallback((text: string) => {
@@ -1626,7 +1626,7 @@ export function AdamsChat() {
       // Bobby announces the full scan — ElevenLabs voice for consistency
       if (voiceEnabled) {
         const analyzeFillers = t('analyzeFillers') as readonly string[];
-        queueSentence(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)]);
+        queueSentence(analyzeFillers[Math.floor(Math.random() * analyzeFillers.length)], 'cio', lang);
       }
       phaseTimerRef.current.forEach(clearTimeout);
       phaseTimerRef.current = [];
@@ -2276,7 +2276,7 @@ export function AdamsChat() {
               className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono font-bold tracking-wider transition-all ${tradingRoom ? 'bg-yellow-400/15 text-yellow-400 border border-yellow-400/30' : 'bg-white/5 text-white/30 border border-white/10 hover:text-white/50'}`}
               title={tradingRoom ? 'Trading Room ON' : 'Solo Trader'}>
               <Users className="w-3 h-3" />
-              {tradingRoom ? 'ROOM' : 'SOLO'}
+              {tradingRoom ? (lang === 'es' ? 'SALA' : 'ROOM') : 'SOLO'}
             </button>
             {address ? (
               <button onClick={() => openWallet()} className="text-[10px] text-white/25 font-mono hover:text-white/50 transition-colors px-1">
@@ -2346,7 +2346,7 @@ export function AdamsChat() {
         <span className={`text-[8px] sm:text-[9px] font-mono mt-1 sm:mt-1.5 tracking-[2px] ${
           activeAgent === 'alpha' ? 'text-green-400/60' : activeAgent === 'redteam' ? 'text-red-400/60' : activeAgent === 'cio' ? 'text-yellow-400/60' : 'text-green-400/40'
         }`}>
-          {orbState === 'listening' ? 'TAP TO STOP · LISTENING...' : orbState === 'thinking' ? 'PROCESSING...' : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? '🟡 BOBBY CIO' : 'TAP TO INTERRUPT') : 'TAP TO TALK'}
+          {orbState === 'listening' ? (lang === 'es' ? 'TOCA PARA PARAR · ESCUCHANDO...' : 'TAP TO STOP · LISTENING...') : orbState === 'thinking' ? (lang === 'es' ? 'PROCESANDO...' : 'PROCESSING...') : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? '🟡 BOBBY CIO' : (lang === 'es' ? 'TOCA PARA INTERRUMPIR' : 'TAP TO INTERRUPT')) : (lang === 'es' ? 'TOCA PARA HABLAR' : 'TAP TO TALK')}
         </span>
         {/* Live market sentiment badges */}
         {marketBadge && orbState === 'idle' && (
