@@ -37,6 +37,7 @@ export function TradingViewChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [loading, setLoading] = useState(!candles);
+  const [error, setError] = useState(false);
   const [data, setData] = useState<{
     candles: ChartCandle[];
     sma20: (number | null)[];
@@ -51,7 +52,7 @@ export function TradingViewChart({
     fetch(`/api/technical-analysis?symbol=${symbol}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (d) {
+        if (d && d.candles?.length > 0) {
           setData({
             candles: d.candles,
             sma20: d.indicators.sma20,
@@ -59,10 +60,12 @@ export function TradingViewChart({
             support: d.support,
             resistance: d.resistance,
           });
+        } else {
+          setError(true);
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setError(true); setLoading(false); });
   }, [symbol, candles]);
 
   // Create chart
@@ -253,7 +256,13 @@ export function TradingViewChart({
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <div style={{ height: Math.min(height, 80) }} className="flex items-center justify-center text-[9px] font-mono text-white/20 border border-white/[0.04] bg-white/[0.01] rounded">
+        Chart unavailable for {symbol}
+      </div>
+    );
+  }
 
   return (
     <div className="border border-white/[0.04] bg-white/[0.01] rounded overflow-hidden">
