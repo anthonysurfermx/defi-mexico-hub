@@ -836,6 +836,12 @@ export function AdamsChat() {
   // Cache tickers locally for quick re-use
   const tickerCacheRef = useRef<OKXTicker[]>([]);
 
+  // Clear ticker cache every 5 minutes to ensure fresh data
+  useEffect(() => {
+    const interval = setInterval(() => { tickerCacheRef.current = []; }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Language must be declared early — used by voice, i18n, and intent detection
   const lang = profile?.language || 'en';
   const advisorName = profile?.advisorName || 'Bobby';
@@ -1784,8 +1790,8 @@ export function AdamsChat() {
 
     // Bobby ALWAYS fetches intel for anything beyond casual chat
     const fetchIntel = needsOKX || needsPoly || isGeneralOpinion || hasTokens || hasStocks;
-    const contextPricesPromise = (hasTokens || isGeneralMarket) ? getPriceCards(hasTokens ? tokens : ['BTC', 'ETH', 'SOL']) : Promise.resolve([]);
-    const stockPricesPromise = hasStocks ? fetchStockPrices(stocks) : Promise.resolve([]);
+    const contextPricesPromise = (hasTokens || isGeneralMarket) ? getPriceCards(hasTokens ? tokens : ['BTC', 'ETH', 'SOL']).catch(() => []) : Promise.resolve([]);
+    const stockPricesPromise = hasStocks ? fetchStockPrices(stocks).catch(() => []) : Promise.resolve([]);
     const intelPromise = fetchIntel
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
@@ -1884,9 +1890,11 @@ export function AdamsChat() {
       }
 
       console.log('[Bobby] 📤 Sending to OpenClaw:', enrichedMessage.substring(0, 300), enrichedMessage.length > 300 ? `... (${enrichedMessage.length} total chars)` : '');
+      const abortCtrl = new AbortController();
       const res = await fetch('/api/openclaw-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortCtrl.signal,
         body: JSON.stringify({
           message: enrichedMessage,
           language: lang,
@@ -2170,6 +2178,12 @@ export function AdamsChat() {
         }]);
       }
     } catch (err) {
+      // AbortController cancellation — component unmounted or user navigated away
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log('[Bobby] Stream aborted (user navigated away or component unmounted)');
+        stopThinkingSound();
+        return;
+      }
       console.error('[Bobby] chat handler error:', err);
       stopThinkingSound();
       // OpenClaw unavailable — fallback with prices if available
