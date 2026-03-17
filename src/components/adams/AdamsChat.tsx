@@ -1887,7 +1887,7 @@ export function AdamsChat() {
 
       // Trading Room mode: inject debate instruction
       if (tradingRoom) {
-        enrichedMessage += '\n\n[TRADING ROOM MODE ACTIVE: You MUST respond as three distinct agents. Start with **ALPHA HUNTER:** (bull case, 1-2 paragraphs), then **RED TEAM:** (bear case, destroy the thesis, 1-2 paragraphs), then **MY VERDICT:** (Bobby CIO decides, conviction score + specific play). Each agent has a different voice — make their personalities distinct.]';
+        enrichedMessage += '\n\n[MANDATORY TRADING ROOM DEBATE — THIS IS NOT OPTIONAL. You MUST structure your ENTIRE response as three agents. Do NOT skip any agent. Do NOT respond as just Bobby. The format MUST be:\n\n**ALPHA HUNTER:** (she pitches the bull case aggressively — 2-3 paragraphs with specific entry/stop/target and R/R ratio)\n\n**RED TEAM:** (he directly attacks Alpha\'s thesis — quotes her words and destroys them. 2-3 paragraphs. Proposes the opposite trade.)\n\n**MY VERDICT:** (Bobby CIO scores both arguments, picks a side, gives conviction X/10 with specific play)\n\nIF YOU RESPOND WITHOUT ALL THREE SECTIONS WITH THESE EXACT BOLD HEADERS, THE RESPONSE IS INVALID. Start with **ALPHA HUNTER:** immediately.]';
       }
 
       console.log('[Bobby] 📤 Sending to OpenClaw:', enrichedMessage.substring(0, 300), enrichedMessage.length > 300 ? `... (${enrichedMessage.length} total chars)` : '');
