@@ -120,19 +120,25 @@ export function XLayerSwapCard({ symbol, direction, conviction, entryPrice }: XL
     }
   };
 
-  if (conviction < 0.5) return null; // Don't show swap for low conviction
+  const isLowConviction = conviction < 0.5;
 
   return (
-    <div className="border border-yellow-500/20 bg-yellow-500/[0.03] p-3 font-mono text-[11px] mt-3">
+    <div className={`border p-3 font-mono text-[11px] mt-3 ${isLowConviction ? 'border-white/[0.08] bg-white/[0.02]' : 'border-yellow-500/20 bg-yellow-500/[0.03]'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <Zap className="w-3.5 h-3.5 text-yellow-400" />
-        <span className="text-yellow-400/80 font-bold text-[10px] tracking-wider">EXECUTE ON X LAYER</span>
+        <Zap className={`w-3.5 h-3.5 ${isLowConviction ? 'text-white/30' : 'text-yellow-400'}`} />
+        <span className={`font-bold text-[10px] tracking-wider ${isLowConviction ? 'text-white/30' : 'text-yellow-400/80'}`}>
+          {isLowConviction ? 'SWAP ON X LAYER' : 'EXECUTE ON X LAYER'}
+        </span>
         <span className="text-[8px] text-white/20 ml-auto">Chain ID: 196</span>
       </div>
 
       <div className="text-white/50 mb-2">
-        Bobby recommends <span className={direction === 'long' ? 'text-green-400' : 'text-red-400'}>{direction.toUpperCase()}</span> {symbol} with {Math.round(conviction * 10)}/10 conviction
-        {entryPrice && <span> · Entry ~${entryPrice.toLocaleString()}</span>}
+        {isLowConviction ? (
+          <span>Bobby says wait on <span className="text-white/70">{symbol}</span> — but you can swap anyway on X Layer</span>
+        ) : (
+          <span>Bobby recommends <span className={direction === 'long' ? 'text-green-400' : 'text-red-400'}>{direction.toUpperCase()}</span> {symbol} with {Math.round(conviction * 10)}/10 conviction
+          {entryPrice && <span> · Entry ~${entryPrice.toLocaleString()}</span>}</span>
+        )}
       </div>
 
       {state === 'idle' && (

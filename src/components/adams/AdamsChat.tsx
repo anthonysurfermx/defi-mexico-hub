@@ -2515,18 +2515,19 @@ export function AdamsChat() {
                 )}
 
                 {/* X Layer Swap — execute Bobby's trade on-chain */}
-                {!isProcessing && tradingRoom && latestAdvisor.text.includes('**MY VERDICT:**') && (() => {
-                  // Extract conviction and trade params from Bobby's verdict
-                  const convMatch = latestAdvisor.text.match(/(\d+)\s*\/\s*10/);
-                  const conv = convMatch ? parseInt(convMatch[1]) / 10 : 0;
-                  const symMatch = latestAdvisor.text.match(/\b(BTC|ETH|SOL|OKB|HYPE|XRP)\b/i);
-                  const dirMatch = latestAdvisor.text.match(/\b(long|short)\b/i);
-                  const entryMatch = latestAdvisor.text.match(/entry[^$]*\$?([\d,]+)/i);
-                  if (conv >= 0.5 && symMatch) {
+                {!isProcessing && latestAdvisor.text.length > 100 && (() => {
+                  const text = latestAdvisor.text;
+                  const convMatch = text.match(/(\d+)\s*\/\s*10/);
+                  const conv = convMatch ? parseInt(convMatch[1]) / 10 : 0.5;
+                  const symMatch = text.match(/\b(BTC|ETH|SOL|OKB|HYPE|XRP|UNI|MATIC|DOGE|AVAX|LINK)\b/i);
+                  const dirMatch = text.match(/\b(long|short|comprar?|vender?)\b/i);
+                  const entryMatch = text.match(/(?:entry|entr[ao]|comprar?)\s*(?:\w+\s+)*?(?:en|at|a)?\s*\$?([\d,]+(?:\.\d+)?)/i);
+                  if (symMatch) {
+                    const dir = dirMatch ? (/short|vender/i.test(dirMatch[1]) ? 'short' : 'long') : 'long';
                     return (
                       <XLayerSwapCard
                         symbol={symMatch[1].toUpperCase()}
-                        direction={dirMatch ? dirMatch[1].toLowerCase() : 'long'}
+                        direction={dir}
                         conviction={conv}
                         entryPrice={entryMatch ? parseFloat(entryMatch[1].replace(/,/g, '')) : undefined}
                       />
