@@ -13,6 +13,7 @@ import { AdvisorSetup, useAdvisorProfile } from '@/components/agent-radar/Adviso
 import type { AdvisorProfile } from '@/components/agent-radar/AdvisorSetup';
 import { fetchTickers, fetchMarketDetail, formatVolume, type OKXTicker } from '@/services/okx-market.service';
 import { SwapConfirm, type TradeExecution } from './SwapConfirm';
+import { XLayerSwapCard } from './XLayerSwapCard';
 import { VoiceOrb, type OrbState, type OrbMood } from './VoiceOrb';
 import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalData, type PolyData } from './IntelligenceFeed';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
@@ -2512,6 +2513,27 @@ export function AdamsChat() {
                     </button>
                   </motion.div>
                 )}
+
+                {/* X Layer Swap — execute Bobby's trade on-chain */}
+                {!isProcessing && tradingRoom && latestAdvisor.text.includes('**MY VERDICT:**') && (() => {
+                  // Extract conviction and trade params from Bobby's verdict
+                  const convMatch = latestAdvisor.text.match(/(\d+)\s*\/\s*10/);
+                  const conv = convMatch ? parseInt(convMatch[1]) / 10 : 0;
+                  const symMatch = latestAdvisor.text.match(/\b(BTC|ETH|SOL|OKB|HYPE|XRP)\b/i);
+                  const dirMatch = latestAdvisor.text.match(/\b(long|short)\b/i);
+                  const entryMatch = latestAdvisor.text.match(/entry[^$]*\$?([\d,]+)/i);
+                  if (conv >= 0.5 && symMatch) {
+                    return (
+                      <XLayerSwapCard
+                        symbol={symMatch[1].toUpperCase()}
+                        direction={dirMatch ? dirMatch[1].toLowerCase() : 'long'}
+                        conviction={conv}
+                        entryPrice={entryMatch ? parseFloat(entryMatch[1].replace(/,/g, '')) : undefined}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Trade execution cards */}
                 {latestAdvisor.trades && latestAdvisor.trades.length > 0 && (
