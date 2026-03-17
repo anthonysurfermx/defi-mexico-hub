@@ -1765,7 +1765,7 @@ export function AdamsChat() {
     if (voiceEnabled) {
       const fillers = t('chatFillers') as readonly string[];
       const filler = fillers[Math.floor(Math.random() * fillers.length)];
-      queueSentence(filler);
+      queueSentence(filler, 'cio', lang);
     }
 
     // ---- Autonomous Reasoning: Bobby decides what data to fetch based on the question ----
@@ -1987,7 +1987,7 @@ export function AdamsChat() {
               const sentence = parts[i].trim();
               if (sentence.length >= 8) {
                 // Pass current agent voice to TTS — each sentence uses the right voice
-                queueSentence(sentence, currentVoice);
+                queueSentence(sentence, currentVoice, lang);
               }
             }
             sentenceBuffer = parts[parts.length - 1];
@@ -2049,7 +2049,7 @@ export function AdamsChat() {
 
         // Flush remaining sentence buffer to voice
         if (voiceEnabled && sentenceBuffer.trim().length >= 8) {
-          queueSentence(sentenceBuffer.trim());
+          queueSentence(sentenceBuffer.trim(), currentVoice, lang);
         }
         flushQueue();
         // Reset agent mood after response completes

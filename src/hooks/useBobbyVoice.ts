@@ -71,8 +71,8 @@ async function setCachedAudio(key: string, data: ArrayBuffer): Promise<void> {
 
 let useFreeTTS = false; // Once ElevenLabs fails, switch to free for the session
 
-async function fetchAudio(text: string, voice?: string): Promise<ArrayBuffer | null> {
-  const cacheKey = hashText(text + (voice || 'cio'));
+async function fetchAudio(text: string, voice?: string, lang?: string): Promise<ArrayBuffer | null> {
+  const cacheKey = hashText(text + (voice || 'cio') + (lang || 'en'));
   const cached = await getCachedAudio(cacheKey);
   if (cached) return cached;
 
@@ -102,7 +102,7 @@ async function fetchAudio(text: string, voice?: string): Promise<ArrayBuffer | n
     const res = await fetch('/api/bobby-voice-free', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice: voice || 'cio' }),
+      body: JSON.stringify({ text, voice: voice || 'cio', lang: lang || 'en' }),
     });
     if (!res.ok) return null;
     const data = await res.arrayBuffer();
@@ -132,7 +132,7 @@ function speakWithBrowserTTS(text: string, lang: string): Promise<void> {
 export interface BobbyVoiceState {
   speak: (text: string) => Promise<void>;
   speakLocal: (text: string, lang?: string) => Promise<void>;
-  queueSentence: (sentence: string, voice?: string) => void;
+  queueSentence: (sentence: string, voice?: string, lang?: string) => void;
   flushQueue: () => void;
   stop: () => void;
   getLastResponseAudio: () => Blob | null;
@@ -296,12 +296,12 @@ export function useBobbyVoice(): BobbyVoiceState {
   // Fetches audio immediately (parallel with other sentences)
   // Plays in order as audio becomes available
 
-  const queueSentence = useCallback((sentence: string, voice?: string) => {
+  const queueSentence = useCallback((sentence: string, voice?: string, lang?: string) => {
     const clean = sentence.replace(/[-*_#>]/g, '').replace(/\n+/g, ' ').trim();
     if (clean.length < 8) return; // Skip trivial fragments
 
     // Start fetching audio immediately (non-blocking) — voice selects Alpha/Red/CIO
-    const audioPromise = fetchAudio(clean, voice);
+    const audioPromise = fetchAudio(clean, voice, lang);
 
     sentenceQueueRef.current.push({ text: clean, audio: audioPromise });
     setIsSpeaking(true);
