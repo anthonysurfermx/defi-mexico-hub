@@ -110,6 +110,10 @@
     "api/xlayer-trade.ts": {
       "maxDuration": 35,
       "memory": 256
+    },
+    "api/xlayer-record.ts": {
+      "maxDuration": 30,
+      "memory": 256
     }
   }
 }
