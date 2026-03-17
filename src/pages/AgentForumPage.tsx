@@ -3,10 +3,11 @@
 // Categories, compact cards, agent badges, conviction sidebar
 // ============================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame, Filter } from 'lucide-react';
+import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
@@ -80,6 +81,78 @@ function detectCategory(topic: string): string {
   if (/defi|dex|tvl|yield/i.test(t)) return 'defi';
   if (/\bai\b|nvidia|render|fetch/i.test(t)) return 'ai';
   return 'all';
+}
+
+// ---- Forum Chart (fetches TA on demand when thread expands) ----
+function ForumChart({ symbol }: { symbol: string }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/technical-analysis?symbol=${symbol}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [symbol]);
+
+  if (loading) return <div className="h-[140px] flex items-center justify-center text-[9px] font-mono text-white/15 animate-pulse">Loading {symbol} chart...</div>;
+  if (!data?.candles) return null;
+
+  const { candles, indicators, support, resistance, summary } = data;
+  const chartData = candles.map((c: any, i: number) => ({
+    time: new Date(c.ts).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    price: c.c,
+    sma20: indicators.sma20[i],
+    sma50: indicators.sma50[i],
+  }));
+
+  const prices = candles.map((c: any) => c.c);
+  const allPrices = [...prices, ...(support || []), ...(resistance || [])];
+  const minP = Math.min(...allPrices) * 0.998;
+  const maxP = Math.max(...allPrices) * 1.002;
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const trend = summary?.trend || 'NEUTRAL';
+  const rsiVal = summary?.rsi;
+  const macdCross = summary?.macd_crossover;
+
+  return (
+    <div className="border border-white/[0.04] bg-white/[0.015] p-2.5 rounded">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[11px] font-mono font-bold text-white/60">{symbol}</span>
+        <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${trend === 'BULLISH' ? 'bg-green-500/10 text-green-400' : trend === 'BEARISH' ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-white/25'}`}>{trend}</span>
+        {rsiVal && <span className={`text-[8px] font-mono ${rsiVal > 70 ? 'text-red-400' : rsiVal < 30 ? 'text-green-400' : 'text-white/25'}`}>RSI {rsiVal.toFixed(0)}</span>}
+        {macdCross && macdCross !== 'NEUTRAL' && <span className={`text-[8px] font-mono ${macdCross === 'BULLISH_CROSS' ? 'text-green-400' : 'text-red-400'}`}>MACD {macdCross === 'BULLISH_CROSS' ? '↑' : '↓'}</span>}
+        {summary?.bollinger_squeeze && <span className="text-[7px] font-mono px-1 py-0.5 bg-amber-500/10 text-amber-400 rounded animate-pulse">SQUEEZE</span>}
+        <div className="flex items-center gap-2 ml-auto text-[7px] font-mono text-white/15">
+          <span className="flex items-center gap-0.5"><span className="w-2 h-0.5 bg-yellow-400 inline-block" />SMA20</span>
+          <span className="flex items-center gap-0.5"><span className="w-2 h-0.5 bg-blue-400 inline-block" />SMA50</span>
+        </div>
+      </div>
+      <div className="h-[140px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" />
+            <XAxis dataKey="time" tick={{ fontSize: 7, fill: 'rgba(255,255,255,0.12)' }} tickLine={false} axisLine={false} interval={Math.floor(chartData.length / 5)} />
+            <YAxis domain={[minP, maxP]} tick={{ fontSize: 7, fill: 'rgba(255,255,255,0.12)' }} tickLine={false} axisLine={false} width={50} tickFormatter={(v: number) => `$${v.toLocaleString()}`} />
+            <Tooltip contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', fontSize: 9, fontFamily: 'monospace' }} formatter={(v: number) => [`$${v?.toLocaleString()}`, '']} />
+            <Area type="monotone" dataKey="price" stroke={isUp ? '#22c55e' : '#ef4444'} strokeWidth={1.5} fill={isUp ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'} />
+            <Line type="monotone" dataKey="sma20" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="4 2" connectNulls />
+            <Line type="monotone" dataKey="sma50" stroke="#3b82f6" strokeWidth={1} dot={false} strokeDasharray="4 2" connectNulls />
+            {(support || []).map((level: number, i: number) => (
+              <ReferenceLine key={`s${i}`} y={level} stroke="#22c55e" strokeDasharray="6 3" strokeWidth={0.6} label={{ value: `S $${level.toLocaleString()}`, position: 'left', fontSize: 7, fill: '#22c55e60' }} />
+            ))}
+            {(resistance || []).map((level: number, i: number) => (
+              <ReferenceLine key={`r${i}`} y={level} stroke="#ef4444" strokeDasharray="6 3" strokeWidth={0.6} label={{ value: `R $${level.toLocaleString()}`, position: 'right', fontSize: 7, fill: '#ef444460' }} />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex justify-between mt-1 text-[7px] font-mono text-white/15">
+        {(support || []).length > 0 && <span className="text-green-400/30">Support: {support.map((s: number) => `$${s.toLocaleString()}`).join(', ')}</span>}
+        {(resistance || []).length > 0 && <span className="text-red-400/30">Resistance: {resistance.map((r: number) => `$${r.toLocaleString()}`).join(', ')}</span>}
+      </div>
+    </div>
+  );
 }
 
 function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expanded: boolean; onToggle: () => void }) {
@@ -170,6 +243,9 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 <Zap className="w-3 h-3 text-amber-400/40" />
                 <span className="text-[9px] font-mono text-white/20">{thread.trigger_reason}</span>
               </div>
+
+              {/* Technical Analysis Chart */}
+              <ForumChart symbol={detectCategory(thread.topic) === 'eth' ? 'ETH' : detectCategory(thread.topic) === 'sol' ? 'SOL' : 'BTC'} />
 
               {thread.posts.map((post) => {
                 const agent = AGENTS[post.agent];
