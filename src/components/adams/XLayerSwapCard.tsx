@@ -31,6 +31,7 @@ export function XLayerSwapCard({ symbol, direction, conviction, entryPrice }: XL
   const [quote, setQuote] = useState<any>(null);
   const [error, setError] = useState('');
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [amount, setAmount] = useState('');
 
   const { address, chainId } = useAccount();
   const { sendTransactionAsync } = useSendTransaction();
@@ -41,9 +42,11 @@ export function XLayerSwapCard({ symbol, direction, conviction, entryPrice }: XL
 
   const getQuote = async () => {
     if (!address) { setError('Connect your wallet first'); setState('error'); return; }
+    if (!amount || parseFloat(amount) <= 0) { setError('Enter an amount'); setState('error'); return; }
     setState('quoting');
     try {
-      // For demo: swap small amount of OKB → USDT
+      // Convert amount to wei (OKB has 18 decimals)
+      const amountWei = BigInt(Math.floor(parseFloat(amount) * 1e18)).toString();
       const res = await fetch('/api/xlayer-trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,7 +55,7 @@ export function XLayerSwapCard({ symbol, direction, conviction, entryPrice }: XL
           params: {
             from_token: XLAYER_TOKENS.OKB,
             to_token: XLAYER_TOKENS.USDT,
-            amount: '10000000000000000', // 0.01 OKB (~$0.95)
+            amount: amountWei,
             wallet: address,
             slippage: '1',
           },
@@ -142,11 +145,34 @@ export function XLayerSwapCard({ symbol, direction, conviction, entryPrice }: XL
       </div>
 
       {state === 'idle' && (
-        <div className="flex gap-2">
-          <button onClick={getQuote}
-            className="flex-1 py-1.5 px-3 bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/30 transition-colors rounded flex items-center justify-center gap-1.5">
-            <Zap className="w-3 h-3" /> Get X Layer Quote
-          </button>
+        <div className="space-y-2">
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 flex items-center gap-1 border border-white/[0.08] bg-white/[0.03] rounded px-2 py-1.5">
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0.01"
+                step="0.01"
+                min="0.001"
+                className="flex-1 bg-transparent text-white/80 text-[12px] font-mono outline-none placeholder:text-white/20 w-20"
+              />
+              <span className="text-[10px] text-white/30 font-mono">OKB</span>
+            </div>
+            <button onClick={getQuote}
+              className={`py-1.5 px-3 border rounded flex items-center gap-1.5 text-[10px] font-mono transition-colors ${
+                isLowConviction
+                  ? 'border-white/10 text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                  : 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/30'
+              }`}>
+              <Zap className="w-3 h-3" /> Quote
+            </button>
+          </div>
+          {amount && parseFloat(amount) > 0 && (
+            <div className="text-[9px] text-white/20 font-mono">
+              ≈ ${(parseFloat(amount) * 95).toFixed(2)} USD · via OKX DEX on X Layer
+            </div>
+          )}
         </div>
       )}
 
