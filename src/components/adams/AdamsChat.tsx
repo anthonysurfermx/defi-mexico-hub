@@ -1348,9 +1348,10 @@ export function AdamsChat() {
     return (entry as Record<string, unknown>)[lang] ?? (entry as Record<string, unknown>)['en'] as any;
   }
 
+  // Only show AdvisorSetup AFTER trading mode is selected (not competing)
   useEffect(() => {
-    if (needsSetup) setShowSetup(true);
-  }, [needsSetup]);
+    if (needsSetup && tradingMode) setShowSetup(true);
+  }, [needsSetup, tradingMode]);
 
   // Load conversation — prefer localStorage, fallback to DB, then onboarding
   const hasInitialized = useRef(false);
@@ -2397,10 +2398,15 @@ export function AdamsChat() {
 
   return (
     <div className="h-full text-white flex flex-col overflow-hidden" style={{ background: '#050505' }}>
-      {/* Trading Mode Onboarding */}
-      {!tradingMode && <TradingModeSelector onSelect={setTradingMode} language={lang} />}
+      {/* Step 1: Trading Mode Selection (first thing user sees) */}
+      {!tradingMode && <TradingModeSelector onSelect={(mode) => {
+        setTradingMode(mode);
+        // Skip AdvisorSetup for the demo — go straight to chat
+        setShowSetup(false);
+      }} language={lang} />}
 
-      {showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
+      {/* Step 2: Advisor Setup (only if trading mode already selected AND needed) */}
+      {tradingMode && showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
 
       {/* ===== CONFIRM CLEAR CHATS DIALOG ===== */}
       <AnimatePresence>
