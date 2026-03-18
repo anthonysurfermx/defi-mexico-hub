@@ -624,8 +624,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const okxScore = filtered.length > 0
       ? Math.min(1, filtered.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / (filtered.length * 100))
       : 0;
-    const polyScore = polymarket.length > 0
-      ? Math.min(1, polymarket.reduce((sum: number, m: any) => sum + ((m.topOutcomePct || m.consensus || 0)) / 100, 0) / polymarket.length)
+    const polyScore = polyFormatted.length > 0
+      ? Math.min(1, polyFormatted.reduce((sum: number, m: any) => sum + ((m.topOutcomePct || 0) / 100), 0) / polyFormatted.length)
       : 0;
     let dynamicConviction = calculateDynamicConviction(okxScore, polyScore, signalAgeMs, btcVol);
 
