@@ -250,16 +250,20 @@ class BlogService {
   /**
    * Obtener posts recientes publicados - optimizado
    */
-  async getRecent(limit = 3): Promise<DomainPost[]> {
-    console.log(`🔍 BlogService.getRecent: Fetching ${limit} recent published posts`);
+  async getRecent(limit = 3, locale?: string): Promise<DomainPost[]> {
+    const langTag = locale === 'en' ? 'lang:en' : 'lang:es';
+    console.log(`🔍 BlogService.getRecent: Fetching ${limit} recent published posts (${langTag})`);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('blog_posts')
       .select(SELECT_FIELDS)
-      .eq('status', 'published') // Usar status en lugar de published
+      .eq('status', 'published')
+      .contains('tags', [langTag])
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('❌ Error fetching recent posts:', error);

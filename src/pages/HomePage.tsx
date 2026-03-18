@@ -77,7 +77,7 @@ function PixelBars({ count = 8, color = 'cyan' }: { count?: number; color?: stri
 
 
 export default function HomePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isAdmin, hasRole } = useAuth();
   const [email, setEmail] = useState('');
   const [loadingNewsletter, setLoadingNewsletter] = useState(false);
@@ -145,7 +145,7 @@ export default function HomePage() {
   const loadRecentPosts = async () => {
     try {
       setLoadingPosts(true);
-      const posts = await blogService.getRecent(3);
+      const posts = await blogService.getRecent(3, i18n.language);
       setRecentPosts(posts);
     } catch {
       setRecentPosts([]);
