@@ -19,6 +19,8 @@ import { AIAgentMarketGrowthChart } from './AIAgentMarketGrowthChart';
 import { AIAgentInfraRaceChart } from './AIAgentInfraRaceChart';
 import { AIAgentTVLShareChart } from './AIAgentTVLShareChart';
 import { AIAgentSkillsTable } from './AIAgentSkillsTable';
+import { PredictionMarketEcosystemChart } from './PredictionMarketEcosystemChart';
+import { TenevConvergenceChart } from './TenevConvergenceChart';
 
 interface Props {
   type: string;
@@ -70,6 +72,10 @@ export function DefiChart({ type, identifier, title }: Props) {
       return <AIAgentTVLShareChart />;
     case 'ai_agent_skills_table':
       return <AIAgentSkillsTable />;
+    case 'prediction_market_ecosystem':
+      return <PredictionMarketEcosystemChart />;
+    case 'tenev_convergence':
+      return <TenevConvergenceChart />;
     default:
       return null;
   }

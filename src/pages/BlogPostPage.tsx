@@ -599,7 +599,7 @@ const BlogPostPage = () => {
               <img
                 src={post.image_url}
                 alt={post.title}
-                className="w-full h-96 object-cover"
+                className="w-full object-contain"
               />
             </div>
           )}
