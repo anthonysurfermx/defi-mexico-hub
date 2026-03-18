@@ -1833,7 +1833,9 @@ export function AdamsChat() {
 
     // Bobby ALWAYS fetches intel for anything beyond casual chat
     const fetchIntel = needsOKX || needsPoly || isGeneralOpinion || hasTokens || hasStocks;
-    const contextPricesPromise = (hasTokens || isGeneralMarket) ? getPriceCards(hasTokens ? tokens : ['BTC', 'ETH', 'SOL']).catch(() => []) : Promise.resolve([]);
+    // For general market questions, fetch ALL major tokens so Bobby can scan the full market
+    const allTokens = ['BTC', 'ETH', 'SOL', 'OKB', 'XRP', 'DOGE', 'AVAX', 'LINK', 'ADA', 'ATOM', 'ARB', 'OP'];
+    const contextPricesPromise = (hasTokens || isGeneralMarket || isGeneralOpinion) ? getPriceCards(hasTokens ? tokens : allTokens).catch(() => []) : Promise.resolve([]);
     const stockPricesPromise = hasStocks ? fetchStockPrices(stocks).catch(() => []) : Promise.resolve([]);
     const intelPromise = fetchIntel
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
