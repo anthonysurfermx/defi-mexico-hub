@@ -8,9 +8,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHmac } from 'crypto';
 
 const OKX_BASE = 'https://www.okx.com';
-const API_KEY = process.env.OKX_CEX_API_KEY || '';
-const SECRET = process.env.OKX_CEX_SECRET_KEY || '';
-const PASSPHRASE = process.env.OKX_CEX_PASSPHRASE || '';
+const API_KEY = process.env.OKX_CEX_API_KEY || process.env.OKX_API_KEY || '';
+const SECRET = process.env.OKX_CEX_SECRET_KEY || process.env.OKX_SECRET_KEY || '';
+const PASSPHRASE = process.env.OKX_CEX_PASSPHRASE || process.env.OKX_PASSPHRASE || '';
 
 function signOKX(ts: string, method: string, path: string, body: string): string {
   return createHmac('sha256', SECRET).update(ts + method.toUpperCase() + path + body).digest('base64');

@@ -20,9 +20,9 @@ interface OKXCredentials {
 // Keys are resolved per-request based on mode parameter
 
 // Production keys (live trading with real money)
-const LIVE_KEY = process.env.OKX_CEX_API_KEY || '';
-const LIVE_SECRET = process.env.OKX_CEX_SECRET_KEY || '';
-const LIVE_PASSPHRASE = process.env.OKX_CEX_PASSPHRASE || '';
+const LIVE_KEY = process.env.OKX_CEX_API_KEY || process.env.OKX_API_KEY || '';
+const LIVE_SECRET = process.env.OKX_CEX_SECRET_KEY || process.env.OKX_SECRET_KEY || '';
+const LIVE_PASSPHRASE = process.env.OKX_CEX_PASSPHRASE || process.env.OKX_PASSPHRASE || '';
 
 // Demo keys (paper trading with simulated money)
 const DEMO_KEY = process.env.OKX_DEMO_API_KEY || '';
