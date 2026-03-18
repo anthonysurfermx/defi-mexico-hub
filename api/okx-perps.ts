@@ -208,8 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await okxRequest('POST', '/api/v5/account/set-leverage', {
         instId,
         lever: String(leverage),
-        mgnMode: 'cross', // Cross margin
-        posSide: side,
+        mgnMode: 'isolated',
       }, creds);
 
       return res.status(200).json({
@@ -231,12 +230,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const instId = getInstId(symbol);
 
     try {
-      // Step 1: Set leverage
+      // Step 1: Set leverage (isolated margin, net mode)
       await okxRequest('POST', '/api/v5/account/set-leverage', {
         instId,
         lever: String(leverage),
-        mgnMode: 'cross',
-        posSide: direction === 'short' ? 'short' : 'long',
+        mgnMode: 'isolated',
       }, creds);
 
       // Step 2: Get contract size info
@@ -326,7 +324,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         onchain: { contract: TRACK_RECORD_CONTRACT, chain: 'X Layer (196)' },
       });
     } catch (err) {
-      return res.status(500).json({ ok: false, error: 'Failed to open position' });
+      console.error('[Perps] open_position error:', err);
+      return res.status(500).json({ ok: false, error: `Failed to open position: ${err instanceof Error ? err.message : 'unknown'}` });
     }
   }
 
@@ -339,8 +338,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const result = await okxRequest('POST', '/api/v5/trade/close-position', {
         instId,
-        mgnMode: 'cross',
-        posSide: direction === 'long' ? 'long' : 'short',
+        mgnMode: 'isolated',
+        posSide: 'net',
       }, creds);
 
       return res.status(200).json({
