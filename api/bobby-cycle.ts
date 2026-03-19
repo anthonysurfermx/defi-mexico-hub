@@ -28,7 +28,11 @@ async function sbInsert(table: string, data: Record<string, unknown>): Promise<R
       },
       body: JSON.stringify(data),
     });
-    if (!res.ok) { console.error(`[Cycle] ${table} insert failed:`, res.status); return null; }
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.error(`[Cycle] ${table} insert failed:`, res.status, errBody);
+      return null;
+    }
     const rows = await res.json();
     return rows[0] || null;
   } catch (e) { console.error(`[Cycle] ${table} insert error:`, e); return null; }
@@ -246,7 +250,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       stop_price: stopMatch ? parseFloat(stopMatch[1].replace(/,/g, '')) : null,
       target_price: targetMatch ? parseFloat(targetMatch[1].replace(/,/g, '')) : null,
       expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      kind,
+      // Note: 'kind' and 'cycle_id' columns added later via migration
     });
     const threadId = thread?.id as string | undefined;
 
