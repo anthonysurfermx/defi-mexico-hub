@@ -1444,6 +1444,69 @@ export function AdamsChat() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.walletAddress, advisorName]);
 
+  // ---- Morning Digest: "Mientras dormías..." ----
+  // Fetches latest autonomous analysis and shows it after welcome
+  const digestFetchedRef = useRef(false);
+  useEffect(() => {
+    if (digestFetchedRef.current) return;
+    if (messages.length === 0) return;
+    // Only show digest after welcome message is displayed
+    const hasWelcome = messages.some(m => m.id === 'welcome');
+    if (!hasWelcome) return;
+    digestFetchedRef.current = true;
+
+    const fetchDigest = async () => {
+      try {
+        const params = new URLSearchParams({ lang });
+        if (profile?.walletAddress) params.set('wallet', profile.walletAddress);
+        const res = await fetch(`/api/bobby-digest?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.ok || !data.hasDigest || !data.latest?.summary) return;
+
+        const digest = data.latest;
+        const age = Date.now() - new Date(digest.created_at).getTime();
+        const hoursAgo = Math.round(age / (1000 * 60 * 60));
+
+        // Build the digest message
+        const header = lang === 'es'
+          ? `Mientras ${hoursAgo <= 1 ? 'analizaba' : 'dormías'}, estuve trabajando:`
+          : `While you were ${hoursAgo <= 1 ? 'away' : 'sleeping'}, I was working:`;
+
+        const highlights = (digest.highlights || []).map((h: any) => {
+          const icon = h.verdict === 'execute' ? (lang === 'es' ? 'EJECUTAR' : 'EXECUTE') :
+                       h.verdict === 'watch' ? (lang === 'es' ? 'VIGILAR' : 'WATCH') :
+                       (lang === 'es' ? 'RECHAZADO' : 'REJECTED');
+          return `${h.symbol} ${h.direction?.toUpperCase() || ''} — ${icon} (${h.conviction}/10)`;
+        }).join('\n');
+
+        const positionsNote = digest.positions_snapshot && digest.positions_snapshot.length > 0
+          ? (lang === 'es'
+            ? `\nPosiciones abiertas: ${digest.positions_snapshot.length}`
+            : `\nOpen positions: ${digest.positions_snapshot.length}`)
+          : '';
+
+        const digestText = `${header}\n\n${digest.summary}${highlights ? `\n\n${highlights}` : ''}${positionsNote}`;
+
+        // Add as a new message with slight delay for UX
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: 'digest-' + digest.id,
+            role: 'advisor',
+            text: digestText,
+            timestamp: Date.now(),
+            isLive: true,
+          }]);
+          speakIfEnabled(digest.summary);
+        }, 2000);
+      } catch (e) {
+        console.warn('[Digest] Failed to fetch:', e);
+      }
+    };
+    fetchDigest();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, lang, profile?.walletAddress]);
+
   // Persist conversation to localStorage (keep last 30 messages)
   useEffect(() => {
     if (messages.length === 0) return;
