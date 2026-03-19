@@ -122,6 +122,10 @@
     "api/okx-perps.ts": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/blog-audio.ts": {
+      "maxDuration": 60,
+      "memory": 512
     }
   }
 }

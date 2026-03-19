@@ -7,7 +7,9 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Use the free voice proxy (same as Bobby's voice)
 const TTS_SERVER = process.env.TTS_SERVER_URL || 'http://143.110.194.171:8787/api/tts';
+const VOICE_PROXY = `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : ''}/api/bobby-voice-free`;
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
