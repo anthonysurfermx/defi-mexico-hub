@@ -250,7 +250,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       stop_price: stopMatch ? parseFloat(stopMatch[1].replace(/,/g, '')) : null,
       target_price: targetMatch ? parseFloat(targetMatch[1].replace(/,/g, '')) : null,
       expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      // Note: 'kind' and 'cycle_id' columns added later via migration
+      kind,
     });
     const threadId = thread?.id as string | undefined;
 
