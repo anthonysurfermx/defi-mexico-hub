@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { blogService, type DomainPost } from '@/services/blog.service';
+import { ArticleAudioPlayer } from '@/components/ArticleAudioPlayer';
 import { DefiChart } from '@/components/charts/DefiChart';
 import { EntityComments } from '@/components/BlogComments';
 import { supabase } from '@/lib/supabase';
@@ -603,6 +604,13 @@ const BlogPostPage = () => {
               />
             </div>
           )}
+
+          {/* Listen to this article — The Economist style */}
+          <ArticleAudioPlayer
+            slug={post.slug}
+            title={post.title}
+            readingTime={readTime}
+          />
 
           {/* Contenido del artículo */}
           <div className="mb-8">
