@@ -132,10 +132,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'Anthropic API key not configured' });
   }
 
+  // Cron protection: Vercel crons send GET — verify with CRON_SECRET or allow POST (manual)
+  const cronSecret = process.env.CRON_SECRET;
+  if (req.method === 'GET' && cronSecret) {
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: 'Unauthorized cron call' });
+    }
+  }
+
   const body = req.method === 'POST' ? (req.body || {}) : {};
-  const language = body.language || 'en';
+  const language = body.language || 'es';
   const lang = language === 'es' ? 'es' : 'en';
-  const kind = body.kind || 'scheduled';
+  const kind = req.method === 'GET' ? 'cron' : (body.kind || 'manual');
   const startTime = Date.now();
 
   try {
