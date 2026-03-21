@@ -451,7 +451,7 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
               // 3. Execute Trade on OKX
               const openRes = await fetchLocalApi('/api/okx-perps', {
                 action: 'open_position',
-                params: { symbol, direction, leverage, amount: positionSizeUsd, conviction, mode: okxMode, skipOnchainCommit: true },
+                params: { symbol, direction, leverage, amount: positionSizeUsd, conviction, mode: okxMode, skipOnchainCommit: true, internalSecret: cycleSecret },
               }, true);
 
               if (openRes.ok) {
@@ -461,14 +461,14 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
                 if (stopPrice || targetPrice) {
                   tpslResult = await fetchLocalApi('/api/okx-perps', {
                     action: 'set_tpsl',
-                    params: { symbol, direction, stopLoss: stopPrice, takeProfit: targetPrice, mode: okxMode }
+                    params: { symbol, direction, stopLoss: stopPrice, takeProfit: targetPrice, mode: okxMode, internalSecret: cycleSecret }
                   }, true /* noFallback */);
                   // If TP/SL failed and we have a stop, this is dangerous — close position
                   if (!tpslResult?.ok && stopPrice) {
                     console.error('[Cycle] TP/SL FAILED — closing unprotected position');
                     const closeRes = await fetchLocalApi('/api/okx-perps', {
                       action: 'close_position',
-                      params: { symbol, direction, mode: okxMode }
+                      params: { symbol, direction, mode: okxMode, internalSecret: cycleSecret }
                     }, true /* noFallback */);
                     // Verify the close actually worked
                     executionResult = null;
