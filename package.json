@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "benchmark:router": "node scripts/router-benchmark.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -70,6 +71,8 @@
     "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "okx-trade-cli": "^1.2.4",
+    "okx-trade-mcp": "^1.2.4",
     "openai": "^6.27.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
