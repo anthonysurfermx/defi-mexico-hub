@@ -327,7 +327,7 @@ RULES:
 - Then you MUST end with a JSON block exactly like this (no markdown fences):
 VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry":70500,"stop":69200,"target":73900,"invalidation":"DXY breaks above 126"}
 - If sitting out: {"execute":false,"conviction":3,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if DXY drops below 124"}
-- conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL,NVDA,AAPL,TSLA,SPY,XOM.
+- conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL (only these 3 for now).
 - direction must be "long", "short", or "none".
 - NEVER omit the VERDICT line. It is mandatory.${
         track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
@@ -519,6 +519,20 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
                     if (!closeRes?.ok) {
                       console.error('[Cycle] EMERGENCY: close_position FAILED — position may still be open without SL!');
                       tradeRejectedReason = 'EMERGENCY: TP/SL failed AND close failed — manual intervention required';
+                      // Send emergency Telegram notification
+                      const TG_BOT = process.env.TELEGRAM_BOT_TOKEN;
+                      const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '1026323121';
+                      if (TG_BOT) {
+                        fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            chat_id: TG_CHAT,
+                            text: `🚨 BOBBY EMERGENCY 🚨\n\nPosition ${direction?.toUpperCase()} ${symbol} is OPEN without Stop Loss!\nTP/SL failed AND close_position failed.\n\nManual intervention required NOW.\nOpen OKX app and close the position manually.`,
+                            parse_mode: 'HTML',
+                          }),
+                        }).catch(e => console.error('[Cycle] Telegram alert failed:', e));
+                      }
                     } else {
                       tradeRejectedReason = 'TP/SL failed — position closed for safety';
                     }
