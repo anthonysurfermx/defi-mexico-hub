@@ -2944,6 +2944,23 @@ export function AdamsChat() {
           </div>
         </div>
 
+        {/* Bloomberg-style ticker tape — live prices scrolling */}
+        {tickerCacheRef.current.length > 0 && (
+          <div className="overflow-hidden border-b border-white/[0.03] bg-white/[0.01]">
+            <div className="flex animate-marquee whitespace-nowrap py-1">
+              {[...tickerCacheRef.current, ...tickerCacheRef.current].map((t, i) => (
+                <span key={`${t.symbol}-${i}`} className="inline-flex items-center gap-1.5 mx-4 text-[9px] font-mono">
+                  <span className="text-white/50">{t.symbol}</span>
+                  <span className="text-white/70">${t.last?.toLocaleString(undefined, { maximumFractionDigits: t.last < 1 ? 4 : 2 })}</span>
+                  <span className={t.change24h >= 0 ? 'text-green-400/60' : 'text-red-400/60'}>
+                    {t.change24h >= 0 ? '▲' : '▼'}{Math.abs(t.change24h).toFixed(2)}%
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Orb center + orbital data */}
         <div
           className="flex flex-col items-center py-1.5 sm:py-3 cursor-pointer select-none"
