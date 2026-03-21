@@ -120,14 +120,14 @@ export interface BobbyVoiceState {
   queueSentence: (sentence: string, voice?: string, lang?: string) => void;
   flushQueue: () => void;
   stop: () => void;
-  initVoiceContext: () => void;
   getLastResponseAudio: () => Blob | null;
   clearResponseAudio: () => void;
   hasResponseAudio: boolean;
-  voiceBlocked: boolean;
   isSpeaking: boolean;
   analyser: AnalyserNode | null;
   audioElement: HTMLAudioElement | null;
+  initVoiceContext: () => void;
+  voiceBlocked: boolean;
 }
 
 // Tiny silent MP3 (0.1s) — used to "warm up" the Audio element on user gesture
@@ -325,7 +325,7 @@ export function useBobbyVoice(): BobbyVoiceState {
   }, []);
 
   // ---- Queue a single sentence for streaming TTS ----
-  // Fetches audio immediately (parallel with other sentences)
+  // Fetches audio immediately (non-blocking) — voice selects Alpha/Red/CIO
   // Plays in order as audio becomes available
 
   const queueSentence = useCallback((sentence: string, voice?: string, lang?: string) => {
