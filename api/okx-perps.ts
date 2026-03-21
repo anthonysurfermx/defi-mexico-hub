@@ -152,6 +152,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── PUBLIC: Get mark price + funding (no credentials needed) ──
+  // ── SETUP: Configure account for perpetual trading ──
+  if (action === 'setup_account') {
+    const tradingMode = params?.mode === 'paper' ? 'paper' : 'live';
+    const { creds: setupCreds, simulated } = getCredentials(tradingMode as any);
+    const c = { ...setupCreds, simulated };
+    try {
+      // 1. Set position mode to long/short
+      const posMode = await okxRequest('POST', '/api/v5/account/set-position-mode', { posMode: 'long_short_mode' }, c);
+      // 2. Set account level to single-currency margin (1)
+      // Note: this only works if no open positions exist
+      const acctRes = await okxRequest('POST', '/api/v5/account/set-account-level', { acctLv: '1' }, c);
+      return res.status(200).json({
+        ok: true,
+        positionMode: posMode,
+        accountLevel: acctRes,
+      });
+    } catch (err: any) {
+      return res.status(400).json({ ok: false, error: err.message || 'Setup failed' });
+    }
+  }
+
   if (action === 'market_info') {
     const symbol = params?.symbol || 'BTC';
     const instId = getInstId(symbol);
