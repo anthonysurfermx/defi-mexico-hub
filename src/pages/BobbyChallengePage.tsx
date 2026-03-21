@@ -46,12 +46,29 @@ export default function BobbyChallengePage() {
   const [loading, setLoading] = useState(true);
   const [nextScan, setNextScan] = useState('--:--:--');
 
+  const [lastRun, setLastRun] = useState<string | null>(null);
+  const [latestDebate, setLatestDebate] = useState<{ id: string; topic: string; symbol: string } | null>(null);
+
   useEffect(() => {
     fetch('/api/bobby-pnl')
       .then(r => r.json())
       .then(d => { if (d.ok) setPnl(d); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Fetch latest cycle run time
+    const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
+    const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+
+    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=1&select=id,topic,symbol,created_at`, { headers })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d) && d.length > 0) {
+          setLatestDebate({ id: d[0].id, topic: d[0].topic, symbol: d[0].symbol });
+          setLastRun(d[0].created_at);
+        }
+      }).catch(() => {});
   }, []);
 
   // Countdown to next 4h scan
@@ -121,11 +138,25 @@ export default function BobbyChallengePage() {
 
         {/* Next scan countdown */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="flex items-center gap-4 mb-8 p-3 border border-white/[0.04] bg-white/[0.01] rounded inline-flex">
-          <Clock className="w-4 h-4 text-green-400/60" />
-          <div>
-            <span className="text-[8px] font-mono text-white/25 tracking-[2px] block">NEXT_NEURAL_RUN</span>
-            <span className="text-xl font-bold font-mono text-green-400">{nextScan}</span>
+          className="flex flex-wrap items-center gap-4 mb-8">
+          <div className="flex items-center gap-3 p-3 border border-white/[0.04] bg-white/[0.01] rounded">
+            <Clock className="w-4 h-4 text-green-400/60" />
+            <div>
+              <span className="text-[8px] font-mono text-white/25 tracking-[2px] block">NEXT_NEURAL_RUN</span>
+              <span className="text-xl font-bold font-mono text-green-400">{nextScan}</span>
+            </div>
+          </div>
+          {lastRun && (
+            <div className="p-3 border border-white/[0.04] bg-white/[0.01] rounded">
+              <span className="text-[8px] font-mono text-white/25 tracking-[2px] block">LAST_RUN_UTC</span>
+              <span className="text-sm font-mono text-white/50">
+                {new Date(lastRun).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-[9px] font-mono text-green-400 tracking-[1px]">SYSTEM_LIVE</span>
           </div>
         </motion.div>
 
@@ -160,25 +191,49 @@ export default function BobbyChallengePage() {
                   <span className="text-[9px] font-mono text-white/30 tracking-[2px]">EQUITY_CURVE</span>
                   <span className="text-[8px] font-mono text-white/20">{pnl.closedPositions.length} TRADES</span>
                 </div>
-                <div className="flex items-end gap-1 h-16">
-                  {pnl.closedPositions.map((t, i) => {
-                    const maxPnl = Math.max(...pnl.closedPositions.map(p => Math.abs(p.pnlPct)));
-                    const h = Math.max(4, (Math.abs(t.pnlPct) / (maxPnl || 1)) * 60);
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center justify-end">
-                        <div
-                          className={`w-full rounded-t ${t.result === 'WIN' ? 'bg-green-500/60' : 'bg-red-500/60'}`}
-                          style={{ height: `${h}px` }}
-                          title={`${t.symbol} ${t.direction} ${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct.toFixed(1)}%`}
+                {(() => {
+                  // Build cumulative PnL curve
+                  let cumPnl = 0;
+                  const points = pnl.closedPositions.map((t) => {
+                    cumPnl += t.realizedPnl;
+                    return { pnl: cumPnl, result: t.result, symbol: t.symbol };
+                  });
+                  const minPnl = Math.min(0, ...points.map(p => p.pnl));
+                  const maxPnl = Math.max(0, ...points.map(p => p.pnl));
+                  const range = maxPnl - minPnl || 1;
+
+                  return (
+                    <>
+                      {/* Cumulative equity line */}
+                      <svg viewBox={`0 0 ${points.length * 20} 64`} className="w-full h-16" preserveAspectRatio="none">
+                        <polyline
+                          fill="none"
+                          stroke={cumPnl >= 0 ? '#22c55e' : '#ef4444'}
+                          strokeWidth="2"
+                          points={points.map((p, i) => `${i * 20 + 10},${64 - ((p.pnl - minPnl) / range) * 56 - 4}`).join(' ')}
                         />
+                        {/* Zero line */}
+                        <line x1="0" y1={64 - ((0 - minPnl) / range) * 56 - 4} x2={points.length * 20} y2={64 - ((0 - minPnl) / range) * 56 - 4}
+                          stroke="white" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+                        {/* Trade dots */}
+                        {points.map((p, i) => (
+                          <circle key={i}
+                            cx={i * 20 + 10} cy={64 - ((p.pnl - minPnl) / range) * 56 - 4} r="3"
+                            fill={p.result === 'WIN' ? '#22c55e' : '#ef4444'} opacity="0.8">
+                            <title>{`${p.symbol} ${p.result} | Cum PnL: $${p.pnl.toFixed(4)}`}</title>
+                          </circle>
+                        ))}
+                      </svg>
+                      <div className="flex justify-between mt-1 text-[7px] font-mono text-white/15">
+                        <span>FIRST TRADE</span>
+                        <span className={`${cumPnl >= 0 ? 'text-green-400/40' : 'text-red-400/40'}`}>
+                          CUM PNL: ${cumPnl.toFixed(4)}
+                        </span>
+                        <span>LATEST</span>
                       </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between mt-1 text-[7px] font-mono text-white/15">
-                  <span>FIRST TRADE</span>
-                  <span>LATEST</span>
-                </div>
+                    </>
+                  );
+                })()}
               </motion.div>
             )}
 
@@ -191,8 +246,14 @@ export default function BobbyChallengePage() {
               </Link>
               <Link to="/agentic-world/forum"
                 className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
-                VIEW DEBATES ›
+                VIEW ALL DEBATES ›
               </Link>
+              {latestDebate && (
+                <Link to="/agentic-world/forum"
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] font-mono tracking-wider hover:bg-yellow-500/20 transition-colors rounded">
+                  READ LATEST: {latestDebate.symbol || 'MARKET'} ›
+                </Link>
+              )}
               <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Bobby Agent Trader is running the $100 Challenge — autonomous AI trading with on-chain accountability. Watch live: https://defimexico.org/agentic-world/bobby/challenge #BobbyTrader #AI #Trading')}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
