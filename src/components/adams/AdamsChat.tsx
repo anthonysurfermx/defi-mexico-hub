@@ -21,7 +21,7 @@ import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalD
 import { ConvictionBoard } from './ConvictionBoard';
 import { FeedbackWidget } from './FeedbackWidget';
 import { ExecutionTimeline } from './ExecutionTimeline';
-import { STOCK_MAP, detectIntent, detectStocks, detectTokens } from '@/lib/router/detectIntent';
+// Router functions (detectIntent, detectStocks, detectTokens) defined inline below
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
 import { clearStoredVibe, getStoredVibe, inferUserVibe, saveStoredVibe, shouldClearStoredVibe } from '@/lib/bobby-vibe';
@@ -1518,7 +1518,7 @@ export function AdamsChat() {
               analyze: 'analyze', help: 'help', greeting: 'greeting',
               off_topic: 'off_topic',
             };
-            intent = (intentMap[r.intent] || 'chat') as Intent;
+            intent = (intentMap[r.intent] || 'chat') as ReturnType<typeof detectIntent>;
           }
         }
       } catch (e) { console.warn('[Router] Haiku call failed:', e); }
