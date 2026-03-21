@@ -9,9 +9,22 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OKX_BASE = 'https://www.okx.com';
 
-const DEFAULT_INSTRUMENTS = ['BTC-USDT', 'ETH-USDT', 'OKB-USDT', 'SOL-USDT', 'MATIC-USDT', 'XAUT-USDT', 'PAXG-USDT'];
-// XAG (silver) is only available as SWAP, handled separately
-const SWAP_INSTRUMENTS = ['XAG-USDT-SWAP'];
+const DEFAULT_INSTRUMENTS = [
+  // Major crypto
+  'BTC-USDT', 'ETH-USDT', 'SOL-USDT', 'OKB-USDT',
+  // Alts
+  'DOGE-USDT', 'XRP-USDT', 'ADA-USDT', 'AVAX-USDT', 'LINK-USDT',
+  // Commodities
+  'XAUT-USDT', 'PAXG-USDT',
+];
+// SWAP instruments (perpetuals — stocks, commodities, indices)
+const SWAP_INSTRUMENTS = [
+  'XAG-USDT-SWAP',
+  // Stocks
+  'NVDA-USDT-SWAP', 'TSLA-USDT-SWAP', 'AAPL-USDT-SWAP', 'SPY-USDT-SWAP',
+  // Energy
+  'XOM-USDT-SWAP',
+];
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, {
