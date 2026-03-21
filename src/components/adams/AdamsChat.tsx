@@ -3252,7 +3252,7 @@ export function AdamsChat() {
       </div>
 
       {/* ===== INPUT BAR — Bottom ===== */}
-      <div className="flex-shrink-0 border-t border-white/[0.04]" style={{ background: '#080808', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="flex-shrink-0 border-t border-white/[0.04] pb-14 sm:pb-0" style={{ background: '#080808' }}>
         {canChat ? (
           <>
             {/* Guest badge — shows remaining free messages */}
