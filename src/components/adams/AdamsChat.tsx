@@ -1595,17 +1595,8 @@ export function AdamsChat() {
     setActiveAgent(null);
     setInputText('');
 
-    // Offline check — inform user immediately
-    if (!navigator.onLine) {
-      setMessages(prev => [...prev,
-        { id: uid(), role: 'user', text: msg, timestamp: Date.now() },
-        { id: uid(), role: 'advisor', text: lang === 'es'
-          ? 'Sin conexión a internet. Reconecta y vuelve a intentar.'
-          : 'No internet connection. Reconnect and try again.',
-          timestamp: Date.now() },
-      ]);
-      return;
-    }
+    // Offline check removed — navigator.onLine is unreliable (false positives with VPN/proxy)
+    // Network errors are handled by individual fetch catch blocks instead
 
     const userMsg: ChatMsg = { id: uid(), role: 'user', text: msg, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
