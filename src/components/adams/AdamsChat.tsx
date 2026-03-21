@@ -226,7 +226,7 @@ function detectIntent(text: string): 'price' | 'analyze' | 'portfolio' | 'trendi
   if (wordCount <= 5 && /\b(why|por ?qu[eé]|explain|explica|profundiz|more|m[aá]s|y el|and the|pero|but|how|c[oó]mo|cu[aá]ndo|when|stop|target|entry|riesgo|risk)\b/i.test(l)) return 'chat';
 
   // WEAK TRADING SIGNALS — market-adjacent language, route to chat if enough context
-  if (wordCount >= 3 && /\b(market|mercado|price|bottom|top|dip|rally|correction|breakout|breakdown|reversal|squeeze|accumul|distribut|volume|candle|trend|momentum|signal|setup|pattern|level|zone|demand|supply|move|action|cycle|wave|peak|knife|liq|pump|rekt|whale|fakeout|trapped|sweep)\b/i.test(l)) return 'chat';
+  if (wordCount >= 3 && /\b(markets?|mercados?|prices?|bottom|top|dip|rally|correction|correcci[oó]n|breakout|breakdown|reversal|squeeze|accumul|distribut|volume|volumen|candle|trend|momentum|signal|se[ñn]al|setup|pattern|patr[oó]n|level|nivel|zone|zona|demand|supply|oferta|demanda|move|movimiento|action|acci[oó]n|cycle|ciclo|wave|onda|peak|pico|knife|liq|pump|rekt|whale|fakeout|trapped|sweep|semana|week|hoy|today|ayer|yesterday|esta semana|this week|qu[eé] pas[oó]|what happened)\b/i.test(l)) return 'chat';
 
   // CRYPTO/EXCHANGE CONTEXT — timeframes, exchanges, crypto-adjacent
   if (/\b(binance|okx|coinbase|bybit|kraken|1h|4h|1d|1w|daily|weekly|monthly|timeframe|defi|nft|airdrop|staking|yield|apr|apy|crypto|blockchain|web3|token|altcoin|memecoin|shitcoin|hodl|wagmi|ngmi|gm|wen|ser|fren|degen|rug|moon|lambo|diamond hands|paper hands|bags?|portfolio|gains|losses|pnl|roi)\b/i.test(l)) return 'chat';
@@ -840,7 +840,7 @@ export function AdamsChat() {
   const navigate = useNavigate();
 
   // Guest Pass: 2 free messages before requiring login
-  const GUEST_MAX_MESSAGES = 2;
+  const GUEST_MAX_MESSAGES = 4;
   const [guestMessageCount, setGuestMessageCount] = useState(() => {
     try { return parseInt(localStorage.getItem('bobby_guest_count') || '0'); } catch { return 0; }
   });
