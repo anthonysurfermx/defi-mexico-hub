@@ -71,10 +71,14 @@ async function callClaude(model: string, system: string, userMsg: string, maxTok
 // noFallback=true for mutant actions (open_position, close_position) — NEVER retry those
 async function fetchLocalApi(path: string, body: any, noFallback = false): Promise<any> {
   const host = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://defi-mexico-hub.vercel.app';
+  const internalAuth = process.env.BOBBY_CYCLE_SECRET || process.env.CRON_SECRET || '';
   try {
     const res = await fetch(`${host}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(internalAuth ? { 'x-internal-secret': internalAuth } : {}),
+      },
       body: JSON.stringify(body)
     });
     if (res.ok) return await res.json();

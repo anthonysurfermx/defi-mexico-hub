@@ -145,8 +145,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const internalSecret = process.env.BOBBY_CYCLE_SECRET || process.env.CRON_SECRET;
     const hasUserCreds = credentials?.apiKey && credentials?.secret;
     const hasInternalAuth = params?.internalSecret === internalSecret;
-    const isFromVercel = req.headers['x-vercel-id']; // Internal Vercel-to-Vercel calls have this
-    if (!hasUserCreds && !hasInternalAuth && !isFromVercel) {
+    const hasHeaderAuth = req.headers['x-internal-secret'] === internalSecret;
+    const isFromVercel = req.headers['x-vercel-id'];
+    if (!hasUserCreds && !hasInternalAuth && !hasHeaderAuth && !isFromVercel) {
       return res.status(401).json({ error: 'Unauthorized — credentials or internal auth required for trading' });
     }
   }
