@@ -48,6 +48,10 @@ export default function BobbyChallengePage() {
 
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [latestDebate, setLatestDebate] = useState<{ id: string; topic: string; symbol: string } | null>(null);
+  const [recentDecisions, setRecentDecisions] = useState<Array<{
+    id: string; symbol: string; direction: string; conviction_score: number;
+    created_at: string; status: string; posts: Array<{ agent: string; content: string }>;
+  }>>([]);
 
   useEffect(() => {
     fetch('/api/bobby-pnl')
@@ -61,13 +65,26 @@ export default function BobbyChallengePage() {
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
     const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=1&select=id,topic,symbol,created_at`, { headers })
+    // Fetch latest 5 debates with their posts
+    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=5&select=id,topic,symbol,direction,conviction_score,created_at,status`, { headers })
       .then(r => r.json())
-      .then(d => {
-        if (Array.isArray(d) && d.length > 0) {
-          setLatestDebate({ id: d[0].id, topic: d[0].topic, symbol: d[0].symbol });
-          setLastRun(d[0].created_at);
-        }
+      .then(async (threads: any[]) => {
+        if (!Array.isArray(threads) || threads.length === 0) return;
+        setLatestDebate({ id: threads[0].id, topic: threads[0].topic, symbol: threads[0].symbol });
+        setLastRun(threads[0].created_at);
+
+        // Fetch posts for these threads
+        const ids = threads.map(t => t.id).join(',');
+        const postsRes = await fetch(`${SB}/rest/v1/forum_posts?thread_id=in.(${ids})&order=created_at.asc&select=thread_id,agent,content`, { headers });
+        const posts = await postsRes.json();
+
+        const decisions = threads.map(t => ({
+          ...t,
+          posts: (Array.isArray(posts) ? posts : []).filter((p: any) => p.thread_id === t.id).map((p: any) => ({
+            agent: p.agent, content: p.content?.slice(0, 200) || '',
+          })),
+        }));
+        setRecentDecisions(decisions);
       }).catch(() => {});
   }, []);
 
@@ -285,6 +302,69 @@ export default function BobbyChallengePage() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Agent Decisions — the WHY behind each trade */}
+            {recentDecisions.length > 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[9px] font-mono text-white/30 tracking-[2px]">AGENT_DECISIONS</span>
+                  <Link to="/agentic-world/forum" className="text-[8px] font-mono text-green-400/50 hover:text-green-400 transition-colors">
+                    VIEW ALL ›
+                  </Link>
+                </div>
+                <div className="space-y-4">
+                  {recentDecisions.slice(0, 3).map((d, i) => {
+                    const cioPost = d.posts.find(p => p.agent === 'cio');
+                    const alphaPost = d.posts.find(p => p.agent === 'alpha');
+                    const redPost = d.posts.find(p => p.agent === 'redteam');
+                    const convPct = Math.round((d.conviction_score || 0) * 100);
+                    const isExecute = convPct >= 60;
+
+                    return (
+                      <motion.div key={d.id} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + i * 0.1 }}
+                        className="border-l-2 border-white/[0.06] pl-3 space-y-2">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-bold text-xs font-mono">{d.symbol || '?'}</span>
+                            {d.direction && (
+                              <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
+                                d.direction === 'long' ? 'bg-green-500/15 text-green-400' :
+                                d.direction === 'short' ? 'bg-red-500/15 text-red-400' :
+                                'bg-white/10 text-white/40'
+                              }`}>{d.direction.toUpperCase()}</span>
+                            )}
+                            <span className={`text-[8px] font-mono font-bold ${convPct >= 60 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {convPct/10}/10
+                            </span>
+                            <span className={`text-[7px] font-mono px-1.5 py-0.5 rounded ${
+                              isExecute ? 'bg-green-500/10 text-green-400/60' : 'bg-red-500/10 text-red-400/60'
+                            }`}>{isExecute ? 'EXECUTE' : 'REJECT'}</span>
+                          </div>
+                          <span className="text-[8px] font-mono text-white/20">
+                            {new Date(d.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {/* Agent reasoning preview */}
+                        {cioPost && (
+                          <p className="text-[9px] font-mono text-yellow-400/50 leading-relaxed">
+                            🟡 CIO: {cioPost.content.slice(0, 150)}{cioPost.content.length > 150 ? '...' : ''}
+                          </p>
+                        )}
+                        {!cioPost && alphaPost && (
+                          <p className="text-[9px] font-mono text-green-400/40 leading-relaxed">
+                            🟢 Alpha: {alphaPost.content.slice(0, 120)}...
+                          </p>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
             {/* Trade History */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
