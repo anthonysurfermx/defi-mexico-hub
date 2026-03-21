@@ -56,6 +56,7 @@ const ConsensusPage = lazy(() => import('@/pages/ConsensusPage'));
 const ClawTraderPage = lazy(() => import('@/pages/ClawTraderPage'));
 const ClawTraderChatPage = lazy(() => import('@/pages/ClawTraderChatPage'));
 const BobbyAgentTraderPage = lazy(() => import('@/pages/BobbyAgentTraderPage'));
+const BobbyChallengePage = lazy(() => import('@/pages/BobbyChallengePage'));
 const AgentForumPage = lazy(() => import('@/pages/AgentForumPage'));
 
 
@@ -503,6 +504,14 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <BobbyAgentTraderPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/challenge',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyChallengePage />
                 </Suspense>
               ),
             },
