@@ -752,6 +752,14 @@ export function AdamsChat() {
   const tickerCacheRef = useRef<OKXTicker[]>([]);
   const [tickerTape, setTickerTape] = useState<OKXTicker[]>([]);
 
+  // Load tickers on mount for ticker tape (independent of onboarding)
+  useEffect(() => {
+    fetchTickers().then(tickers => {
+      tickerCacheRef.current = tickers;
+      setTickerTape(tickers);
+    }).catch(() => {});
+  }, []);
+
   // Clear ticker cache every 5 minutes to ensure fresh data
   useEffect(() => {
     const interval = setInterval(() => { tickerCacheRef.current = []; }, 5 * 60 * 1000);
