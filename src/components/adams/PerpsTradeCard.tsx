@@ -17,6 +17,7 @@ interface PerpsTradeCardProps {
   targetPrice?: number;
   stopPrice?: number;
   language?: string;
+  isOwner?: boolean; // Only owner can execute live trades
   tradingMode?: TradingMode; // From user onboarding preference
 }
 
@@ -30,7 +31,7 @@ interface MarketInfo {
 
 export default function PerpsTradeCard({
   symbol, direction, conviction, entryPrice, targetPrice, stopPrice, language = 'en',
-  tradingMode: initialMode = 'paper',
+  tradingMode: initialMode = 'paper', isOwner = false,
 }: PerpsTradeCardProps) {
   const [leverage, setLeverage] = useState(5);
   // Smart default: ETH/SOL need ~$5, BTC needs ~$15 with 5x
@@ -242,23 +243,29 @@ export default function PerpsTradeCard({
           ))}
         </div>
 
-        {/* Execute button — "TRANSMIT_ORDER_SIGNAL" */}
-        {!result ? (
-          <button onClick={executePerp} disabled={executing || conviction < 0.3}
-            className={`w-full py-3 rounded text-sm font-bold tracking-[2px] transition-all active:scale-[0.98] ${
-              conviction < 0.3 ? 'bg-white/[0.04] text-white/15 cursor-not-allowed'
-                : executing ? 'bg-white/[0.08] text-white/40'
-                : 'bg-gradient-to-r from-green-500 to-green-600 text-black hover:brightness-110'
-            }`}>
-            {executing ? (isEs ? 'TRANSMITIENDO...' : 'TRANSMITTING...')
-              : conviction < 0.3 ? (isEs ? 'CONVICCIÓN INSUFICIENTE' : 'INSUFFICIENT CONVICTION')
-              : `TRANSMIT_ORDER_SIGNAL ›› ${mode === 'paper' ? 'DEMO' : 'LIVE'}`}
-          </button>
+        {/* Execute button — only for owner */}
+        {isOwner ? (
+          !result ? (
+            <button onClick={executePerp} disabled={executing || conviction < 0.3}
+              className={`w-full py-3 rounded text-sm font-bold tracking-[2px] transition-all active:scale-[0.98] ${
+                conviction < 0.3 ? 'bg-white/[0.04] text-white/15 cursor-not-allowed'
+                  : executing ? 'bg-white/[0.08] text-white/40'
+                  : 'bg-gradient-to-r from-green-500 to-green-600 text-black hover:brightness-110'
+              }`}>
+              {executing ? (isEs ? 'TRANSMITIENDO...' : 'TRANSMITTING...')
+                : conviction < 0.3 ? (isEs ? 'CONVICCIÓN INSUFICIENTE' : 'INSUFFICIENT CONVICTION')
+                : `TRANSMIT_ORDER_SIGNAL ›› ${mode === 'paper' ? 'DEMO' : 'LIVE'}`}
+            </button>
+          ) : (
+            <div className="p-3 bg-green-500/[0.06] border border-green-500/20 rounded">
+              <div className="text-green-400 font-bold text-xs mb-1">{isEs ? 'POSICIÓN ABIERTA' : 'POSITION OPENED'}</div>
+              <div className="text-[10px] text-white/60">{result.symbol} {result.direction?.toUpperCase()} {result.leverage}</div>
+              <div className="text-[9px] text-white/30 mt-1">Order: {result.orderId}</div>
+            </div>
+          )
         ) : (
-          <div className="p-3 bg-green-500/[0.06] border border-green-500/20 rounded">
-            <div className="text-green-400 font-bold text-xs mb-1">{isEs ? 'POSICIÓN ABIERTA' : 'POSITION OPENED'}</div>
-            <div className="text-[10px] text-white/60">{result.symbol} {result.direction?.toUpperCase()} {result.leverage}</div>
-            <div className="text-[9px] text-white/30 mt-1">Order: {result.orderId}</div>
+          <div className="w-full py-2.5 rounded text-center text-[10px] font-mono tracking-[1px] bg-white/[0.03] border border-white/[0.06] text-white/30">
+            {isEs ? 'SEÑAL DE BOBBY — SOLO LECTURA' : 'BOBBY\'S SIGNAL — READ ONLY'}
           </div>
         )}
 

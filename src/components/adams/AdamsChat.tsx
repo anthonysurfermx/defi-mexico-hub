@@ -3243,6 +3243,7 @@ export function AdamsChat() {
                           stopPrice={stopMatch ? parseFloat(stopMatch[1].replace(/,/g, '')) : undefined}
                           language={lang}
                           tradingMode={(tradingMode === 'auto' || tradingMode === 'confirm') ? 'live' : 'paper'}
+                          isOwner={isAuthenticated && address?.toLowerCase() === '0xc3f836ec06a2202af23e59997a613ca0722f35d1'}
                         />
                       );
                     }
