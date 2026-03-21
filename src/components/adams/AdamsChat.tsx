@@ -21,7 +21,7 @@ import { IntelligenceFeed, type DebateData, type MetacognitionData, type SignalD
 import { ConvictionBoard } from './ConvictionBoard';
 import { FeedbackWidget } from './FeedbackWidget';
 import { ExecutionTimeline } from './ExecutionTimeline';
-// Router functions (detectIntent, detectStocks, detectTokens) defined inline below
+import { STOCK_MAP, TOKEN_MAP, detectIntent, detectStocks, detectTokens } from '@/lib/router/detectIntent';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
 import { clearStoredVibe, getStoredVibe, inferUserVibe, saveStoredVibe, shouldClearStoredVibe } from '@/lib/bobby-vibe';
