@@ -298,7 +298,10 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
         entryPrice = typeof v.entry === 'number' ? v.entry : null;
         stopPrice = typeof v.stop === 'number' ? v.stop : null;
         targetPrice = typeof v.target === 'number' ? v.target : null;
-        cioSaysExecute = v.execute === true; // MUST be explicitly true
+        // execute:true requires ALL fields to be present in JSON — no regex backfill
+        if (v.execute === true && symbol && direction && conviction !== null && stopPrice) {
+          cioSaysExecute = true;
+        }
       } catch (e) {
         console.warn('[Cycle] Failed to parse CIO VERDICT JSON:', e);
       }
@@ -317,8 +320,7 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
       const dirMatch = cioPost.match(/\b(long|short)\b/i);
       direction = dirMatch ? dirMatch[1].toLowerCase() : null;
     }
-    // Regex fallback NEVER enables execution — only structured VERDICT can
-    // This prevents the LLM from accidentally triggering trades via free text
+    // Regex fallback NEVER enables execution — only structured VERDICT with complete fields can
 
     // ============================================================
     // PHASE 4a: Create forum thread FIRST (canonical ID for everything)
@@ -434,12 +436,13 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
                       params: { symbol, direction, mode: 'live' }
                     }, true /* noFallback */);
                     // Verify the close actually worked
+                    executionResult = null;
                     if (!closeRes?.ok) {
                       console.error('[Cycle] EMERGENCY: close_position FAILED — position may still be open without SL!');
                       tradeRejectedReason = 'EMERGENCY: TP/SL failed AND close failed — manual intervention required';
+                    } else {
+                      tradeRejectedReason = 'TP/SL failed — position closed for safety';
                     }
-                    executionResult = null;
-                    tradeRejectedReason = 'TP/SL failed — position closed for safety';
                   }
                 }
 
@@ -451,11 +454,11 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
                       threadId: threadId || `bobby-cycle-${Date.now()}`,
                       symbol,
                       agent: 'cio',
-                      conviction,
+                      conviction: conviction !== null ? Math.round(conviction * 10) : 5,
                       entryPrice: currentPrice,
                       targetPrice,
-                      stopPrice
-                    });
+                      stopPrice,
+                    }, true);
                     if (commitRes.ok) {
                       txHash = commitRes.txHash;
                     } else {
