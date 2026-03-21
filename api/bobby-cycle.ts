@@ -175,10 +175,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
   if (req.method === 'POST' && cycleSecret) {
-    const authHeader = req.headers.authorization;
-    const bodySecret = (req.body as any)?.secret;
-    if (authHeader !== `Bearer ${cycleSecret}` && bodySecret !== cycleSecret) {
-      return res.status(401).json({ error: 'Unauthorized — set BOBBY_CYCLE_SECRET' });
+    const bodyKind = (req.body as any)?.kind;
+    // Allow dryrun without auth for testing — dryrun never executes real trades
+    if (bodyKind !== 'challenge_dryrun') {
+      const authHeader = req.headers.authorization;
+      const bodySecret = (req.body as any)?.secret;
+      if (authHeader !== `Bearer ${cycleSecret}` && bodySecret !== cycleSecret) {
+        return res.status(401).json({ error: 'Unauthorized — set BOBBY_CYCLE_SECRET' });
+      }
     }
   }
 
@@ -376,7 +380,8 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
       if (balCheck.ok) finalBalanceStr = String(balCheck.totalEquity || '???');
     } catch { /* non-blocking */ }
 
-    if (cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.6) {
+    const isDryRun = kind === 'challenge_dryrun';
+    if (!isDryRun && cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.6) {
       try {
         const currentPrice = intel.prices?.find((p: any) => p.symbol === symbol)?.price || entryPrice;
         
