@@ -5,6 +5,7 @@
 // ============================================================
 
 import { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Activity, Shield, TrendingUp, TrendingDown, Clock } from 'lucide-react';
@@ -77,6 +78,19 @@ export default function BobbyChallengePage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
+      <Helmet>
+        <title>Bobby Live Challenge | AI Trading Dashboard</title>
+        <meta name="description" content="Track Bobby, an autonomous AI trading agent on OKX. Live balance, win rate, trade history, and on-chain proof on X Layer." />
+        <link rel="canonical" href="https://defimexico.org/agentic-world/bobby/challenge" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://defimexico.org/agentic-world/bobby/challenge" />
+        <meta property="og:title" content="Bobby Live Challenge | AI Trading Dashboard" />
+        <meta property="og:description" content="Witness Bobby's autonomous trading. Zero human intervention. Multi-agent debate. On-chain accountability." />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Bobby Live Challenge | AI Trading Dashboard" />
+        <meta name="twitter:description" content="Track Bobby's live trading on OKX. Balance, win rate, every trade verified on X Layer." />
+      </Helmet>
+
       {/* Header */}
       <div className="border-b border-white/[0.04] px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -96,11 +110,11 @@ export default function BobbyChallengePage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <span className="text-[9px] font-mono text-green-400/40 tracking-[3px]">CHALLENGE_ACCEPTED · ACTIVE</span>
           <h1 className="text-4xl sm:text-6xl font-bold mt-2">
-            BOBBY <span className="text-green-400">$100</span>
+            BOBBY <span className="text-green-400">LIVE</span>
           </h1>
           <h2 className="text-3xl sm:text-5xl font-bold text-white/80">CHALLENGE</h2>
           <p className="text-white/30 text-xs font-mono mt-3 max-w-lg leading-relaxed">
-            Watch Bobby autonomously trade with real $100 on OKX.
+            Witness Bobby's autonomous trading on OKX. Zero human intervention.
             Multi-agent debate before every decision. On-chain accountability.
           </p>
         </motion.div>
@@ -124,10 +138,10 @@ export default function BobbyChallengePage() {
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {[
-                { label: 'ACC_BALANCE', value: `$${s.currentEquity.toFixed(2)}`, sub: `$${s.startingCapital} initial`, color: 'text-white' },
-                { label: 'TOTAL_RETURN', value: `${s.totalReturn >= 0 ? '+' : ''}${s.totalReturn}%`, sub: 'since inception', color: s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400' },
-                { label: 'WIN_RATE', value: `${s.winRate.toFixed(1)}%`, sub: `${s.wins}W / ${s.losses}L`, color: s.winRate >= 50 ? 'text-green-400' : 'text-amber-400' },
-                { label: 'TOTAL_TRADES', value: String(s.totalTrades), sub: 'executed', color: 'text-white' },
+                { label: 'AGENT_BANKROLL', value: `$${s.currentEquity.toFixed(2)}`, sub: `$${s.startingCapital} initial`, color: 'text-white' },
+                { label: 'NET_ALPHA', value: `${s.totalReturn >= 0 ? '+' : ''}${s.totalReturn}%`, sub: 'since inception', color: s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400' },
+                { label: 'SUCCESS_RATE', value: `${s.winRate.toFixed(1)}%`, sub: `${s.wins}W / ${s.losses}L`, color: s.winRate >= 50 ? 'text-green-400' : 'text-amber-400' },
+                { label: 'TACTICAL_PLAYS', value: String(s.totalTrades), sub: 'executed', color: 'text-white' },
               ].map((stat, i) => (
                 <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.05 }}
                   className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
