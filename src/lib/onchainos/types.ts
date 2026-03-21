@@ -9,6 +9,7 @@ export interface TradeParams {
   lever: string;         // apalancamiento e.g. "3"
   ordType: 'market' | 'limit';
   px?: string;           // precio para limit orders
+  slTriggerPx?: string;  // precio trigger (Stop Loss) - OBLIGATORIO en $100 Challenge
 }
 
 export interface TradeResult {
