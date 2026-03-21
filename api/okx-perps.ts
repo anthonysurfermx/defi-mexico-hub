@@ -293,22 +293,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `${OKX_BASE}/api/v5/public/instruments?instType=SWAP&instId=${instId}`
       );
       const instData = await instRes.json();
-      const ctVal = parseFloat(instData.data?.[0]?.ctVal || '0.01');
+      const inst = instData.data?.[0];
+      const ctVal = parseFloat(inst?.ctVal || '0.01'); // Contract value in base currency
+      const minSz = parseFloat(inst?.minSz || '1');     // Min order size in contracts
+      const lotSz = parseFloat(inst?.lotSz || '1');     // Lot size increment
 
       // Step 3: Get mark price
       const priceRes = await fetch(`${OKX_BASE}/api/v5/market/ticker?instId=${instId}`);
       const priceData = await priceRes.json();
       const markPrice = parseFloat(priceData.data?.[0]?.last || '0');
 
-      // Step 4: Calculate size in ETH units (OKX SWAP uses base currency, not contracts)
-      // margin = size * price / leverage → size = margin * leverage / price
-      const sizeInEth = (amountUSDT * leverage) / markPrice;
-      const sizeRounded = Math.floor(sizeInEth * 100) / 100; // Round down to 0.01 (min contract)
+      // Step 4: Calculate size dynamically based on instrument specs
+      // OKX SWAP: sz is in contracts. 1 contract = ctVal units of base currency
+      // margin = sz * ctVal * markPrice / leverage → sz = margin * leverage / (ctVal * markPrice)
+      const sizeInContracts = (amountUSDT * leverage) / (ctVal * markPrice);
+      // Round down to nearest lotSz
+      const sizeRounded = Math.floor(sizeInContracts / lotSz) * lotSz;
+      const minMarginNeeded = (minSz * ctVal * markPrice / leverage);
 
-      if (sizeRounded < 0.01) {
+      if (sizeRounded < minSz) {
         return res.status(400).json({
           ok: false,
-          error: `Amount too small. Minimum ${(0.01 * markPrice / leverage).toFixed(2)} USDT needed.`,
+          error: `Amount too small. Minimum ${minMarginNeeded.toFixed(2)} USDT needed for ${symbol}. (ctVal=${ctVal}, minSz=${minSz})`,
         });
       }
 
