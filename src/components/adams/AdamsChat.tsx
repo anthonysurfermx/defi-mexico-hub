@@ -1305,11 +1305,8 @@ export function AdamsChat() {
             // No prices here — Bobby's Radar (ConvictionBoard) shows them above
           }]);
 
-          // Auto-speak with small delay — use queueSentence to guarantee Edge TTS MX voice
-          setTimeout(() => {
-            const cleanIntro = introText.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
-            queueSentence(cleanIntro, 'cio', lang);
-          }, 500);
+          // Don't auto-speak on onboarding — browser blocks autoplay without user gesture
+          // Bobby will speak after the user's first message (initVoiceContext is called there)
         }).catch(() => {
           setMessages([{
             id: 'welcome',
@@ -2021,7 +2018,9 @@ export function AdamsChat() {
       ? fetch('/api/bobby-intel').then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
     // Technical analysis for the primary token mentioned
-    const taSymbol = hasTokens ? tokens[0].split('-')[0] : (isGeneralMarket || tradingRoom || needsOKX || isGeneralOpinion || hasVibeContext ? 'BTC' : null);
+    // Only show BTC chart if user asked about crypto, not stocks or pure macro
+    const isMacroOnly = /\b(fed|tasas|rates|econom[ií]a|economy|recession|recesi|inflaci|geopolit|guerra|war|tariff|arancel)\b/i.test(msg) && !hasTokens;
+    const taSymbol = hasTokens ? tokens[0].split('-')[0] : (!stocks.length && !isMacroOnly && (isGeneralMarket || tradingRoom || needsOKX || isGeneralOpinion || hasVibeContext) ? 'BTC' : null);
     const taPromise = taSymbol
       ? fetch(`/api/technical-analysis?symbol=${taSymbol}`).then(r => r.ok ? r.json() : null).catch(() => null)
       : Promise.resolve(null);
