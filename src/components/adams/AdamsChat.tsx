@@ -3508,9 +3508,9 @@ if (symMatch) {
   );
 }
 return null;
-                }) ()}
+                })()}
 
-{/* Trade execution cards */ }
+                {/* Trade execution cards */}
 {
   latestAdvisor.trades && latestAdvisor.trades.length > 0 && (
     <div className="mt-3 space-y-2">
