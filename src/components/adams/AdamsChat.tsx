@@ -228,8 +228,8 @@ function detectIntent(text: string): 'price' | 'analyze' | 'portfolio' | 'trendi
   // WEAK TRADING SIGNALS — market-adjacent language, route to chat if enough context
   if (wordCount >= 3 && /\b(market|mercado|price|bottom|top|dip|rally|correction|breakout|breakdown|reversal|squeeze|accumul|distribut|volume|candle|trend|momentum|signal|setup|pattern|level|zone|demand|supply|move|action|cycle|wave|peak|knife|liq|pump|rekt|whale|fakeout|trapped|sweep)\b/i.test(l)) return 'chat';
 
-  // CRYPTO/EXCHANGE CONTEXT — timeframes, exchanges
-  if (/\b(binance|okx|coinbase|bybit|kraken|1h|4h|1d|1w|daily|weekly|monthly|timeframe|defi|nft|airdrop|staking|yield|apr|apy)\b/i.test(l)) return 'chat';
+  // CRYPTO/EXCHANGE CONTEXT — timeframes, exchanges, crypto-adjacent
+  if (/\b(binance|okx|coinbase|bybit|kraken|1h|4h|1d|1w|daily|weekly|monthly|timeframe|defi|nft|airdrop|staking|yield|apr|apy|crypto|blockchain|web3|token|altcoin|memecoin|shitcoin|hodl|wagmi|ngmi|gm|wen|ser|fren|degen|rug|moon|lambo|diamond hands|paper hands|bags?|portfolio|gains|losses|pnl|roi)\b/i.test(l)) return 'chat';
 
   // Default: ambiguous — show menu instead of burning tokens
   return 'ambiguous';
