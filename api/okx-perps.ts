@@ -162,7 +162,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const posMode = await okxRequest('POST', '/api/v5/account/set-position-mode', { posMode: 'long_short_mode' }, c);
       // 2. Set account level to single-currency margin (1)
       // Note: this only works if no open positions exist
-      const acctRes = await okxRequest('POST', '/api/v5/account/set-account-level', { acctLv: '1' }, c);
+      const acctLv = params?.accountLevel || '2'; // 2 = multi-currency margin (needed for SWAP perps)
+      const acctRes = await okxRequest('POST', '/api/v5/account/set-account-level', { acctLv }, c);
       return res.status(200).json({
         ok: true,
         positionMode: posMode,
