@@ -70,7 +70,8 @@ async function callClaude(model: string, system: string, userMsg: string, maxTok
 // ---- Fetch local internal API ----
 // noFallback=true for mutant actions (open_position, close_position) — NEVER retry those
 async function fetchLocalApi(path: string, body: any, noFallback = false): Promise<any> {
-  const host = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://defi-mexico-hub.vercel.app';
+  // Always use production domain — VERCEL_URL points to preview deployments that may have stale env vars
+  const host = 'https://defimexico.org';
   const internalAuth = process.env.BOBBY_CYCLE_SECRET || process.env.CRON_SECRET || '';
   try {
     const res = await fetch(`${host}${path}`, {
