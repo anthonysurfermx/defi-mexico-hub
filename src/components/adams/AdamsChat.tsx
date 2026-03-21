@@ -1621,9 +1621,28 @@ export function AdamsChat() {
     const userMsg: ChatMsg = { id: uid(), role: 'user', text: msg, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
 
-    const intent = detectIntent(msg);
+    let intent = detectIntent(msg);
     const tokens = detectTokens(msg);
     const now = Date.now();
+
+    // HYBRID ROUTER: if regex says ambiguous, ask Haiku (cheap LLM classifier)
+    if (intent === 'ambiguous') {
+      try {
+        const lastBobby = messages.filter(m => m.role === 'advisor').slice(-1)[0]?.text?.slice(0, 200);
+        const routerRes = await fetch('/api/bobby-router', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, context: lastBobby }),
+        });
+        if (routerRes.ok) {
+          const r = await routerRes.json();
+          if (r.intent && r.intent !== 'off_topic' && r.confidence >= 0.5) {
+            intent = r.intent === 'trade_chat' ? 'chat' : r.intent;
+            console.log(`[Router] Haiku reclassified: "${msg.slice(0, 40)}" → ${r.intent} (${r.confidence}, ${r.reason})`);
+          }
+        }
+      } catch { /* silent — fall through to ambiguous menu */ }
+    }
 
     if (shouldClearStoredVibe(msg)) {
       clearStoredVibe();
