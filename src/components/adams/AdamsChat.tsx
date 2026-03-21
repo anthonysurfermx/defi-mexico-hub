@@ -2590,9 +2590,12 @@ export function AdamsChat() {
           } catch (forumErr) { console.warn('[Bobby] Forum publish failed:', forumErr); }
         }
 
-        // ── AUTO-EXECUTE: If mode is 'auto' and Bobby recommended a trade with conviction >= 5/10 ──
-        console.log(`[Bobby] Auto-execute check: tradingMode=${tradingMode}, tradingRoom=${tradingRoom}, hasText=${!!fullText}, textLen=${fullText.length}`);
-        if (tradingMode === 'auto' && tradingRoom && fullText) {
+        // ── AUTO-EXECUTE: ONLY for authenticated owner, never for guests ──
+        // This prevents random users from opening positions with Bobby's OKX account
+        const OWNER_WALLET = '0xC3F836EC06A2202af23e59997A613CA0722F35d1'.toLowerCase();
+        const isOwner = isAuthenticated && address?.toLowerCase() === OWNER_WALLET;
+        console.log(`[Bobby] Auto-execute check: tradingMode=${tradingMode}, isOwner=${isOwner}, hasText=${!!fullText}`);
+        if (tradingMode === 'auto' && tradingRoom && fullText && isOwner) {
           try {
             // Codex P1: Parse ONLY the CIO verdict section, not Alpha/Red Team
             // This prevents executing Alpha's trade when CIO said NO
