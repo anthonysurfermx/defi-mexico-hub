@@ -750,6 +750,7 @@ export function AdamsChat() {
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Cache tickers locally for quick re-use
   const tickerCacheRef = useRef<OKXTicker[]>([]);
+  const [tickerTape, setTickerTape] = useState<OKXTicker[]>([]);
 
   // Clear ticker cache every 5 minutes to ensure fresh data
   useEffect(() => {
@@ -1297,7 +1298,7 @@ export function AdamsChat() {
         const introText = t('intro') as string;
 
         fetchTickers().then(tickers => {
-          tickerCacheRef.current = tickers;
+          tickerCacheRef.current = tickers; setTickerTape(tickers);
           const btc = tickers.find(t => t.symbol === 'BTC');
           const eth = tickers.find(t => t.symbol === 'ETH');
           const gold = tickers.find(t => t.symbol === 'XAUT');
@@ -2945,10 +2946,10 @@ export function AdamsChat() {
         </div>
 
         {/* Bloomberg-style ticker tape — live prices scrolling */}
-        {tickerCacheRef.current.length > 0 && (
+        {tickerTape.length > 0 && (
           <div className="overflow-hidden border-b border-white/[0.03] bg-white/[0.01]">
             <div className="flex animate-marquee whitespace-nowrap py-1">
-              {[...tickerCacheRef.current, ...tickerCacheRef.current].map((t, i) => (
+              {[...tickerTape, ...tickerTape].map((t, i) => (
                 <span key={`${t.symbol}-${i}`} className="inline-flex items-center gap-1.5 mx-4 text-[9px] font-mono">
                   <span className="text-white/50">{t.symbol}</span>
                   <span className="text-white/70">${t.last?.toLocaleString(undefined, { maximumFractionDigits: t.last < 1 ? 4 : 2 })}</span>
