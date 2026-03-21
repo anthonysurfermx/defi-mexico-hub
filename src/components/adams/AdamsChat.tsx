@@ -770,12 +770,25 @@ export function AdamsChat() {
       return stored === null ? true : stored === 'true'; // ON by default for first-time users
     } catch { return true; }
   });
+  // Stable callback for TradingModeSelector — prevents re-render loop (Gemini P1 fix)
+  const handleModeSelect = useCallback((mode: TradingMode) => {
+    setTradingMode(mode);
+    setShowSetup(false);
+  }, []);
+
+  // Voice gate: Bobby only speaks AFTER the user's first real interaction
+  // This prevents autoplay blocks and makes voice feel consequential
+  const hasUserInteractedRef = useRef(false);
+
   const toggleVoice = useCallback(() => {
     const next = !voiceEnabled;
     setVoiceEnabled(next);
     try { localStorage.setItem('bobby_voice_enabled', String(next)); } catch { }
     if (!next) stopVoice();
-  }, [voiceEnabled, stopVoice]);
+    // Clicking voice toggle counts as interaction
+    hasUserInteractedRef.current = true;
+    initVoiceContext();
+  }, [voiceEnabled, stopVoice, initVoiceContext]);
 
   // ---- Live market sentiment badge (Fear & Greed + DXY) ----
   const [marketBadge, setMarketBadge] = useState<{ fgi: number; fgiLabel: string; dxy: number } | null>(null);
@@ -805,6 +818,8 @@ export function AdamsChat() {
   // Auto-speak new advisor messages when voice is enabled
   const lastSpokenRef = useRef<string>('');
   const speakIfEnabled = useCallback((text: string) => {
+    // Gate: don't speak until user has interacted (prevents autoplay block)
+    if (!hasUserInteractedRef.current) return;
     if (!voiceEnabled || !text || text === lastSpokenRef.current) return;
     const clean = text.replace(/[-*_#>]/g, '').replace(/\n+/g, '. ').trim();
     if (clean.length < 10) return;
@@ -1466,6 +1481,11 @@ export function AdamsChat() {
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text || inputText).trim();
     if (!msg || isProcessing) return;
+    // Mark user as interacted — unlocks Bobby's voice from this point on
+    if (!hasUserInteractedRef.current) {
+      hasUserInteractedRef.current = true;
+      initVoiceContext();
+    }
     // Voice interruption: stop Bobby speaking when user sends new message
     stopVoice();
     setActiveAgent(null);
@@ -2754,10 +2774,7 @@ export function AdamsChat() {
   return (
     <div className="h-full text-white flex flex-col overflow-hidden" style={{ background: '#050505' }}>
       {/* Step 1: Trading Mode Selection (first thing user sees) */}
-      {!tradingMode && <TradingModeSelector onSelect={(mode) => {
-        setTradingMode(mode);
-        setShowSetup(false);
-      }} language={lang} onInitVoice={initVoiceContext} />}
+      {!tradingMode && <TradingModeSelector onSelect={handleModeSelect} language={lang} onInitVoice={initVoiceContext} />}
 
       {/* Step 2: Advisor Setup (only if trading mode already selected AND needed) */}
       {tradingMode && showSetup && <AdvisorSetup onComplete={handleSetupComplete} />}
