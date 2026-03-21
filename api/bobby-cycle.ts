@@ -409,9 +409,8 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
               // 3. Execute Trade on OKX
               const openRes = await fetchLocalApi('/api/okx-perps', {
                 action: 'open_position',
-                params: { symbol, direction, leverage, amount: positionSizeUsd, conviction, mode: 'live', skipOnchainCommit: true }
-              }, true /* noFallback — NEVER retry open_position */
-              });
+                params: { symbol, direction, leverage, amount: positionSizeUsd, conviction, mode: 'live', skipOnchainCommit: true },
+              }, true);
 
               if (openRes.ok) {
                 executionResult = openRes;
