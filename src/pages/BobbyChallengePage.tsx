@@ -124,7 +124,7 @@ export default function BobbyChallengePage() {
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {[
-                { label: 'ACC_BALANCE', value: `$${s.currentEquity.toFixed(2)}`, sub: `$${(100).toFixed(2)} initial`, color: 'text-white' },
+                { label: 'ACC_BALANCE', value: `$${s.currentEquity.toFixed(2)}`, sub: `$${s.startingCapital} initial`, color: 'text-white' },
                 { label: 'TOTAL_RETURN', value: `${s.totalReturn >= 0 ? '+' : ''}${s.totalReturn}%`, sub: 'since inception', color: s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400' },
                 { label: 'WIN_RATE', value: `${s.winRate.toFixed(1)}%`, sub: `${s.wins}W / ${s.losses}L`, color: s.winRate >= 50 ? 'text-green-400' : 'text-amber-400' },
                 { label: 'TOTAL_TRADES', value: String(s.totalTrades), sub: 'executed', color: 'text-white' },
@@ -136,6 +136,54 @@ export default function BobbyChallengePage() {
                   <span className="text-[9px] font-mono text-white/20 block mt-1">{stat.sub}</span>
                 </motion.div>
               ))}
+            </div>
+
+            {/* Equity curve — simple visual of trade PnL over time */}
+            {pnl && pnl.closedPositions.length > 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded mb-8">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[9px] font-mono text-white/30 tracking-[2px]">EQUITY_CURVE</span>
+                  <span className="text-[8px] font-mono text-white/20">{pnl.closedPositions.length} TRADES</span>
+                </div>
+                <div className="flex items-end gap-1 h-16">
+                  {pnl.closedPositions.map((t, i) => {
+                    const maxPnl = Math.max(...pnl.closedPositions.map(p => Math.abs(p.pnlPct)));
+                    const h = Math.max(4, (Math.abs(t.pnlPct) / (maxPnl || 1)) * 60);
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end">
+                        <div
+                          className={`w-full rounded-t ${t.result === 'WIN' ? 'bg-green-500/60' : 'bg-red-500/60'}`}
+                          style={{ height: `${h}px` }}
+                          title={`${t.symbol} ${t.direction} ${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct.toFixed(1)}%`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between mt-1 text-[7px] font-mono text-white/15">
+                  <span>FIRST TRADE</span>
+                  <span>LATEST</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* CTAs */}
+            <div className="flex flex-wrap gap-3 mb-8">
+              <Link to="/agentic-world/bobby"
+                className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-mono tracking-wider hover:bg-green-500/20 transition-colors rounded">
+                <Activity className="w-3 h-3" />
+                OPEN TERMINAL ›
+              </Link>
+              <Link to="/agentic-world/forum"
+                className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
+                VIEW DEBATES ›
+              </Link>
+              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Bobby Agent Trader is running the $100 Challenge — autonomous AI trading with on-chain accountability. Watch live: https://defimexico.org/agentic-world/bobby/challenge #BobbyTrader #AI #Trading')}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
+                SHARE ON X ›
+              </a>
             </div>
 
             {/* Safety protocols */}
