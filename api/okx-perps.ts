@@ -279,11 +279,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const instId = getInstId(symbol);
 
     try {
-      // Step 1: Set leverage (isolated margin, net mode)
+      // Step 1: Set leverage (isolated margin, long/short mode)
       await okxRequest('POST', '/api/v5/account/set-leverage', {
         instId,
         lever: String(leverage),
         mgnMode: 'isolated',
+        posSide: direction === 'long' ? 'long' : 'short',
       }, creds);
 
       // Step 2: Get contract size info
@@ -315,7 +316,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         instId,
         tdMode: 'isolated',
         side: direction === 'long' ? 'buy' : 'sell',
-        posSide: 'net',
+        posSide: direction === 'long' ? 'long' : 'short',
         ordType: 'market',
         sz: String(sizeRounded),
       }, creds);
@@ -392,7 +393,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await okxRequest('POST', '/api/v5/trade/close-position', {
         instId,
         mgnMode: 'isolated',
-        posSide: 'net',
+        posSide: direction === 'long' ? 'long' : 'short',
       }, creds);
 
       return res.status(200).json({
