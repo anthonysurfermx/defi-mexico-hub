@@ -17,8 +17,8 @@ import KineticShell from '@/components/kinetic/KineticShell';
 // Payment config — X Layer (Chain 196)
 const BOBBY_WALLET = '0xF841b428E6d743187D7BE2242eccC1078fdE2395' as `0x${string}`;
 const USDT_CONTRACT = '0x1E4a5963aBFD975d8c9021ce480b42188849D41d' as `0x${string}`;
-const PAYMENT_AMOUNT_OKB = parseUnits('0.001', 18); // 0.001 OKB (~$0.08)
-const PAYMENT_AMOUNT_USDT = parseUnits('0.01', 6); // 0.01 USDT
+const PAYMENT_AMOUNT_OKB = BigInt('1000000000000000'); // 0.001 OKB = 1e15 wei
+const PAYMENT_AMOUNT_USDT = BigInt('10000'); // 0.01 USDT = 10000 (6 decimals)
 const XLAYER_CHAIN_ID = 196;
 
 const ERC20_ABI = [{ name: 'transfer', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }] as const;
