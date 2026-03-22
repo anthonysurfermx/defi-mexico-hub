@@ -769,7 +769,7 @@ export function AdamsChat() {
   // Language must be declared early — used by voice, i18n, and intent detection
   // Detect from profile, localStorage, or browser language
   const lang = profile?.language || localStorage.getItem('bobby_lang') || (navigator.language.startsWith('es') ? 'es' : 'en');
-  const advisorName = profile?.advisorName || 'Bobby';
+  const advisorName = profile?.advisorName || localStorage.getItem('bobby_agent_name') || 'Bobby';
 
   // ---- Bobby's Voice ----
   const { speak, speakLocal, queueSentence, flushQueue, stop: stopVoice, initVoiceContext, getLastResponseAudio, clearResponseAudio, hasResponseAudio, voiceBlocked, isSpeaking, analyser } = useBobbyVoice();

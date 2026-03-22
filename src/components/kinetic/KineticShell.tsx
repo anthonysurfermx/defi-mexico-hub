@@ -62,12 +62,21 @@ export default function KineticShell({ children, activeTab, showSidebar = false 
   const location = useLocation();
   const currentTab = activeTab || NAV_ITEMS.find(n => location.pathname === n.path)?.id || 'terminal';
 
+  // Read personalized agent name
+  const agentName = (() => {
+    try {
+      const saved = localStorage.getItem('bobby_agent_name');
+      if (saved && saved.length >= 2) return saved;
+    } catch {}
+    return 'BOBBY';
+  })();
+
   return (
     <div className="min-h-screen bg-[#050505] text-[#e5e2e1] font-['Inter'] selection:bg-green-500 selection:text-black">
       {/* === Top Nav === */}
       <nav className="sticky top-0 w-full flex justify-between items-center px-6 h-14 bg-[#131313]/80 backdrop-blur-md z-50 shadow-[0_0_15px_rgba(34,197,94,0.08)] border-b border-white/5">
         <Link to="/agentic-world/bobby" className="text-lg font-black tracking-tighter text-green-500 font-mono hover:opacity-80 transition-opacity">
-          BOBBY AGENT TRADER
+          {agentName} AGENT TRADER
         </Link>
         <div className="hidden md:flex gap-6 items-center font-mono uppercase tracking-widest text-[10px]">
           {NAV_ITEMS.map(item => (
