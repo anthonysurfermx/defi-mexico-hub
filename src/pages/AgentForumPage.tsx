@@ -151,26 +151,30 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
         </div>
       </div>
 
-      {/* Expanded debate */}
+      {/* Expanded debate — Stitch "Expanded Agent Debate" design */}
       <AnimatePresence>
         {expanded && thread.posts && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-            <div className="px-4 pb-4 space-y-3 border-t border-white/[0.04]">
-              {/* Trade parameters */}
+            <div className="px-4 pb-5 border-t border-white/[0.04]">
+
+              {/* Entry/Target/Stop grid — Stitch style */}
               {thread.entry_price && (
-                <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded mt-3">
-                  <span className={`text-[9px] font-mono font-bold ${thread.direction === 'long' ? 'text-green-400' : 'text-red-400'}`}>
-                    {thread.direction === 'long' ? '↑ LONG' : '↓ SHORT'} {thread.symbol}
-                  </span>
-                  <div className="flex items-center gap-2 text-[8px] font-mono">
-                    <span className="text-white/30">Entry: <span className="text-white/60">${thread.entry_price.toLocaleString()}</span></span>
-                    {thread.stop_price && <span className="text-red-400/40">SL: <span className="text-red-400/70">${thread.stop_price.toLocaleString()}</span></span>}
-                    {thread.target_price && <span className="text-green-400/40">TP: <span className="text-green-400/70">${thread.target_price.toLocaleString()}</span></span>}
+                <div className="grid grid-cols-3 gap-3 mt-4 mb-4">
+                  <div className="bg-[#0e0e0e] p-3 border-b-2 border-green-500/30">
+                    <span className="text-[8px] font-mono text-white/30 block uppercase">ENTRY</span>
+                    <span className="text-green-400 font-mono font-bold text-lg">${thread.entry_price.toLocaleString()}</span>
                   </div>
-                  {thread.resolution && thread.resolution !== 'pending' && (
-                    <span className={`text-[9px] font-mono font-bold ml-auto ${
-                      thread.resolution === 'win' ? 'text-green-400' : 'text-red-400'
-                    }`}>{thread.resolution === 'win' ? `+${thread.resolution_pnl_pct}%` : `${thread.resolution_pnl_pct}%`}</span>
+                  {thread.target_price && (
+                    <div className="bg-[#0e0e0e] p-3 border-b-2 border-green-500/30">
+                      <span className="text-[8px] font-mono text-white/30 block uppercase">TARGET</span>
+                      <span className="text-green-400 font-mono font-bold text-lg">${thread.target_price.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {thread.stop_price && (
+                    <div className="bg-[#0e0e0e] p-3 border-b-2 border-red-500/30">
+                      <span className="text-[8px] font-mono text-white/30 block uppercase">STOP_LOSS</span>
+                      <span className="text-red-400 font-mono font-bold text-lg">${thread.stop_price.toLocaleString()}</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -185,39 +189,112 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 height={220}
               />
 
-              {/* Agent posts — Bloomberg style with border-l-4 */}
-              {thread.posts.map((post) => {
-                const agent = AGENTS[post.agent] || AGENTS.cio;
-                return (
-                  <div key={post.id} className={`border-l-4 ${agent.borderColor} ${agent.bgTint} rounded-r pl-4 pr-3 py-3`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded flex items-center justify-center bg-white/[0.04]">
-                          <span className="text-[9px] font-mono font-black" style={{ color: agent.color }}>{agent.name.charAt(0)}</span>
+              {/* Thread visual line + Agent posts — Stitch expanded debate */}
+              <div className="space-y-4 mt-4 relative">
+                <div className="absolute left-5 top-8 bottom-8 w-px bg-white/[0.05] -z-10" />
+
+                {thread.posts.map((post, idx) => {
+                  const agent = AGENTS[post.agent] || AGENTS.cio;
+                  const isRedTeam = post.agent === 'redteam';
+                  const isCio = post.agent === 'cio';
+                  return (
+                    <div key={post.id} className={`bg-white/[0.02] backdrop-blur-sm border-l-4 ${agent.borderColor} ${agent.bgTint} rounded-r p-4 ${isRedTeam ? 'ml-6' : ''} hover:bg-white/[0.04] transition-all ${isCio ? 'shadow-[0_0_20px_rgba(245,158,11,0.03)]' : ''}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded flex items-center justify-center border`}
+                            style={{ borderColor: `${agent.color}30`, background: `${agent.color}10` }}>
+                            <span className="text-sm font-black font-mono" style={{ color: agent.color }}>{agent.name.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm uppercase">{agent.name}</h3>
+                            <span className="text-[7px] font-mono tracking-widest" style={{ color: agent.color }}>
+                              {post.agent === 'alpha' ? 'SIGNAL HUNTER' : post.agent === 'redteam' ? 'RISK MITIGATOR' : 'STRATEGIC OVERSEER'}
+                            </span>
+                          </div>
                         </div>
-                        <span className={`text-[9px] font-mono font-bold tracking-wider ${agent.badge.split(' ')[1]}`}>{agent.name}</span>
+                        {/* CIO conviction big number */}
+                        {isCio && conviction !== null && (
+                          <div className="text-right">
+                            <span className="font-mono text-2xl font-black text-amber-400 tracking-tighter">
+                              {Math.round(conviction * 10)}<span className="text-xs text-white/20">/10</span>
+                            </span>
+                            <span className="block text-[7px] font-mono text-white/20 uppercase">CONVICTION</span>
+                          </div>
+                        )}
+                        {!isCio && (
+                          <span className="text-[8px] font-mono text-white/15">{timeAgo(post.created_at)}</span>
+                        )}
                       </div>
-                      <span className="text-[8px] font-mono text-white/15">{timeAgo(post.created_at)}</span>
+
+                      <p className="text-[11px] font-mono text-white/50 leading-relaxed whitespace-pre-line">{post.content}</p>
+
+                      {/* CIO conviction bar + verdict */}
+                      {isCio && conviction !== null && (
+                        <div className="mt-4 space-y-3">
+                          <div className="w-full h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${convPct >= 70 ? 'bg-gradient-to-r from-green-500 to-green-400' : convPct >= 40 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-gradient-to-r from-red-500 to-red-400'}`}
+                              style={{ width: `${convPct}%`, boxShadow: `0 0 10px ${convPct >= 70 ? '#22c55e' : convPct >= 40 ? '#f59e0b' : '#ef4444'}` }} />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${convPct >= 60 ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span className={`text-sm font-black tracking-widest ${convPct >= 60 ? 'text-green-400' : 'text-red-400'}`}>
+                              {convPct >= 60 ? 'EXECUTE' : 'REJECT'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[11px] font-mono text-white/50 leading-relaxed whitespace-pre-line">{post.content}</p>
-                    {post.agent === 'cio' && conviction !== null && (
-                      <div className="mt-3 flex items-center gap-3">
-                        <span className="text-[8px] font-mono text-amber-400/50 tracking-widest">CONVICTION</span>
-                        <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden max-w-[160px]">
-                          <div className={`h-full rounded-full ${convPct >= 70 ? 'bg-green-500' : convPct >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
-                            style={{ width: `${convPct}%`, boxShadow: `0 0 8px ${convPct >= 70 ? 'rgba(34,197,94,0.4)' : convPct >= 40 ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.4)'}` }} />
-                        </div>
-                        <span className={`text-[10px] font-mono font-bold ${convPct >= 70 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {Math.round(conviction * 10)}/10
-                        </span>
+                  );
+                })}
+              </div>
+
+              {/* Resolution Card — "TE LO DIJE" — Stitch style */}
+              {thread.resolution && thread.resolution !== 'pending' && (
+                <div className={`relative overflow-hidden mt-4 p-6 rounded border ${
+                  thread.resolution === 'win' ? 'border-green-500/30 bg-gradient-to-br from-green-500/5 to-transparent' : 'border-red-500/30 bg-gradient-to-br from-red-500/5 to-transparent'
+                }`}>
+                  {/* Background decoration */}
+                  <div className={`absolute -right-8 -bottom-8 font-black text-8xl italic pointer-events-none ${
+                    thread.resolution === 'win' ? 'text-green-500/5' : 'text-red-500/5'
+                  }`}>{thread.resolution === 'win' ? 'WIN' : 'LOSS'}</div>
+
+                  <div className="relative z-10">
+                    <span className={`inline-block px-3 py-1 text-[8px] font-mono font-black tracking-widest mb-3 ${
+                      thread.resolution === 'win' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'
+                    }`}>TE LO DIJE</span>
+
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h2 className={`text-4xl sm:text-5xl font-black tracking-tighter italic ${
+                          thread.resolution === 'win' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {thread.resolution_pnl_pct ? `${thread.resolution_pnl_pct >= 0 ? '+' : ''}${thread.resolution_pnl_pct}%` : thread.resolution.toUpperCase()}
+                        </h2>
+                        <p className="text-[9px] font-mono text-white/25 uppercase tracking-widest mt-1">
+                          PNL REALIZED · {thread.symbol}
+                        </p>
                       </div>
-                    )}
+                      <div className="flex gap-6 text-[9px] font-mono">
+                        {thread.resolved_at && (
+                          <div>
+                            <span className="text-white/20 block uppercase">RESOLVED</span>
+                            <span className="text-white/50">{new Date(thread.resolved_at).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-white/20 block uppercase">STATUS</span>
+                          <span className={thread.resolution === 'win' ? 'text-green-400' : 'text-red-400'}>
+                            {thread.resolution === 'win' ? 'SUCCESS' : 'STOPPED'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              )}
 
               {/* Actions */}
-              <div className="flex items-center gap-4 pt-2 border-t border-white/[0.04]">
+              <div className="flex items-center gap-4 pt-3 mt-3 border-t border-white/[0.04]">
                 <Link to={`/agentic-world/bobby?q=${encodeURIComponent(`Why did you ${thread.direction || 'analyze'} ${thread.symbol || 'the market'}?`)}`}
                   className="flex items-center gap-1.5 text-[9px] font-mono text-yellow-400/40 hover:text-yellow-400 transition-colors">
                   <MessageSquare className="w-3 h-3" /> ASK BOBBY WHY
