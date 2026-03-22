@@ -136,10 +136,6 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
   };
 
   const nextStep = () => {
-    if (step === 0 && !isConnected) {
-      openWallet();
-      return;
-    }
     if (step < 5) setStep(step + 1);
   };
 
@@ -191,9 +187,6 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
                     I understand and retain full control of my funds
                   </span>
                 </label>
-                {!isConnected && (
-                  <p className="text-[10px] font-mono text-amber-400/60">Connect wallet to continue</p>
-                )}
               </div>
             )}
 
@@ -453,7 +446,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
                 ? 'bg-green-500 text-black hover:brightness-110 active:scale-[0.98]'
                 : 'bg-white/[0.04] text-white/15 cursor-not-allowed'
             }`}>
-            {step === 0 && !isConnected ? 'CONNECT WALLET' : 'CONTINUE'}
+            CONTINUE
           </button>
         </div>
       )}

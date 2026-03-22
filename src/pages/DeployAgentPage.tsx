@@ -1,6 +1,7 @@
 // ============================================================
 // Deploy Agent Page — wrapper for the AgentWizard
 // Route: /agentic-world/deploy
+// Always saves to localStorage. If wallet connected, also Supabase.
 // ============================================================
 
 import { useNavigate } from 'react-router-dom';
@@ -19,33 +20,36 @@ export default function DeployAgentPage() {
     markets: string[];
     delivery: string[];
   }) => {
-    if (!address) {
-      navigate('/agentic-world/bobby');
-      return;
-    }
+    // Always save to localStorage (works without wallet)
+    const agentConfig = {
+      ...config,
+      wallet_address: address || null,
+      created_at: new Date().toISOString(),
+    };
+    localStorage.setItem('agent_profile', JSON.stringify(agentConfig));
+    localStorage.setItem('bobby_trading_mode', 'paper');
+    localStorage.setItem('bobby_agent_name', config.agent_name);
 
-    try {
-      const res = await fetch('/api/agent-setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          wallet_address: address,
-          ...config,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.ok) {
-        // Save agent config locally for immediate use in terminal
-        localStorage.setItem('agent_profile', JSON.stringify(data.agent_profile));
-        localStorage.setItem('bobby_trading_mode', 'paper');
+    // If wallet connected, also save to Supabase for persistence
+    if (address) {
+      try {
+        const res = await fetch('/api/agent-setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet_address: address,
+            ...config,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.agent_profile) {
+          localStorage.setItem('agent_profile', JSON.stringify(data.agent_profile));
+        }
+      } catch (err) {
+        console.error('[DeployAgent] Supabase save failed, localStorage still works:', err);
       }
-    } catch (err) {
-      console.error('[DeployAgent] Setup failed:', err);
     }
 
-    // Navigate to terminal regardless — it will show deploying state
     navigate('/agentic-world/bobby');
   };
 
