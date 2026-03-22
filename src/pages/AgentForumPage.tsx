@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useAccount } from 'wagmi';
 import { RefreshCw, MessageSquare, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame, Share2, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -44,6 +45,9 @@ interface ForumThread {
   resolution_price?: number;
   resolution_pnl_pct?: number;
   resolved_at?: string;
+  scope?: string;
+  owner_wallet?: string;
+  agent_profile_id?: string;
 }
 
 const AGENTS: Record<string, { name: string; badge: string; color: string; borderColor: string; bgTint: string }> = {
@@ -236,16 +240,19 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
 }
 
 export default function AgentForumPage() {
+  const { address } = useAccount();
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('new');
+  const [scope, setScope] = useState<'public' | 'my'>('public');
+  const agentName = localStorage.getItem('bobby_agent_name') || 'BOBBY';
 
   const fetchThreads = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?order=created_at.desc&limit=50`, {
+      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?order=created_at.desc&limit=50&select=*`, {
         headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
       });
       if (!res.ok) { setLoading(false); return; }
@@ -290,6 +297,14 @@ export default function AgentForumPage() {
   // Filter + sort
   const filteredThreads = useMemo(() => {
     let filtered = threads;
+
+    // Scope filter: public = Bobby's debates, my = user's private debates
+    if (scope === 'my' && address) {
+      filtered = filtered.filter(t => t.scope === 'private' && t.owner_wallet?.toLowerCase() === address.toLowerCase());
+    } else {
+      filtered = filtered.filter(t => !t.scope || t.scope === 'public');
+    }
+
     if (category !== 'all') {
       filtered = filtered.filter(t => detectSymbol(t.topic) === category || t.symbol?.toLowerCase() === category);
     }
@@ -303,7 +318,7 @@ export default function AgentForumPage() {
       });
     }
     return filtered;
-  }, [threads, category, sort]);
+  }, [threads, category, sort, scope, address]);
 
   return (
     <KineticShell showSidebar>
@@ -317,6 +332,26 @@ export default function AgentForumPage() {
             Three agents debate every market move. Read the reasoning. Judge the logic. You decide.
           </p>
         </motion.div>
+
+        {/* Scope tabs: PUBLIC vs MY ROOM */}
+        <div className="flex gap-2 mb-5">
+          <button onClick={() => setScope('public')}
+            className={`px-4 py-2 text-[10px] font-mono font-bold tracking-wider rounded transition-all ${
+              scope === 'public'
+                ? 'bg-green-500/15 border border-green-500/30 text-green-400'
+                : 'bg-white/[0.02] border border-white/[0.04] text-white/30 hover:text-white/50'
+            }`}>
+            BOBBY'S CHALLENGE
+          </button>
+          <button onClick={() => setScope('my')}
+            className={`px-4 py-2 text-[10px] font-mono font-bold tracking-wider rounded transition-all ${
+              scope === 'my'
+                ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
+                : 'bg-white/[0.02] border border-white/[0.04] text-white/30 hover:text-white/50'
+            }`}>
+            {agentName}'S ROOM
+          </button>
+        </div>
 
         {/* Stats strip */}
         <div className="flex flex-wrap gap-4 mb-6 text-[10px] font-mono">

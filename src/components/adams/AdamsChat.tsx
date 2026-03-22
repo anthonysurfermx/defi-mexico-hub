@@ -2969,11 +2969,18 @@ export function AdamsChat() {
         <div className="space-y-3">
           <h3 className="font-mono text-[9px] text-white/25 uppercase tracking-widest">Active Neural Nodes</h3>
           <div className="grid grid-cols-1 gap-2">
-            {[
-              { name: 'BOBBY CIO', initial: 'B', idleText: 'Decision Engine', color: 'border-yellow-500', bgColor: 'bg-yellow-500', textColor: 'text-yellow-400', agentKey: 'cio' },
-              { name: 'ALPHA HUNTER', initial: 'A', idleText: 'Scanning Markets', color: 'border-green-500', bgColor: 'bg-green-500', textColor: 'text-green-400', agentKey: 'alpha' },
-              { name: 'RED TEAM', initial: 'R', idleText: 'Risk Mitigation', color: 'border-red-500', bgColor: 'bg-red-500', textColor: 'text-red-400', agentKey: 'redteam' },
-            ].map(agent => {
+            {(() => {
+              // Personality-based CIO styling (Gemini design)
+              const personality = (() => { try { const p = JSON.parse(localStorage.getItem('agent_profile') || '{}'); return p.personality; } catch { return 'analytical'; } })();
+              const cioColor = personality === 'direct' ? { color: 'border-orange-500', bgColor: 'bg-orange-500', textColor: 'text-orange-400' }
+                : personality === 'wise' ? { color: 'border-indigo-500', bgColor: 'bg-indigo-500', textColor: 'text-indigo-400' }
+                : { color: 'border-yellow-500', bgColor: 'bg-yellow-500', textColor: 'text-yellow-400' };
+              return [
+                { name: `${advisorName.toUpperCase()} CIO`, initial: advisorName.charAt(0).toUpperCase(), idleText: 'Decision Engine', ...cioColor, agentKey: 'cio' },
+                { name: 'ALPHA HUNTER', initial: 'A', idleText: 'Scanning Markets', color: 'border-green-500', bgColor: 'bg-green-500', textColor: 'text-green-400', agentKey: 'alpha' },
+                { name: 'RED TEAM', initial: 'R', idleText: 'Risk Mitigation', color: 'border-red-500', bgColor: 'bg-red-500', textColor: 'text-red-400', agentKey: 'redteam' },
+              ];
+            })().map(agent => {
               const isActive = activeAgent === agent.agentKey;
               return (
                 <div key={agent.name} className={`flex items-center gap-3 p-3 rounded-md transition-all ${
