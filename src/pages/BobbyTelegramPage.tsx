@@ -131,22 +131,45 @@ export default function BobbyTelegramPage() {
           </div>
         </motion.div>
 
-        {/* Add Bobby to Group CTA */}
+        {/* Deploy to Telegram Group — x402 payment flow */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
           <div className="p-px rounded bg-gradient-to-r from-green-500/30 via-green-400/10 to-green-500/30">
             <div className="bg-[#0a0a0a] rounded p-5 text-center">
               <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg">👥</span>
+                <span className="text-lg">⚡</span>
               </div>
-              <h3 className="text-sm font-bold mb-1">Deploy to your group</h3>
-              <p className="text-[10px] font-mono text-white/30 mb-4 max-w-xs mx-auto">
-                Add Bobby to any Telegram group for real-time multi-agent market analysis and trading signals.
+              <h3 className="text-sm font-bold mb-1">INITIALIZE TELEGRAM NODE</h3>
+              <p className="text-[10px] font-mono text-white/30 mb-3 max-w-xs mx-auto">
+                Deploy Bobby to your Telegram group. Multi-agent trading intelligence, voice notes, real-time signals.
               </p>
-              <a href="https://t.me/Jobjunter_bot?start=bobby" target="_blank" rel="noopener noreferrer"
-                className="inline-block px-6 py-2.5 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
+              {/* Payment info */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 mb-4 max-w-xs mx-auto">
+                <div className="flex justify-between text-[9px] font-mono mb-1">
+                  <span className="text-white/30">SERVICE</span>
+                  <span className="text-white/60">Bobby Agent Trader</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-mono mb-1">
+                  <span className="text-white/30">NETWORK</span>
+                  <span className="text-white/60">X Layer (196)</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-mono mb-1">
+                  <span className="text-white/30">ACCESS</span>
+                  <span className="text-white/60">30 Days</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-mono mt-2 pt-2 border-t border-white/[0.06]">
+                  <span className="text-white/40">COST</span>
+                  <span className="text-green-400 font-bold text-sm">0.01 USDT</span>
+                </div>
+              </div>
+
+              <a href="https://t.me/Bobbyagentraderbot?startgroup=true" target="_blank" rel="noopener noreferrer"
+                className="inline-block w-full max-w-xs px-6 py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
                 style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-                ADD BOBBY TO TELEGRAM →
+                STEP 1: ADD BOT TO GROUP →
               </a>
+              <p className="text-[8px] font-mono text-white/15 mt-2">
+                After adding, Bobby will send you a payment link to activate.
+              </p>
             </div>
           </div>
         </motion.div>
