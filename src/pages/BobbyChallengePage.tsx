@@ -505,9 +505,61 @@ export default function BobbyChallengePage() {
               </div>
             </motion.div>
 
-            {/* On-chain proof */}
+            {/* Infrastructure — How Bobby Runs */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-              className="mt-8 p-4 border border-white/[0.04] bg-white/[0.01] rounded text-center">
+              className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
+              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">INFRASTRUCTURE</span>
+
+              {/* Runtime */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-green-400 text-xs font-bold font-mono">OC</span>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold font-mono text-white/80">OpenClaw Gateway</span>
+                    <p className="text-[9px] font-mono text-white/30 mt-0.5 leading-relaxed">
+                      Autonomous runtime on Digital Ocean. Cron triggers Bobby every 6 hours —
+                      fetches market intel, runs the 3-agent debate, and executes if conviction is high enough.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Methodology pipeline */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                {[
+                  { step: '01', label: 'MARKET_INTEL', desc: 'OKX + Polymarket data' },
+                  { step: '02', label: 'DEBATE', desc: 'Alpha vs Red Team' },
+                  { step: '03', label: 'VERDICT', desc: 'CIO conviction score' },
+                  { step: '04', label: 'EXECUTE', desc: 'OKX + X Layer commit' },
+                ].map(s => (
+                  <div key={s.step} className="p-2 bg-white/[0.01] border border-white/[0.03] rounded">
+                    <span className="text-[7px] font-mono text-green-400/40 block">{s.step}</span>
+                    <span className="text-[9px] font-mono text-white/60 font-bold block">{s.label}</span>
+                    <span className="text-[7px] font-mono text-white/20">{s.desc}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Links */}
+              <div className="flex flex-wrap gap-2">
+                <a href="https://github.com/anthropics/claude-code"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[9px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
+                  CLAUDE CODE (RUNTIME) ›
+                </a>
+                <a href="https://github.com/anthropics/claude-code/blob/main/AGENTS.md"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[9px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
+                  AGENT SDK DOCS ›
+                </a>
+              </div>
+            </motion.div>
+
+            {/* On-chain proof */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
+              className="p-4 border border-white/[0.04] bg-white/[0.01] rounded text-center">
               <span className="text-[8px] font-mono text-white/20 tracking-[2px] block mb-2">ON-CHAIN VERIFICATION</span>
               <p className="text-[10px] font-mono text-white/30 mb-3">
                 Every trade is committed to X Layer before the outcome is known.
