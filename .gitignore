@@ -25,6 +25,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Data files
+data/
+articles-*.json
+scripts/*.mjs
+Users/
+
+# Documentation (not for git)
+BOBBY_*.md
+CLAUDE_*.md
+EJECUTAR_*.md
+MCP_*.md
+
+# Contracts (separate repo)
+contracts/
+
+# Claude config
+.claude/
+
 # Local env files
 .env
 .env.
