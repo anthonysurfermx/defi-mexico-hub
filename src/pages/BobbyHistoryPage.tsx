@@ -79,7 +79,7 @@ export default function BobbyHistoryPage() {
                 { label: 'EQUITY', value: `$${summary.currentEquity.toFixed(2)}`, color: 'text-green-400' },
                 { label: 'TOTAL_TRADES', value: String(summary.totalTrades), color: 'text-white' },
               ].map(stat => (
-                <div key={stat.label} className="bg-white/[0.02] border border-white/[0.04] p-5 rounded">
+                <div key={stat.label} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-5 rounded">
                   <span className="text-[9px] font-mono text-white/30 tracking-widest">{stat.label}</span>
                   <div className={`text-xl md:text-2xl font-mono font-bold mt-1 ${stat.color}`}>{stat.value}</div>
                 </div>
@@ -88,7 +88,7 @@ export default function BobbyHistoryPage() {
 
             {/* Trades Table */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-              className="bg-white/[0.02] border border-white/[0.04] rounded overflow-hidden mb-8">
+              className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded overflow-hidden mb-8">
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-[10px]">
                   <thead className="bg-[#1c1b1b] text-white/30 sticky top-0">
@@ -178,7 +178,7 @@ export default function BobbyHistoryPage() {
 
               {/* Agent Focus Card */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-                className="bg-white/[0.02] border-l-4 border-l-green-500 border border-white/[0.04] rounded p-5">
+                className="bg-white/[0.02] backdrop-blur-sm border-l-4 border-l-green-500 border border-white/[0.04] rounded p-5">
                 <span className="text-[9px] font-mono text-white/30 tracking-widest block mb-3">AGENT_FOCUS: BOBBY_CIO</span>
                 <div className="space-y-3 font-mono text-[10px]">
                   <div className="flex justify-between">

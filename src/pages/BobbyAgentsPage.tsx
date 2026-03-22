@@ -78,7 +78,7 @@ export default function BobbyAgentsPage() {
               {agents.map((agent, i) => (
                 <motion.div key={agent.rank} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 + i * 0.1 }}
-                  className={`bg-white/[0.02] border border-white/[0.04] ${agent.bgColor} rounded p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white/[0.04] transition-all ${agent.glow}`}>
+                  className={`bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] ${agent.bgColor} rounded p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white/[0.04] transition-all ${agent.glow}`}>
                   <div className="flex items-center gap-5">
                     <span className="text-2xl md:text-3xl font-mono font-black text-white/10">{agent.rank}</span>
                     <div>
@@ -122,7 +122,7 @@ export default function BobbyAgentsPage() {
                   {decisions.slice(0, 8).map((d, i) => {
                     const conv = Math.round((d.conviction_score || 0) * 100);
                     return (
-                      <div key={d.id} className="bg-white/[0.02] border border-white/[0.04] rounded p-4 flex items-center justify-between hover:bg-white/[0.03] transition-all">
+                      <div key={d.id} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-4 flex items-center justify-between hover:bg-white/[0.03] transition-all">
                         <div className="flex items-center gap-4">
                           <span className="font-mono text-sm font-bold text-white/80">{d.symbol || '?'}</span>
                           {d.direction && (
@@ -152,7 +152,7 @@ export default function BobbyAgentsPage() {
             {/* System equity */}
             {s && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                className="mt-8 bg-white/[0.02] border border-white/[0.04] rounded p-6">
+                className="mt-8 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[9px] font-mono text-white/30 tracking-widest">SYSTEM_EQUITY</span>

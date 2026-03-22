@@ -92,11 +92,11 @@ export default function BobbyAnalyticsPage() {
             <p className="font-mono text-xs text-white/30 mt-1">NODE_STATUS: <span className="text-green-400">OPTIMIZED</span> // DATA: REAL-TIME</p>
           </div>
           <div className="hidden sm:flex gap-4">
-            <div className="bg-white/[0.02] border border-white/[0.04] px-4 py-2 flex flex-col items-end rounded">
+            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] px-4 py-2 flex flex-col items-end rounded">
               <span className="text-[8px] font-mono text-white/25 mb-1">PROFIT_FACTOR</span>
               <span className={`font-mono text-sm ${profitFactor >= 1 ? 'text-green-400' : 'text-red-400'}`}>{profitFactor.toFixed(2)}</span>
             </div>
-            <div className="bg-white/[0.02] border border-white/[0.04] px-4 py-2 flex flex-col items-end rounded">
+            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] px-4 py-2 flex flex-col items-end rounded">
               <span className="text-[8px] font-mono text-white/25 mb-1">MAX_DRAWDOWN</span>
               <span className="font-mono text-sm text-red-400">-{maxDrawdown.toFixed(1)}%</span>
             </div>
@@ -116,7 +116,7 @@ export default function BobbyAnalyticsPage() {
                 { label: 'CURRENT_EQUITY', value: `$${s.currentEquity.toFixed(2)}`, color: 'text-green-400' },
                 { label: 'TOTAL_TRADES', value: String(s.totalTrades), color: 'text-white' },
               ].map(kpi => (
-                <div key={kpi.label} className="bg-white/[0.02] border border-white/[0.04] p-6 rounded relative group hover:bg-white/[0.04] transition-all">
+                <div key={kpi.label} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded relative group hover:bg-white/[0.04] transition-all">
                   <div className="absolute top-0 right-0 w-1 h-1 bg-green-500 m-2" />
                   <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase">{kpi.label}</span>
                   <div className={`mt-2 text-2xl md:text-3xl font-mono font-bold tracking-tighter ${kpi.color}`}>{kpi.value}</div>
@@ -128,7 +128,7 @@ export default function BobbyAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
               {/* Cumulative Growth */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                className="lg:col-span-8 bg-white/[0.02] border border-white/[0.04] p-6 rounded">
+                className="lg:col-span-8 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase">CUMULATIVE_GROWTH_INDEX</span>
                 </div>
@@ -168,7 +168,7 @@ export default function BobbyAnalyticsPage() {
 
               {/* Daily Alpha Bars */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                className="lg:col-span-4 bg-white/[0.02] border border-white/[0.04] p-6 rounded flex flex-col">
+                className="lg:col-span-4 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded flex flex-col">
                 <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase mb-4">DAILY_PNL</span>
                 <div className="flex-grow">
                   {dailyPnl.length > 0 ? (
@@ -208,7 +208,7 @@ export default function BobbyAnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Council Efficiency */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-                className="lg:col-span-5 bg-white/[0.02] border border-white/[0.04] p-6 rounded">
+                className="lg:col-span-5 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded">
                 <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase mb-4 block">COUNCIL_OVERVIEW</span>
                 <div className="space-y-4">
                   {[
@@ -229,7 +229,7 @@ export default function BobbyAnalyticsPage() {
 
               {/* Live Execution Ledger */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                className="lg:col-span-7 bg-white/[0.02] border border-white/[0.04] rounded overflow-hidden flex flex-col">
+                className="lg:col-span-7 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-white/[0.04] flex justify-between items-center bg-black/40">
                   <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase">LIVE_EXECUTION_LEDGER</span>
                   <span className="font-mono text-[10px] text-green-400 animate-pulse">STREAMING...</span>

@@ -61,7 +61,7 @@ export default function BobbyAgentTraderPage() {
         <nav className="flex-shrink-0 flex justify-between items-center px-4 md:px-6 h-12 bg-[#131313]/90 backdrop-blur-md border-b border-white/5 z-50 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
           <div className="flex items-center gap-6">
             <Link to="/agentic-world/bobby" className="text-base font-black tracking-tighter text-green-500 font-mono">
-              AGENT TRADER
+              BOBBY AGENT TRADER
             </Link>
             <div className="hidden md:flex gap-5 items-center font-mono uppercase tracking-widest text-[10px]">
               {NAV_ITEMS.map(item => (
@@ -96,7 +96,15 @@ export default function BobbyAgentTraderPage() {
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* === Icon Sidebar — Stitch style (desktop) === */}
-          <aside className="hidden md:flex flex-col items-center w-[72px] bg-[#050505] border-r border-white/5 pt-6 pb-4 flex-shrink-0 z-40">
+          <aside className="hidden md:flex flex-col items-center w-20 bg-[#050505] border-r border-white/5 pt-4 pb-4 flex-shrink-0 z-40">
+            {/* BOBBY_OS branding */}
+            <div className="flex flex-col items-center gap-1 mb-4 px-2">
+              <div className="w-8 h-8 bg-green-500/10 flex items-center justify-center border border-green-500/20 rounded">
+                <span className="text-green-400 text-[8px] font-black font-mono">B</span>
+              </div>
+              <span className="font-mono text-[7px] text-white/20 tracking-tight">BOBBY_OS</span>
+            </div>
+
             <div className="flex flex-col gap-1 items-center w-full flex-1">
               {ICON_NAV.map(item => (
                 <Link key={item.label} to={item.path}
@@ -111,10 +119,10 @@ export default function BobbyAgentTraderPage() {
               ))}
             </div>
             <div className="flex flex-col gap-4 items-center mt-auto pb-2">
-              <Link to="/agentic-world/forum" className="text-gray-600 hover:text-green-400 transition-colors">
+              <Link to="/agentic-world/forum" className="text-gray-600 hover:text-green-400 transition-colors" title="Forum">
                 <MessageSquare className="w-[18px] h-[18px]" />
               </Link>
-              <Link to="/agentic-world/bobby/portfolio" className="text-gray-600 hover:text-green-400 transition-colors">
+              <Link to="/agentic-world/bobby/portfolio" className="text-gray-600 hover:text-green-400 transition-colors" title="Portfolio">
                 <ClipboardList className="w-[18px] h-[18px]" />
               </Link>
             </div>
