@@ -24,6 +24,34 @@ async function sendTelegramMessage(chatId: number, text: string, parseMode = 'HT
   });
 }
 
+async function sendVoiceNote(chatId: number, text: string, caption?: string) {
+  try {
+    // Generate TTS audio via Edge TTS server on Digital Ocean
+    const ttsRes = await fetch('https://defimexico.org/api/bobby-voice-free', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 2000), voice: 'cio', lang: 'en' }),
+    });
+
+    if (!ttsRes.ok) return;
+    const audioBuffer = await ttsRes.arrayBuffer();
+
+    // Send voice note to Telegram
+    const formData = new FormData();
+    formData.append('chat_id', String(chatId));
+    formData.append('voice', new Blob([audioBuffer], { type: 'audio/ogg' }), 'bobby_analysis.ogg');
+    if (caption) formData.append('caption', caption);
+    formData.append('parse_mode', 'HTML');
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (err) {
+    console.error('[telegram-webhook] Voice note failed:', err);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
@@ -126,16 +154,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Group is active — handle commands
       if (text.startsWith('/analyze') || text.startsWith('/bobby')) {
-        const query = text.replace(/^\/(analyze|bobby)\s*/i, '').trim() || 'the market';
+        const query = text.replace(/^\/(analyze|bobby)\s*/i, '').trim() || 'BTC';
+
+        // Send "analyzing" message
         await sendTelegramMessage(groupId,
           `🎯 <b>Bobby Agent Trader</b>\n\n` +
-          `Analyzing: <b>${query}</b>\n\n` +
-          `Three agents are debating...\n` +
-          `🟢 Alpha Hunter scanning opportunities\n` +
-          `🔴 Red Team checking risks\n` +
-          `🟡 CIO synthesizing verdict\n\n` +
-          `<i>Full analysis available at ${BASE_URL}/agentic-world/bobby</i>`
+          `Analyzing: <b>${query.toUpperCase()}</b>\n\n` +
+          `🟢 Alpha Hunter scanning...\n` +
+          `🔴 Red Team evaluating risks...\n` +
+          `🟡 CIO preparing verdict...`
         );
+
+        // Generate quick analysis with Haiku
+        try {
+          const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+          if (ANTHROPIC_KEY) {
+            const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 500,
+                system: `You are Bobby CIO, a trading intelligence agent. Give a brief 3-sentence market analysis of ${query}. Be concise, data-driven. Mention a direction (bullish/bearish/neutral) and a conviction level (1-10). End with one actionable insight.`,
+                messages: [{ role: 'user', content: `Quick analysis of ${query} right now.` }],
+              }),
+            });
+
+            if (aiRes.ok) {
+              const aiData = await aiRes.json() as any;
+              const analysis = aiData.content?.[0]?.text || '';
+
+              if (analysis) {
+                // Send text analysis
+                await sendTelegramMessage(groupId,
+                  `🟡 <b>Bobby CIO — ${query.toUpperCase()} Analysis</b>\n\n` +
+                  `${analysis}\n\n` +
+                  `👉 <a href="${BASE_URL}/agentic-world/forum">Full debate in Forum</a>\n` +
+                  `<i>Powered by Bobby Agent Trader · OKX X Layer</i>`
+                );
+
+                // Send voice note with the analysis
+                await sendVoiceNote(groupId, analysis,
+                  `🎙 Bobby CIO voice analysis — ${query.toUpperCase()}`
+                );
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[telegram-webhook] Analysis generation failed:', err);
+        }
       }
 
       if (text.startsWith('/status')) {

@@ -430,18 +430,16 @@ export default function AgentForumPage() {
           </button>
         </div>
 
-        {/* Stats strip */}
-        <div className="flex flex-wrap gap-4 mb-6 text-[10px] font-mono">
+        {/* Stats strip — Stitch mobile style with colored left borders */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
           {[
-            { label: 'DEBATES', value: forumStats.total, color: 'text-white/60' },
-            { label: 'EXECUTED', value: forumStats.executed, color: 'text-green-400' },
-            { label: 'REJECTED', value: forumStats.rejected, color: 'text-red-400' },
-            { label: 'AVG CONVICTION', value: `${forumStats.avgConviction}/10`, color: 'text-amber-400' },
-            { label: 'WIN RATE', value: `${forumStats.winRate}%`, color: 'text-green-400' },
+            { label: 'ACTIVE DEBATES', value: forumStats.total, color: 'text-green-400', border: 'border-l-2 border-green-500' },
+            { label: 'AVG CONVICTION', value: `${forumStats.avgConviction}/10`, color: 'text-amber-400', border: 'border-l-2 border-amber-500' },
+            { label: 'WIN RATE', value: `${forumStats.winRate}%`, color: 'text-green-400', border: 'border-l-2 border-green-500' },
           ].map(s => (
-            <div key={s.label} className="flex items-center gap-2">
-              <span className="text-white/20">{s.label}:</span>
-              <span className={`font-bold ${s.color}`}>{s.value}</span>
+            <div key={s.label} className={`bg-[#0e0e0e] ${s.border} p-3`}>
+              <span className="text-[8px] font-mono text-white/25 uppercase tracking-wider block">{s.label}</span>
+              <span className={`text-lg font-mono font-bold ${s.color}`}>{s.value}</span>
             </div>
           ))}
         </div>
