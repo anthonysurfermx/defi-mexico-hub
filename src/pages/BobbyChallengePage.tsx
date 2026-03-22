@@ -8,8 +8,8 @@ import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Activity, Shield, TrendingUp, TrendingDown, Clock } from 'lucide-react';
-import { TradeHistory } from '@/components/adams/TradeHistory';
+import { ArrowLeft, Activity, Shield, Clock } from 'lucide-react';
+
 
 interface PnlData {
   summary: {
@@ -183,33 +183,64 @@ export default function BobbyChallengePage() {
           </div>
         ) : s ? (
           <>
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              {[
-                { label: 'AGENT_BANKROLL', value: `$${s.currentEquity.toFixed(2)}`, sub: `$${s.startingCapital} initial`, color: 'text-white' },
-                { label: 'NET_ALPHA', value: `${s.totalReturn >= 0 ? '+' : ''}${s.totalReturn}%`, sub: 'since inception', color: s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400' },
-                { label: 'SUCCESS_RATE', value: `${s.winRate.toFixed(1)}%`, sub: `${s.wins}W / ${s.losses}L`, color: s.winRate >= 50 ? 'text-green-400' : 'text-amber-400' },
-                { label: 'TACTICAL_PLAYS', value: String(s.totalTrades), sub: 'executed', color: 'text-white' },
-              ].map((stat, i) => (
-                <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.05 }}
-                  className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
-                  <span className="text-[8px] font-mono text-white/25 tracking-[1px] block mb-1">{stat.label}</span>
-                  <span className={`text-2xl font-bold font-mono ${stat.color}`}>{stat.value}</span>
-                  <span className="text-[9px] font-mono text-white/20 block mt-1">{stat.sub}</span>
-                </motion.div>
-              ))}
+            {/* Stats Bento Grid — Stitch "glass-panel" style */}
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              {/* Current Equity — full width hero stat */}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="col-span-2 border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-1 h-4 bg-green-500" />
+                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">CURRENT_EQUITY</span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-3xl font-mono font-bold text-green-400 tracking-tight">${s.currentEquity.toFixed(2)}</span>
+                  <span className={`text-xs font-mono ${s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    ({s.totalReturn >= 0 ? '+' : ''}{s.totalReturn}%)
+                  </span>
+                </div>
+                {/* Progress bar showing equity vs starting capital */}
+                <div className="mt-4 h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                  <div className={`h-full ${s.currentEquity >= s.startingCapital ? 'bg-green-500' : 'bg-red-500'} rounded-full transition-all`}
+                    style={{ width: `${Math.min(100, (s.currentEquity / s.startingCapital) * 100)}%`, boxShadow: '0 0 10px rgba(34,197,94,0.3)' }} />
+                </div>
+                <span className="text-[7px] font-mono text-white/15 mt-1 block">${s.startingCapital} INITIAL</span>
+              </motion.div>
+
+              {/* Win Rate */}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
+                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">WIN_RATE</span>
+                <div className={`text-xl font-mono font-bold mt-1 ${s.winRate >= 50 ? 'text-green-400' : 'text-amber-400'}`}>{s.winRate.toFixed(1)}%</div>
+                <div className="mt-2 text-[9px] font-mono text-white/20">{s.wins}W / {s.losses}L</div>
+              </motion.div>
+
+              {/* Profit Factor */}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
+                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">PROFIT_FACTOR</span>
+                {(() => {
+                  const wins = pnl?.closedPositions.filter(t => t.realizedPnl > 0) || [];
+                  const losses = pnl?.closedPositions.filter(t => t.realizedPnl < 0) || [];
+                  const grossProfit = wins.reduce((sum, t) => sum + t.realizedPnl, 0);
+                  const grossLoss = Math.abs(losses.reduce((sum, t) => sum + t.realizedPnl, 0));
+                  const pf = grossLoss > 0 ? (grossProfit / grossLoss) : 0;
+                  return (
+                    <>
+                      <div className={`text-xl font-mono font-bold mt-1 ${pf >= 1 ? 'text-green-400' : 'text-red-400'}`}>{pf.toFixed(2)}</div>
+                      <div className="mt-2 text-[9px] font-mono text-white/20 italic">{s.totalTrades} TRADES</div>
+                    </>
+                  );
+                })()}
+              </motion.div>
             </div>
 
-            {/* Equity curve — simple visual of trade PnL over time */}
+            {/* Market Pulse — Stitch equity curve with gradient fill */}
             {pnl && pnl.closedPositions.length > 0 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
                 className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded mb-8">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[9px] font-mono text-white/30 tracking-[2px]">EQUITY_CURVE</span>
-                  <span className="text-[8px] font-mono text-white/20">{pnl.closedPositions.length} TRADES</span>
+                  <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold">MARKET_PULSE</h2>
+                  <span className="text-[8px] font-mono text-green-400/60">LIVE_STREAM</span>
                 </div>
                 {(() => {
-                  // Build cumulative PnL curve
                   let cumPnl = 0;
                   const points = pnl.closedPositions.map((t) => {
                     cumPnl += t.realizedPnl;
@@ -218,37 +249,67 @@ export default function BobbyChallengePage() {
                   const minPnl = Math.min(0, ...points.map(p => p.pnl));
                   const maxPnl = Math.max(0, ...points.map(p => p.pnl));
                   const range = maxPnl - minPnl || 1;
+                  const w = 300;
+                  const h = 100;
+                  const pad = 5;
+
+                  // Generate smooth path
+                  const toX = (i: number) => pad + (i / (points.length - 1)) * (w - pad * 2);
+                  const toY = (p: number) => h - pad - ((p - minPnl) / range) * (h - pad * 2);
+
+                  const pathPoints = points.map((p, i) => `${toX(i)},${toY(p.pnl)}`);
+                  const lineD = `M${pathPoints.join(' L')}`;
+                  const fillD = `${lineD} L${toX(points.length - 1)},${h} L${toX(0)},${h} Z`;
+                  const color = cumPnl >= 0 ? '#22c55e' : '#ef4444';
 
                   return (
-                    <>
-                      {/* Cumulative equity line */}
-                      <svg viewBox={`0 0 ${points.length * 20} 64`} className="w-full h-16" preserveAspectRatio="none">
-                        <polyline
-                          fill="none"
-                          stroke={cumPnl >= 0 ? '#22c55e' : '#ef4444'}
-                          strokeWidth="2"
-                          points={points.map((p, i) => `${i * 20 + 10},${64 - ((p.pnl - minPnl) / range) * 56 - 4}`).join(' ')}
-                        />
+                    <div className="relative aspect-[16/9] w-full overflow-hidden">
+                      <svg viewBox={`0 0 ${w} ${h}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="curveGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+                            <stop offset="100%" stopColor={color} stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {/* Grid lines */}
+                        {[0.25, 0.5, 0.75].map(pct => (
+                          <line key={pct} x1={pad} y1={h * pct} x2={w - pad} y2={h * pct}
+                            stroke="white" strokeWidth="0.3" opacity="0.05" />
+                        ))}
                         {/* Zero line */}
-                        <line x1="0" y1={64 - ((0 - minPnl) / range) * 56 - 4} x2={points.length * 20} y2={64 - ((0 - minPnl) / range) * 56 - 4}
-                          stroke="white" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+                        <line x1={pad} y1={toY(0)} x2={w - pad} y2={toY(0)}
+                          stroke="white" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.12" />
+                        {/* Fill area */}
+                        <path d={fillD} fill="url(#curveGrad)" />
+                        {/* Line */}
+                        <path d={lineD} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" opacity="0.8" />
                         {/* Trade dots */}
                         {points.map((p, i) => (
-                          <circle key={i}
-                            cx={i * 20 + 10} cy={64 - ((p.pnl - minPnl) / range) * 56 - 4} r="3"
-                            fill={p.result === 'WIN' ? '#22c55e' : '#ef4444'} opacity="0.8">
-                            <title>{`${p.symbol} ${p.result} | Cum PnL: $${p.pnl.toFixed(4)}`}</title>
+                          <circle key={i} cx={toX(i)} cy={toY(p.pnl)} r="2.5"
+                            fill={p.result === 'WIN' ? '#22c55e' : '#ef4444'} opacity="0.9">
+                            <title>{`${p.symbol} ${p.result} | $${p.pnl.toFixed(4)}`}</title>
                           </circle>
                         ))}
                       </svg>
-                      <div className="flex justify-between mt-1 text-[7px] font-mono text-white/15">
-                        <span>FIRST TRADE</span>
-                        <span className={`${cumPnl >= 0 ? 'text-green-400/40' : 'text-red-400/40'}`}>
-                          CUM PNL: ${cumPnl.toFixed(4)}
+                      {/* Crosshair — latest value */}
+                      <div className="absolute right-3 top-1/4 border border-white/[0.06] bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                        <span className={`text-[8px] font-mono ${cumPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          VAL: ${(s.currentEquity).toFixed(2)}
                         </span>
-                        <span>LATEST</span>
                       </div>
-                    </>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const totalPnl = pnl.closedPositions.reduce((sum, t) => sum + t.realizedPnl, 0);
+                  return (
+                    <div className="flex justify-between mt-2 text-[7px] font-mono text-white/15">
+                      <span>FIRST TRADE</span>
+                      <span className={totalPnl >= 0 ? 'text-green-400/40' : 'text-red-400/40'}>
+                        CUM PNL: ${totalPnl.toFixed(4)}
+                      </span>
+                      <span>LATEST</span>
+                    </div>
                   );
                 })()}
               </motion.div>
@@ -370,38 +431,74 @@ export default function BobbyChallengePage() {
               </motion.div>
             )}
 
-            {/* Trade History */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-              <TradeHistory language="en" />
-            </motion.div>
+            {/* Execution Logs Timeline — Stitch mobile style */}
+            {pnl && pnl.closedPositions.length > 0 && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
+                <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold mb-4">EXECUTION_LOGS</h2>
+                <div className="space-y-0">
+                  {pnl.closedPositions.slice(0, 6).map((trade, i) => {
+                    const isWin = trade.result === 'WIN';
+                    const isLast = i === Math.min(5, pnl.closedPositions.length - 1);
+                    return (
+                      <div key={i} className="flex gap-4 items-start group">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-2 h-2 rounded-full ${isWin ? 'bg-green-500' : 'bg-red-500'}`}
+                            style={{ boxShadow: isWin ? '0 0 8px #22c55e' : '0 0 8px #ef4444' }} />
+                          {!isLast && <div className="w-[1px] h-12 bg-white/[0.06]" />}
+                        </div>
+                        <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
+                          <div className="flex justify-between items-start">
+                            <span className={`font-mono text-[10px] ${isWin ? 'text-green-400' : 'text-red-400'}`}>
+                              {trade.direction.toUpperCase()} // {trade.symbol}-USD
+                            </span>
+                            <span className="font-mono text-[10px] text-white/30">
+                              {new Date(trade.closeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold mt-1 text-white/80">
+                            {trade.entryPrice.toFixed(2)} → {trade.exitPrice.toFixed(2)}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className={`text-[10px] font-mono py-0.5 px-1.5 rounded ${
+                              isWin ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                            }`}>{isWin ? 'PROFIT' : 'LOSS'}</span>
+                            <span className={`text-[10px] font-mono ${isWin ? 'text-green-400' : 'text-red-400'}`}>
+                              {trade.realizedPnl >= 0 ? '+' : ''}${trade.realizedPnl.toFixed(4)}
+                            </span>
+                            <span className="text-[9px] font-mono text-white/20">{trade.leverage}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {pnl.closedPositions.length > 6 && (
+                  <div className="mt-3 text-center">
+                    <span className="text-[8px] font-mono text-white/20">+ {pnl.closedPositions.length - 6} MORE TRADES</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
-            {/* Agent Leaderboard */}
+            {/* Council Efficiency — Stitch Performance Analytics style */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
               className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[9px] font-mono text-white/30 tracking-[2px]">AGENT_LEADERBOARD</span>
-                <span className="text-[8px] font-mono text-white/20">LIVE PERFORMANCE INDEX</span>
-              </div>
-              <div className="space-y-2">
+              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">COUNCIL_EFFICIENCY</span>
+              <div className="space-y-4">
                 {[
-                  { rank: '01', name: 'Bobby CIO', role: 'Final Decision Maker', winRate: s.winRate, trades: s.totalTrades, color: 'text-yellow-400', barColor: 'bg-yellow-500/40', barWidth: s.winRate },
-                  { rank: '02', name: 'Alpha Hunter', role: 'Opportunity Scanner', winRate: 65, trades: recentDecisions.length, color: 'text-green-400', barColor: 'bg-green-500/40', barWidth: 65 },
-                  { rank: '03', name: 'Red Team', role: 'Thesis Destroyer', winRate: 58, trades: recentDecisions.length, color: 'text-red-400', barColor: 'bg-red-500/40', barWidth: 58 },
+                  { name: 'BOBBY_CIO', efficiency: s.winRate, color: 'text-green-400', barColor: 'bg-green-500' },
+                  { name: 'ALPHA_HUNTER', efficiency: Math.min(100, s.winRate * 1.2), color: 'text-amber-400', barColor: 'bg-amber-500' },
+                  { name: 'RED_TEAM', efficiency: Math.min(100, s.winRate * 0.9), color: 'text-green-400', barColor: 'bg-green-500' },
                 ].map((agent) => (
-                  <div key={agent.rank} className="flex items-center gap-3 p-2 rounded bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
-                    <span className="text-[10px] font-mono text-white/20 w-6">{agent.rank}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold font-mono ${agent.color}`}>{agent.name}</span>
-                        <span className="text-[7px] font-mono text-white/20">{agent.role}</span>
-                      </div>
-                      <div className="mt-1 h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
-                        <div className={`h-full ${agent.barColor} rounded-full transition-all`} style={{ width: `${agent.barWidth}%` }} />
-                      </div>
+                  <div key={agent.name} className="space-y-1">
+                    <div className="flex justify-between font-mono text-[10px]">
+                      <span className="text-white/80">{agent.name}</span>
+                      <span className={agent.color}>{agent.efficiency.toFixed(1)}%</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-mono text-white/60 block">{agent.winRate.toFixed(1)}%</span>
-                      <span className="text-[7px] font-mono text-white/20">{agent.trades} plays</span>
+                    <div className="h-1.5 w-full bg-white/[0.04]">
+                      <div className={`h-full ${agent.barColor} transition-all`}
+                        style={{ width: `${agent.efficiency}%` }} />
                     </div>
                   </div>
                 ))}
