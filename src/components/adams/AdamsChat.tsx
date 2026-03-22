@@ -2753,6 +2753,19 @@ export function AdamsChat() {
   const [hudEquity, setHudEquity] = useState<number | null>(null);
   const currentVibe = getStoredVibe();
 
+  // ---- Latest personal debate (for left panel) ----
+  const [latestPersonalDebate, setLatestPersonalDebate] = useState<{ topic: string; conviction: number; symbol: string } | null>(null);
+  useEffect(() => {
+    if (!address || advisorName === 'Bobby') return;
+    const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
+    fetch(`${SB}/rest/v1/forum_threads?scope=eq.private&owner_wallet=eq.${address.toLowerCase()}&order=created_at.desc&limit=1&select=id,topic,conviction_score,symbol`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d.length > 0) setLatestPersonalDebate({ topic: d[0].topic, conviction: d[0].conviction_score, symbol: d[0].symbol });
+    }).catch(() => {});
+  }, [address, advisorName]);
+
   // Fetch positions + equity for HUD (every 30s when idle)
   useEffect(() => {
     const fetchHud = async () => {
@@ -2938,6 +2951,20 @@ export function AdamsChat() {
               <span className="text-[8px] font-mono text-white/20 block">Personal Trading Room · ACTIVE</span>
             </div>
           </div>
+        )}
+
+        {/* Latest Personal Debate — shows if user has private debates */}
+        {latestPersonalDebate && (
+          <Link to="/agentic-world/forum" className="block bg-green-500/[0.04] border border-green-500/15 rounded p-3 hover:bg-green-500/[0.08] transition-all">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[8px] font-mono text-green-400/60 tracking-widest">LATEST DEBATE</span>
+              <span className={`text-[10px] font-mono font-bold ${(latestPersonalDebate.conviction || 0) >= 0.6 ? 'text-green-400' : 'text-amber-400'}`}>
+                {Math.round((latestPersonalDebate.conviction || 0) * 10)}/10
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-white/50 truncate">{latestPersonalDebate.topic}</p>
+            <span className="text-[8px] font-mono text-green-400/30 mt-1 block">VIEW IN FORUM →</span>
+          </Link>
         )}
 
         {/* Conviction Board */}
