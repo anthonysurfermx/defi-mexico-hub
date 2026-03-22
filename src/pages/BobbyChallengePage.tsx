@@ -4,7 +4,7 @@
 // All data is REAL from /api/bobby-pnl + Supabase debates
 // ============================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -108,16 +108,16 @@ export default function BobbyChallengePage() {
 
   const s = pnl?.summary;
 
-  // Profit factor calc
-  const profitFactor = (() => {
+  // Profit factor calc (memoized — countdown timer re-renders every 1s)
+  const profitFactor = useMemo(() => {
     if (!pnl) return 0;
     const gross = pnl.closedPositions.filter(t => t.realizedPnl > 0).reduce((s, t) => s + t.realizedPnl, 0);
     const loss = Math.abs(pnl.closedPositions.filter(t => t.realizedPnl < 0).reduce((s, t) => s + t.realizedPnl, 0));
     return loss > 0 ? gross / loss : 0;
-  })();
+  }, [pnl]);
 
-  // Equity chart data
-  const chartData = (() => {
+  // Equity chart data (memoized)
+  const chartData = useMemo(() => {
     if (!pnl || !s) return [];
     let cumPnl = 0;
     return [
@@ -127,7 +127,7 @@ export default function BobbyChallengePage() {
         return { trade: i + 1, equity: s.startingCapital + cumPnl, label: `#${i + 1}`, result: t.result, symbol: t.symbol, pnl: t.realizedPnl };
       }),
     ];
-  })();
+  }, [pnl, s]);
 
   return (
     <KineticShell activeTab="challenge">

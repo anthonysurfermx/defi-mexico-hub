@@ -3039,7 +3039,8 @@ export function AdamsChat() {
                 const isUp = t.change24h >= 0;
                 const barColor = isUp ? 'bg-green-500' : 'bg-red-500';
                 // Generate deterministic bar heights from symbol hash
-                const bars = [3, 4, 2, 5, 6].map((v, i) => Math.max(1, (v + t.symbol.charCodeAt(i % t.symbol.length) % 4)));
+                const sym = t.symbol || 'X';
+                const bars = [3, 4, 2, 5, 6].map((v, i) => Math.max(1, (v + sym.charCodeAt(i % sym.length) % 4)));
                 return (
                   <div key={t.symbol} className="flex justify-between items-center py-2 border-b border-white/[0.03]">
                     <span className="font-mono text-[10px] text-white/50">{t.symbol}/USD</span>

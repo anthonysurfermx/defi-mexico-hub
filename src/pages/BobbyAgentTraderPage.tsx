@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { useAccount } from 'wagmi';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Terminal, Brain, Zap, Vault, Settings, Bell, MessageSquare, ClipboardList } from 'lucide-react';
 import { AdamsChat } from '@/components/adams/AdamsChat';
 import { ProactiveNotification } from '@/components/adams/ProactiveNotification';
@@ -34,15 +34,15 @@ class BobbyErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 }
 
 const NAV_ITEMS = [
-  { label: 'TERMINAL', path: '/agentic-world/bobby', active: true },
+  { label: 'TERMINAL', path: '/agentic-world/bobby' },
   { label: 'CHALLENGE', path: '/agentic-world/bobby/challenge' },
-  { label: 'AGENTS', path: '/agentic-world/bobby/agents' },
   { label: 'HISTORY', path: '/agentic-world/bobby/history' },
+  { label: 'AGENTS', path: '/agentic-world/bobby/agents' },
   { label: 'ANALYTICS', path: '/agentic-world/bobby/analytics' },
 ];
 
 const ICON_NAV = [
-  { Icon: Terminal, label: 'Command', path: '/agentic-world/bobby', active: true },
+  { Icon: Terminal, label: 'Command', path: '/agentic-world/bobby' },
   { Icon: Brain, label: 'Intel', path: '/agentic-world/bobby/analytics' },
   { Icon: Zap, label: 'Exec', path: '/agentic-world/bobby/challenge' },
   { Icon: Vault, label: 'Vault', path: '/agentic-world/bobby/history' },
@@ -51,6 +51,8 @@ const ICON_NAV = [
 export default function BobbyAgentTraderPage() {
   const { address } = useAccount();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden" style={{ background: '#050505' }}>
@@ -64,7 +66,7 @@ export default function BobbyAgentTraderPage() {
             <div className="hidden md:flex gap-5 items-center font-mono uppercase tracking-widest text-[10px]">
               {NAV_ITEMS.map(item => (
                 <Link key={item.label} to={item.path}
-                  className={item.active
+                  className={currentPath === item.path
                     ? 'text-green-500 border-b border-green-500 pb-0.5 font-bold'
                     : 'text-gray-500 hover:text-green-300 transition-colors'
                   }>
@@ -99,7 +101,7 @@ export default function BobbyAgentTraderPage() {
               {ICON_NAV.map(item => (
                 <Link key={item.label} to={item.path}
                   className={`flex flex-col items-center gap-1 py-3 px-1 w-full transition-all duration-300 ${
-                    item.active
+                    currentPath === item.path
                       ? 'bg-green-500/10 text-green-500 border-r-2 border-green-500'
                       : 'text-gray-600 hover:bg-white/5 hover:text-green-300'
                   }`}>
@@ -125,6 +127,22 @@ export default function BobbyAgentTraderPage() {
         </div>
 
         <ProactiveNotification walletAddress={address} />
+
+        {/* === Mobile Bottom Nav === */}
+        <nav className="md:hidden fixed bottom-0 w-full h-14 bg-[#131313]/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-4 z-[101]"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          {NAV_ITEMS.slice(0, 4).map(item => (
+            <Link key={item.label} to={item.path}
+              className={`flex flex-col items-center gap-0.5 ${
+                currentPath === item.path ? 'text-green-400' : 'text-white/25'
+              }`}>
+              <span className="text-[10px]">
+                {item.label === 'TERMINAL' ? '⌘' : item.label === 'CHALLENGE' ? '◆' : item.label === 'HISTORY' ? '◎' : '△'}
+              </span>
+              <span className="text-[7px] font-mono tracking-[1px]">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
       </BobbyErrorBoundary>
     </div>
   );

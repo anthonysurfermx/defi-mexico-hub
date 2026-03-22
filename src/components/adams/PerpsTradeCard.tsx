@@ -102,7 +102,7 @@ export default function PerpsTradeCard({
 
   const rrRatio = (entryPrice && targetPrice && stopPrice)
     ? ((targetPrice - entryPrice) / (entryPrice - stopPrice)).toFixed(1) : null;
-  const estPnl = market ? (notional * (isLong ? 1 : -1) * ((targetPrice || market.markPrice * 1.05) - market.markPrice) / market.markPrice).toFixed(2) : null;
+  const estPnl = market ? (notional * (isLong ? 1 : -1) * ((targetPrice || market.markPrice * (isLong ? 1.05 : 0.95)) - market.markPrice) / market.markPrice).toFixed(2) : null;
 
   return (
     <div className="mt-4 relative">
