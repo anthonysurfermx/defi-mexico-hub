@@ -1,116 +1,112 @@
 export const mockStartups = [
   {
     id: "1",
-    name: "CryptoLend MX",
+    name: "Bitso",
     logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&h=100&fit=crop&crop=center",
-    description: "Plataforma de préstamos descentralizados que permite a usuarios mexicanos acceder a crédito usando crypto como colateral, con tasas competitivas y sin intermediarios bancarios tradicionales.",
-    foundedYear: 2022,
-    founders: ["María González", "Carlos Ruiz", "Ana López"],
-    website: "https://cryptolend.mx",
-    tvl: "$2.3M",
-    users: "1,200",
-    tags: ["DeFi", "Lending", "Collateral"],
-    longDescription: "CryptoLend MX revoluciona el acceso al crédito en México mediante una plataforma descentralizada que elimina intermediarios tradicionales. Los usuarios pueden obtener préstamos instantáneos usando sus criptomonedas como garantía, con tasas de interés competitivas determinadas algorítmicamente. La plataforma soporta múltiples tipos de colateral incluyendo BTC, ETH y tokens ERC-20, ofreciendo flexibilidad tanto a prestamistas como prestatarios. Con smart contracts auditados y un sistema de liquidación automática, CryptoLend MX garantiza la seguridad de los fondos mientras democratiza el acceso al capital financiero.",
+    description: "El exchange crypto más grande de LATAM. Plataforma regulada de trading, pagos y remesas con presencia en México, Brasil, Colombia y Argentina.",
+    foundedYear: 2014,
+    founders: ["Daniel Vogel", "Ben Peters", "Pablo González"],
+    website: "https://bitso.com",
+    tvl: "$1.2B+",
+    users: "8M+",
+    tags: ["Exchange", "Payments", "Remittances"],
+    longDescription: "Bitso es la plataforma de criptomonedas líder en Latinoamérica, facilitando el acceso a activos digitales para millones de usuarios. Ofrece servicios de trading, pagos empresariales (Bitso Business) y procesamiento de remesas cross-border. La empresa está regulada en México bajo la Ley Fintech y opera como el principal puente entre el sistema financiero tradicional y el ecosistema crypto en la región. Con el producto Bitso Transfer, facilita remesas EE.UU.-México con costos significativamente menores a los métodos tradicionales.",
     socialLinks: {
-      twitter: "https://twitter.com/cryptolendmx",
-      linkedin: "https://linkedin.com/company/cryptolendmx",
-      telegram: "https://t.me/cryptolendmx"
+      twitter: "https://twitter.com/Bitso",
+      linkedin: "https://linkedin.com/company/bitso",
+      telegram: "https://t.me/bitso"
     },
     metrics: {
-      totalLoans: "450",
-      avgLoanSize: "$5,200",
-      liquidationRate: "2.3%"
+      dailyVolume: "$50M+",
+      countriesActive: "4",
+      remittancesProcessed: "$5B+"
     }
   },
   {
-    id: "2", 
-    name: "AztecSwap",
+    id: "2",
+    name: "Brale (MXNe)",
     logo: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=100&h=100&fit=crop&crop=center",
-    description: "DEX automatizado que facilita el intercambio de tokens con pools de liquidez optimizados para el mercado mexicano, incluyendo pares MXN-crypto únicos.",
-    foundedYear: 2023,
-    founders: ["Roberto Hernández", "Sofía Martínez"],
-    website: "https://aztecswap.io",
-    tvl: "$850K",
-    users: "850",
-    tags: ["DEX", "AMM", "Liquidity"],
-    longDescription: "AztecSwap es el primer DEX automatizado diseñado específicamente para el mercado mexicano. Utiliza un modelo de Market Maker Automatizado (AMM) que optimiza la liquidez para pares de trading únicos como MXN/ETH, MXN/BTC y otros tokens locales. La plataforma ofrece farming de liquidez con recompensas atractivas, swaps con slippage mínimo y una interfaz intuitiva en español. Los usuarios pueden participar como proveedores de liquidez y ganar fees de transacción, mientras que los traders disfrutan de intercambios instantáneos sin necesidad de libros de órdenes tradicionales.",
+    description: "Emisor de MXNe, stablecoin del peso mexicano en Ethereum. Infraestructura para pagos on-chain respaldados 1:1 por pesos mexicanos.",
+    foundedYear: 2022,
+    founders: ["Team Brale"],
+    website: "https://brale.xyz",
+    tvl: "$8M",
+    users: "N/A",
+    tags: ["Stablecoin", "MXN", "Infrastructure"],
+    longDescription: "Brale es el emisor de MXNe, una stablecoin del peso mexicano desplegada en Ethereum. Cada MXNe está respaldado 1:1 por pesos mexicanos en cuentas bancarias auditadas. La plataforma permite a empresas y desarrolladores integrar pagos en pesos mexicanos on-chain, facilitando remesas, pagos DeFi y liquidaciones instantáneas. Brale opera con cumplimiento regulatorio completo y ofrece APIs para integración empresarial.",
     socialLinks: {
-      twitter: "https://twitter.com/aztecswap",
-      discord: "https://discord.gg/aztecswap"
+      twitter: "https://twitter.com/baborale",
+      linkedin: "https://linkedin.com/company/brale"
     },
     metrics: {
-      dailyVolume: "$125K",
-      totalTrades: "12,450",
-      liquidityPairs: "28"
+      circSupply: "$8M MXNe",
+      chain: "Ethereum",
+      backing: "1:1 MXN"
     }
   },
   {
     id: "3",
-    name: "PesoStable",
+    name: "Tether (MXNT)",
     logo: "https://images.unsplash.com/photo-1516245834210-c4c142787335?w=100&h=100&fit=crop&crop=center",
-    description: "Stablecoin respaldada por pesos mexicanos que permite pagos DeFi instantáneos y de bajo costo, conectando el peso tradicional con DeFi.",
-    foundedYear: 2021,
-    founders: ["Diego Morales", "Lucía Fernández", "Manuel Torres", "Carla Jiménez"],
-    website: "https://pesostable.com",
-    tvl: "$5.7M",
-    users: "3,400",
-    tags: ["Stablecoin", "Payments", "MXN"],
-    longDescription: "PesoStable es la primera stablecoin totalmente respaldada por pesos mexicanos, diseñada para ser el puente entre el sistema financiero tradicional y DeFi. Cada token MXNS está respaldado 1:1 por pesos mexicanos en cuentas bancarias auditadas regularmente. La plataforma permite transferencias instantáneas a costo prácticamente nulo, pagos a comercios, y integración con protocolos DeFi para yield farming y lending. Con licencias regulatorias completas y auditorías mensuales de reservas, PesoStable ofrece la estabilidad del peso con la innovación de blockchain.",
+    description: "MXNT es la stablecoin del peso mexicano emitida por Tether, disponible en múltiples cadenas incluyendo Ethereum, Polygon y Tron.",
+    foundedYear: 2022,
+    founders: ["Tether Operations"],
+    website: "https://tether.to",
+    tvl: "$6M",
+    users: "N/A",
+    tags: ["Stablecoin", "MXN", "Multi-chain"],
+    longDescription: "MXNT es la stablecoin del peso mexicano emitida por Tether, la empresa detrás de USDT. Cada token MXNT está respaldado 1:1 por pesos mexicanos y está disponible en Ethereum, Polygon y Tron. Tether está expandiendo agresivamente sus operaciones en México con múltiples contrataciones (Expansion Manager, Venture Growth, Policy Advisor) lo que señala un compromiso a largo plazo con el mercado mexicano.",
     socialLinks: {
-      twitter: "https://twitter.com/pesostable",
-      linkedin: "https://linkedin.com/company/pesostable",
-      medium: "https://medium.com/@pesostable"
+      twitter: "https://twitter.com/Tether_to",
+      linkedin: "https://linkedin.com/company/tether"
     },
     metrics: {
-      circSupply: "5.7M MXNS",
-      monthlyTxns: "45,000",
-      avgTxnSize: "$127"
+      circSupply: "$6M MXNT",
+      chains: "Ethereum, Polygon, Tron",
+      backing: "1:1 MXN"
     }
   },
   {
     id: "4",
-    name: "YieldFarm MX",
+    name: "Moneta (MMXN)",
     logo: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=100&h=100&fit=crop&crop=center",
-    description: "Protocolo de yield farming optimizado para tokens mexicanos, ofreciendo estrategias automatizadas de inversión DeFi con retornos competitivos.",
-    foundedYear: 2022,
-    founders: ["Fernando Jiménez", "Isabella Torres"],
-    website: "https://yieldfarm.mx",
-    tvl: "$1.8M",
-    users: "920",
-    tags: ["Yield Farming", "Auto-strategies", "DeFi"],
-    longDescription: "YieldFarm MX democratiza las estrategias de inversión DeFi complejas mediante protocolos automatizados que optimizan rendimientos para usuarios mexicanos. La plataforma utiliza algoritmos avanzados para rebalancear automáticamente las posiciones entre diferentes protocolos, maximizando el APY mientras minimiza el riesgo. Los usuarios pueden depositar sus tokens y el protocolo se encarga de encontrar las mejores oportunidades de yield en tiempo real, desde lending hasta liquidity providing y staking rewards.",
+    description: "MMXN es una stablecoin del peso mexicano en Polygon, enfocada en pagos rápidos y de bajo costo para el mercado mexicano.",
+    foundedYear: 2023,
+    founders: ["Team Moneta"],
+    website: "https://moneta.xyz",
+    tvl: "$5M",
+    users: "N/A",
+    tags: ["Stablecoin", "MXN", "Polygon"],
+    longDescription: "Moneta emite MMXN, una stablecoin del peso mexicano desplegada en Polygon para aprovechar las bajas comisiones y alta velocidad de la red. MMXN está diseñada para pagos cotidianos, remesas y como puerta de entrada al ecosistema DeFi para usuarios mexicanos. Con respaldo 1:1 en pesos y auditorías regulares, MMXN busca ser la opción preferida para transacciones on-chain en pesos mexicanos.",
     socialLinks: {
-      twitter: "https://twitter.com/yieldfarm_mx",
-      telegram: "https://t.me/yieldfarm_mx",
-      github: "https://github.com/yieldfarm-mx"
+      twitter: "https://twitter.com/monetaxyz"
     },
     metrics: {
-      avgAPY: "18.5%",
-      totalHarvests: "2,340",
-      strategies: "12"
+      circSupply: "$5M MMXN",
+      chain: "Polygon",
+      backing: "1:1 MXN"
     }
   },
   {
     id: "5",
-    name: "BlockRemit",
+    name: "MXNB (Bitso)",
     logo: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=100&h=100&fit=crop&crop=center",
-    description: "Plataforma de remesas descentralizada que conecta México con el mundo, ofreciendo transferencias instantáneas y de bajo costo usando blockchain.",
+    description: "MXNB es la stablecoin del peso mexicano con mayor TVL ($15M), emitida por el ecosistema Bitso en Ethereum.",
     foundedYear: 2023,
-    founders: ["Miguel Ángel Valdez", "Paola Guerrero", "Andrés Muñoz"],
-    website: "https://blockremit.io",
-    tvl: "$4.2M",
-    users: "2,800",
-    tags: ["Remittances", "Cross-border", "Payments"],
-    longDescription: "BlockRemit revoluciona el mercado de remesas entre México y Estados Unidos utilizando blockchain para eliminar intermediarios costosos. La plataforma permite enviar dinero de forma instantánea con comisiones hasta 80% menores que los métodos tradicionales. Los usuarios pueden enviar desde USD, EUR o cryptos y el receptor puede recibir en pesos mexicanos directamente en su cuenta bancaria o wallet digital. Con partnerships con casas de cambio locales y compliance regulatorio completo, BlockRemit hace las transferencias internacionales accesibles para millones de familias mexicanas.",
+    founders: ["Bitso"],
+    website: "https://bitso.com",
+    tvl: "$15M",
+    users: "N/A",
+    tags: ["Stablecoin", "MXN", "Ethereum"],
+    longDescription: "MXNB es la stablecoin del peso mexicano más grande por capitalización, con $15M en TVL. Emitida dentro del ecosistema Bitso en Ethereum, MXNB se beneficia de la infraestructura regulada y la base de usuarios de Bitso. Es utilizada para pagos empresariales, liquidaciones cross-border y como colateral en protocolos DeFi. Su integración con Bitso Business la convierte en una herramienta clave para empresas que operan entre México y otros mercados.",
     socialLinks: {
-      twitter: "https://twitter.com/blockremit",
-      linkedin: "https://linkedin.com/company/blockremit",
-      telegram: "https://t.me/blockremit"
+      twitter: "https://twitter.com/Bitso",
+      linkedin: "https://linkedin.com/company/bitso"
     },
     metrics: {
-      monthlyVolume: "$4.2M",
-      avgSavings: "78%",
-      countries: "15"
+      circSupply: "$15M MXNB",
+      chain: "Ethereum",
+      backing: "1:1 MXN"
     }
   }
 ];
@@ -118,67 +114,67 @@ export const mockStartups = [
 export const mockBlogPosts = [
   {
     id: "1",
-    title: "El auge de DeFi en Latinoamérica",
+    title: "Stablecoins MXN: El estado del peso digital en 2026",
     author: "Elena Rodriguez",
-    date: "2024-07-15",
-    publishedAt: "15 de Julio, 2024",
+    date: "2026-03-10",
+    publishedAt: "10 de Marzo, 2026",
     readTime: "5 min",
-    category: "DeFi",
-    excerpt: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región y su impacto en la inclusión financiera.",
-    tags: ["DeFi", "Latinoamérica", "Tendencias"],
-    content: "Un análisis del crecimiento exponencial de las finanzas descentralizadas en la región.",
+    category: "Stablecoins",
+    excerpt: "Un análisis de las stablecoins respaldadas por pesos mexicanos: MXNB, MXNe, MXNT y MMXN. Quién lidera y hacia dónde va el mercado.",
+    tags: ["Stablecoins", "MXN", "Tendencias"],
+    content: "Un análisis de las stablecoins respaldadas por pesos mexicanos y su impacto en la adopción DeFi en México.",
     image: "https://images.unsplash.com/photo-1642104704074-907c0698b98d?w=400&h=200&fit=crop"
   },
   {
     id: "2",
-    title: "Cómo las DAOs están transformando la gobernanza",
+    title: "México Blockchain Week: Lo que necesitas saber",
     author: "Javier Pérez",
-    date: "2024-07-10",
-    publishedAt: "10 de Julio, 2024",
-    readTime: "7 min",
-    category: "Gobernanza",
-    excerpt: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones en el ecosistema crypto.",
-    tags: ["DAOs", "Gobernanza", "Blockchain"],
-    content: "Exploramos cómo las organizaciones autónomas descentralizadas están revolucionando la toma de decisiones.",
+    date: "2026-03-05",
+    publishedAt: "5 de Marzo, 2026",
+    readTime: "4 min",
+    category: "Eventos",
+    excerpt: "Todo sobre la primera edición de México Blockchain Week 2026: speakers, agenda y por qué asistir al evento más grande de blockchain en México.",
+    tags: ["Eventos", "Blockchain", "CDMX"],
+    content: "Guía completa sobre México Blockchain Week 2026 y cómo aprovechar al máximo el evento.",
     image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=200&fit=crop"
   },
   {
     id: "3",
-    title: "NFTs: Más allá del arte digital",
-    author: "Sofía Mendoza",
-    date: "2024-07-05",
-    publishedAt: "5 de Julio, 2024",
-    readTime: "4 min",
-    category: "NFTs",
-    excerpt: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital y casos de uso empresariales.",
-    tags: ["NFTs", "Arte Digital", "Casos de Uso"],
-    content: "Descubre las diversas aplicaciones de los tokens no fungibles, desde coleccionables hasta identidad digital.",
-    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=200&fit=crop"
-  },
-  {
-    id: "4",
-    title: "El impacto de la regulación en el ecosistema Crypto",
+    title: "Regulación crypto en México: Avances de la Ley Fintech 2026",
     author: "Ricardo Castro",
-    date: "2024-06-28",
-    publishedAt: "28 de Junio, 2024",
+    date: "2026-02-20",
+    publishedAt: "20 de Febrero, 2026",
     readTime: "6 min",
     category: "Regulación",
-    excerpt: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo, y su impacto en la adopción.",
-    tags: ["Regulación", "Criptomonedas", "Leyes"],
-    content: "Un vistazo a las leyes que están moldeando el futuro de las criptomonedas en México y el mundo.",
+    excerpt: "Los cambios regulatorios que están moldeando el ecosistema crypto mexicano y lo que significan para exchanges, DeFi y stablecoins.",
+    tags: ["Regulación", "Ley Fintech", "México"],
+    content: "Un vistazo a los avances regulatorios de la Ley Fintech y su impacto en el ecosistema crypto mexicano.",
     image: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=400&h=200&fit=crop"
   },
   {
+    id: "4",
+    title: "Remesas en blockchain: Cómo México lidera la adopción",
+    author: "Sofía Mendoza",
+    date: "2026-02-12",
+    publishedAt: "12 de Febrero, 2026",
+    readTime: "5 min",
+    category: "Pagos",
+    excerpt: "México recibe más de $60B en remesas anuales. Así es como blockchain está reduciendo costos y acelerando transferencias.",
+    tags: ["Remesas", "Pagos", "Blockchain"],
+    content: "Cómo la tecnología blockchain está transformando el corredor de remesas más grande del mundo.",
+    image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=200&fit=crop"
+  },
+  {
     id: "5",
-    title: "Staking: Una guía completa para principiantes",
+    title: "Empleos Web3 en LATAM: Las empresas que más están contratando",
     author: "Ana García",
-    date: "2024-06-20",
-    publishedAt: "20 de Junio, 2024",
-    readTime: "8 min",
-    category: "Staking",
-    excerpt: "Todo lo que necesitas saber sobre staking: desde los conceptos básicos hasta las estrategias avanzadas para maximizar tus rendimientos.",
-    tags: ["Staking", "Yield", "Guía"],
-    content: "Todo lo que necesitas saber sobre staking: desde los conceptos básicos hasta las estrategias avanzadas.",
+    date: "2026-01-28",
+    publishedAt: "28 de Enero, 2026",
+    readTime: "7 min",
+    category: "Empleos",
+    excerpt: "Bitso, Binance, Coinbase y más están expandiéndose en México. Guía de oportunidades y skills más demandados en Web3.",
+    tags: ["Empleos", "Web3", "LATAM"],
+    content: "Las principales empresas crypto que están contratando en México y LATAM, y qué habilidades buscan.",
     image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=200&fit=crop"
   }
 ];
@@ -186,66 +182,66 @@ export const mockBlogPosts = [
 export const mockEvents = [
   {
     id: "1",
-    title: "DeFi México Meetup - Ciudad de México",
-    type: "Meetup",
-    date: "2024-08-15",
-    time: "18:00",
-    location: "Polanco, CDMX",
-    description: "Únete a nuestra comunidad para discutir las últimas tendencias en DeFi y networking con otros entusiastas.",
+    title: "México Blockchain Week 2026",
+    type: "Conferencia",
+    date: "2026-03-28",
+    time: "07:00",
+    location: "Hotel Hilton Reforma, CDMX",
+    description: "Primera edición del evento #1 de blockchain, crypto y trading en México. +50 speakers, +1500 asistentes, +100 alianzas Web3.",
     isUpcoming: true
   },
   {
     id: "2",
-    title: "Workshop: Construyendo tu primera DApp",
-    type: "Workshop",
-    date: "2024-08-22",
-    time: "10:00",
-    location: "Guadalajara, JAL",
-    description: "Taller práctico para desarrolladores que quieren aprender a crear aplicaciones descentralizadas.",
+    title: "ETH Mexico 2026",
+    type: "Conferencia",
+    date: "2026-06-01",
+    time: "09:00",
+    location: "Calle Gral. Prim 30, Juárez, CDMX",
+    description: "El ecosistema global de Ethereum llega a México. Talleres técnicos, demostraciones de startups y networking para desarrolladores y fundadores.",
     isUpcoming: true
   },
   {
     id: "3",
-    title: "Conferencia Anual DeFi México 2024",
+    title: "Stablecoin Conference LATAM 2026",
     type: "Conferencia",
-    date: "2024-09-10",
+    date: "2026-06-15",
     time: "09:00",
-    location: "Centro de Convenciones, CDMX",
-    description: "El evento más importante del ecosistema DeFi mexicano con speakers internacionales.",
+    location: "World Trade Center, CDMX",
+    description: "El evento global dedicado al futuro del dinero digital. +2,500 profesionales, reguladores y developers. Organizado por Bitso.",
     isUpcoming: true
   }
 ];
 
 export const mockStats = [
   {
-    title: "Startups Registradas",
-    value: "15",
-    description: "Proyectos activos en el ecosistema",
-    trend: { value: "+12%", isPositive: true }
+    title: "Empleos Web3 Activos",
+    value: "20",
+    description: "Vacantes publicadas en el ecosistema",
+    trend: { value: "+40%", isPositive: true }
   },
   {
     title: "Comunidades Activas",
     value: "5",
     description: "Grupos y comunidades registradas",
-    trend: { value: "+25%", isPositive: true }
+    trend: { value: "+20%", isPositive: true }
   },
   {
-    title: "Eventos Realizados",
-    value: "24",
-    description: "Meetups y conferencias organizadas",
-    trend: { value: "+8%", isPositive: true }
+    title: "Eventos 2026",
+    value: "3",
+    description: "Conferencias confirmadas en México",
+    trend: { value: "Próximos", isPositive: true }
   },
   {
-    title: "Miembros Comunidad",
-    value: "12,350",
-    description: "Desarrolladores y entusiastas",
-    trend: { value: "+25%", isPositive: true }
+    title: "Empresas Contratando",
+    value: "12",
+    description: "Bitso, Binance, Coinbase, BitGo y más",
+    trend: { value: "+35%", isPositive: true }
   },
   {
-    title: "TVL Total",
-    value: "$18.2M",
-    description: "Capital total bloqueado",
-    trend: { value: "+15%", isPositive: true }
+    title: "Stablecoins MXN TVL",
+    value: "$34M",
+    description: "Capital en stablecoins peso mexicano",
+    trend: { value: "+18%", isPositive: true }
   }
 ];
 

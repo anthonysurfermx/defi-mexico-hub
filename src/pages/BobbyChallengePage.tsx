@@ -375,6 +375,39 @@ export default function BobbyChallengePage() {
               <TradeHistory language="en" />
             </motion.div>
 
+            {/* Agent Leaderboard */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
+              className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[9px] font-mono text-white/30 tracking-[2px]">AGENT_LEADERBOARD</span>
+                <span className="text-[8px] font-mono text-white/20">LIVE PERFORMANCE INDEX</span>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { rank: '01', name: 'Bobby CIO', role: 'Final Decision Maker', winRate: s.winRate, trades: s.totalTrades, color: 'text-yellow-400', barColor: 'bg-yellow-500/40', barWidth: s.winRate },
+                  { rank: '02', name: 'Alpha Hunter', role: 'Opportunity Scanner', winRate: 65, trades: recentDecisions.length, color: 'text-green-400', barColor: 'bg-green-500/40', barWidth: 65 },
+                  { rank: '03', name: 'Red Team', role: 'Thesis Destroyer', winRate: 58, trades: recentDecisions.length, color: 'text-red-400', barColor: 'bg-red-500/40', barWidth: 58 },
+                ].map((agent) => (
+                  <div key={agent.rank} className="flex items-center gap-3 p-2 rounded bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+                    <span className="text-[10px] font-mono text-white/20 w-6">{agent.rank}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold font-mono ${agent.color}`}>{agent.name}</span>
+                        <span className="text-[7px] font-mono text-white/20">{agent.role}</span>
+                      </div>
+                      <div className="mt-1 h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                        <div className={`h-full ${agent.barColor} rounded-full transition-all`} style={{ width: `${agent.barWidth}%` }} />
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono text-white/60 block">{agent.winRate.toFixed(1)}%</span>
+                      <span className="text-[7px] font-mono text-white/20">{agent.trades} plays</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
             {/* On-chain proof */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
               className="mt-8 p-4 border border-white/[0.04] bg-white/[0.01] rounded text-center">
