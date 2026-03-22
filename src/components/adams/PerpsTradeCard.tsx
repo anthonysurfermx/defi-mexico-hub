@@ -264,8 +264,29 @@ export default function PerpsTradeCard({
             </div>
           )
         ) : (
-          <div className="w-full py-2.5 rounded text-center text-[10px] font-mono tracking-[1px] bg-white/[0.03] border border-white/[0.06] text-white/30">
-            {isEs ? 'SEÑAL DE BOBBY — SOLO LECTURA' : 'BOBBY\'S SIGNAL — READ ONLY'}
+          <div className="relative overflow-hidden rounded border border-white/[0.06]">
+            {/* Blurred fake buttons behind */}
+            <div className="opacity-20 blur-sm pointer-events-none p-3">
+              <div className="flex gap-2">
+                <div className="h-10 flex-1 bg-green-500/20 rounded border border-green-500/30" />
+                <div className="h-10 flex-1 bg-red-500/20 rounded border border-red-500/30" />
+              </div>
+            </div>
+            {/* FOMO overlay */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/70 backdrop-blur-[2px] p-4 text-center">
+              <div className="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 mb-2 shadow-[0_0_15px_rgba(234,179,8,0.1)]">
+                <span className="text-yellow-400 text-sm">🔒</span>
+              </div>
+              <span className="text-[11px] font-mono font-bold tracking-widest text-yellow-400 mb-1">
+                {isEs ? 'SEÑAL RESTRINGIDA' : 'RESTRICTED SIGNAL'}
+              </span>
+              <p className="text-[9px] text-white/40 font-mono mb-2 max-w-[200px]">
+                {isEs ? 'Conecta tu wallet para desbloquear la terminal de ejecución.' : 'Connect your wallet to unlock the execution terminal.'}
+              </p>
+              <button className="px-4 py-1.5 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 text-yellow-400 text-[9px] font-bold font-mono tracking-wider hover:bg-yellow-500/30 transition-all rounded shadow-[0_0_10px_rgba(234,179,8,0.1)]">
+                {isEs ? 'CONECTAR PARA OPERAR ›' : 'CONNECT TO TRADE ›'}
+              </button>
+            </div>
           </div>
         )}
 
