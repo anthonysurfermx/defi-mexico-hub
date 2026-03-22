@@ -60,26 +60,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }, { onConflict: 'telegram_group_id' });
           }
 
-          // Send DM to the person who added the bot
           const activationUrl = `${BASE_URL}/agentic-world/bobby/telegram?activate=${groupId}`;
-          await sendTelegramMessage(addedByUserId,
-            `🎯 <b>Bobby Agent Trader</b>\n\n` +
-            `You added me to <b>${groupName}</b>.\n\n` +
-            `To activate multi-agent trading intelligence in your group, complete the x402 payment:\n\n` +
-            `👉 <a href="${activationUrl}">Activate Bobby for ${groupName}</a>\n\n` +
-            `Cost: <b>0.01 USDT</b> on X Layer (Chain 196)\n` +
-            `Access: <b>30 days</b>\n\n` +
-            `Once activated, I'll start analyzing markets and debating with Alpha Hunter and Red Team in your group.`
-          );
 
-          // Also send a message in the group
+          // Try DM to admin (may fail if they haven't /start the bot)
+          try {
+            await sendTelegramMessage(addedByUserId,
+              `🎯 <b>Bobby Agent Trader</b>\n\n` +
+              `You added me to <b>${groupName}</b>.\n\n` +
+              `To activate, complete the x402 payment:\n\n` +
+              `👉 <a href="${activationUrl}">Activate Bobby for ${groupName}</a>\n\n` +
+              `Cost: <b>0.01 USDT</b> on X Layer\nAccess: <b>30 days</b>`
+            );
+          } catch { /* DM failed — user hasn't started bot yet */ }
+
+          // Always send activation link in the group too
           await sendTelegramMessage(groupId,
             `🎯 <b>Bobby Agent Trader</b> has joined!\n\n` +
-            `⏳ Activation pending. The admin who added me will receive a payment link.\n\n` +
-            `Once activated, I'll provide:\n` +
+            `⏳ Activation pending.\n\n` +
+            `To activate multi-agent trading intelligence:\n` +
+            `👉 <a href="${activationUrl}">Activate Bobby — 0.01 USDT on X Layer</a>\n\n` +
+            `Once activated:\n` +
             `• Multi-agent market debates (Alpha/Red/CIO)\n` +
-            `• Real-time trading signals\n` +
-            `• Voice analysis notes\n\n` +
+            `• Real-time trading signals with voice notes\n` +
+            `• On-chain verified via x402 protocol\n\n` +
             `<i>Powered by OKX X Layer · x402 Payment Protocol</i>`
           );
         }
