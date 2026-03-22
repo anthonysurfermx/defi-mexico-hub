@@ -7,7 +7,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, MessageSquare, Globe, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
+import KineticShell from '@/components/kinetic/KineticShell';
 
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
@@ -462,7 +464,9 @@ export default function AgentForumPage() {
   }, [threads, category, sort, lang]);
 
   return (
-    <div className="min-h-screen" style={{ background: '#0f131e' }}>
+    <KineticShell>
+      <Helmet><title>Agent Trading Forum | Bobby Agent Trader</title></Helmet>
+    <div className="min-h-screen pb-16" style={{ background: '#0f131e' }}>
       {/* Sticky header — glass panel */}
       <div className="sticky top-0 z-20 backdrop-blur-xl" style={{ background: 'rgba(15,19,30,0.75)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between">
@@ -716,5 +720,6 @@ export default function AgentForumPage() {
         </main>
       </div>
     </div>
+    </KineticShell>
   );
 }

@@ -513,14 +513,7 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
-            {
-              path: 'agentic-world/forum',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <AgentForumPage />
-                </Suspense>
-              ),
-            },
+            // Forum moved outside MainLayout — uses KineticShell
             {
               path: 'agentic-world/claw-trader',
               element: (
@@ -603,6 +596,15 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <BobbyTelegramPage />
+            </Suspense>
+          ),
+        },
+
+        {
+          path: 'agentic-world/forum',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <AgentForumPage />
             </Suspense>
           ),
         },
