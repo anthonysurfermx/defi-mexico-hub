@@ -131,8 +131,24 @@ Respond ONLY with JSON, no markdown:
     const data = await response.json() as { content: Array<{ text: string }> };
     let text = data.content[0]?.text || '';
 
-    // Strip markdown code fences if present (Haiku sometimes wraps in ```json...```)
-    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    // Extract JSON from any format Haiku might return:
+    // - bare JSON: {"intent":...}
+    // - fenced: ```json\n{...}\n```
+    // - prose + JSON: "Here is the classification: {...}"
+    // - multiple blocks: take first valid JSON object
+    const jsonMatch = text.match(/\{[^{}]*"intent"\s*:\s*"[^"]+"/);
+    if (jsonMatch) {
+      // Find the complete JSON object starting from the match
+      const start = text.indexOf(jsonMatch[0]);
+      let depth = 0, end = start;
+      for (let i = start; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        if (text[i] === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
+      }
+      text = text.slice(start, end);
+    } else {
+      text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    }
 
     // Parse JSON response
     try {
