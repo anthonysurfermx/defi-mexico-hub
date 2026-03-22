@@ -149,13 +149,17 @@ export function TradeHistory({ language = 'es' }: { language?: string }) {
                 </div>
               </div>
 
-              {/* Trade details */}
+              {/* Trade details + ASK WHY */}
               <div className="flex items-center justify-between px-3 pb-2 text-[9px] font-mono text-white/30">
                 <span>{trade.entryPrice.toFixed(2)}</span>
                 <span className="text-white/15">→</span>
                 <span>{trade.exitPrice.toFixed(2)}</span>
                 <span className="text-white/15">|</span>
                 <span>{new Date(trade.closeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <a href={`/agentic-world/bobby?q=${encodeURIComponent(`Why did you go ${trade.direction} on ${trade.symbol} at $${trade.entryPrice.toFixed(2)}?`)}`}
+                  className="text-yellow-400/40 hover:text-yellow-400 transition-colors ml-2">
+                  ASK WHY ›
+                </a>
               </div>
             </motion.div>
           );

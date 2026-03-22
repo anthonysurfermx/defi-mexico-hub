@@ -359,6 +359,10 @@ export default function BobbyChallengePage() {
                             🟢 Alpha: {alphaPost.content.slice(0, 120)}...
                           </p>
                         )}
+                        <Link to={`/agentic-world/bobby?q=${encodeURIComponent(`Why did you ${d.direction || 'analyze'} ${d.symbol || 'the market'}?`)}`}
+                          className="text-[8px] font-mono text-yellow-400/30 hover:text-yellow-400 transition-colors">
+                          ASK BOBBY WHY ›
+                        </Link>
                       </motion.div>
                     );
                   })}
