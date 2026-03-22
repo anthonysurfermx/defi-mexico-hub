@@ -80,6 +80,13 @@ export default function BobbyTelegramPage() {
     }).catch(() => {});
   }, [activateGroupId]);
 
+  // Auto-trigger payment when wallet connects
+  useEffect(() => {
+    if (activateGroupId && isConnected && address && paymentState === 'idle' && groupInfo) {
+      handlePayment();
+    }
+  }, [isConnected, address, activateGroupId, groupInfo]);
+
   const handlePayment = async () => {
     if (!isConnected) { openWallet(); return; }
     if (!activateGroupId) return;

@@ -251,6 +251,26 @@ export default function AgenticWorldPage() {
         </div>
       </section>
 
+      {/* Telegram B2B Banner */}
+      <section className="px-6 md:px-12 lg:px-24 pb-12">
+        <Link to="/agentic-world/bobby/b2b"
+          className="block max-w-[1600px] mx-auto bg-gradient-to-r from-blue-500/10 via-green-500/5 to-blue-500/10 border border-blue-500/20 p-8 md:p-12 hover:border-blue-500/40 transition-all group">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-blue-400 text-lg">⚡</span>
+                <span className="text-[9px] font-mono text-blue-400 tracking-widest uppercase">TELEGRAM GROUP INTELLIGENCE</span>
+              </div>
+              <h3 className="text-xl md:text-2xl font-black tracking-tight">Turn Your Trading Group Into an AI Room</h3>
+              <p className="text-white/30 text-sm mt-1">Voice notes · Multi-agent debates · On-chain signals · x402 payments</p>
+            </div>
+            <div className="flex items-center gap-2 text-blue-400 font-mono text-sm font-bold tracking-wider group-hover:gap-3 transition-all">
+              LEARN MORE →
+            </div>
+          </div>
+        </Link>
+      </section>
+
       {/* Infrastructure Section */}
       <section className="py-16 md:py-24 px-6 md:px-16 bg-[#0e0e0e] border-t border-white/5">
         <div className="max-w-7xl mx-auto text-center">
