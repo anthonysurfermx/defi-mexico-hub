@@ -406,14 +406,16 @@ export default function BobbyChallengePage() {
                     <h3 className="font-mono text-xs text-white/40 uppercase mb-6 tracking-widest border-b border-white/5 pb-2">Operational_Params</h3>
                     <div className="space-y-4 font-mono">
                       {[
-                        { label: 'LAYER:', value: 'X_LAYER_MAINNET', color: '' },
+                        { label: 'CHAIN:', value: 'OKX X LAYER (196)', color: '' },
+                        { label: 'EXCHANGE:', value: 'OKX CEX API', color: '' },
+                        { label: 'DEX:', value: 'OKX DEX API', color: '' },
+                        { label: 'SIGNALS:', value: 'ONCHAINOS SKILLS', color: 'text-green-400' },
                         { label: 'STRATEGY:', value: 'MULTI_AGENT_DEBATE', color: 'text-green-400' },
-                        { label: 'RUNTIME:', value: 'OPENCLAW_GATEWAY', color: '' },
+                        { label: 'RUNTIME:', value: 'CLAUDE CODE + OPENCLAW', color: '' },
                         { label: 'CYCLE:', value: 'EVERY_6_HOURS', color: '' },
                         { label: 'MAX_LEVERAGE:', value: '5x', color: '' },
                         { label: 'CIRCUIT_BREAKER:', value: '-20%', color: 'text-amber-400' },
                         { label: 'STOP_LOSS:', value: 'MANDATORY', color: 'text-green-400' },
-                        { label: 'MAX_POSITIONS:', value: '2', color: '' },
                         { label: 'PROFIT_FACTOR:', value: profitFactor.toFixed(2), color: profitFactor >= 1 ? 'text-green-400' : 'text-red-400' },
                       ].map(p => (
                         <div key={p.label} className="flex justify-between items-center">

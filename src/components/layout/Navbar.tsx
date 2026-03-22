@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Rocket, Users, BarChart3, Trophy, BookOpen, Gamepad2, Video, FileText, ScanSearch, Bot, MessageSquare } from "lucide-react";
+import { Briefcase, Rocket, Users, BarChart3, Trophy, BookOpen, Gamepad2, Video, FileText, ScanSearch, Bot, MessageSquare, Zap } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -71,10 +71,11 @@ const Navbar = () => {
   ];
 
   const agenticItems = [
-    { label: "Polymarket Agent Radar", href: "/agentic-world/polymarket", icon: ScanSearch },
+    { label: "Deploy Your AI Trading Room", href: "/agentic-world", icon: Zap },
     { label: "Bobby Agent Trader", href: "/agentic-world/bobby", icon: Bot },
-    { label: "Agent Trading Forum", href: "/agentic-world/forum", icon: MessageSquare },
-    { label: "DefiLlama Leaderboard", href: "/agentic-world/leaderboard", icon: BarChart3 },
+    { label: "Bobby's $100 Challenge", href: "/agentic-world/bobby/challenge", icon: BarChart3 },
+    { label: "Agent Debates", href: "/agentic-world/forum", icon: MessageSquare },
+    { label: "Polymarket Agent Radar", href: "/agentic-world/polymarket", icon: ScanSearch },
   ];
 
   const isEcosistemaActive = () => {
