@@ -8,10 +8,30 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseUnits } from 'viem';
 import { useAppKit } from '@reown/appkit/react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, AlertTriangle } from 'lucide-react';
 import KineticShell from '@/components/kinetic/KineticShell';
+
+// USDT on X Layer (Chain 196) — 6 decimals
+const USDT_CONTRACT = '0x1E4a5963aBFD975d8c9021ce480b42188849D41d' as `0x${string}`;
+const BOBBY_WALLET = '0xF841b428E6d743187D7BE2242eccC1078fdE2395' as `0x${string}`;
+const PAYMENT_AMOUNT = parseUnits('0.01', 6); // 0.01 USDT
+const XLAYER_CHAIN_ID = 196;
+
+const ERC20_ABI = [
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const;
 
 const DEMO_CONVERSATION = [
   {
@@ -53,8 +73,25 @@ export default function BobbyTelegramPage() {
   const { open: openWallet } = useAppKit();
 
   const [groupInfo, setGroupInfo] = useState<{ name: string; status: string } | null>(null);
-  const [paymentState, setPaymentState] = useState<'idle' | 'loading' | 'verifying' | 'success' | 'error'>('idle');
+  const [paymentState, setPaymentState] = useState<'idle' | 'connected' | 'signing' | 'verifying' | 'success' | 'error'>('idle');
   const [paymentError, setPaymentError] = useState('');
+  const [session, setSession] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+
+  // Real USDT transfer on X Layer
+  const { writeContract, isPending: isSigning, data: writeTxHash } = useWriteContract();
+
+  // Wait for transaction confirmation
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: writeTxHash,
+  });
+
+  // When tx is confirmed, activate the group
+  useEffect(() => {
+    if (isConfirmed && writeTxHash && session && paymentState === 'verifying') {
+      activateGroup(writeTxHash, session);
+    }
+  }, [isConfirmed, writeTxHash, session]);
 
   // If ?activate=GROUP_ID, fetch group info
   useEffect(() => {
@@ -68,7 +105,6 @@ export default function BobbyTelegramPage() {
         }
       })
       .catch(() => {});
-    // Also get group name from the groups table
     const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
     fetch(`${SB}/rest/v1/telegram_groups?telegram_group_id=eq.${activateGroupId}&select=telegram_group_name,bot_status`, {
@@ -80,20 +116,27 @@ export default function BobbyTelegramPage() {
     }).catch(() => {});
   }, [activateGroupId]);
 
-  // Auto-trigger payment when wallet connects
+  // Update state when wallet connects (NO auto-trigger — explicit 2-step per Codex)
   useEffect(() => {
-    if (activateGroupId && isConnected && address && paymentState === 'idle' && groupInfo) {
-      handlePayment();
+    if (isConnected && address && paymentState === 'idle' && activateGroupId) {
+      setPaymentState('connected');
     }
-  }, [isConnected, address, activateGroupId, groupInfo]);
+  }, [isConnected, address, activateGroupId]);
 
-  const handlePayment = async () => {
-    if (!isConnected) { openWallet(); return; }
-    if (!activateGroupId) return;
+  // Step 1: Connect wallet
+  const handleConnect = () => {
+    openWallet();
+  };
 
-    setPaymentState('loading');
+  // Step 2: Sign real USDT transfer on X Layer
+  const handlePay = async () => {
+    if (!isConnected || !address || !activateGroupId) return;
+
+    setPaymentState('signing');
+    setPaymentError('');
+
     try {
-      // Get 402 session
+      // Create session first
       const sessionRes = await fetch(`/api/telegram-access?group_id=${activateGroupId}&wallet=${address}`);
       const sessionData = await sessionRes.json();
 
@@ -108,21 +151,49 @@ export default function BobbyTelegramPage() {
         return;
       }
 
-      setPaymentState('verifying');
+      setSession(sessionData.session);
 
-      // For hackathon: simulate x402 payment (in production: actual wallet signing)
-      // The endpoint accepts any payment proof for demo purposes
+      // Execute real USDT transfer on X Layer
+      writeContract({
+        address: USDT_CONTRACT,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [BOBBY_WALLET, PAYMENT_AMOUNT],
+        chainId: XLAYER_CHAIN_ID,
+      }, {
+        onSuccess: (hash) => {
+          setTxHash(hash);
+          setPaymentState('verifying');
+        },
+        onError: (error) => {
+          if (error.message?.includes('rejected') || (error as any).code === 4001) {
+            setPaymentError('Transaction rejected. Please try again.');
+          } else if (error.message?.includes('insufficient')) {
+            setPaymentError('Insufficient USDT balance on X Layer. You need 0.01 USDT.');
+          } else {
+            setPaymentError(error.message?.slice(0, 100) || 'Transaction failed');
+          }
+          setPaymentState('error');
+        },
+      });
+    } catch (err) {
+      setPaymentError('Connection error');
+      setPaymentState('error');
+    }
+  };
+
+  // Step 3: Activate group after tx confirmed
+  const activateGroup = async (hash: string, sessionId: string) => {
+    try {
       const activateRes = await fetch('/api/telegram-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session: sessionData.session,
+          session: sessionId,
           wallet_address: address,
-          payment_proof: { type: 'x402_demo', wallet: address, timestamp: Date.now() },
-          tx_hash: `0x${Date.now().toString(16)}${'0'.repeat(40)}`.slice(0, 66),
+          tx_hash: hash,
         }),
       });
-
       const result = await activateRes.json();
       if (result.ok) {
         setPaymentState('success');
@@ -130,8 +201,8 @@ export default function BobbyTelegramPage() {
         setPaymentError(result.error || 'Activation failed');
         setPaymentState('error');
       }
-    } catch (err) {
-      setPaymentError('Connection error');
+    } catch {
+      setPaymentError('Failed to activate group');
       setPaymentState('error');
     }
   };
@@ -150,27 +221,68 @@ export default function BobbyTelegramPage() {
           </p>
         </motion.div>
 
-        {/* Activation Flow — shown when ?activate=GROUP_ID */}
+        {/* Activation Flow — 6-state payment (Gemini UX design) */}
         {activateGroupId && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-px rounded bg-gradient-to-r from-green-500/30 via-green-400/10 to-green-500/30">
-            <div className="bg-[#0a0a0a] rounded p-5 text-center">
-              {paymentState === 'success' ? (
+            className={`mb-6 p-px rounded ${paymentState === 'success' ? 'bg-gradient-to-r from-green-500/40 via-green-400/20 to-green-500/40' : paymentState === 'error' ? 'bg-gradient-to-r from-red-500/30 via-red-400/10 to-red-500/30' : 'bg-gradient-to-r from-green-500/30 via-green-400/10 to-green-500/30'}`}>
+            <div className="bg-[#0a0a0a] rounded p-5 text-center"
+              style={paymentState === 'success' ? { boxShadow: '0 0 30px rgba(0,255,102,0.1)' } : undefined}>
+
+              {/* STATE: SUCCESS */}
+              {paymentState === 'success' && (
                 <>
-                  <div className="w-14 h-14 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-3">
-                    <Check className="w-7 h-7 text-green-400" />
+                  <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/40 flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-400" />
                   </div>
-                  <h3 className="text-lg font-black text-green-400 mb-1">ACCESS GRANTED</h3>
-                  <p className="text-[10px] font-mono text-white/30 mb-4">
-                    Bobby is now active in {groupInfo?.name || 'your group'}. Multi-agent intelligence is live.
-                  </p>
+                  <h3 className="text-xl font-black text-green-400 mb-1">NODE ACTIVATED</h3>
+                  <p className="text-[10px] font-mono text-white/40 mb-1">{groupInfo?.name || 'Your group'}</p>
+                  <p className="text-[9px] font-mono text-white/20 mb-4">Bobby is now fully integrated.</p>
+                  {txHash && <p className="text-[8px] font-mono text-white/15 mb-3">TX: {txHash.slice(0, 10)}...{txHash.slice(-6)}</p>}
                   <a href="https://t.me/Bobbyagentraderbot" target="_blank" rel="noopener noreferrer"
-                    className="inline-block px-6 py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
+                    className="inline-block w-full px-6 py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
                     style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-                    OPEN IN TELEGRAM
+                    OPEN TELEGRAM →
                   </a>
                 </>
-              ) : (
+              )}
+
+              {/* STATE: ERROR */}
+              {paymentState === 'error' && (
+                <>
+                  <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center mx-auto mb-3">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-black text-red-400 mb-1">DEPLOYMENT FAILED</h3>
+                  <p className="text-[10px] font-mono text-white/30 mb-4">{paymentError}</p>
+                  <button onClick={() => { setPaymentState('connected'); setPaymentError(''); }}
+                    className="w-full py-3 bg-white/[0.06] text-white/60 font-mono text-[10px] font-black tracking-widest rounded hover:bg-white/[0.1] transition-all">
+                    RETRY TRANSACTION
+                  </button>
+                </>
+              )}
+
+              {/* STATE: SIGNING */}
+              {paymentState === 'signing' && (
+                <>
+                  <Loader2 className="w-10 h-10 text-green-400 animate-spin mx-auto mb-3" />
+                  <h3 className="text-sm font-black mb-1">AWAITING SIGNATURE...</h3>
+                  <p className="text-[10px] font-mono text-white/30">Please confirm the transaction in your wallet.</p>
+                  <p className="text-[8px] font-mono text-white/15 mt-2">Do not close this window.</p>
+                </>
+              )}
+
+              {/* STATE: VERIFYING */}
+              {paymentState === 'verifying' && (
+                <>
+                  <Loader2 className="w-10 h-10 text-amber-400 animate-spin mx-auto mb-3" />
+                  <h3 className="text-sm font-black text-amber-400 mb-1">VERIFYING ON X LAYER...</h3>
+                  {writeTxHash && <p className="text-[9px] font-mono text-white/30">TX: {writeTxHash.slice(0, 14)}...</p>}
+                  <p className="text-[8px] font-mono text-white/15 mt-2">Block confirmation pending...</p>
+                </>
+              )}
+
+              {/* STATE: IDLE (not connected) or CONNECTED (ready to pay) */}
+              {(paymentState === 'idle' || paymentState === 'connected') && (
                 <>
                   <div className="w-10 h-10 rounded bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
                     <span className="text-green-400 text-lg">⚡</span>
@@ -178,10 +290,16 @@ export default function BobbyTelegramPage() {
                   <h3 className="text-sm font-black mb-1">
                     ACTIVATE BOBBY IN {groupInfo?.name?.toUpperCase() || 'YOUR GROUP'}
                   </h3>
-                  <p className="text-[10px] font-mono text-white/30 mb-3">
-                    x402 payment on X Layer (Chain 196)
-                  </p>
 
+                  {/* Wallet connected indicator */}
+                  {isConnected && address && (
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      <span className="text-[9px] font-mono text-green-400/60">{address.slice(0, 6)}...{address.slice(-4)}</span>
+                    </div>
+                  )}
+
+                  {/* Receipt */}
                   <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 mb-4 text-left">
                     <div className="flex justify-between text-[9px] font-mono mb-1">
                       <span className="text-white/30">GROUP</span>
@@ -190,6 +308,10 @@ export default function BobbyTelegramPage() {
                     <div className="flex justify-between text-[9px] font-mono mb-1">
                       <span className="text-white/30">NETWORK</span>
                       <span className="text-white/60">X Layer (196)</span>
+                    </div>
+                    <div className="flex justify-between text-[9px] font-mono mb-1">
+                      <span className="text-white/30">TOKEN</span>
+                      <span className="text-white/60">USDT (ERC-20)</span>
                     </div>
                     <div className="flex justify-between text-[9px] font-mono mb-1">
                       <span className="text-white/30">ACCESS</span>
@@ -201,26 +323,29 @@ export default function BobbyTelegramPage() {
                     </div>
                   </div>
 
-                  <button onClick={handlePayment}
-                    disabled={paymentState === 'loading' || paymentState === 'verifying'}
-                    className={`w-full py-3 rounded font-mono text-[10px] font-black tracking-widest transition-all active:scale-95 ${
-                      paymentState === 'loading' || paymentState === 'verifying'
-                        ? 'bg-white/10 text-white/30'
-                        : 'bg-green-500 text-black hover:brightness-110'
-                    }`}
-                    style={paymentState === 'idle' ? { boxShadow: '0 0 20px rgba(34,197,94,0.3)' } : undefined}>
-                    {paymentState === 'loading' ? (
-                      <span className="flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> CREATING SESSION...</span>
-                    ) : paymentState === 'verifying' ? (
-                      <span className="flex items-center justify-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> VERIFYING ON X LAYER...</span>
-                    ) : !isConnected ? 'CONNECT WALLET TO PAY' : 'SIGN DEPLOYMENT TRANSACTION'}
-                  </button>
-
-                  {paymentError && (
-                    <p className="text-[9px] font-mono text-red-400 mt-2">{paymentError}</p>
+                  {/* Step 1: Connect OR Step 2: Pay */}
+                  {!isConnected ? (
+                    <button onClick={handleConnect}
+                      className="w-full py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
+                      style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
+                      CONNECT WALLET TO INITIALIZE
+                    </button>
+                  ) : (
+                    <>
+                      <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded p-2 mb-3">
+                        <p className="text-[9px] font-mono text-amber-400/70">
+                          Wallet authorized. Broadcast activation onto X Layer.
+                        </p>
+                      </div>
+                      <button onClick={handlePay}
+                        className="w-full py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all animate-pulse"
+                        style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
+                        SIGN & PAY 0.01 USDT
+                      </button>
+                    </>
                   )}
                   <p className="text-[8px] font-mono text-white/15 mt-2">
-                    Powered by x402 protocol · Payment settles on OKX X Layer
+                    Real USDT transfer on OKX X Layer · Standard network fees apply
                   </p>
                 </>
               )}

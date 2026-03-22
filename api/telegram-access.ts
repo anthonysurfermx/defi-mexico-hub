@@ -14,7 +14,7 @@ export const config = { maxDuration: 30 };
 
 const SB_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8605994324:AAH5aAvaVxPYrmGM_yjPJQL0nmlY5yd1qM8';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
 const PAYMENT_CONFIG = {
   network: 'eip155:196', // X Layer

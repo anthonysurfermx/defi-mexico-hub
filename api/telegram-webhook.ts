@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const config = { maxDuration: 10 };
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8605994324:AAH5aAvaVxPYrmGM_yjPJQL0nmlY5yd1qM8';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const SB_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BASE_URL = 'https://defimexico.org';
