@@ -442,19 +442,25 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* CTA Button */}
-              <div className="flex items-center gap-4 pt-2">
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap items-center gap-4 pt-2">
                 <div className="relative group">
-                  <div className="absolute -inset-[2px] rounded-sm bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity" style={{ animation: 'glow-spin-home 3s ease-in-out infinite' }} />
+                  <div className="absolute -inset-[2px] rounded-sm bg-gradient-to-r from-green-500 via-green-400 to-green-500 opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity" />
                   <Link
-                    to="/agentic-world"
-                    className="relative flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-900/80 to-amber-800/80 border border-amber-400/60 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
+                    to="/agentic-world/deploy"
+                    className="relative flex items-center gap-2.5 px-6 py-3.5 bg-green-500 text-black text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
                   >
-                    <Sparkles className="w-4 h-4" />
-                    {t('home.agenticHero.cta', { defaultValue: 'ENTER AGENTIC WORLD' })}
+                    DEPLOY YOUR AI AGENT
                     <PixelArrowRight size={14} className="ml-1" />
                   </Link>
                 </div>
+                <Link
+                  to="/agentic-world"
+                  className="flex items-center gap-2.5 px-6 py-3.5 bg-amber-900/30 border border-amber-400/40 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {t('home.agenticHero.cta', { defaultValue: 'EXPLORE AGENTIC WORLD' })}
+                </Link>
               </div>
             </div>
           </div>
