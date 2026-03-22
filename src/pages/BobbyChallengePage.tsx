@@ -113,8 +113,8 @@ export default function BobbyChallengePage() {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <Helmet>
-        <title>Bobby Live Challenge | AI Trading Dashboard</title>
-        <meta name="description" content="Track Bobby, an autonomous AI trading agent on OKX. Live balance, win rate, trade history, and on-chain proof on X Layer." />
+        <title>Bobby's $100 Survival Run | AI Trading Challenge</title>
+        <meta name="description" content="Can an AI agent survive with $100? Track Bobby's autonomous trading on OKX. Live balance, win rate, debates, and on-chain proof." />
         <link rel="canonical" href="https://defimexico.org/agentic-world/bobby/challenge" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://defimexico.org/agentic-world/bobby/challenge" />
@@ -144,12 +144,12 @@ export default function BobbyChallengePage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <span className="text-[9px] font-mono text-green-400/40 tracking-[3px]">CHALLENGE_ACCEPTED · ACTIVE</span>
           <h1 className="text-4xl sm:text-6xl font-bold mt-2">
-            BOBBY <span className="text-green-400">LIVE</span>
+            BOBBY'S <span className="text-green-400">$100</span>
           </h1>
-          <h2 className="text-3xl sm:text-5xl font-bold text-white/80">CHALLENGE</h2>
+          <h2 className="text-3xl sm:text-5xl font-bold text-white/80">SURVIVAL RUN</h2>
           <p className="text-white/30 text-xs font-mono mt-3 max-w-lg leading-relaxed">
-            Witness Bobby's autonomous trading on OKX. Zero human intervention.
-            Multi-agent debate before every decision. On-chain accountability.
+            Can an AI agent survive the market with $100? Zero human intervention.
+            Multi-agent debate before every decision. On-chain proof on X Layer.
           </p>
         </motion.div>
 
