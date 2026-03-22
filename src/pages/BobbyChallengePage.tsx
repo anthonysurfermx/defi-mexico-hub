@@ -481,27 +481,27 @@ export default function BobbyChallengePage() {
               </motion.div>
             )}
 
-            {/* Council Efficiency — Stitch Performance Analytics style */}
+            {/* Agent Council — roles only, no fake stats */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
               className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">COUNCIL_EFFICIENCY</span>
-              <div className="space-y-4">
+              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">AGENT_COUNCIL</span>
+              <div className="space-y-3">
                 {[
-                  { name: 'BOBBY_CIO', efficiency: s.winRate, color: 'text-green-400', barColor: 'bg-green-500' },
-                  { name: 'ALPHA_HUNTER', efficiency: Math.min(100, s.winRate * 1.2), color: 'text-amber-400', barColor: 'bg-amber-500' },
-                  { name: 'RED_TEAM', efficiency: Math.min(100, s.winRate * 0.9), color: 'text-green-400', barColor: 'bg-green-500' },
+                  { name: 'BOBBY_CIO', role: 'Final decision maker. Weighs all arguments, sets conviction score, decides execute/reject.', color: 'text-yellow-400', dot: 'bg-yellow-500' },
+                  { name: 'ALPHA_HUNTER', role: 'Scans markets for opportunities. Presents bullish thesis with entry, TP, SL levels.', color: 'text-green-400', dot: 'bg-green-500' },
+                  { name: 'RED_TEAM', role: 'Challenges every thesis. Finds flaws, macro risks, and reasons NOT to trade.', color: 'text-red-400', dot: 'bg-red-500' },
                 ].map((agent) => (
-                  <div key={agent.name} className="space-y-1">
-                    <div className="flex justify-between font-mono text-[10px]">
-                      <span className="text-white/80">{agent.name}</span>
-                      <span className={agent.color}>{agent.efficiency.toFixed(1)}%</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/[0.04]">
-                      <div className={`h-full ${agent.barColor} transition-all`}
-                        style={{ width: `${agent.efficiency}%` }} />
+                  <div key={agent.name} className="flex items-start gap-3 p-2 rounded bg-white/[0.01]">
+                    <div className={`w-2 h-2 rounded-full ${agent.dot} mt-1 flex-shrink-0`} />
+                    <div>
+                      <span className={`text-xs font-bold font-mono ${agent.color}`}>{agent.name}</span>
+                      <p className="text-[9px] font-mono text-white/30 mt-0.5 leading-relaxed">{agent.role}</p>
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-3 text-[8px] font-mono text-white/15 text-center">
+                {s.totalTrades} debates completed · {recentDecisions.length} recent decisions loaded
               </div>
             </motion.div>
 
