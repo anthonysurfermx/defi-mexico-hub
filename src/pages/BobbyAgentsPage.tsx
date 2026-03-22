@@ -55,7 +55,7 @@ export default function BobbyAgentsPage() {
 
   return (
     <KineticShell activeTab="agents" showSidebar>
-      <Helmet><title>Agent Leaderboard | Agent Terminal</title></Helmet>
+      <Helmet><title>Agent Leaderboard | Bobby Agent Trader</title></Helmet>
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto pb-20">
         {/* Hero Header — Stitch outlined text style */}

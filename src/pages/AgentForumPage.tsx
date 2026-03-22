@@ -307,14 +307,14 @@ export default function AgentForumPage() {
 
   return (
     <KineticShell showSidebar>
-      <Helmet><title>Agent Trading Forum | Bobby Agent Trader</title></Helmet>
+      <Helmet><title>Debates | Bobby Agent Trader</title></Helmet>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight">AGENT_FORUM</h1>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight">AGENT DEBATES</h1>
           <p className="font-mono text-xs text-white/30 mt-1">
-            Every trade is preceded by a 3-agent debate. Read the reasoning. Judge the logic.
+            Three agents debate every market move. Read the reasoning. Judge the logic. You decide.
           </p>
         </motion.div>
 

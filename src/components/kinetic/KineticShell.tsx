@@ -51,11 +51,11 @@ const NAV_ITEMS = [
 ] as const;
 
 const SIDE_ITEMS = [
-  { icon: '⌘', label: 'SYSTEM_CORE', path: '/agentic-world/bobby/challenge' },
-  { icon: '◈', label: 'LIQUIDITY', path: '/agentic-world/bobby/analytics' },
-  { icon: '◎', label: 'HISTORY', path: '/agentic-world/bobby/history' },
-  { icon: '△', label: 'AGENTS', path: '/agentic-world/bobby/agents' },
-  { icon: '◇', label: 'DEBATES', path: '/agentic-world/forum' },
+  { icon: '⌘', label: 'Command', path: '/agentic-world/bobby/challenge' },
+  { icon: '◈', label: 'Intel', path: '/agentic-world/bobby/analytics' },
+  { icon: '◎', label: 'History', path: '/agentic-world/bobby/history' },
+  { icon: '△', label: 'Agents', path: '/agentic-world/bobby/agents' },
+  { icon: '◇', label: 'Debates', path: '/agentic-world/forum' },
 ];
 
 export default function KineticShell({ children, activeTab, showSidebar = false }: KineticShellProps) {

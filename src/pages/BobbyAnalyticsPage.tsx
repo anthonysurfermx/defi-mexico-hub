@@ -81,7 +81,7 @@ export default function BobbyAnalyticsPage() {
   return (
     <KineticShell activeTab="analytics" showSidebar>
       <Helmet>
-        <title>Bobby Performance Analytics | AI Trading Dashboard</title>
+        <title>Performance Analytics | Bobby Agent Trader</title>
       </Helmet>
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto pb-20">

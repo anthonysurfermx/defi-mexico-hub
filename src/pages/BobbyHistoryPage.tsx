@@ -54,7 +54,7 @@ export default function BobbyHistoryPage() {
 
   return (
     <KineticShell activeTab="history" showSidebar>
-      <Helmet><title>Bobby Trade History | Agent Terminal</title></Helmet>
+      <Helmet><title>Trade History | Bobby Agent Trader</title></Helmet>
 
       <div className="p-6 md:p-8 max-w-7xl mx-auto pb-20">
         {/* Header */}

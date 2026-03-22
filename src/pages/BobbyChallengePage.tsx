@@ -132,8 +132,8 @@ export default function BobbyChallengePage() {
   return (
     <KineticShell activeTab="challenge">
       <Helmet>
-        <title>Bobby's $100 Survival Run | AI Trading Challenge</title>
-        <meta name="description" content="Can an AI agent survive with $100? Track Bobby's autonomous trading on OKX. Live balance, win rate, debates, and on-chain proof." />
+        <title>$100 Challenge | Bobby Agent Trader</title>
+        <meta name="description" content="Can an AI trading room survive with $100? Three agents debate every trade. On-chain proof on X Layer. Track Bobby's live performance." />
         <link rel="canonical" href="https://defimexico.org/agentic-world/bobby/challenge" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://defimexico.org/agentic-world/bobby/challenge" />

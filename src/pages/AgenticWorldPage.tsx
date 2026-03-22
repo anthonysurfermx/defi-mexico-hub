@@ -56,17 +56,17 @@ export default function AgenticWorldPage() {
     {
       icon: Terminal,
       name: 'BOBBY AGENT TRADER',
-      tag: 'AUTONOMOUS TRADING',
+      tag: 'YOUR AI TRADING ROOM',
       tagColor: 'text-green-400',
       borderHover: 'hover:border-green-500/30',
       dotColor: 'bg-green-500',
       dotGlow: 'shadow-[0_0_10px_#4be277]',
       iconBg: 'bg-green-500/10 border-green-500/20',
       iconColor: 'text-green-400',
-      description: '3-agent AI debate system. Alpha Hunter finds opportunities, Red Team challenges, Bobby CIO decides. Autonomous execution on OKX with on-chain proof on X Layer.',
+      description: 'Deploy your personal trading room. Three AI agents debate every market move — Alpha finds opportunities, Red Team challenges, your CIO decides. You keep full control.',
       metric: stats.return !== 0 ? `${stats.return >= 0 ? '+' : ''}${stats.return}% Return` : 'LIVE TRADING',
       metricColor: 'text-green-400',
-      cta: 'ENTER TERMINAL',
+      cta: 'DEPLOY MY AGENT',
       ctaBg: 'bg-green-500/5 hover:bg-green-500 text-green-400 hover:text-black border-green-500/20',
       link: '/agentic-world/bobby',
     },
@@ -114,7 +114,7 @@ export default function AgenticWorldPage() {
       dotGlow: 'shadow-[0_0_10px_#a855f7]',
       iconBg: 'bg-purple-500/10 border-purple-500/20',
       iconColor: 'text-purple-400',
-      description: 'Every Bobby trade is preceded by a 3-agent debate. Read the full reasoning — Alpha\'s thesis, Red Team\'s challenge, CIO\'s verdict.',
+      description: 'Every trade is preceded by a 3-agent debate. Read Alpha\'s thesis, Red Team\'s challenge, and the CIO verdict. Full transparency.',
       metric: `${stats.debates} DEBATES`,
       metricColor: 'text-purple-400',
       cta: 'READ DEBATES',
@@ -126,8 +126,8 @@ export default function AgenticWorldPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-white font-['Inter']">
       <Helmet>
-        <title>Agentic World | DeFi México — AI Trading Agents</title>
-        <meta name="description" content="Deploy autonomous AI trading agents. Bobby Agent Trader, Polymarket Radar, Agent Leaderboard, and Multi-Agent Trading Forum. Built on OKX X Layer." />
+        <title>Deploy Your AI Trading Room | Bobby Agent Trader</title>
+        <meta name="description" content="Create your personal AI Trading Room. Three agents debate the markets for you — you decide. Built on OKX X Layer." />
       </Helmet>
 
       {/* CRT Scanline Overlay */}
@@ -151,26 +151,30 @@ export default function AgenticWorldPage() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-5xl">
           <div className="flex items-center gap-3 mb-6">
             <span className="h-px w-12 bg-green-500" />
-            <span className="font-mono text-green-400 text-xs tracking-[0.4em] uppercase">Neural Protocol Activated</span>
+            <span className="font-mono text-green-400 text-xs tracking-[0.4em] uppercase">Bobby Agent Trader — OKX X Layer</span>
           </div>
 
-          <h1 className="text-6xl md:text-8xl lg:text-[120px] font-black tracking-tighter leading-none mb-8 italic uppercase text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/20">
-            AGENTIC<br/>WORLD
+          <h1 className="text-5xl md:text-7xl lg:text-[100px] font-black tracking-tighter leading-none mb-4 uppercase text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/20">
+            YOUR AI<br/>TRADING ROOM
           </h1>
+          <p className="text-xl md:text-2xl text-white/60 font-bold mb-4">
+            Three agents debate the markets for you — you decide.
+          </p>
 
-          <p className="text-lg md:text-xl text-white/40 max-w-2xl leading-relaxed mb-12 border-l-2 border-white/10 pl-8">
-            Deploy autonomous AI trading agents on OKX X Layer. Multi-agent debate before every decision. On-chain accountability for every trade.
+          <p className="text-base md:text-lg text-white/30 max-w-2xl leading-relaxed mb-12 border-l-2 border-white/10 pl-8">
+            Alpha Hunter finds opportunities. Red Team challenges everything. Your CIO decides.
+            Every debate on-chain. Every signal transparent. Zero custody.
           </p>
 
           <div className="flex flex-wrap gap-4">
             <Link to="/agentic-world/bobby"
               className="bg-green-500 text-black px-8 md:px-10 py-4 md:py-5 text-sm font-black font-mono tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
               style={{ boxShadow: '0 0 30px rgba(75,226,119,0.3)' }}>
-              DEPLOY NEURAL AGENT
+              DEPLOY MY AGENT
             </Link>
             <Link to="/agentic-world/bobby/challenge"
               className="bg-white/[0.04] backdrop-blur-md border border-white/10 text-white px-8 md:px-10 py-4 md:py-5 text-sm font-bold font-mono tracking-widest hover:bg-white/[0.08] transition-all">
-              VIEW $100 CHALLENGE
+              SEE BOBBY'S $100 CHALLENGE
             </Link>
           </div>
         </motion.div>
@@ -261,7 +265,7 @@ export default function AgenticWorldPage() {
       <footer className="w-full bg-[#050505] py-10 border-t border-green-900/20">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="font-mono text-[10px] text-white/20 uppercase tracking-widest">
-            © 2026 DEFI MEXICO — OKX X LAYER AI HACKATHON
+            © 2026 BOBBY AGENT TRADER — BUILT ON OKX X LAYER
           </div>
           <div className="flex gap-6">
             {[

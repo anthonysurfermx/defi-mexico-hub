@@ -45,15 +45,15 @@ const DEMO_CONVERSATION = [
 export default function BobbyTelegramPage() {
   return (
     <KineticShell activeTab="terminal">
-      <Helmet><title>Bobby Telegram Bot | Agent Terminal</title></Helmet>
+      <Helmet><title>Telegram | Bobby Agent Trader</title></Helmet>
 
       <div className="max-w-md mx-auto px-5 pt-6 pb-20">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
           <span className="text-[8px] font-mono text-green-400/40 tracking-widest">TELEGRAM_INTEGRATION</span>
-          <h1 className="text-2xl font-black tracking-tight mt-1">Bobby on Telegram</h1>
+          <h1 className="text-2xl font-black tracking-tight mt-1">Your Agent on Telegram</h1>
           <p className="text-[10px] font-mono text-white/30 mt-2 max-w-xs mx-auto leading-relaxed">
-            Get multi-agent trading analysis directly in your Telegram chats. Ask Bobby anything about the market.
+            Get your agent's debates and signals directly in Telegram. Three agents debate — you decide.
           </p>
         </motion.div>
 
