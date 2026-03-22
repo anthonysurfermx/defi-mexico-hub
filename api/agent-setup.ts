@@ -99,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: error.message });
     }
 
-    // Fire first cycle async (don't await — return immediately)
+    // Fire first personal cycle async (don't await — return immediately)
     // The scheduler will pick it up since next_run_at = now()
     // For instant gratification, we also try to trigger it directly
     const cycleSecret = process.env.BOBBY_CYCLE_SECRET;
@@ -108,20 +108,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? `http://${req.headers.host}`
         : 'https://defimexico.org';
 
-      fetch(`${baseUrl}/api/bobby-cycle`, {
+      fetch(`${baseUrl}/api/user-cycle`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${cycleSecret}`,
         },
         body: JSON.stringify({
-          kind: 'personal_deploy',
-          language: 'en',
           agent_profile_id: profile.id,
-          wallet_address: wallet,
-          markets,
-          personality,
-          agent_name: agent_name.toUpperCase(),
         }),
       }).catch(err => {
         console.error('[agent-setup] Failed to trigger first cycle:', err);
