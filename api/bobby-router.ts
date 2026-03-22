@@ -129,7 +129,10 @@ Respond ONLY with JSON, no markdown:
     }
 
     const data = await response.json() as { content: Array<{ text: string }> };
-    const text = data.content[0]?.text || '';
+    let text = data.content[0]?.text || '';
+
+    // Strip markdown code fences if present (Haiku sometimes wraps in ```json...```)
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
     // Parse JSON response
     try {
