@@ -64,6 +64,7 @@ const BobbyPortfolioPage = lazy(() => import('@/pages/BobbyPortfolioPage'));
 const BobbyTelegramPage = lazy(() => import('@/pages/BobbyTelegramPage'));
 const AgentForumPage = lazy(() => import('@/pages/AgentForumPage'));
 const DeployAgentPage = lazy(() => import('@/pages/DeployAgentPage'));
+const BobbyB2BPage = lazy(() => import('@/pages/BobbyB2BPage'));
 
 
 // Auth pages
@@ -549,6 +550,16 @@ const router = createBrowserRouter(
         },
 
         // ==========================================
+        // B2B LANDING PAGE (SIN LAYOUT)
+        {
+          path: 'agentic-world/bobby/b2b',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyB2BPage />
+            </Suspense>
+          ),
+        },
+
         // DEPLOY AGENT WIZARD (SIN LAYOUT)
         {
           path: 'agentic-world/deploy',
