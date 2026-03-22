@@ -504,59 +504,12 @@ const router = createBrowserRouter(
                 </Suspense>
               ),
             },
+            // Bobby Terminal route stays in MainLayout (it's full-screen with z-[100])
             {
               path: 'agentic-world/bobby',
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <BobbyAgentTraderPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/challenge',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyChallengePage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/analytics',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyAnalyticsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/history',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyHistoryPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/agents',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyAgentsPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/portfolio',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyPortfolioPage />
-                </Suspense>
-              ),
-            },
-            {
-              path: 'agentic-world/bobby/telegram',
-              element: (
-                <Suspense fallback={<PageLoader />}>
-                  <BobbyTelegramPage />
                 </Suspense>
               ),
             },
@@ -599,6 +552,59 @@ const router = createBrowserRouter(
               ),
             },
           ],
+        },
+
+        // ==========================================
+        // BOBBY KINETIC SHELL ROUTES (SIN MAIN LAYOUT)
+        // These pages use their own KineticShell nav/sidebar
+        // ==========================================
+        {
+          path: 'agentic-world/bobby/challenge',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyChallengePage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/analytics',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyAnalyticsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/history',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyHistoryPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/agents',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyAgentsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/portfolio',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyPortfolioPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/telegram',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyTelegramPage />
+            </Suspense>
+          ),
         },
 
         // ==========================================
