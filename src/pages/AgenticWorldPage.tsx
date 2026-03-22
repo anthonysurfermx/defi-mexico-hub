@@ -68,7 +68,7 @@ export default function AgenticWorldPage() {
       metricColor: 'text-green-400',
       cta: 'DEPLOY MY AGENT',
       ctaBg: 'bg-green-500/5 hover:bg-green-500 text-green-400 hover:text-black border-green-500/20',
-      link: '/agentic-world/bobby',
+      link: '/agentic-world/deploy',
     },
     {
       icon: Radar,
@@ -176,7 +176,7 @@ export default function AgenticWorldPage() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <Link to="/agentic-world/bobby"
+            <Link to="/agentic-world/deploy"
               className="bg-green-500 text-black px-8 md:px-10 py-4 md:py-5 text-sm font-black font-mono tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
               style={{ boxShadow: '0 0 30px rgba(75,226,119,0.3)' }}>
               DEPLOY MY AGENT

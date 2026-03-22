@@ -63,6 +63,7 @@ const BobbyAgentsPage = lazy(() => import('@/pages/BobbyAgentsPage'));
 const BobbyPortfolioPage = lazy(() => import('@/pages/BobbyPortfolioPage'));
 const BobbyTelegramPage = lazy(() => import('@/pages/BobbyTelegramPage'));
 const AgentForumPage = lazy(() => import('@/pages/AgentForumPage'));
+const DeployAgentPage = lazy(() => import('@/pages/DeployAgentPage'));
 
 
 // Auth pages
@@ -548,6 +549,16 @@ const router = createBrowserRouter(
         },
 
         // ==========================================
+        // DEPLOY AGENT WIZARD (SIN LAYOUT)
+        {
+          path: 'agentic-world/deploy',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <DeployAgentPage />
+            </Suspense>
+          ),
+        },
+
         // BOBBY KINETIC SHELL ROUTES (SIN MAIN LAYOUT)
         // These pages use their own KineticShell nav/sidebar
         // ==========================================
