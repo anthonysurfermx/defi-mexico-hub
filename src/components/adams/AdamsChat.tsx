@@ -2965,38 +2965,48 @@ export function AdamsChat() {
           </div>
         </div>
 
-        {/* Agent Status */}
+        {/* Agent Status — Stitch "Active Neural Nodes" */}
         <div className="space-y-3">
           <h3 className="font-mono text-[9px] text-white/25 uppercase tracking-widest">Active Neural Nodes</h3>
-          {[
-            { name: 'BOBBY CIO', status: activeAgent === 'cio' ? 'SPEAKING' : 'IDLE', color: 'border-yellow-500', textColor: 'text-yellow-400', active: activeAgent === 'cio' },
-            { name: 'ALPHA HUNTER', status: activeAgent === 'alpha' ? 'SPEAKING' : 'IDLE', color: 'border-green-500', textColor: 'text-green-400', active: activeAgent === 'alpha' },
-            { name: 'RED TEAM', status: activeAgent === 'redteam' ? 'SPEAKING' : 'IDLE', color: 'border-red-500', textColor: 'text-red-400', active: activeAgent === 'redteam' },
-          ].map(agent => (
-            <div key={agent.name} className={`flex items-center gap-3 p-2.5 rounded ${
-              agent.active ? `bg-white/[0.03] border-l-2 ${agent.color}` : 'bg-white/[0.01] opacity-50'
-            }`}>
-              <div className="relative">
-                <div className={`w-8 h-8 rounded bg-white/[0.04] flex items-center justify-center`}>
-                  <span className={`text-[10px] font-mono font-bold ${agent.textColor}`}>{agent.name.charAt(0)}</span>
-                </div>
-                {agent.active && <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${agent.color.replace('border-', 'bg-')} animate-ping`} />}
-              </div>
-              <div className="flex-1">
-                <span className="font-bold text-[10px]">{agent.name}</span>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className={`font-mono text-[8px] ${agent.active ? agent.textColor : 'text-white/20'}`}>{agent.status}</span>
-                  {agent.active && (
-                    <div className="flex gap-0.5 items-end h-3">
-                      {[2, 3, 1, 2, 3].map((h, i) => (
-                        <div key={i} className={`w-0.5 ${agent.color.replace('border-', 'bg-')} rounded-full animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 100}ms` }} />
-                      ))}
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { name: 'BOBBY CIO', initial: 'B', idleText: 'Decision Engine', color: 'border-yellow-500', bgColor: 'bg-yellow-500', textColor: 'text-yellow-400', agentKey: 'cio' },
+              { name: 'ALPHA HUNTER', initial: 'A', idleText: 'Scanning Markets', color: 'border-green-500', bgColor: 'bg-green-500', textColor: 'text-green-400', agentKey: 'alpha' },
+              { name: 'RED TEAM', initial: 'R', idleText: 'Risk Mitigation', color: 'border-red-500', bgColor: 'bg-red-500', textColor: 'text-red-400', agentKey: 'redteam' },
+            ].map(agent => {
+              const isActive = activeAgent === agent.agentKey;
+              return (
+                <div key={agent.name} className={`flex items-center gap-3 p-3 rounded-md transition-all ${
+                  isActive ? `bg-white/[0.03] border-l-2 ${agent.color}` : 'bg-white/[0.015] opacity-50'
+                }`}>
+                  <div className="relative">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-white/[0.06] brightness-125' : 'bg-white/[0.03] grayscale'}`}>
+                      <span className={`text-sm font-mono font-black ${agent.textColor}`}>{agent.initial}</span>
                     </div>
-                  )}
+                    {isActive && (
+                      <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${agent.bgColor} rounded-full border-2 border-[#050505] animate-ping`} />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs">{agent.name}</span>
+                      {isActive && <span className={`font-mono text-[9px] ${agent.textColor}`}>SPEAKING...</span>}
+                    </div>
+                    {isActive ? (
+                      <div className="flex gap-[3px] mt-1.5 h-3 items-end">
+                        {[2, 3, 1.5, 2.5, 3, 1, 2].map((h, i) => (
+                          <div key={i} className={`w-1 ${agent.bgColor} rounded-sm animate-pulse`}
+                            style={{ height: `${h * 4}px`, animationDelay: `${i * 80}ms` }} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="font-mono text-[8px] text-white/20 mt-0.5">IDLE: {agent.idleText}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
 
         {/* Macro Stream */}
@@ -3022,17 +3032,28 @@ export function AdamsChat() {
               </div>
             )}
           </div>
-          {/* Sparkline tickers from tape */}
+          {/* Sparkline tickers — Stitch style with mini bars */}
           {tickerTape.length > 0 && (
-            <div className="space-y-1.5">
-              {tickerTape.slice(0, 4).map(t => (
-                <div key={t.symbol} className="flex justify-between items-center py-1.5 border-b border-white/[0.03]">
-                  <span className="font-mono text-[10px] text-white/50">{t.symbol}/USD</span>
-                  <span className={`font-mono text-[10px] font-bold ${t.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    ${t.last?.toLocaleString(undefined, { maximumFractionDigits: t.last < 1 ? 4 : 2 })}
-                  </span>
-                </div>
-              ))}
+            <div className="space-y-1">
+              {tickerTape.slice(0, 4).map(t => {
+                const isUp = t.change24h >= 0;
+                const barColor = isUp ? 'bg-green-500' : 'bg-red-500';
+                // Generate deterministic bar heights from symbol hash
+                const bars = [3, 4, 2, 5, 6].map((v, i) => Math.max(1, (v + t.symbol.charCodeAt(i % t.symbol.length) % 4)));
+                return (
+                  <div key={t.symbol} className="flex justify-between items-center py-2 border-b border-white/[0.03]">
+                    <span className="font-mono text-[10px] text-white/50">{t.symbol}/USD</span>
+                    <div className="flex items-end h-5 gap-[2px] mx-2">
+                      {bars.map((h, i) => (
+                        <div key={i} className={`w-1 rounded-sm ${barColor}`} style={{ height: `${h * 3}px`, opacity: 0.2 + (i / bars.length) * 0.8 }} />
+                      ))}
+                    </div>
+                    <span className={`font-mono text-[10px] font-bold ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                      ${t.last?.toLocaleString(undefined, { maximumFractionDigits: t.last < 1 ? 4 : 2 })}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
