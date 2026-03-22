@@ -9,6 +9,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Activity, Shield, Clock } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 
 interface PnlData {
@@ -232,83 +233,99 @@ export default function BobbyChallengePage() {
               </motion.div>
             </div>
 
-            {/* Market Pulse — Stitch equity curve with gradient fill */}
+            {/* Equity Curve — Recharts AreaChart */}
             {pnl && pnl.closedPositions.length > 0 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
                 className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded mb-8">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold">MARKET_PULSE</h2>
-                  <span className="text-[8px] font-mono text-green-400/60">LIVE_STREAM</span>
+                  <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold">EQUITY_CURVE</h2>
+                  <span className="text-[8px] font-mono text-green-400/60">{pnl.closedPositions.length} TRADES</span>
                 </div>
                 {(() => {
                   let cumPnl = 0;
-                  const points = pnl.closedPositions.map((t) => {
-                    cumPnl += t.realizedPnl;
-                    return { pnl: cumPnl, result: t.result, symbol: t.symbol };
-                  });
-                  const minPnl = Math.min(0, ...points.map(p => p.pnl));
-                  const maxPnl = Math.max(0, ...points.map(p => p.pnl));
-                  const range = maxPnl - minPnl || 1;
-                  const w = 300;
-                  const h = 100;
-                  const pad = 5;
-
-                  // Generate smooth path
-                  const toX = (i: number) => pad + (i / (points.length - 1)) * (w - pad * 2);
-                  const toY = (p: number) => h - pad - ((p - minPnl) / range) * (h - pad * 2);
-
-                  const pathPoints = points.map((p, i) => `${toX(i)},${toY(p.pnl)}`);
-                  const lineD = `M${pathPoints.join(' L')}`;
-                  const fillD = `${lineD} L${toX(points.length - 1)},${h} L${toX(0)},${h} Z`;
-                  const color = cumPnl >= 0 ? '#22c55e' : '#ef4444';
+                  const chartData = [
+                    { trade: 0, equity: s.startingCapital, label: 'START', result: 'START', symbol: '' },
+                    ...pnl.closedPositions.map((t, i) => {
+                      cumPnl += t.realizedPnl;
+                      return {
+                        trade: i + 1,
+                        equity: s.startingCapital + cumPnl,
+                        label: `#${i + 1}`,
+                        result: t.result,
+                        symbol: t.symbol,
+                        pnl: t.realizedPnl,
+                      };
+                    }),
+                  ];
+                  const lastEquity = chartData[chartData.length - 1].equity;
+                  const isPositive = lastEquity >= s.startingCapital;
+                  const color = isPositive ? '#00FF88' : '#ef4444';
 
                   return (
-                    <div className="relative aspect-[16/9] w-full overflow-hidden">
-                      <svg viewBox={`0 0 ${w} ${h}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="curveGrad" x1="0%" x2="0%" y1="0%" y2="100%">
-                            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-                            <stop offset="100%" stopColor={color} stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        {/* Grid lines */}
-                        {[0.25, 0.5, 0.75].map(pct => (
-                          <line key={pct} x1={pad} y1={h * pct} x2={w - pad} y2={h * pct}
-                            stroke="white" strokeWidth="0.3" opacity="0.05" />
-                        ))}
-                        {/* Zero line */}
-                        <line x1={pad} y1={toY(0)} x2={w - pad} y2={toY(0)}
-                          stroke="white" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.12" />
-                        {/* Fill area */}
-                        <path d={fillD} fill="url(#curveGrad)" />
-                        {/* Line */}
-                        <path d={lineD} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" opacity="0.8" />
-                        {/* Trade dots */}
-                        {points.map((p, i) => (
-                          <circle key={i} cx={toX(i)} cy={toY(p.pnl)} r="2.5"
-                            fill={p.result === 'WIN' ? '#22c55e' : '#ef4444'} opacity="0.9">
-                            <title>{`${p.symbol} ${p.result} | $${p.pnl.toFixed(4)}`}</title>
-                          </circle>
-                        ))}
-                      </svg>
-                      {/* Crosshair — latest value */}
-                      <div className="absolute right-3 top-1/4 border border-white/[0.06] bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
-                        <span className={`text-[8px] font-mono ${cumPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          VAL: ${(s.currentEquity).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-                {(() => {
-                  const totalPnl = pnl.closedPositions.reduce((sum, t) => sum + t.realizedPnl, 0);
-                  return (
-                    <div className="flex justify-between mt-2 text-[7px] font-mono text-white/15">
-                      <span>FIRST TRADE</span>
-                      <span className={totalPnl >= 0 ? 'text-green-400/40' : 'text-red-400/40'}>
-                        CUM PNL: ${totalPnl.toFixed(4)}
-                      </span>
-                      <span>LATEST</span>
+                    <div className="w-full h-48 sm:h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis
+                            dataKey="label"
+                            tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }}
+                            axisLine={{ stroke: 'rgba(255,255,255,0.04)' }}
+                            tickLine={false}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => `$${v.toFixed(1)}`}
+                            domain={['dataMin - 0.5', 'dataMax + 0.5']}
+                          />
+                          <ReferenceLine
+                            y={s.startingCapital}
+                            stroke="rgba(255,255,255,0.1)"
+                            strokeDasharray="4 4"
+                            label={{ value: `$${s.startingCapital}`, position: 'left', fill: '#6B7280', fontSize: 8, fontFamily: 'monospace' }}
+                          />
+                          <Tooltip
+                            content={({ active, payload }: any) => {
+                              if (!active || !payload?.[0]) return null;
+                              const d = payload[0].payload;
+                              return (
+                                <div className="bg-[#161A1D] border border-white/10 rounded px-3 py-2 shadow-xl">
+                                  <p className="text-[10px] font-mono text-white/80 font-bold">
+                                    {d.symbol ? `${d.symbol} — ${d.result}` : 'START'}
+                                  </p>
+                                  <p className="text-xs font-mono text-green-400">${d.equity.toFixed(4)}</p>
+                                  {d.pnl !== undefined && (
+                                    <p className={`text-[9px] font-mono ${d.pnl >= 0 ? 'text-green-400/60' : 'text-red-400/60'}`}>
+                                      PnL: {d.pnl >= 0 ? '+' : ''}${d.pnl.toFixed(4)}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="equity"
+                            stroke={color}
+                            strokeWidth={2}
+                            fill="url(#equityGrad)"
+                            dot={(props: any) => {
+                              const { cx, cy, payload } = props;
+                              if (payload.result === 'START') return <circle cx={cx} cy={cy} r={3} fill="#6B7280" stroke="none" />;
+                              const dotColor = payload.result === 'WIN' ? '#00FF88' : '#ef4444';
+                              return <circle cx={cx} cy={cy} r={3.5} fill={dotColor} stroke="#050505" strokeWidth={1.5} />;
+                            }}
+                            activeDot={{ r: 5, stroke: color, strokeWidth: 2, fill: '#050505' }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
                   );
                 })()}
