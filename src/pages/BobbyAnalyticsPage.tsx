@@ -39,10 +39,12 @@ export default function BobbyAnalyticsPage() {
     for (const t of pnl.closedPositions) {
       cum += t.realizedPnl;
       if (cum > peak) peak = cum;
-      const dd = ((peak - cum) / peak) * 100;
-      if (dd > maxDd) maxDd = dd;
+      if (peak > 0) {
+        const dd = ((peak - cum) / peak) * 100;
+        if (dd > maxDd) maxDd = dd;
+      }
     }
-    return maxDd;
+    return Math.min(maxDd, 100); // Cap at 100% — can't lose more than everything
   })();
 
   const profitFactor = (() => {

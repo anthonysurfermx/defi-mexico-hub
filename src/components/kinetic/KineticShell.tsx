@@ -67,7 +67,7 @@ export default function KineticShell({ children, activeTab, showSidebar = false 
       {/* === Top Nav === */}
       <nav className="sticky top-0 w-full flex justify-between items-center px-6 h-14 bg-[#131313]/80 backdrop-blur-md z-50 shadow-[0_0_15px_rgba(34,197,94,0.08)] border-b border-white/5">
         <Link to="/agentic-world/bobby" className="text-lg font-black tracking-tighter text-green-500 font-mono hover:opacity-80 transition-opacity">
-          AGENT_TERMINAL
+          AGENT TRADER
         </Link>
         <div className="hidden md:flex gap-6 items-center font-mono uppercase tracking-widest text-[10px]">
           {NAV_ITEMS.map(item => (

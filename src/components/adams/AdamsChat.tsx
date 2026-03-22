@@ -3524,25 +3524,7 @@ export function AdamsChat() {
       </div>{/* close Right Panel */}
       </div>{/* close Split Layout */}
 
-      {/* Mobile Bottom Nav — Stitch "Agent Terminal" style */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-white/[0.06] bg-[#0a0a0a]/95 backdrop-blur-md z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex items-center justify-around py-2">
-          {[
-            { icon: '◈', label: lang === 'es' ? 'TERMINAL' : 'TERMINAL', active: true, action: () => {} },
-            { icon: '◉', label: lang === 'es' ? 'MERCADO' : 'MARKET', active: false, action: () => sendMessage('All Prices') },
-            { icon: '⚔', label: 'FORUM', active: false, action: () => navigate('/agentic-world/forum') },
-            { icon: '◆', label: 'COMMAND', active: false, action: () => sendMessage('Analyze Market') },
-          ].map(item => (
-            <button key={item.label} onClick={item.action}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors ${
-                item.active ? 'text-green-400' : 'text-white/25 hover:text-white/50'
-              }`}>
-              <span className="text-sm">{item.icon}</span>
-              <span className="text-[7px] font-mono tracking-[1px]">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Mobile bottom nav is now provided by BobbyAgentTraderPage parent */}
 
       {/* Feedback Widget — floating button */}
       <FeedbackWidget
