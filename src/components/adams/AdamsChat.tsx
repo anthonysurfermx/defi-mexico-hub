@@ -2922,6 +2922,125 @@ export function AdamsChat() {
         </div>
       </div>
 
+      {/* ===== STITCH SPLIT LAYOUT: Left Panel (35%) + Right Panel (65%) ===== */}
+      <div className="flex flex-1 overflow-hidden">
+
+      {/* === Left Panel — Conviction Board + Agent Status + Macro Stream (desktop only) === */}
+      <aside className="hidden lg:flex w-[35%] border-r border-white/[0.06] flex-col p-5 space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {/* Conviction Board */}
+        <div>
+          <div className="flex justify-between items-end mb-3">
+            <h2 className="font-bold text-sm tracking-tight uppercase">Conviction Board</h2>
+            <span className="font-mono text-[9px] text-green-400/60">LIVE</span>
+          </div>
+          <div className="space-y-3">
+            {hudPositions.length > 0 ? hudPositions.map((pos, i) => (
+              <div key={i} className="bg-white/[0.02] border border-white/[0.04] p-3 rounded relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-1.5">
+                  <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                </div>
+                <div className="flex justify-between items-start mb-1.5">
+                  <div>
+                    <span className={`font-mono text-sm ${pos.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}`}>
+                      {pos.direction === 'SHORT' ? 'SHORT' : 'LONG'} ${pos.symbol}/USDT
+                    </span>
+                    <p className="text-[9px] text-white/25 font-mono">
+                      PNL: {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(4)} ({pos.pnlPct >= 0 ? '+' : ''}{pos.pnlPct.toFixed(1)}%)
+                    </p>
+                  </div>
+                  <span className={`font-mono text-lg font-bold ${pos.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {pos.pnlPct >= 0 ? '+' : ''}{pos.pnlPct.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${pos.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(100, Math.abs(pos.pnlPct) * 2)}%`, boxShadow: pos.pnl >= 0 ? '0 0 8px rgba(75,226,119,0.5)' : '0 0 8px rgba(239,68,68,0.5)' }} />
+                </div>
+              </div>
+            )) : (
+              <div className="bg-white/[0.02] border border-white/[0.04] p-3 rounded text-center">
+                <span className="text-[9px] font-mono text-white/20">NO ACTIVE POSITIONS</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Agent Status */}
+        <div className="space-y-3">
+          <h3 className="font-mono text-[9px] text-white/25 uppercase tracking-widest">Active Neural Nodes</h3>
+          {[
+            { name: 'BOBBY CIO', status: activeAgent === 'cio' ? 'SPEAKING' : 'IDLE', color: 'border-yellow-500', textColor: 'text-yellow-400', active: activeAgent === 'cio' },
+            { name: 'ALPHA HUNTER', status: activeAgent === 'alpha' ? 'SPEAKING' : 'IDLE', color: 'border-green-500', textColor: 'text-green-400', active: activeAgent === 'alpha' },
+            { name: 'RED TEAM', status: activeAgent === 'redteam' ? 'SPEAKING' : 'IDLE', color: 'border-red-500', textColor: 'text-red-400', active: activeAgent === 'redteam' },
+          ].map(agent => (
+            <div key={agent.name} className={`flex items-center gap-3 p-2.5 rounded ${
+              agent.active ? `bg-white/[0.03] border-l-2 ${agent.color}` : 'bg-white/[0.01] opacity-50'
+            }`}>
+              <div className="relative">
+                <div className={`w-8 h-8 rounded bg-white/[0.04] flex items-center justify-center`}>
+                  <span className={`text-[10px] font-mono font-bold ${agent.textColor}`}>{agent.name.charAt(0)}</span>
+                </div>
+                {agent.active && <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${agent.color.replace('border-', 'bg-')} animate-ping`} />}
+              </div>
+              <div className="flex-1">
+                <span className="font-bold text-[10px]">{agent.name}</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`font-mono text-[8px] ${agent.active ? agent.textColor : 'text-white/20'}`}>{agent.status}</span>
+                  {agent.active && (
+                    <div className="flex gap-0.5 items-end h-3">
+                      {[2, 3, 1, 2, 3].map((h, i) => (
+                        <div key={i} className={`w-0.5 ${agent.color.replace('border-', 'bg-')} rounded-full animate-pulse`} style={{ height: `${h * 4}px`, animationDelay: `${i * 100}ms` }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Macro Stream */}
+        <div className="space-y-3">
+          <h3 className="font-mono text-[9px] text-white/25 uppercase tracking-widest">Macro Stream</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {marketBadge ? (
+              <>
+                <div className="bg-white/[0.02] border border-white/[0.04] p-3 rounded">
+                  <p className="font-mono text-[8px] text-white/25">FEAR & GREED</p>
+                  <p className={`font-mono text-lg font-bold ${marketBadge.fgi >= 60 ? 'text-green-400' : marketBadge.fgi <= 40 ? 'text-red-400' : 'text-amber-400'}`}>{marketBadge.fgi}</p>
+                  <p className="font-mono text-[7px] text-white/20">{marketBadge.fgiLabel}</p>
+                </div>
+                <div className="bg-white/[0.02] border border-white/[0.04] p-3 rounded">
+                  <p className="font-mono text-[8px] text-white/25">DXY INDEX</p>
+                  <p className="font-mono text-lg font-bold text-white/80">{marketBadge.dxy}</p>
+                  <p className={`font-mono text-[7px] ${marketBadge.dxy > 104 ? 'text-red-400/60' : 'text-green-400/60'}`}>{marketBadge.dxy > 104 ? 'STRONG' : 'WEAK'}</p>
+                </div>
+              </>
+            ) : (
+              <div className="col-span-2 text-center py-4">
+                <span className="text-[8px] font-mono text-white/15 animate-pulse">LOADING MACRO DATA...</span>
+              </div>
+            )}
+          </div>
+          {/* Sparkline tickers from tape */}
+          {tickerTape.length > 0 && (
+            <div className="space-y-1.5">
+              {tickerTape.slice(0, 4).map(t => (
+                <div key={t.symbol} className="flex justify-between items-center py-1.5 border-b border-white/[0.03]">
+                  <span className="font-mono text-[10px] text-white/50">{t.symbol}/USD</span>
+                  <span className={`font-mono text-[10px] font-bold ${t.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    ${t.last?.toLocaleString(undefined, { maximumFractionDigits: t.last < 1 ? 4 : 2 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* === Right Panel — Orb + Chat + Input === */}
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+
       {/* ===== COMMAND CENTER: ORB + HUD ===== */}
       <div className="flex-shrink-0 relative" style={{ background: '#050505' }}>
         {/* Top status bar — mode, vibe, regime */}
@@ -3380,7 +3499,10 @@ export function AdamsChat() {
         )}
       </div>
 
-      {/* Mobile Bottom Nav — Stitch "Kinetic Terminal" style */}
+      </div>{/* close Right Panel */}
+      </div>{/* close Split Layout */}
+
+      {/* Mobile Bottom Nav — Stitch "Agent Terminal" style */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-white/[0.06] bg-[#0a0a0a]/95 backdrop-blur-md z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around py-2">
           {[

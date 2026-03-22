@@ -1,5 +1,5 @@
 // ============================================================
-// PerformanceStats — Kinetic Terminal style performance dashboard
+// PerformanceStats — Agent Terminal style performance dashboard
 // Shows: Total Return, Win Rate, Max Drawdown, Trades
 // + Live Execution Ledger (last 5 closed trades)
 // ============================================================

@@ -1,6 +1,6 @@
 // ============================================================
 // TradeHistory — Bobby's trade history with real PnL data
-// Stitch "Kinetic Terminal" design — Bloomberg-style trade cards
+// Stitch "Agent Terminal" design — Bloomberg-style trade cards
 // Data: /api/bobby-pnl (real OKX trades)
 // ============================================================
 

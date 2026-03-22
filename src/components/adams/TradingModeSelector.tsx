@@ -1,5 +1,5 @@
 // ============================================================
-// TradingModeSelector — "Welcome to the Kinetic Terminal"
+// TradingModeSelector — "Welcome to the Agent Terminal"
 // Stitch design: glass modal, risk disclaimer, mode cards
 // ============================================================
 
@@ -82,7 +82,8 @@ export default function TradingModeSelector({ onSelect, language = 'es', onInitV
           initial={{ scale: 0.92, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           transition={{ delay: 0.15, type: 'spring', damping: 25 }}
-          className="max-w-lg w-[92vw] border border-white/[0.06] bg-[#0a0a0a] backdrop-blur-xl rounded-lg overflow-hidden"
+          className="max-w-lg w-[92vw] border border-white/[0.06] bg-[#0a0a0a] backdrop-blur-xl rounded-lg overflow-hidden relative"
+          style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(34,197,94,0.008) 50%), #0a0a0a', backgroundSize: '100% 4px, 100% 100%' }}
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
@@ -103,7 +104,7 @@ export default function TradingModeSelector({ onSelect, language = 'es', onInitV
             </div>
 
             <h2 className="text-white text-xl font-bold mt-5 mb-1">
-              {isEs ? 'Bienvenido al Terminal.' : 'Welcome to the Kinetic Terminal.'}
+              {isEs ? 'Bienvenido al Terminal.' : 'Welcome to the Agent Terminal.'}
             </h2>
             <p className="text-white/40 text-xs leading-relaxed">
               {isEs

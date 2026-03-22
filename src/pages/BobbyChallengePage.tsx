@@ -1,16 +1,15 @@
 // ============================================================
-// Bobby $100 Challenge Dashboard — Stitch "Kinetic Terminal"
-// Public page showing Bobby's autonomous trading performance
-// All data is REAL from /api/bobby-pnl + /api/bobby-intel
+// Bobby $100 Challenge Dashboard — Stitch "Agent Terminal"
+// Full Stitch design system: glass-card, scanline, 2-col layout
+// All data is REAL from /api/bobby-pnl + Supabase debates
 // ============================================================
 
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Activity, Shield, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-
+import KineticShell from '@/components/kinetic/KineticShell';
 
 interface PnlData {
   summary: {
@@ -46,7 +45,7 @@ export default function BobbyChallengePage() {
   const [pnl, setPnl] = useState<PnlData | null>(null);
   const [loading, setLoading] = useState(true);
   const [nextScan, setNextScan] = useState('--:--:--');
-
+  const [nextScanPct, setNextScanPct] = useState(0);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [latestDebate, setLatestDebate] = useState<{ id: string; topic: string; symbol: string } | null>(null);
   const [recentDecisions, setRecentDecisions] = useState<Array<{
@@ -61,12 +60,10 @@ export default function BobbyChallengePage() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Fetch latest cycle run time
     const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
     const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-    // Fetch latest 5 debates with their posts
     fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=5&select=id,topic,symbol,direction,conviction_score,created_at,status`, { headers })
       .then(r => r.json())
       .then(async (threads: any[]) => {
@@ -74,7 +71,6 @@ export default function BobbyChallengePage() {
         setLatestDebate({ id: threads[0].id, topic: threads[0].topic, symbol: threads[0].symbol });
         setLastRun(threads[0].created_at);
 
-        // Fetch posts for these threads
         const ids = threads.map(t => t.id).join(',');
         const postsRes = await fetch(`${SB}/rest/v1/forum_posts?thread_id=in.(${ids})&order=created_at.asc&select=thread_id,agent,content`, { headers });
         const posts = await postsRes.json();
@@ -89,20 +85,21 @@ export default function BobbyChallengePage() {
       }).catch(() => {});
   }, []);
 
-  // Countdown to next 4h scan
+  // Countdown to next 6h scan
   useEffect(() => {
     const update = () => {
       const now = new Date();
       const hours = now.getUTCHours();
-      const nextHour = Math.ceil(hours / 4) * 4;
+      const nextHour = Math.ceil(hours / 6) * 6;
       const next = new Date(now);
-      next.setUTCHours(nextHour, 0, 0, 0);
-      if (next <= now) next.setUTCHours(next.getUTCHours() + 4);
+      next.setUTCHours(nextHour, 10, 0, 0); // +10 min offset like OpenClaw
+      if (next <= now) next.setUTCHours(next.getUTCHours() + 6);
       const diff = next.getTime() - now.getTime();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setNextScan(`${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      const sec = Math.floor((diff % 60000) / 1000);
+      setNextScan(`${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
+      setNextScanPct(1 - diff / (6 * 3600000));
     };
     update();
     const interval = setInterval(update, 1000);
@@ -111,8 +108,29 @@ export default function BobbyChallengePage() {
 
   const s = pnl?.summary;
 
+  // Profit factor calc
+  const profitFactor = (() => {
+    if (!pnl) return 0;
+    const gross = pnl.closedPositions.filter(t => t.realizedPnl > 0).reduce((s, t) => s + t.realizedPnl, 0);
+    const loss = Math.abs(pnl.closedPositions.filter(t => t.realizedPnl < 0).reduce((s, t) => s + t.realizedPnl, 0));
+    return loss > 0 ? gross / loss : 0;
+  })();
+
+  // Equity chart data
+  const chartData = (() => {
+    if (!pnl || !s) return [];
+    let cumPnl = 0;
+    return [
+      { trade: 0, equity: s.startingCapital, label: 'START', result: 'START', symbol: '', pnl: undefined as number | undefined },
+      ...pnl.closedPositions.map((t, i) => {
+        cumPnl += t.realizedPnl;
+        return { trade: i + 1, equity: s.startingCapital + cumPnl, label: `#${i + 1}`, result: t.result, symbol: t.symbol, pnl: t.realizedPnl };
+      }),
+    ];
+  })();
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <KineticShell activeTab="challenge">
       <Helmet>
         <title>Bobby's $100 Survival Run | AI Trading Challenge</title>
         <meta name="description" content="Can an AI agent survive with $100? Track Bobby's autonomous trading on OKX. Live balance, win rate, debates, and on-chain proof." />
@@ -126,473 +144,367 @@ export default function BobbyChallengePage() {
         <meta name="twitter:description" content="Track Bobby's live trading on OKX. Balance, win rate, every trade verified on X Layer." />
       </Helmet>
 
-      {/* Header */}
-      <div className="border-b border-white/[0.04] px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link to="/agentic-world/bobby" className="flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-[10px] font-mono tracking-[1px]">BACK_TO_TERMINAL</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[9px] font-mono text-green-400/60 tracking-[2px]">CHALLENGE_ACTIVE</span>
-          </div>
-        </div>
-      </div>
+      <div className="max-w-7xl mx-auto p-6 md:p-10 pb-20">
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Hero */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <span className="text-[9px] font-mono text-green-400/40 tracking-[3px]">CHALLENGE_ACCEPTED · ACTIVE</span>
-          <h1 className="text-4xl sm:text-6xl font-bold mt-2">
-            BOBBY'S <span className="text-green-400">$100</span>
-          </h1>
-          <h2 className="text-3xl sm:text-5xl font-bold text-white/80">SURVIVAL RUN</h2>
-          <p className="text-white/30 text-xs font-mono mt-3 max-w-lg leading-relaxed">
-            Can an AI agent survive the market with $100? Zero human intervention.
-            Multi-agent debate before every decision. On-chain proof on X Layer.
-          </p>
-        </motion.div>
-
-        {/* Next scan countdown */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="flex flex-wrap items-center gap-4 mb-8">
-          <div className="flex items-center gap-3 p-3 border border-white/[0.04] bg-white/[0.01] rounded">
-            <Clock className="w-4 h-4 text-green-400/60" />
-            <div>
-              <span className="text-[8px] font-mono text-white/25 tracking-[2px] block">NEXT_NEURAL_RUN</span>
-              <span className="text-xl font-bold font-mono text-green-400">{nextScan}</span>
+          {/* === Hero Header === */}
+          <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="max-w-2xl">
+              <div className="font-mono text-[8px] text-green-500 mb-4 tracking-widest uppercase">system_status: active</div>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none mb-4">
+                BOBBY <span className="text-white/20">$100</span> CHALLENGE
+              </h1>
+              <p className="text-white/40 max-w-lg font-mono text-sm leading-relaxed">
+                Autonomous trading agent on OKX X Layer. Multi-agent debate before every decision.
+                Every trade committed on-chain before the outcome is known.
+              </p>
             </div>
-          </div>
-          {lastRun && (
-            <div className="p-3 border border-white/[0.04] bg-white/[0.01] rounded">
-              <span className="text-[8px] font-mono text-white/25 tracking-[2px] block">LAST_RUN_UTC</span>
-              <span className="text-sm font-mono text-white/50">
-                {new Date(lastRun).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </span>
+            {/* Next Scan Countdown — Stitch amber card */}
+            <div className="bg-white/[0.02] backdrop-blur-sm border border-amber-500/15 p-6 flex flex-col items-end rounded border-l-4 border-l-amber-500">
+              <span className="font-mono text-[8px] text-amber-500 mb-2 tracking-widest">NEXT_SCAN_IN</span>
+              <div className="font-mono text-4xl font-bold text-amber-500 tracking-tighter">{nextScan}</div>
+              <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 transition-all" style={{ width: `${nextScanPct * 100}%`, boxShadow: '0 0 8px #F59E0B' }} />
+              </div>
             </div>
-          )}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[9px] font-mono text-green-400 tracking-[1px]">SYSTEM_LIVE</span>
-          </div>
-        </motion.div>
+          </motion.header>
 
-        {loading ? (
-          <div className="text-center py-20">
-            <span className="text-[10px] font-mono text-white/20 animate-pulse">LOADING CHALLENGE DATA...</span>
-          </div>
-        ) : s ? (
-          <>
-            {/* Stats Bento Grid — Stitch "glass-panel" style */}
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              {/* Current Equity — full width hero stat */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="col-span-2 border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-1 h-4 bg-green-500" />
-                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">CURRENT_EQUITY</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl font-mono font-bold text-green-400 tracking-tight">${s.currentEquity.toFixed(2)}</span>
-                  <span className={`text-xs font-mono ${s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    ({s.totalReturn >= 0 ? '+' : ''}{s.totalReturn}%)
-                  </span>
-                </div>
-                {/* Progress bar showing equity vs starting capital */}
-                <div className="mt-4 h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
-                  <div className={`h-full ${s.currentEquity >= s.startingCapital ? 'bg-green-500' : 'bg-red-500'} rounded-full transition-all`}
-                    style={{ width: `${Math.min(100, (s.currentEquity / s.startingCapital) * 100)}%`, boxShadow: '0 0 10px rgba(34,197,94,0.3)' }} />
-                </div>
-                <span className="text-[7px] font-mono text-white/15 mt-1 block">${s.startingCapital} INITIAL</span>
-              </motion.div>
-
-              {/* Win Rate */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
-                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">WIN_RATE</span>
-                <div className={`text-xl font-mono font-bold mt-1 ${s.winRate >= 50 ? 'text-green-400' : 'text-amber-400'}`}>{s.winRate.toFixed(1)}%</div>
-                <div className="mt-2 text-[9px] font-mono text-white/20">{s.wins}W / {s.losses}L</div>
-              </motion.div>
-
-              {/* Profit Factor */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded">
-                <span className="text-[8px] font-mono text-white/25 tracking-[1px]">PROFIT_FACTOR</span>
-                {(() => {
-                  const wins = pnl?.closedPositions.filter(t => t.realizedPnl > 0) || [];
-                  const losses = pnl?.closedPositions.filter(t => t.realizedPnl < 0) || [];
-                  const grossProfit = wins.reduce((sum, t) => sum + t.realizedPnl, 0);
-                  const grossLoss = Math.abs(losses.reduce((sum, t) => sum + t.realizedPnl, 0));
-                  const pf = grossLoss > 0 ? (grossProfit / grossLoss) : 0;
-                  return (
-                    <>
-                      <div className={`text-xl font-mono font-bold mt-1 ${pf >= 1 ? 'text-green-400' : 'text-red-400'}`}>{pf.toFixed(2)}</div>
-                      <div className="mt-2 text-[9px] font-mono text-white/20 italic">{s.totalTrades} TRADES</div>
-                    </>
-                  );
-                })()}
-              </motion.div>
+          {loading ? (
+            <div className="text-center py-20">
+              <span className="text-[10px] font-mono text-white/20 animate-pulse">LOADING CHALLENGE DATA...</span>
             </div>
-
-            {/* Equity Curve — Recharts AreaChart */}
-            {pnl && pnl.closedPositions.length > 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
-                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold">EQUITY_CURVE</h2>
-                  <span className="text-[8px] font-mono text-green-400/60">{pnl.closedPositions.length} TRADES</span>
+          ) : s ? (
+            <>
+              {/* === Bento Grid Metrics — Stitch style === */}
+              <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+                {/* Balance — col-span-2 hero */}
+                <div className="md:col-span-2 bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-8 flex flex-col justify-between relative overflow-hidden rounded group hover:bg-white/[0.03] transition-all">
+                  <div className="absolute top-0 right-0 p-4">
+                    <div className="w-1 h-1 bg-green-500" style={{ boxShadow: '0 0 5px #22C55E' }} />
+                  </div>
+                  <div className="font-mono text-xs text-white/40 mb-8 tracking-widest">NET_BALANCE_AVAILABLE</div>
+                  <div>
+                    <div className="text-6xl md:text-7xl font-mono font-black text-green-400 tracking-tighter mb-2">
+                      ${s.currentEquity.toFixed(2)}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono text-white/30">
+                      <span className={s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        {s.totalReturn >= 0 ? '+' : ''}{s.totalReturn}%
+                      </span>
+                      <span>from ${s.startingCapital} initial</span>
+                    </div>
+                  </div>
                 </div>
-                {(() => {
-                  let cumPnl = 0;
-                  const chartData = [
-                    { trade: 0, equity: s.startingCapital, label: 'START', result: 'START', symbol: '' },
-                    ...pnl.closedPositions.map((t, i) => {
-                      cumPnl += t.realizedPnl;
-                      return {
-                        trade: i + 1,
-                        equity: s.startingCapital + cumPnl,
-                        label: `#${i + 1}`,
-                        result: t.result,
-                        symbol: t.symbol,
-                        pnl: t.realizedPnl,
-                      };
-                    }),
-                  ];
-                  const lastEquity = chartData[chartData.length - 1].equity;
-                  const isPositive = lastEquity >= s.startingCapital;
-                  const color = isPositive ? '#00FF88' : '#ef4444';
+                {/* Total Return */}
+                <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-8 rounded">
+                  <div className="font-mono text-xs text-white/40 mb-8 tracking-widest">TOTAL_RETURN</div>
+                  <div className={`text-4xl md:text-5xl font-mono font-bold tracking-tighter ${s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {s.totalReturn >= 0 ? '+' : ''}{s.totalReturn}%
+                  </div>
+                  <div className="mt-4 text-[10px] font-mono text-white/20 uppercase">
+                    {s.totalReturn >= 0 ? 'Gain' : 'Loss'} relative to start
+                  </div>
+                </div>
+                {/* Win Rate */}
+                <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-8 rounded">
+                  <div className="font-mono text-xs text-white/40 mb-8 tracking-widest">WIN_RATE</div>
+                  <div className="text-4xl md:text-5xl font-mono font-bold tracking-tighter">{s.winRate.toFixed(1)}%</div>
+                  <div className="mt-4 text-[10px] font-mono text-white/20 uppercase">{s.wins}/{s.totalTrades} Successful cycles</div>
+                </div>
+              </motion.section>
 
-                  return (
-                    <div className="w-full h-48 sm:h-56">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis
-                            dataKey="label"
-                            tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }}
-                            axisLine={{ stroke: 'rgba(255,255,255,0.04)' }}
-                            tickLine={false}
-                            interval="preserveStartEnd"
-                          />
-                          <YAxis
-                            tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }}
-                            axisLine={false}
-                            tickLine={false}
-                            tickFormatter={(v: number) => `$${v.toFixed(1)}`}
-                            domain={['dataMin - 0.5', 'dataMax + 0.5']}
-                          />
-                          <ReferenceLine
-                            y={s.startingCapital}
-                            stroke="rgba(255,255,255,0.1)"
-                            strokeDasharray="4 4"
-                            label={{ value: `$${s.startingCapital}`, position: 'left', fill: '#6B7280', fontSize: 8, fontFamily: 'monospace' }}
-                          />
-                          <Tooltip
-                            content={({ active, payload }: any) => {
+              {/* === Main Split: Timeline (2/3) + Sidebar (1/3) === */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+                {/* === Left Column: Trade Timeline + Chart === */}
+                <div className="lg:col-span-2 space-y-8">
+
+                  {/* Equity Curve — Recharts */}
+                  {chartData.length > 1 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                      className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="font-mono text-xs text-white/40 tracking-widest">EQUITY_CURVE</span>
+                        <span className="font-mono text-[10px] text-green-400/60">{pnl!.closedPositions.length} TRADES</span>
+                      </div>
+                      <div className="w-full h-48 sm:h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={s.currentEquity >= s.startingCapital ? '#00FF88' : '#ef4444'} stopOpacity={0.3} />
+                                <stop offset="100%" stopColor={s.currentEquity >= s.startingCapital ? '#00FF88' : '#ef4444'} stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis dataKey="label" tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }} axisLine={{ stroke: 'rgba(255,255,255,0.04)' }} tickLine={false} interval="preserveStartEnd" />
+                            <YAxis tick={{ fill: '#6B7280', fontSize: 9, fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(1)}`} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+                            <ReferenceLine y={s.startingCapital} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" />
+                            <Tooltip content={({ active, payload }: any) => {
                               if (!active || !payload?.[0]) return null;
                               const d = payload[0].payload;
                               return (
                                 <div className="bg-[#161A1D] border border-white/10 rounded px-3 py-2 shadow-xl">
-                                  <p className="text-[10px] font-mono text-white/80 font-bold">
-                                    {d.symbol ? `${d.symbol} — ${d.result}` : 'START'}
-                                  </p>
+                                  <p className="text-[10px] font-mono text-white/80 font-bold">{d.symbol ? `${d.symbol} — ${d.result}` : 'START'}</p>
                                   <p className="text-xs font-mono text-green-400">${d.equity.toFixed(4)}</p>
-                                  {d.pnl !== undefined && (
-                                    <p className={`text-[9px] font-mono ${d.pnl >= 0 ? 'text-green-400/60' : 'text-red-400/60'}`}>
-                                      PnL: {d.pnl >= 0 ? '+' : ''}${d.pnl.toFixed(4)}
-                                    </p>
-                                  )}
+                                  {d.pnl !== undefined && <p className={`text-[9px] font-mono ${d.pnl >= 0 ? 'text-green-400/60' : 'text-red-400/60'}`}>PnL: {d.pnl >= 0 ? '+' : ''}${d.pnl.toFixed(4)}</p>}
                                 </div>
                               );
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="equity"
-                            stroke={color}
-                            strokeWidth={2}
-                            fill="url(#equityGrad)"
-                            dot={(props: any) => {
-                              const { cx, cy, payload } = props;
-                              if (payload.result === 'START') return <circle cx={cx} cy={cy} r={3} fill="#6B7280" stroke="none" />;
-                              const dotColor = payload.result === 'WIN' ? '#00FF88' : '#ef4444';
-                              return <circle cx={cx} cy={cy} r={3.5} fill={dotColor} stroke="#050505" strokeWidth={1.5} />;
-                            }}
-                            activeDot={{ r: 5, stroke: color, strokeWidth: 2, fill: '#050505' }}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                            }} />
+                            <Area type="monotone" dataKey="equity" stroke={s.currentEquity >= s.startingCapital ? '#00FF88' : '#ef4444'} strokeWidth={2} fill="url(#equityGrad)"
+                              dot={(props: any) => {
+                                const { cx, cy, payload } = props;
+                                if (payload.result === 'START') return <circle cx={cx} cy={cy} r={3} fill="#6B7280" stroke="none" />;
+                                return <circle cx={cx} cy={cy} r={3.5} fill={payload.result === 'WIN' ? '#00FF88' : '#ef4444'} stroke="#050505" strokeWidth={1.5} />;
+                              }}
+                              activeDot={{ r: 5, stroke: s.currentEquity >= s.startingCapital ? '#00FF88' : '#ef4444', strokeWidth: 2, fill: '#050505' }}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Live Execution Log — Stitch glass-card trade items */}
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="font-mono text-sm font-black tracking-[0.3em] uppercase flex items-center gap-3">
+                        <span className="w-2 h-2 bg-green-500 rounded-full" />
+                        Live_Execution_Log
+                      </h2>
+                      <a href="https://www.oklink.com/xlayer/address/0xF841b428E6d743187D7BE2242eccC1078fdE2395"
+                        target="_blank" rel="noopener noreferrer"
+                        className="font-mono text-[10px] text-white/30 hover:text-green-400 transition-colors flex items-center gap-1">
+                        VIEW_ON_CHAIN →
+                      </a>
                     </div>
-                  );
-                })()}
-              </motion.div>
-            )}
-
-            {/* CTAs */}
-            <div className="flex flex-wrap gap-3 mb-8">
-              <Link to="/agentic-world/bobby"
-                className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-mono tracking-wider hover:bg-green-500/20 transition-colors rounded">
-                <Activity className="w-3 h-3" />
-                OPEN TERMINAL ›
-              </Link>
-              <Link to="/agentic-world/forum"
-                className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
-                VIEW ALL DEBATES ›
-              </Link>
-              {latestDebate && (
-                <Link to="/agentic-world/forum"
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] font-mono tracking-wider hover:bg-yellow-500/20 transition-colors rounded">
-                  READ LATEST: {latestDebate.symbol || 'MARKET'} ›
-                </Link>
-              )}
-              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Bobby Agent Trader is running the $100 Challenge — autonomous AI trading with on-chain accountability. Watch live: https://defimexico.org/agentic-world/bobby/challenge #BobbyTrader #AI #Trading')}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[10px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
-                SHARE ON X ›
-              </a>
-            </div>
-
-            {/* Safety protocols */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-              className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm p-4 rounded mb-8">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-3.5 h-3.5 text-green-400/60" />
-                <span className="text-[9px] font-mono text-white/30 tracking-[2px]">SAFETY_PROTOCOLS</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'MAX_LEVERAGE', value: '5x', status: 'ACTIVE' },
-                  { label: 'CIRCUIT_BREAKER', value: '-20%', status: 'ARMED' },
-                  { label: 'MAX_POSITIONS', value: '2', status: 'ACTIVE' },
-                  { label: 'STOP_LOSS', value: 'MANDATORY', status: 'ENFORCED' },
-                ].map(p => (
-                  <div key={p.label} className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[7px] font-mono text-white/20 tracking-[1px] block">{p.label}</span>
-                      <span className="text-xs font-mono text-white/70">{p.value}</span>
-                    </div>
-                    <span className="text-[7px] font-mono text-green-400/50 bg-green-500/10 px-1.5 py-0.5 rounded">{p.status}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Agent Decisions — the WHY behind each trade */}
-            {recentDecisions.length > 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
-                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[9px] font-mono text-white/30 tracking-[2px]">AGENT_DECISIONS</span>
-                  <Link to="/agentic-world/forum" className="text-[8px] font-mono text-green-400/50 hover:text-green-400 transition-colors">
-                    VIEW ALL ›
-                  </Link>
-                </div>
-                <div className="space-y-4">
-                  {recentDecisions.slice(0, 3).map((d, i) => {
-                    const cioPost = d.posts.find(p => p.agent === 'cio');
-                    const alphaPost = d.posts.find(p => p.agent === 'alpha');
-                    const redPost = d.posts.find(p => p.agent === 'redteam');
-                    const convPct = Math.round((d.conviction_score || 0) * 100);
-                    const isExecute = convPct >= 60;
-
-                    return (
-                      <motion.div key={d.id} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 + i * 0.1 }}
-                        className="border-l-2 border-white/[0.06] pl-3 space-y-2">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-bold text-xs font-mono">{d.symbol || '?'}</span>
-                            {d.direction && (
-                              <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded tracking-wider ${
-                                d.direction === 'long' ? 'bg-green-500/15 text-green-400' :
-                                d.direction === 'short' ? 'bg-red-500/15 text-red-400' :
-                                'bg-white/10 text-white/40'
-                              }`}>{d.direction.toUpperCase()}</span>
-                            )}
-                            <span className={`text-[8px] font-mono font-bold ${convPct >= 60 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                              {convPct/10}/10
-                            </span>
-                            <span className={`text-[7px] font-mono px-1.5 py-0.5 rounded ${
-                              isExecute ? 'bg-green-500/10 text-green-400/60' : 'bg-red-500/10 text-red-400/60'
-                            }`}>{isExecute ? 'EXECUTE' : 'REJECT'}</span>
+                    <div className="space-y-3">
+                      {/* Pending scan indicator */}
+                      <div className="bg-white/[0.02] backdrop-blur-sm border border-amber-500/15 border-l-2 border-l-amber-500 rounded p-5 flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="font-mono text-xs text-amber-500">PENDING</div>
+                          <div>
+                            <div className="font-mono text-sm font-bold">SCANNING_MARKET...</div>
+                            <div className="text-[10px] text-white/30 font-mono">IDENTIFYING_ALPHA_VECTORS</div>
                           </div>
-                          <span className="text-[8px] font-mono text-white/20">
-                            {new Date(d.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
                         </div>
-
-                        {/* Agent reasoning preview */}
-                        {cioPost && (
-                          <p className="text-[9px] font-mono text-yellow-400/50 leading-relaxed">
-                            🟡 CIO: {cioPost.content.slice(0, 150)}{cioPost.content.length > 150 ? '...' : ''}
-                          </p>
-                        )}
-                        {!cioPost && alphaPost && (
-                          <p className="text-[9px] font-mono text-green-400/40 leading-relaxed">
-                            🟢 Alpha: {alphaPost.content.slice(0, 120)}...
-                          </p>
-                        )}
-                        <Link to={`/agentic-world/bobby?q=${encodeURIComponent(`Why did you ${d.direction || 'analyze'} ${d.symbol || 'the market'}?`)}`}
-                          className="text-[8px] font-mono text-yellow-400/30 hover:text-yellow-400 transition-colors">
-                          ASK BOBBY WHY ›
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Execution Logs Timeline — Stitch mobile style */}
-            {pnl && pnl.closedPositions.length > 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-                className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-                <h2 className="text-[9px] font-mono text-white/30 tracking-[2px] uppercase font-bold mb-4">EXECUTION_LOGS</h2>
-                <div className="space-y-0">
-                  {pnl.closedPositions.slice(0, 6).map((trade, i) => {
-                    const isWin = trade.result === 'WIN';
-                    const isLast = i === Math.min(5, pnl.closedPositions.length - 1);
-                    return (
-                      <div key={i} className="flex gap-4 items-start group">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-2 h-2 rounded-full ${isWin ? 'bg-green-500' : 'bg-red-500'}`}
-                            style={{ boxShadow: isWin ? '0 0 8px #22c55e' : '0 0 8px #ef4444' }} />
-                          {!isLast && <div className="w-[1px] h-12 bg-white/[0.06]" />}
-                        </div>
-                        <div className={`flex-1 ${!isLast ? 'pb-4' : ''}`}>
-                          <div className="flex justify-between items-start">
-                            <span className={`font-mono text-[10px] ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-                              {trade.direction.toUpperCase()} // {trade.symbol}-USD
-                            </span>
-                            <span className="font-mono text-[10px] text-white/30">
-                              {new Date(trade.closeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </span>
-                          </div>
-                          <div className="text-sm font-bold mt-1 text-white/80">
-                            {trade.entryPrice.toFixed(2)} → {trade.exitPrice.toFixed(2)}
-                          </div>
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className={`text-[10px] font-mono py-0.5 px-1.5 rounded ${
-                              isWin ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                            }`}>{isWin ? 'PROFIT' : 'LOSS'}</span>
-                            <span className={`text-[10px] font-mono ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-                              {trade.realizedPnl >= 0 ? '+' : ''}${trade.realizedPnl.toFixed(4)}
-                            </span>
-                            <span className="text-[9px] font-mono text-white/20">{trade.leverage}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                          <div className="font-mono text-[10px] text-amber-500">NEXT: {nextScan}</div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-                {pnl.closedPositions.length > 6 && (
-                  <div className="mt-3 text-center">
-                    <span className="text-[8px] font-mono text-white/20">+ {pnl.closedPositions.length - 6} MORE TRADES</span>
-                  </div>
-                )}
-              </motion.div>
-            )}
 
-            {/* Agent Council — roles only, no fake stats */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-              className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">AGENT_COUNCIL</span>
-              <div className="space-y-3">
-                {[
-                  { name: 'BOBBY_CIO', role: 'Final decision maker. Weighs all arguments, sets conviction score, decides execute/reject.', color: 'text-yellow-400', dot: 'bg-yellow-500' },
-                  { name: 'ALPHA_HUNTER', role: 'Scans markets for opportunities. Presents bullish thesis with entry, TP, SL levels.', color: 'text-green-400', dot: 'bg-green-500' },
-                  { name: 'RED_TEAM', role: 'Challenges every thesis. Finds flaws, macro risks, and reasons NOT to trade.', color: 'text-red-400', dot: 'bg-red-500' },
-                ].map((agent) => (
-                  <div key={agent.name} className="flex items-start gap-3 p-2 rounded bg-white/[0.01]">
-                    <div className={`w-2 h-2 rounded-full ${agent.dot} mt-1 flex-shrink-0`} />
-                    <div>
-                      <span className={`text-xs font-bold font-mono ${agent.color}`}>{agent.name}</span>
-                      <p className="text-[9px] font-mono text-white/30 mt-0.5 leading-relaxed">{agent.role}</p>
+                      {/* Real trades */}
+                      {pnl?.closedPositions.slice(0, 5).map((trade, i) => {
+                        const isWin = trade.result === 'WIN';
+                        return (
+                          <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 + i * 0.05 }}
+                            className={`bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-5 flex items-center justify-between group hover:bg-white/[0.04] transition-all ${i >= 3 ? 'opacity-60' : ''}`}>
+                            <div className="flex items-center gap-6">
+                              <div className="font-mono text-xs text-white/25">
+                                {new Date(trade.closeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </div>
+                              <div>
+                                <div className="font-mono text-sm font-bold">
+                                  {trade.symbol}/USDT
+                                  <span className={`text-[10px] ml-2 font-normal ${isWin ? 'text-green-400' : 'text-red-400'}`}>
+                                    {trade.direction.toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-white/20 font-mono">
+                                  {trade.entryPrice.toFixed(2)} → {trade.exitPrice.toFixed(2)} · {trade.leverage}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-mono text-sm font-bold ${isWin ? 'text-green-400' : 'text-red-400'}`}>
+                                {trade.realizedPnl >= 0 ? '+' : ''}${trade.realizedPnl.toFixed(4)}
+                              </div>
+                              <div className="text-[10px] text-white/20 font-mono uppercase">
+                                {isWin ? 'TAKE_PROFIT' : 'STOP_LOSS'}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                      {(pnl?.closedPositions.length || 0) > 5 && (
+                        <div className="text-center py-2">
+                          <span className="text-[9px] font-mono text-white/15">+ {pnl!.closedPositions.length - 5} MORE TRADES</span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Agent Decisions */}
+                  {recentDecisions.length > 0 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="font-mono text-sm font-black tracking-[0.3em] uppercase flex items-center gap-3">
+                          <span className="w-2 h-2 bg-yellow-500 rounded-full" />
+                          Agent_Decisions
+                        </h2>
+                        <Link to="/agentic-world/forum" className="font-mono text-[10px] text-white/30 hover:text-green-400 transition-colors">
+                          VIEW_ALL →
+                        </Link>
+                      </div>
+                      <div className="space-y-3">
+                        {recentDecisions.slice(0, 3).map((d, i) => {
+                          const cioPost = d.posts.find(p => p.agent === 'cio');
+                          const alphaPost = d.posts.find(p => p.agent === 'alpha');
+                          const convPct = Math.round((d.conviction_score || 0) * 100);
+                          const isExecute = convPct >= 60;
+
+                          return (
+                            <div key={d.id} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-5 hover:bg-white/[0.04] transition-all">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-sm font-bold">{d.symbol || '?'}/USDT</span>
+                                  {d.direction && (
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded tracking-wider ${
+                                      d.direction === 'long' ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'
+                                    }`}>{d.direction.toUpperCase()}</span>
+                                  )}
+                                  <span className={`text-[9px] font-mono font-bold ${convPct >= 60 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                                    {convPct}%
+                                  </span>
+                                  <span className={`text-[8px] font-mono px-2 py-0.5 rounded ${
+                                    d.status === 'executed' ? 'bg-green-500/10 text-green-400' :
+                                    d.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                                    isExecute ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                                  }`}>
+                                    {d.status === 'executed' ? 'EXECUTED' : d.status === 'rejected' ? 'REJECTED' : isExecute ? 'EXECUTE' : 'REJECT'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-white/20">
+                                  {new Date(d.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              {(cioPost || alphaPost) && (
+                                <p className="text-[10px] font-mono text-white/30 leading-relaxed mt-1">
+                                  {(cioPost || alphaPost)!.content.slice(0, 140)}...
+                                </p>
+                              )}
+                              <Link to={`/agentic-world/bobby?q=${encodeURIComponent(`Why did you ${d.direction || 'analyze'} ${d.symbol || 'the market'}?`)}`}
+                                className="text-[9px] font-mono text-yellow-400/30 hover:text-yellow-400 transition-colors mt-2 inline-block">
+                                ASK BOBBY WHY →
+                              </Link>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* === Right Sidebar === */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                  className="space-y-6">
+
+                  {/* Operational Params — Stitch style */}
+                  <div className="bg-[#1c1b1b] p-6 rounded">
+                    <h3 className="font-mono text-xs text-white/40 uppercase mb-6 tracking-widest border-b border-white/5 pb-2">Operational_Params</h3>
+                    <div className="space-y-4 font-mono">
+                      {[
+                        { label: 'LAYER:', value: 'X_LAYER_MAINNET', color: '' },
+                        { label: 'STRATEGY:', value: 'MULTI_AGENT_DEBATE', color: 'text-green-400' },
+                        { label: 'RUNTIME:', value: 'OPENCLAW_GATEWAY', color: '' },
+                        { label: 'CYCLE:', value: 'EVERY_6_HOURS', color: '' },
+                        { label: 'MAX_LEVERAGE:', value: '5x', color: '' },
+                        { label: 'CIRCUIT_BREAKER:', value: '-20%', color: 'text-amber-400' },
+                        { label: 'STOP_LOSS:', value: 'MANDATORY', color: 'text-green-400' },
+                        { label: 'MAX_POSITIONS:', value: '2', color: '' },
+                        { label: 'PROFIT_FACTOR:', value: profitFactor.toFixed(2), color: profitFactor >= 1 ? 'text-green-400' : 'text-red-400' },
+                      ].map(p => (
+                        <div key={p.label} className="flex justify-between items-center">
+                          <span className="text-[10px] text-white/30">{p.label}</span>
+                          <span className={`text-[10px] ${p.color || 'text-white/80'}`}>{p.value}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-3 text-[8px] font-mono text-white/15 text-center">
-                {s.totalTrades} debates completed · {recentDecisions.length} recent decisions loaded
-              </div>
-            </motion.div>
 
-            {/* Infrastructure — How Bobby Runs */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-              className="border border-white/[0.04] bg-white/[0.02] backdrop-blur-sm rounded p-4 mb-8">
-              <span className="text-[9px] font-mono text-white/30 tracking-[2px] block mb-4">INFRASTRUCTURE</span>
-
-              {/* Runtime */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-400 text-xs font-bold font-mono">OC</span>
+                  {/* Proof of Custody — Stitch style */}
+                  <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
+                    <h3 className="font-mono text-xs text-white/40 uppercase mb-4 relative z-10">Proof_of_Custody</h3>
+                    <div className="relative z-10 space-y-3">
+                      <div className="p-3 bg-black/40 rounded flex items-center justify-between border border-white/5">
+                        <span className="font-mono text-[10px] text-white/30">X_WALLET</span>
+                        <span className="font-mono text-[10px] text-green-400">0xF841...2395</span>
+                      </div>
+                      <p className="text-[10px] text-white/20 italic leading-relaxed font-mono">
+                        All trades are committed to X Layer before the outcome is known. Fully verifiable on-chain.
+                      </p>
+                      <a href="https://www.oklink.com/xlayer/address/0xF841b428E6d743187D7BE2242eccC1078fdE2395"
+                        target="_blank" rel="noopener noreferrer"
+                        className="block w-full py-2 bg-white/5 hover:bg-white/10 text-center font-mono text-[10px] border border-white/10 uppercase tracking-widest transition-all rounded">
+                        Audit_On_Chain
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-bold font-mono text-white/80">OpenClaw Gateway</span>
-                    <p className="text-[9px] font-mono text-white/30 mt-0.5 leading-relaxed">
-                      Autonomous runtime on Digital Ocean. Cron triggers Bobby every 6 hours —
-                      fetches market intel, runs the 3-agent debate, and executes if conviction is high enough.
-                    </p>
+
+                  {/* Agent Council */}
+                  <div className="bg-[#1c1b1b] p-6 rounded">
+                    <h3 className="font-mono text-xs text-white/40 uppercase mb-4 tracking-widest border-b border-white/5 pb-2">Agent_Council</h3>
+                    <div className="space-y-3">
+                      {[
+                        { name: 'BOBBY_CIO', role: 'Final decision maker', color: 'text-yellow-400', dot: 'bg-yellow-500' },
+                        { name: 'ALPHA_HUNTER', role: 'Opportunity scanner', color: 'text-green-400', dot: 'bg-green-500' },
+                        { name: 'RED_TEAM', role: 'Thesis destroyer', color: 'text-red-400', dot: 'bg-red-500' },
+                      ].map(a => (
+                        <div key={a.name} className="flex items-center gap-3">
+                          <div className={`w-1.5 h-1.5 rounded-full ${a.dot} flex-shrink-0`} />
+                          <div>
+                            <span className={`text-[10px] font-mono font-bold ${a.color}`}>{a.name}</span>
+                            <span className="text-[9px] font-mono text-white/20 ml-2">{a.role}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 text-[8px] font-mono text-white/15">
+                      {s.totalTrades} debates · {recentDecisions.length} loaded
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Methodology pipeline */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                {[
-                  { step: '01', label: 'MARKET_INTEL', desc: 'OKX + Polymarket data' },
-                  { step: '02', label: 'DEBATE', desc: 'Alpha vs Red Team' },
-                  { step: '03', label: 'VERDICT', desc: 'CIO conviction score' },
-                  { step: '04', label: 'EXECUTE', desc: 'OKX + X Layer commit' },
-                ].map(s => (
-                  <div key={s.step} className="p-2 bg-white/[0.01] border border-white/[0.03] rounded">
-                    <span className="text-[7px] font-mono text-green-400/40 block">{s.step}</span>
-                    <span className="text-[9px] font-mono text-white/60 font-bold block">{s.label}</span>
-                    <span className="text-[7px] font-mono text-white/20">{s.desc}</span>
+                  {/* Infrastructure */}
+                  <div className="bg-white/[0.02] backdrop-blur-sm border border-green-500/10 p-6 rounded">
+                    <h3 className="font-mono text-xs text-green-400 uppercase mb-4 tracking-widest flex items-center gap-2">
+                      <span className="w-1 h-1 bg-green-500 rounded-full" />
+                      Infrastructure
+                    </h3>
+                    <div className="space-y-2 font-mono text-[10px]">
+                      {[
+                        { step: '01', label: 'MARKET_INTEL', desc: 'OKX + Polymarket' },
+                        { step: '02', label: 'DEBATE', desc: 'Alpha vs Red Team' },
+                        { step: '03', label: 'VERDICT', desc: 'CIO conviction' },
+                        { step: '04', label: 'EXECUTE', desc: 'OKX + X Layer' },
+                      ].map(st => (
+                        <div key={st.step} className="flex items-center gap-3">
+                          <span className="text-green-400/40 w-4">{st.step}</span>
+                          <span className="text-white/60 font-bold">{st.label}</span>
+                          <span className="text-white/20 ml-auto">{st.desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2">
+                      <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-mono text-white/30 hover:text-green-400 transition-colors">
+                        CLAUDE CODE →
+                      </a>
+                      <a href="https://github.com/anthropics/claude-code/blob/main/AGENTS.md" target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-mono text-white/30 hover:text-green-400 transition-colors">
+                        AGENT SDK →
+                      </a>
+                    </div>
                   </div>
-                ))}
+                </motion.div>
               </div>
-
-              {/* Links */}
-              <div className="flex flex-wrap gap-2">
-                <a href="https://github.com/anthropics/claude-code"
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[9px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
-                  CLAUDE CODE (RUNTIME) ›
-                </a>
-                <a href="https://github.com/anthropics/claude-code/blob/main/AGENTS.md"
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] text-white/40 text-[9px] font-mono tracking-wider hover:text-white/70 transition-colors rounded">
-                  AGENT SDK DOCS ›
-                </a>
-              </div>
-            </motion.div>
-
-            {/* On-chain proof */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
-              className="p-4 border border-white/[0.04] bg-white/[0.01] rounded text-center">
-              <span className="text-[8px] font-mono text-white/20 tracking-[2px] block mb-2">ON-CHAIN VERIFICATION</span>
-              <p className="text-[10px] font-mono text-white/30 mb-3">
-                Every trade is committed to X Layer before the outcome is known.
-                Verify Bobby's track record on-chain.
-              </p>
-              <a href="https://www.oklink.com/xlayer/address/0xF841b428E6d743187D7BE2242eccC1078fdE2395"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-mono tracking-wider hover:bg-green-500/20 transition-colors rounded">
-                VIEW ON X LAYER ›
-              </a>
-            </motion.div>
-          </>
-        ) : (
-          <div className="text-center py-20 text-white/20 text-sm font-mono">No challenge data available</div>
-        )}
-      </div>
-    </div>
+            </>
+          ) : (
+            <div className="text-center py-20 text-white/20 text-sm font-mono">No challenge data available</div>
+          )}
+        </div>
+    </KineticShell>
   );
 }

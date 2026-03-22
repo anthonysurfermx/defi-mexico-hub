@@ -57,6 +57,11 @@ const ClawTraderPage = lazy(() => import('@/pages/ClawTraderPage'));
 const ClawTraderChatPage = lazy(() => import('@/pages/ClawTraderChatPage'));
 const BobbyAgentTraderPage = lazy(() => import('@/pages/BobbyAgentTraderPage'));
 const BobbyChallengePage = lazy(() => import('@/pages/BobbyChallengePage'));
+const BobbyAnalyticsPage = lazy(() => import('@/pages/BobbyAnalyticsPage'));
+const BobbyHistoryPage = lazy(() => import('@/pages/BobbyHistoryPage'));
+const BobbyAgentsPage = lazy(() => import('@/pages/BobbyAgentsPage'));
+const BobbyPortfolioPage = lazy(() => import('@/pages/BobbyPortfolioPage'));
+const BobbyTelegramPage = lazy(() => import('@/pages/BobbyTelegramPage'));
 const AgentForumPage = lazy(() => import('@/pages/AgentForumPage'));
 
 
@@ -512,6 +517,46 @@ const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageLoader />}>
                   <BobbyChallengePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/analytics',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyAnalyticsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/history',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyHistoryPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/agents',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyAgentsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/portfolio',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyPortfolioPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'agentic-world/bobby/telegram',
+              element: (
+                <Suspense fallback={<PageLoader />}>
+                  <BobbyTelegramPage />
                 </Suspense>
               ),
             },
