@@ -31,13 +31,20 @@ export default function BobbyAgentsPage() {
   }, []);
 
   const s = summary;
+  const agentName = (() => { try { return localStorage.getItem('bobby_agent_name') || 'Bobby'; } catch { return 'Bobby'; } })();
+  const personality = (() => { try { const p = JSON.parse(localStorage.getItem('agent_profile') || '{}'); return p.personality || 'analytical'; } catch { return 'analytical'; } })();
+  const cioColor = personality === 'direct'
+    ? { color: 'text-orange-400', bgColor: 'border-orange-500/20', glow: 'shadow-[0_0_15px_rgba(249,115,22,0.1)]' }
+    : personality === 'wise'
+    ? { color: 'text-indigo-400', bgColor: 'border-indigo-500/20', glow: 'shadow-[0_0_15px_rgba(99,102,241,0.1)]' }
+    : { color: 'text-yellow-400', bgColor: 'border-yellow-500/20', glow: 'shadow-[0_0_15px_rgba(234,179,8,0.1)]' };
 
   const agents = [
     {
-      rank: '01', name: 'Bobby CIO', role: 'Final Decision Maker',
+      rank: '01', name: `${agentName} CIO`, role: 'Final Decision Maker',
       winRate: s ? s.winRate : 0, totalReturn: s ? s.totalReturn : 0,
       trades: s ? s.totalTrades : 0, status: 'ACTIVE',
-      color: 'text-yellow-400', bgColor: 'border-yellow-500/20', glow: 'shadow-[0_0_15px_rgba(234,179,8,0.1)]',
+      ...cioColor,
     },
     {
       rank: '02', name: 'Alpha Hunter', role: 'Opportunity Scanner',

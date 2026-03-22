@@ -59,7 +59,7 @@ export default function BobbyPortfolioPage() {
             {/* Total Equity — Hero */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-6 text-center">
-              <span className="text-[8px] font-mono text-white/25 tracking-widest">TOTAL_EQUITY</span>
+              <span className="text-[8px] font-mono text-white/25 tracking-widest">BOBBY'S EQUITY · $100 CHALLENGE</span>
               <div className="text-4xl font-mono font-black text-green-400 mt-2" style={{ textShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
                 ${s.currentEquity.toFixed(2)}
               </div>

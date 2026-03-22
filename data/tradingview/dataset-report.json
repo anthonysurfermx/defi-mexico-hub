@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-03-21T07:07:32.003Z",
+  "inputPhrases": 3058,
+  "outputRows": 500,
+  "byIntent": {
+    "onboarding": 2,
+    "trade_chat": 428,
+    "price": 31,
+    "chart": 32,
+    "market_data": 2,
+    "follow_up": 3,
+    "safety": 2
+  },
+  "byLanguage": {
+    "es": 213,
+    "en": 287
+  },
+  "byQuestionType": {
+    "newbie": 2,
+    "general": 344,
+    "price": 24,
+    "risk": 6,
+    "direction": 76,
+    "sentiment": 3,
+    "entry_exit": 22,
+    "market_data": 2,
+    "confirmation": 13,
+    "jargon": 7,
+    "comparison": 1
+  },
+  "bySource": {
+    "tradingview_idea_title": 125,
+    "tradingview_idea_description": 125,
+    "tradingview_listing_excerpt": 125,
+    "tradingview_idea_body_sentence": 125
+  },
+  "finalFile": "data/training-phrases.ndjson"
+}

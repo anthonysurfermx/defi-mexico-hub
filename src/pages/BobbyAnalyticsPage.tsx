@@ -89,7 +89,9 @@ export default function BobbyAnalyticsPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-end mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight">PERFORMANCE_ANALYTICS</h1>
-            <p className="font-mono text-xs text-white/30 mt-1">NODE_STATUS: <span className="text-green-400">OPTIMIZED</span> // DATA: REAL-TIME</p>
+            <p className="font-mono text-xs text-white/30 mt-1">
+              Bobby's $100 Challenge · Real OKX trades · <span className="text-green-400">LIVE</span>
+            </p>
           </div>
           <div className="hidden sm:flex gap-4">
             <div className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] px-4 py-2 flex flex-col items-end rounded">

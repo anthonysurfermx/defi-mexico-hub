@@ -1,0 +1,8 @@
+{
+  "page": 14,
+  "kind": "ideas_recent",
+  "requestedUrl": "https://www.tradingview.com/ideas/?sort=recent&page=12",
+  "finalUrl": "https://www.tradingview.com/ideas/?sort=recent_extended&page=12",
+  "fetchedAt": "2026-03-21T06:30:42.296Z",
+  "htmlLength": 740049
+}

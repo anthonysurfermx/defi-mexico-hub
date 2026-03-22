@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//^export function AdamsChat/**)",
+      "Bash(grep -n 'return \\($' src/components/adams/AdamsChat.tsx)",
+      "Bash(python3 -c \":*)",
+      "Bash(curl -s \"https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/profiles?select=id,email,role,created_at&order=created_at.desc\" -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4')",
+      "Bash(curl -s \"https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/profiles?select=created_at&order=created_at.asc\" -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4')",
+      "Bash(sed -i '' \"s|Bobby Performance Analytics | AI Trading Dashboard|Performance Analytics | Bobby Agent Trader|\" src/pages/BobbyAnalyticsPage.tsx)",
+      "Bash(sed -i '' \"s|Bobby Trade History | Agent Terminal|Trade History | Bobby Agent Trader|\" src/pages/BobbyHistoryPage.tsx)",
+      "Bash(sed -i '' \"s|Agent Leaderboard | Agent Terminal|Agent Leaderboard | Bobby Agent Trader|\" src/pages/BobbyAgentsPage.tsx)",
+      "Bash(sed -i '' \"s|Bobby Portfolio | Agent Terminal|Portfolio | Bobby Agent Trader|\" src/pages/BobbyPortfolioPage.tsx)",
+      "Bash(sed -i '' \"s|Bobby Telegram Bot | Agent Terminal|Telegram | Bobby Agent Trader|\" src/pages/BobbyTelegramPage.tsx)",
+      "Bash(sed -i '' 's/Bobby Performance Analytics | AI Trading Dashboard/Performance Analytics | Bobby Agent Trader/' src/pages/BobbyAnalyticsPage.tsx)",
+      "Bash(sed -i '' 's/Bobby Trade History | Agent Terminal/Trade History | Bobby Agent Trader/' src/pages/BobbyHistoryPage.tsx)",
+      "Bash(sed -i '' 's/Agent Leaderboard | Agent Terminal/Agent Leaderboard | Bobby Agent Trader/' src/pages/BobbyAgentsPage.tsx)",
+      "Bash(sed -i '' 's/Bobby Portfolio | Agent Terminal/Portfolio | Bobby Agent Trader/' src/pages/BobbyPortfolioPage.tsx)",
+      "Bash(sed -i '' 's/Bobby Telegram Bot | Agent Terminal/Telegram | Bobby Agent Trader/' src/pages/BobbyTelegramPage.tsx)",
+      "Bash(grep -r BOBBY_CYCLE_SECRET .env*)",
+      "Bash(python3 -c \"import secrets; print\\(secrets.token_hex\\(32\\)\\)\")",
+      "Bash(grep -rn \"okx\\\\|OKX\\\\|onchainos\\\\|x402\\\\|xlayer\\\\|X Layer\" api/*.ts --include=*.ts -l)"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-03-21T07:07:32.129Z",
+  "inputPhrases": 501,
+  "outputRows": 200,
+  "byIntent": {
+    "onboarding": 2,
+    "trade_chat": 153,
+    "price": 16,
+    "chart": 28,
+    "market_data": 1
+  },
+  "byLanguage": {
+    "es": 186,
+    "en": 14
+  },
+  "byQuestionType": {
+    "newbie": 2,
+    "general": 137,
+    "price": 14,
+    "risk": 3,
+    "direction": 31,
+    "entry_exit": 8,
+    "market_data": 1,
+    "jargon": 2,
+    "confirmation": 1,
+    "sentiment": 1
+  },
+  "bySource": {
+    "tradingview_idea_title": 30,
+    "tradingview_idea_description": 57,
+    "tradingview_listing_excerpt": 57,
+    "tradingview_idea_body_sentence": 56
+  },
+  "finalFile": "data/training-phrases-es-smoke.ndjson"
+}

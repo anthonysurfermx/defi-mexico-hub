@@ -1,0 +1,83 @@
+{
+  "locales": [
+    "es"
+  ],
+  "pagesAttempted": 8,
+  "pagesAttemptedTotal": 8,
+  "linksDiscovered": 154,
+  "generatedAt": "2026-03-21T06:48:49.949Z",
+  "reports": [
+    {
+      "locale": "es",
+      "page": 1,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/",
+      "final_url": "https://es.tradingview.com/ideas/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-001-a1995b2a.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 2,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-2/",
+      "final_url": "https://es.tradingview.com/ideas/page-2/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-002-8e21782f.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 3,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-3/",
+      "final_url": "https://es.tradingview.com/ideas/page-3/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-003-6ce8da99.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 4,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-4/",
+      "final_url": "https://es.tradingview.com/ideas/page-4/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-004-5618c03b.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 5,
+      "kind": "comments",
+      "requested_url": "https://es.tradingview.com/ideas/comments/",
+      "final_url": "https://es.tradingview.com/ideas/comments/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-comments-page-005-e81c0922.html",
+      "discovered_links": 0
+    },
+    {
+      "locale": "es",
+      "page": 6,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-5/",
+      "final_url": "https://es.tradingview.com/ideas/page-5/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-006-c967890e.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 7,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-6/",
+      "final_url": "https://es.tradingview.com/ideas/page-6/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-007-11c0976f.html",
+      "discovered_links": 23
+    },
+    {
+      "locale": "es",
+      "page": 8,
+      "kind": "ideas_recent",
+      "requested_url": "https://es.tradingview.com/ideas/page-7/",
+      "final_url": "https://es.tradingview.com/ideas/page-7/",
+      "raw_path": "data/tradingview-es-smoke/raw/listings/es-ideas_recent-page-008-b6eb2506.html",
+      "discovered_links": 23
+    }
+  ]
+}

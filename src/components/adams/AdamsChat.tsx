@@ -2927,6 +2927,19 @@ export function AdamsChat() {
 
       {/* === Left Panel — Conviction Board + Agent Status + Macro Stream (desktop only) === */}
       <aside className="hidden lg:flex w-[35%] border-r border-white/[0.06] flex-col p-5 space-y-6 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {/* Agent identity badge */}
+        {advisorName !== 'Bobby' && (
+          <div className="bg-green-500/[0.04] border border-green-500/15 rounded p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-green-400 text-xs font-black font-mono">{advisorName.charAt(0)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-mono font-bold text-green-400">{advisorName} CIO</span>
+              <span className="text-[8px] font-mono text-white/20 block">Personal Trading Room · ACTIVE</span>
+            </div>
+          </div>
+        )}
+
         {/* Conviction Board */}
         <div>
           <div className="flex justify-between items-end mb-3">

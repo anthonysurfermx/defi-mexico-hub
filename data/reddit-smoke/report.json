@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-03-21T07:12:51.289Z",
+  "subreddits": [
+    "wallstreetbets",
+    "cryptocurrency",
+    "stocks"
+  ],
+  "postsPerSub": 5,
+  "commentsPerPost": 5,
+  "posts": 15,
+  "comments": 74,
+  "trainingRows": 115,
+  "bySource": {
+    "reddit_post_title": 15,
+    "reddit_comment": 100
+  },
+  "byLanguage": {
+    "en": 115
+  },
+  "subReports": [
+    {
+      "subreddit": "wallstreetbets",
+      "posts": 5,
+      "comments": 25,
+      "listing_url": "https://www.reddit.com/r/wallstreetbets/top.json?limit=5&raw_json=1&t=month"
+    },
+    {
+      "subreddit": "cryptocurrency",
+      "posts": 5,
+      "comments": 25,
+      "listing_url": "https://www.reddit.com/r/cryptocurrency/top.json?limit=5&raw_json=1&t=month"
+    },
+    {
+      "subreddit": "stocks",
+      "posts": 5,
+      "comments": 24,
+      "listing_url": "https://www.reddit.com/r/stocks/top.json?limit=5&raw_json=1&t=month"
+    }
+  ]
+}

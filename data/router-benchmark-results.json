@@ -1,0 +1,126 @@
+{
+  "generatedAt": "2026-03-21T20:27:27.626Z",
+  "datasets": [
+    "data/training-phrases.ndjson",
+    "data/yahoo/training-phrases.ndjson"
+  ],
+  "totalRows": 700,
+  "accuracy": 0.5442857142857143,
+  "ambiguousRate": 0.34285714285714286,
+  "perIntent": {
+    "onboarding": {
+      "total": 2,
+      "accuracy": 0
+    },
+    "trade_chat": {
+      "total": 607,
+      "accuracy": 0.6260296540362438
+    },
+    "price": {
+      "total": 36,
+      "accuracy": 0.027777777777777776
+    },
+    "chart": {
+      "total": 32,
+      "accuracy": 0
+    },
+    "market_data": {
+      "total": 3,
+      "accuracy": 0
+    },
+    "follow_up": {
+      "total": 15,
+      "accuracy": 0
+    },
+    "safety": {
+      "total": 5,
+      "accuracy": 0
+    }
+  },
+  "topFails": [
+    {
+      "expected": "trade_chat",
+      "predicted": "ambiguous",
+      "count": 222,
+      "sample": "tiempo aprox 20 días.",
+      "source": "tradingview_idea_body_sentence"
+    },
+    {
+      "expected": "price",
+      "predicted": "trade_chat",
+      "count": 25,
+      "sample": "Cómo comerciar con la cuña ascendente Entrada: Entra en una posición corta una vez que el precio rompa por debajo de la línea de tendencia inferior.",
+      "source": "tradingview_listing_excerpt"
+    },
+    {
+      "expected": "chart",
+      "predicted": "trade_chat",
+      "count": 25,
+      "sample": "BITCOIN - Rozando Su Resistencia Inmediata Importante (Bajista) para BITSTAMP:BTCUSD de INVERSOR_RETAIL",
+      "source": "tradingview_idea_title"
+    },
+    {
+      "expected": "follow_up",
+      "predicted": "trade_chat",
+      "count": 15,
+      "sample": "AUDUSD: Expecting Bullish Continuation! Here is Why: for TRADENATION:AUDUSD by UnitedSignals",
+      "source": "tradingview_idea_title"
+    },
+    {
+      "expected": "price",
+      "predicted": "ambiguous",
+      "count": 10,
+      "sample": "Cómo comerciar con la cuña descendente Entrada: Espera a que el precio rompa por encima de la línea de tendencia superior.",
+      "source": "tradingview_listing_excerpt"
+    },
+    {
+      "expected": "chart",
+      "predicted": "ambiguous",
+      "count": 7,
+      "sample": "Su RSI está marcando una fuerza …",
+      "source": "tradingview_idea_description"
+    },
+    {
+      "expected": "safety",
+      "predicted": "trade_chat",
+      "count": 5,
+      "sample": "Para mí está claro que no tiene idea, pero seguro justo ahora, hay gente perdiendo dinero por haberlo seguido ayer.",
+      "source": "tradingview_idea_body_sentence"
+    },
+    {
+      "expected": "trade_chat",
+      "predicted": "portfolio",
+      "count": 4,
+      "sample": "This is an update on our BTCUSDT position.",
+      "source": "tradingview_idea_body_sentence"
+    },
+    {
+      "expected": "onboarding",
+      "predicted": "trade_chat",
+      "count": 2,
+      "sample": "¿Qué es un patrón de cuña? para WHITEBIT:BTCUSDT de WhiteBIT",
+      "source": "tradingview_idea_title"
+    },
+    {
+      "expected": "market_data",
+      "predicted": "trade_chat",
+      "count": 2,
+      "sample": "BNB COMPRA CON ALTA PROBABILIDAD para BINANCE:BNBUSDT de Ferbafon",
+      "source": "tradingview_idea_title"
+    },
+    {
+      "expected": "trade_chat",
+      "predicted": "help",
+      "count": 1,
+      "sample": "Large-cap stocks usually command their industries because they have the scale to drive market trends.",
+      "source": "yahoo_first_paragraph"
+    },
+    {
+      "expected": "market_data",
+      "predicted": "ambiguous",
+      "count": 1,
+      "sample": "Companies that burn cash at a rapid pace can run into serious trouble if they fail to secure funding.",
+      "source": "yahoo_first_paragraph"
+    }
+  ]
+}

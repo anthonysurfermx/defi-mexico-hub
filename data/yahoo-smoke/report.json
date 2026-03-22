@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-03-21T07:18:06.774Z",
+  "topicUrls": [
+    "https://finance.yahoo.com/topic/crypto/",
+    "https://finance.yahoo.com/topic/stock-market-news/"
+  ],
+  "articleLimit": 20,
+  "discoveredLinks": 20,
+  "articlesFetched": 20,
+  "trainingRows": 39,
+  "bySource": {
+    "yahoo_headline": 20,
+    "yahoo_first_paragraph": 19
+  },
+  "byLanguage": {
+    "en": 39
+  },
+  "topics": [
+    {
+      "topic_url": "https://finance.yahoo.com/topic/crypto/",
+      "final_url": "https://finance.yahoo.com/topic/crypto/",
+      "discovered_links": 51,
+      "fetched_at": "2026-03-21T07:17:33.063Z"
+    },
+    {
+      "topic_url": "https://finance.yahoo.com/topic/stock-market-news/",
+      "final_url": "https://finance.yahoo.com/topic/stock-market-news/",
+      "discovered_links": 50,
+      "fetched_at": "2026-03-21T07:17:34.545Z"
+    }
+  ]
+}
