@@ -128,6 +128,15 @@ export default function AgenticWorldPage() {
       <Helmet>
         <title>Deploy Your AI Trading Room | Bobby Agent Trader</title>
         <meta name="description" content="Create your personal AI Trading Room. Three agents debate the markets for you — you decide. Built on OKX X Layer." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://defimexico.org/agentic-world" />
+        <meta property="og:title" content="Deploy Your AI Trading Room | Bobby Agent Trader" />
+        <meta property="og:description" content="Three agents debate the markets for you — you decide. On-chain proof on OKX X Layer." />
+        <meta property="og:image" content="https://defimexico.org/bobby-hero.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Deploy Your AI Trading Room | Bobby Agent Trader" />
+        <meta name="twitter:description" content="Three agents debate the markets for you — you decide." />
+        <meta name="twitter:image" content="https://defimexico.org/bobby-hero.png" />
       </Helmet>
 
       {/* CRT Scanline Overlay */}
@@ -184,7 +193,7 @@ export default function AgenticWorldPage() {
       <section className="w-full bg-[#0e0e0e] border-b border-white/5 py-5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-6">
           {[
-            { value: '37', label: 'REAL USERS TESTED' },
+            { value: '50+', label: 'REAL TRADERS' },
             { value: `${stats.trades}`, label: 'TRADES EXECUTED' },
             { value: 'OKX X LAYER', label: 'ON-CHAIN VERIFIED' },
           ].map((item, i) => (
