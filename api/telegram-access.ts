@@ -223,6 +223,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!receiptData.result || receiptData.result.status !== '0x1') {
         return res.status(400).json({ error: 'Transaction failed or not yet confirmed' });
       }
+
+      // P0 FIX: Verify tx happened AFTER session was created (prevent old tx replay)
+      const blockNumber = receiptData.result.blockNumber;
+      if (blockNumber) {
+        const blockRes = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'eth_getBlockByNumber', params: [blockNumber, false] }),
+        });
+        const blockData = await blockRes.json();
+        if (blockData.result?.timestamp) {
+          const blockTime = parseInt(blockData.result.timestamp, 16) * 1000;
+          const sessionCreated = new Date(sessionData.created_at).getTime();
+          // Allow 5 min buffer before session creation (clock drift)
+          if (blockTime < sessionCreated - 5 * 60 * 1000) {
+            return res.status(400).json({ error: 'Transaction is older than this activation session. Please make a new payment.' });
+          }
+        }
+      }
     } catch (verifyErr) {
       console.error('[telegram-access] TX verification error:', verifyErr);
       return res.status(502).json({ error: 'Could not verify transaction on X Layer. Please try again.' });

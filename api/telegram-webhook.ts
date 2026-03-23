@@ -55,9 +55,13 @@ async function sendVoiceNote(chatId: number, text: string, caption?: string) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  // P1 FIX: Validate webhook comes from Telegram
+  // P1 FIX: Validate webhook comes from Telegram (fail closed)
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (webhookSecret && req.headers['x-telegram-bot-api-secret-token'] !== webhookSecret) {
+  if (!webhookSecret) {
+    console.error('[telegram-webhook] TELEGRAM_WEBHOOK_SECRET not set — rejecting all webhooks');
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
+  if (req.headers['x-telegram-bot-api-secret-token'] !== webhookSecret) {
     return res.status(403).json({ error: 'Invalid webhook secret' });
   }
 
@@ -137,15 +141,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const groupId = update.message.chat.id;
       const text = update.message.text || '';
 
-      // Check if group is active
+      // P1 FIX: Check active SUBSCRIPTION, not just bot_status
       if (supabase) {
-        const { data: group } = await supabase
-          .from('telegram_groups')
-          .select('bot_status')
+        const { data: activeSub } = await supabase
+          .from('telegram_subscriptions')
+          .select('status, expires_at')
           .eq('telegram_group_id', groupId)
-          .single();
+          .eq('status', 'active')
+          .gte('expires_at', new Date().toISOString())
+          .maybeSingle();
 
-        if (!group || group.bot_status !== 'active') {
+        if (!activeSub) {
           // Group not activated — only respond to /start or /activate
           if (text.startsWith('/start') || text.startsWith('/activate')) {
             await sendTelegramMessage(groupId,

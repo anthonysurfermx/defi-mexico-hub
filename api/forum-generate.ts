@@ -174,7 +174,7 @@ ${briefing}`;
       target_price: targetPrice,
       expires_at: expiresAt,
       price_at_creation: Object.fromEntries((intel.prices || []).map((p: any) => [p.symbol, p.price])),
-    });
+    } as any);
 
     if (!threadId) {
       return res.status(500).json({ error: 'Failed to create thread' });
