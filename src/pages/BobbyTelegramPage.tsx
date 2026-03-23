@@ -217,7 +217,7 @@ export default function BobbyTelegramPage() {
                   <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/40 flex items-center justify-center mx-auto mb-4">
                     <Check className="w-8 h-8 text-green-400" />
                   </div>
-                  <h3 className="text-xl font-black text-green-400 mb-1">NODE ACTIVATED</h3>
+                  <h3 className="text-xl font-black text-green-400 mb-1">BOBBY IS LIVE</h3>
                   <p className="text-[10px] font-mono text-white/40 mb-1">{groupInfo?.name || 'Your group'}</p>
                   <p className="text-[9px] font-mono text-white/20 mb-4">Bobby is now fully integrated.</p>
                   {txHash && (
@@ -248,7 +248,7 @@ export default function BobbyTelegramPage() {
                   <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center mx-auto mb-3">
                     <AlertTriangle className="w-6 h-6 text-red-400" />
                   </div>
-                  <h3 className="text-lg font-black text-red-400 mb-1">DEPLOYMENT FAILED</h3>
+                  <h3 className="text-lg font-black text-red-400 mb-1">ACTIVATION FAILED</h3>
                   <p className="text-[10px] font-mono text-white/30 mb-4">{paymentError}</p>
                   <button onClick={() => { setPaymentState('connected'); setPaymentError(''); }}
                     className="w-full py-3 bg-white/[0.06] text-white/60 font-mono text-[10px] font-black tracking-widest rounded hover:bg-white/[0.1] transition-all">
@@ -438,9 +438,9 @@ export default function BobbyTelegramPage() {
               <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
                 <span className="text-lg">⚡</span>
               </div>
-              <h3 className="text-sm font-bold mb-1">INITIALIZE TELEGRAM NODE</h3>
+              <h3 className="text-sm font-bold mb-1">ACTIVATE BOBBY IN YOUR GROUP</h3>
               <p className="text-[10px] font-mono text-white/30 mb-3 max-w-xs mx-auto">
-                Deploy Bobby to your Telegram group. Multi-agent trading intelligence, voice notes, real-time signals.
+                Activate Bobby in your Telegram group. Multi-agent trading intelligence, voice notes, real-time signals.
               </p>
               {/* Payment info */}
               <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 mb-4 max-w-xs mx-auto">

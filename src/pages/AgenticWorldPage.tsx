@@ -66,7 +66,7 @@ export default function AgenticWorldPage() {
       description: 'Name your agent. Pick your markets. Set your frequency. Your CIO thinks while you sleep — scanning BTC, NVDA, Gold, whatever you choose. Not alerts. Not a bot. A system that debates itself before it speaks.',
       metric: stats.return !== 0 ? `${stats.return >= 0 ? '+' : ''}${stats.return}% Return` : 'LIVE',
       metricColor: 'text-green-400',
-      cta: 'DEPLOY MY AGENT',
+      cta: 'CREATE MY AGENT',
       ctaBg: 'bg-green-500/5 hover:bg-green-500 text-green-400 hover:text-black border-green-500/20',
       link: '/agentic-world/deploy',
     },
@@ -179,11 +179,17 @@ export default function AgenticWorldPage() {
             <Link to="/agentic-world/deploy"
               className="bg-green-500 text-black px-8 md:px-10 py-4 md:py-5 text-sm font-black font-mono tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
               style={{ boxShadow: '0 0 30px rgba(75,226,119,0.3)' }}>
-              DEPLOY MY AGENT
+              CREATE MY AGENT
             </Link>
+            <Link to="/agentic-world/bobby/b2b"
+              className="bg-blue-500/10 backdrop-blur-md border border-blue-500/30 text-blue-400 px-8 md:px-10 py-4 md:py-5 text-sm font-bold font-mono tracking-widest hover:bg-blue-500/20 transition-all">
+              ADD TO MY TELEGRAM GROUP
+            </Link>
+          </div>
+          <div className="flex gap-4 mt-3">
             <Link to="/agentic-world/bobby/challenge"
-              className="bg-white/[0.04] backdrop-blur-md border border-white/10 text-white px-8 md:px-10 py-4 md:py-5 text-sm font-bold font-mono tracking-widest hover:bg-white/[0.08] transition-all">
-              SEE BOBBY'S $100 CHALLENGE
+              className="text-white/30 text-[10px] font-mono tracking-wider hover:text-white/60 transition-colors">
+              See Bobby's $100 Challenge →
             </Link>
           </div>
         </motion.div>

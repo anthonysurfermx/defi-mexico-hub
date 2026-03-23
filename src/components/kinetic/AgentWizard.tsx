@@ -177,7 +177,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
                 <div>
                   <h2 className="text-xl font-black tracking-tight mb-2">PROTOCOL DISCLAIMER</h2>
                   <p className="text-sm text-white/40 leading-relaxed max-w-md mx-auto">
-                    This is simulated intelligence. No real money is traded. Bobby Agent Trader provides market intelligence, not execution. You retain full control.
+                    Bobby Agent Trader provides market intelligence — not financial advice. Your agent generates analysis and debates. You decide whether to act. You retain full control of your funds.
                   </p>
                 </div>
                 <label className="flex items-center gap-3 justify-center cursor-pointer group">
@@ -194,7 +194,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
             {step === 1 && (
               <div className="space-y-6 text-center">
                 <div>
-                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 2 OF 6</span>
+                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 1 OF 5</span>
                   <h2 className="text-xl font-black tracking-tight mt-2">NAME YOUR AGENT</h2>
                   <p className="text-[11px] font-mono text-white/30 mt-1">This will be the CIO of your personal trading room</p>
                 </div>
@@ -225,7 +225,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
             {step === 2 && (
               <div className="space-y-6 text-center">
                 <div>
-                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 3 OF 6</span>
+                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 2 OF 5</span>
                   <h2 className="text-xl font-black tracking-tight mt-2">VOICE PROTOCOL</h2>
                   <p className="text-[11px] font-mono text-white/30 mt-1">Select voice synthesis for {agentName || 'your agent'}</p>
                 </div>
@@ -256,7 +256,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
             {step === 3 && (
               <div className="space-y-5">
                 <div className="text-center">
-                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 4 OF 6</span>
+                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 3 OF 5</span>
                   <h2 className="text-xl font-black tracking-tight mt-2">TARGET MARKETS</h2>
                   <p className="text-[11px] font-mono text-white/30 mt-1">Select 1 to 5 markets for {agentName || 'your agent'} to analyze</p>
                 </div>
@@ -312,7 +312,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
             {step === 4 && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 5 OF 6</span>
+                  <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 4 OF 5</span>
                   <h2 className="text-xl font-black tracking-tight mt-2">CADENCE & DELIVERY</h2>
                 </div>
 
@@ -375,8 +375,8 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
                 {!deploying ? (
                   <>
                     <div>
-                      <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 6 OF 6</span>
-                      <h2 className="text-xl font-black tracking-tight mt-2">READY TO DEPLOY</h2>
+                      <span className="text-[9px] font-mono text-white/20 tracking-widest">STEP 5 OF 5</span>
+                      <h2 className="text-xl font-black tracking-tight mt-2">READY TO LAUNCH</h2>
                     </div>
 
                     {/* Config summary */}
