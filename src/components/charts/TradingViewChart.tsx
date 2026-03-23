@@ -96,7 +96,7 @@ export function TradingViewChart({
       },
       rightPriceScale: {
         borderColor: 'rgba(255,255,255,0.05)',
-        scaleMargins: { top: 0.1, bottom: 0.1 },
+        scaleMargins: { top: 0.05, bottom: 0.2 },
       },
       timeScale: {
         borderColor: 'rgba(255,255,255,0.05)',
@@ -129,12 +129,16 @@ export function TradingViewChart({
     }));
     candleSeries.setData(candleData);
 
-    // Volume (overlay with low opacity)
+    // Volume (separate price scale so it doesn't compress candles)
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: 'rgba(255,255,255,0.06)',
       lastValueVisible: false,
       priceLineVisible: false,
+      priceScaleId: 'volume',
     } as any);
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
     volumeSeries.setData(data.candles.map(c => ({
       time: Math.floor(c.ts / 1000) as any,
       value: c.vol,
