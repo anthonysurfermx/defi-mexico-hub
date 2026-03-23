@@ -9,7 +9,7 @@ import { ReactNode, useEffect, useState } from 'react';
 
 interface KineticShellProps {
   children: ReactNode;
-  activeTab?: 'terminal' | 'challenge' | 'history' | 'agents' | 'analytics';
+  activeTab?: 'terminal' | 'challenge' | 'history' | 'agents' | 'analytics' | 'metacognition';
   showSidebar?: boolean;
 }
 
@@ -48,6 +48,7 @@ const NAV_ITEMS = [
   { id: 'history', label: 'HISTORY', path: '/agentic-world/bobby/history' },
   { id: 'agents', label: 'AGENTS', path: '/agentic-world/bobby/agents' },
   { id: 'analytics', label: 'ANALYTICS', path: '/agentic-world/bobby/analytics' },
+  { id: 'metacognition', label: 'META', path: '/agentic-world/bobby/metacognition' },
 ] as const;
 
 const SIDE_ITEMS = [
@@ -56,6 +57,7 @@ const SIDE_ITEMS = [
   { icon: '◎', label: 'History', path: '/agentic-world/bobby/history' },
   { icon: '△', label: 'Agents', path: '/agentic-world/bobby/agents' },
   { icon: '◇', label: 'Debates', path: '/agentic-world/forum' },
+  { icon: '◉', label: 'Meta', path: '/agentic-world/bobby/metacognition' },
 ];
 
 export default function KineticShell({ children, activeTab, showSidebar = false }: KineticShellProps) {
@@ -147,6 +149,7 @@ export default function KineticShell({ children, activeTab, showSidebar = false 
           { id: 'challenge', icon: '◆', label: 'CHALLENGE', path: '/agentic-world/bobby/challenge' },
           { id: 'history', icon: '◎', label: 'HISTORY', path: '/agentic-world/bobby/history' },
           { id: 'agents', icon: '△', label: 'AGENTS', path: '/agentic-world/bobby/agents' },
+          { id: 'metacognition', icon: '◉', label: 'META', path: '/agentic-world/bobby/metacognition' },
         ].map(item => (
           <Link key={item.id} to={item.path}
             className={`flex flex-col items-center gap-0.5 ${
