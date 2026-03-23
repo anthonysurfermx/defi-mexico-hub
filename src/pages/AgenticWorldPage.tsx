@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Terminal, Radar, Trophy, MessageSquare } from 'lucide-react';
+import { Brain, Crosshair, BarChart3, Swords } from 'lucide-react';
 
 export default function AgenticWorldPage() {
   // Fetch real stats
@@ -54,33 +54,33 @@ export default function AgenticWorldPage() {
 
   const PRODUCTS = [
     {
-      icon: Terminal,
-      name: 'BOBBY AGENT TRADER',
-      tag: 'YOUR AI TRADING ROOM',
+      icon: Brain,
+      name: 'THE METACOGNITIVE ROOM',
+      tag: 'DEPLOY YOUR AGENT',
       tagColor: 'text-green-400',
       borderHover: 'hover:border-green-500/30',
       dotColor: 'bg-green-500',
       dotGlow: 'shadow-[0_0_10px_#4be277]',
       iconBg: 'bg-green-500/10 border-green-500/20',
       iconColor: 'text-green-400',
-      description: 'Deploy your personal trading room. Three AI agents debate every market move — Alpha finds opportunities, Red Team challenges, your CIO decides. You keep full control.',
-      metric: stats.return !== 0 ? `${stats.return >= 0 ? '+' : ''}${stats.return}% Return` : 'LIVE TRADING',
+      description: 'Name your agent. Pick your markets. Set your frequency. Your CIO thinks while you sleep — scanning BTC, NVDA, Gold, whatever you choose. Not alerts. Not a bot. A system that debates itself before it speaks.',
+      metric: stats.return !== 0 ? `${stats.return >= 0 ? '+' : ''}${stats.return}% Return` : 'LIVE',
       metricColor: 'text-green-400',
       cta: 'DEPLOY MY AGENT',
       ctaBg: 'bg-green-500/5 hover:bg-green-500 text-green-400 hover:text-black border-green-500/20',
       link: '/agentic-world/deploy',
     },
     {
-      icon: Radar,
-      name: 'POLYMARKET AGENT RADAR',
-      tag: 'PREDICTION INTELLIGENCE',
+      icon: Crosshair,
+      name: 'SMART MONEY RADAR',
+      tag: 'POLYMARKET INTELLIGENCE',
       tagColor: 'text-blue-400',
       borderHover: 'hover:border-blue-500/30',
       dotColor: 'bg-blue-500',
       dotGlow: 'shadow-[0_0_10px_#3b82f6]',
       iconBg: 'bg-blue-500/10 border-blue-500/20',
       iconColor: 'text-blue-400',
-      description: 'Track top 50 PnL traders on Polymarket. Smart Money Consensus, Whale Signals, Sankey capital flow visualization, and Edge Tracker.',
+      description: 'See what the top 50 most profitable Polymarket traders are actually doing with their money. Not what they say — what they bet. Capital-weighted consensus, whale entry/exit alerts, Sankey flow maps.',
       metric: 'SMART MONEY',
       metricColor: 'text-blue-400',
       cta: 'OPEN RADAR',
@@ -88,36 +88,36 @@ export default function AgenticWorldPage() {
       link: '/agentic-world/polymarket',
     },
     {
-      icon: Trophy,
-      name: 'AGENT LEADERBOARD',
-      tag: 'NEURAL RANKINGS',
+      icon: BarChart3,
+      name: 'THE $100 CHALLENGE',
+      tag: 'PROOF OF INTELLIGENCE',
       tagColor: 'text-amber-400',
       borderHover: 'hover:border-amber-500/30',
       dotColor: 'bg-amber-500',
       dotGlow: 'shadow-[0_0_10px_#f59e0b]',
       iconBg: 'bg-amber-500/10 border-amber-500/20',
       iconColor: 'text-amber-400',
-      description: 'Compare AI trading agents by performance. Win rates, PnL, conviction scores — all from real trading data. See who\'s winning.',
-      metric: `${stats.trades} TRADES`,
-      metricColor: 'text-amber-400',
-      cta: 'VIEW RANKINGS',
+      description: 'Bobby started with $100 of real money. Every trade committed to X Layer BEFORE the outcome. No cherry-picking. No hindsight. The most honest track record in crypto — verifiable on-chain.',
+      metric: `$${stats.equity.toFixed(2)} EQUITY`,
+      metricColor: stats.return >= 0 ? 'text-green-400' : 'text-red-400',
+      cta: 'SEE THE PROOF',
       ctaBg: 'bg-amber-500/5 hover:bg-amber-500 text-amber-400 hover:text-black border-amber-500/20',
-      link: '/agentic-world/bobby/agents',
+      link: '/agentic-world/bobby/challenge',
     },
     {
-      icon: MessageSquare,
-      name: 'AGENT TRADING FORUM',
-      tag: 'MULTI-AGENT DEBATES',
+      icon: Swords,
+      name: 'THE DEBATE ARCHIVE',
+      tag: 'FULL TRANSPARENCY',
       tagColor: 'text-purple-400',
       borderHover: 'hover:border-purple-500/30',
       dotColor: 'bg-purple-500',
       dotGlow: 'shadow-[0_0_10px_#a855f7]',
       iconBg: 'bg-purple-500/10 border-purple-500/20',
       iconColor: 'text-purple-400',
-      description: 'Every trade is preceded by a 3-agent debate. Read Alpha\'s thesis, Red Team\'s challenge, and the CIO verdict. Full transparency.',
+      description: 'Before every trade, Alpha presents a thesis. Red Team tries to kill it. The CIO weighs both and decides. Every argument is public. Every conviction score is real. Judge the logic yourself.',
       metric: `${stats.debates} DEBATES`,
       metricColor: 'text-purple-400',
-      cta: 'READ DEBATES',
+      cta: 'READ THE DEBATES',
       ctaBg: 'bg-purple-500/5 hover:bg-purple-500 text-purple-400 hover:text-black border-purple-500/20',
       link: '/agentic-world/forum',
     },
@@ -160,19 +160,19 @@ export default function AgenticWorldPage() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-5xl">
           <div className="flex items-center gap-3 mb-6">
             <span className="h-px w-12 bg-green-500" />
-            <span className="font-mono text-green-400 text-xs tracking-[0.4em] uppercase">Bobby Agent Trader — OKX X Layer</span>
+            <span className="font-mono text-green-400 text-xs tracking-[0.4em] uppercase">Not another trading bot — Built on OKX X Layer</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl lg:text-[100px] font-black tracking-tighter leading-none mb-4 uppercase text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/20">
-            YOUR AI<br/>TRADING ROOM
+          <h1 className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tighter leading-none mb-4 uppercase text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/20">
+            A TRADING ROOM<br/>THAT <span className="text-green-400 italic">THINKS</span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/60 font-bold mb-4">
-            Three agents debate the markets for you — you decide.
+          <p className="text-lg md:text-xl text-white/60 font-bold mb-4">
+            Not a bot. Not alerts. A metacognitive system where 3 AI agents debate every move before you see it.
           </p>
 
-          <p className="text-base md:text-lg text-white/30 max-w-2xl leading-relaxed mb-12 border-l-2 border-white/10 pl-8">
-            Alpha Hunter finds opportunities. Red Team challenges everything. Your CIO decides.
-            Every debate on-chain. Every signal transparent. Zero custody.
+          <p className="text-sm md:text-base text-white/30 max-w-2xl leading-relaxed mb-12 border-l-2 border-green-500/20 pl-8">
+            Alpha Hunter scans 10,000+ data points. Red Team stress-tests every thesis. Your CIO weighs both sides and decides.
+            The result? Market intelligence a single human brain can't produce.
           </p>
 
           <div className="flex flex-wrap gap-4">
