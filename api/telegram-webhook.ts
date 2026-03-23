@@ -55,6 +55,12 @@ async function sendVoiceNote(chatId: number, text: string, caption?: string) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // P1 FIX: Validate webhook comes from Telegram
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (webhookSecret && req.headers['x-telegram-bot-api-secret-token'] !== webhookSecret) {
+    return res.status(403).json({ error: 'Invalid webhook secret' });
+  }
+
   const update = req.body;
   if (!update) return res.status(200).json({ ok: true });
 

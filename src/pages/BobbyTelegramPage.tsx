@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
 import { parseUnits } from 'viem';
 import { useAppKit } from '@reown/appkit/react';
 import { Check, Loader2, AlertTriangle } from 'lucide-react';
@@ -16,12 +16,9 @@ import KineticShell from '@/components/kinetic/KineticShell';
 
 // Payment config — X Layer (Chain 196)
 const BOBBY_WALLET = '0xc3f836ec06a2202af23e59997a613ca0722f35d1' as `0x${string}`;
-const USDT_CONTRACT = '0x1E4a5963aBFD975d8c9021ce480b42188849D41d' as `0x${string}`;
-const PAYMENT_AMOUNT_OKB = BigInt('100000000000000000'); // 0.1 OKB (~$8) = 1e17 wei
-const PAYMENT_AMOUNT_USDT = BigInt('8000000'); // 8 USDT = 8000000 (6 decimals)
+// Single payment rail: OKB native on X Layer (per Codex P0 fix)
+const PAYMENT_AMOUNT_OKB = BigInt('100000000000000000'); // 0.1 OKB (~$8)
 const XLAYER_CHAIN_ID = 196;
-
-const ERC20_ABI = [{ name: 'transfer', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }] as const;
 
 const DEMO_CONVERSATION = [
   {
@@ -68,14 +65,9 @@ export default function BobbyTelegramPage() {
   const [session, setSession] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const [payToken, setPayToken] = useState<'okb' | 'usdt'>('okb');
-
-  // OKB native transfer
-  const { sendTransaction, data: nativeTxHash } = useSendTransaction();
-  // USDT ERC-20 transfer
-  const { writeContract, data: erc20TxHash } = useWriteContract();
-
-  const writeTxHash = payToken === 'okb' ? nativeTxHash : erc20TxHash;
+  // OKB native transfer only (single rail per Codex)
+  const { sendTransaction, data: writeTxHash } = useSendTransaction();
+  const { switchChain } = useSwitchChain();
 
   // Wait for transaction confirmation
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -149,24 +141,24 @@ export default function BobbyTelegramPage() {
 
       setSession(sessionData.session);
 
-      // Execute real transfer on X Layer
-      const onSuccess = (hash: string) => { setTxHash(hash); setPaymentState('verifying'); };
-      const onError = (error: any) => {
-        if (error.message?.includes('rejected') || error.code === 4001) {
-          setPaymentError('Transaction rejected. Please try again.');
-        } else if (error.message?.includes('insufficient')) {
-          setPaymentError(`Insufficient ${payToken.toUpperCase()} balance on X Layer.`);
-        } else {
-          setPaymentError(error.message?.slice(0, 100) || 'Transaction failed');
-        }
-        setPaymentState('error');
-      };
-
-      if (payToken === 'okb') {
-        sendTransaction({ to: BOBBY_WALLET, value: PAYMENT_AMOUNT_OKB, chainId: XLAYER_CHAIN_ID }, { onSuccess, onError });
-      } else {
-        writeContract({ address: USDT_CONTRACT, abi: ERC20_ABI, functionName: 'transfer', args: [BOBBY_WALLET, PAYMENT_AMOUNT_USDT], chainId: XLAYER_CHAIN_ID }, { onSuccess, onError });
-      }
+      // Execute real OKB native transfer on X Layer
+      sendTransaction({
+        to: BOBBY_WALLET,
+        value: PAYMENT_AMOUNT_OKB,
+        chainId: XLAYER_CHAIN_ID,
+      }, {
+        onSuccess: (hash) => { setTxHash(hash); setPaymentState('verifying'); },
+        onError: (error) => {
+          if (error.message?.includes('rejected') || (error as any).code === 4001) {
+            setPaymentError('Transaction rejected. Please try again.');
+          } else if (error.message?.includes('insufficient')) {
+            setPaymentError('Insufficient OKB balance on X Layer. You need 0.1 OKB.');
+          } else {
+            setPaymentError(error.message?.slice(0, 100) || 'Transaction failed');
+          }
+          setPaymentState('error');
+        },
+      });
     } catch (err) {
       setPaymentError('Connection error');
       setPaymentState('error');
@@ -228,12 +220,21 @@ export default function BobbyTelegramPage() {
                   <h3 className="text-xl font-black text-green-400 mb-1">NODE ACTIVATED</h3>
                   <p className="text-[10px] font-mono text-white/40 mb-1">{groupInfo?.name || 'Your group'}</p>
                   <p className="text-[9px] font-mono text-white/20 mb-4">Bobby is now fully integrated.</p>
-                  {txHash && <p className="text-[8px] font-mono text-white/15 mb-3">TX: {txHash.slice(0, 10)}...{txHash.slice(-6)}</p>}
+                  {txHash && (
+                    <a href={`https://www.oklink.com/xlayer/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+                      className="text-[8px] font-mono text-green-400/40 hover:text-green-400 mb-3 block">
+                      TX: {txHash.slice(0, 10)}...{txHash.slice(-6)} · View on Explorer →
+                    </a>
+                  )}
                   <a href="https://t.me/Bobbyagentraderbot" target="_blank" rel="noopener noreferrer"
                     className="inline-block w-full px-6 py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all"
                     style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-                    OPEN TELEGRAM →
+                    OPEN IN TELEGRAM →
                   </a>
+                  <p className="text-[8px] font-mono text-white/15 mt-3">
+                    Bot not responding? Make sure Bobby has admin privileges in the group.{' '}
+                    <a href="https://t.me/Bobbyagentraderbot" className="text-green-400/40 hover:text-green-400">Contact Support</a>
+                  </p>
                 </>
               )}
 
@@ -301,21 +302,24 @@ export default function BobbyTelegramPage() {
                       <span className="text-white/60">X Layer (196)</span>
                     </div>
                     <div className="flex justify-between text-[9px] font-mono mb-1">
-                      <span className="text-white/30">ACCESS</span>
-                      <span className="text-white/60">30 Days</span>
+                      <span className="text-white/30">DURATION</span>
+                      <span className="text-white/60">30 Days Prepaid</span>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-white/[0.06]">
-                      <span className="text-[8px] font-mono text-white/30 block mb-2">PAY WITH</span>
-                      <div className="flex gap-2">
-                        <button onClick={() => setPayToken('okb')}
-                          className={`flex-1 py-2 text-[10px] font-mono font-bold rounded transition-all ${payToken === 'okb' ? 'bg-green-500/15 border border-green-500/30 text-green-400' : 'bg-white/[0.03] border border-white/[0.06] text-white/30'}`}>
-                          0.1 OKB (~$8)
-                        </button>
-                        <button onClick={() => setPayToken('usdt')}
-                          className={`flex-1 py-2 text-[10px] font-mono font-bold rounded transition-all ${payToken === 'usdt' ? 'bg-green-500/15 border border-green-500/30 text-green-400' : 'bg-white/[0.03] border border-white/[0.06] text-white/30'}`}>
-                          8 USDT
-                        </button>
-                      </div>
+                    <div className="flex justify-between text-[9px] font-mono mb-1">
+                      <span className="text-white/30">AUTO-RENEW</span>
+                      <span className="text-white/60">OFF (You control)</span>
+                    </div>
+                    <div className="flex justify-between text-[9px] font-mono mb-1">
+                      <span className="text-white/30">PAY TO</span>
+                      <span className="text-green-400/60">{BOBBY_WALLET.slice(0, 6)}...{BOBBY_WALLET.slice(-4)}</span>
+                    </div>
+                    <div className="flex justify-between text-[9px] font-mono mt-2 pt-2 border-t border-white/[0.06]">
+                      <span className="text-white/40">COST</span>
+                      <span className="text-green-400 font-bold text-sm">0.1 OKB (~$8 USD)</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                      <span className="text-[7px]">🛡</span>
+                      <span className="text-[7px] font-mono text-white/20">Secured by OKX X Layer (Chain 196)</span>
                     </div>
                   </div>
 
@@ -336,12 +340,12 @@ export default function BobbyTelegramPage() {
                       <button onClick={handlePay}
                         className="w-full py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all animate-pulse"
                         style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-                        SIGN & PAY {payToken === 'okb' ? '0.1 OKB (~$8)' : '8 USDT'}
+                        SIGN & PAY 0.1 OKB (~$8.00 USD)
                       </button>
                     </>
                   )}
-                  <p className="text-[8px] font-mono text-white/15 mt-2">
-                    Real OKB transfer on OKX X Layer · Standard network fees apply
+                  <p className="text-[7px] font-mono text-white/15 mt-2 leading-relaxed">
+                    Payments are final and non-refundable. Service activates immediately upon block confirmation. Cancel anytime by removing the bot from your group.
                   </p>
                 </>
               )}

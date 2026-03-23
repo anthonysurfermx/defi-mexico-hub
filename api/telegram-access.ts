@@ -165,25 +165,77 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(410).json({ error: 'Session expired. Please request a new one.' });
     }
 
-    // For hackathon: accept payment proof without full facilitator verify/settle
-    // In production: call x402 facilitator /verify then /settle here
-    const payloadHash = payment_proof
-      ? crypto.createHash('sha256').update(JSON.stringify(payment_proof)).digest('hex')
-      : tx_hash || crypto.randomUUID();
+    // P0 FIX: Verify tx_hash on-chain before activating
+    if (!tx_hash || typeof tx_hash !== 'string' || !tx_hash.startsWith('0x')) {
+      return res.status(400).json({ error: 'Valid tx_hash required' });
+    }
 
-    // Mark session consumed
-    await supabase.from('telegram_activation_sessions').update({
-      status: 'consumed',
-      payer_wallet_address: wallet_address?.toLowerCase() || null,
-      payment_payload_hash: payloadHash,
-    }).eq('id', sessionData.id);
+    // Check tx_hash not already used (anti-replay)
+    const { data: existingTx } = await supabase
+      .from('telegram_subscriptions')
+      .select('id')
+      .eq('payment_tx_hash', tx_hash)
+      .maybeSingle();
 
-    // Create subscription
+    if (existingTx) {
+      return res.status(409).json({ error: 'This transaction has already been used for activation' });
+    }
+
+    // Verify transaction on X Layer blockchain
+    try {
+      const rpcUrl = 'https://rpc.xlayer.tech';
+      const txRes = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getTransactionByHash', params: [tx_hash] }),
+      });
+      const txData = await txRes.json();
+      const tx = txData.result;
+
+      if (!tx) {
+        return res.status(400).json({ error: 'Transaction not found on X Layer. Please wait for confirmation.' });
+      }
+
+      // Verify recipient
+      if (tx.to?.toLowerCase() !== PAYMENT_CONFIG.payTo.toLowerCase()) {
+        return res.status(400).json({ error: `Payment sent to wrong address. Expected ${PAYMENT_CONFIG.payTo}` });
+      }
+
+      // Verify sender matches claimed wallet
+      if (wallet_address && tx.from?.toLowerCase() !== wallet_address.toLowerCase()) {
+        return res.status(400).json({ error: 'Transaction sender does not match connected wallet' });
+      }
+
+      // Verify amount (0.1 OKB = 1e17 wei = 0x16345785d8a0000)
+      const txValue = BigInt(tx.value || '0');
+      const expectedValue = BigInt(PAYMENT_CONFIG.amountAtomic);
+      if (txValue < expectedValue) {
+        return res.status(400).json({ error: `Insufficient payment. Expected ${PAYMENT_CONFIG.amountHuman}` });
+      }
+
+      // Verify transaction receipt (success)
+      const receiptRes = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'eth_getTransactionReceipt', params: [tx_hash] }),
+      });
+      const receiptData = await receiptRes.json();
+      if (!receiptData.result || receiptData.result.status !== '0x1') {
+        return res.status(400).json({ error: 'Transaction failed or not yet confirmed' });
+      }
+    } catch (verifyErr) {
+      console.error('[telegram-access] TX verification error:', verifyErr);
+      return res.status(502).json({ error: 'Could not verify transaction on X Layer. Please try again.' });
+    }
+
+    const payloadHash = crypto.createHash('sha256').update(tx_hash).digest('hex');
+
+    // Create subscription FIRST (per Codex P2 fix — correct order)
     const expiresAt = new Date(Date.now() + PAYMENT_CONFIG.accessDays * 24 * 60 * 60 * 1000);
     await supabase.from('telegram_subscriptions').insert({
       telegram_group_id: sessionData.telegram_group_id,
       payer_wallet_address: wallet_address?.toLowerCase() || 'unknown',
-      payment_tx_hash: tx_hash || payloadHash,
+      payment_tx_hash: tx_hash,
       payment_asset: PAYMENT_CONFIG.asset,
       payment_amount_atomic: PAYMENT_CONFIG.amountAtomic,
       chain_id: 196,
@@ -197,6 +249,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await supabase.from('telegram_groups')
       .update({ bot_status: 'active' })
       .eq('telegram_group_id', sessionData.telegram_group_id);
+
+    // Mark session consumed LAST (per Codex P2 — correct order)
+    await supabase.from('telegram_activation_sessions').update({
+      status: 'consumed',
+      payer_wallet_address: wallet_address?.toLowerCase() || null,
+      payment_payload_hash: payloadHash,
+    }).eq('id', sessionData.id);
 
     // Notify group
     await sendTelegramMessage(sessionData.telegram_group_id,
