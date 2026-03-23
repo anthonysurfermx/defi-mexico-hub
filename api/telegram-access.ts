@@ -18,10 +18,10 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
 const PAYMENT_CONFIG = {
   network: 'eip155:196', // X Layer
-  asset: 'USDT',
-  amountAtomic: '10000', // 0.01 USDT (6 decimals)
-  amountHuman: '0.01 USDT',
-  payTo: '0xF841b428E6d743187D7BE2242eccC1078fdE2395',
+  asset: 'OKB',
+  amountAtomic: '100000000000000000', // 0.1 OKB (~$8)
+  amountHuman: '$8/month (0.1 OKB)',
+  payTo: '0xc3f836ec06a2202af23e59997a613ca0722f35d1',
   accessDays: 30,
 };
 

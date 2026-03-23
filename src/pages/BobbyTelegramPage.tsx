@@ -15,7 +15,7 @@ import { Check, Loader2, AlertTriangle } from 'lucide-react';
 import KineticShell from '@/components/kinetic/KineticShell';
 
 // Payment config — X Layer (Chain 196)
-const BOBBY_WALLET = '0xF841b428E6d743187D7BE2242eccC1078fdE2395' as `0x${string}`;
+const BOBBY_WALLET = '0xc3f836ec06a2202af23e59997a613ca0722f35d1' as `0x${string}`;
 const USDT_CONTRACT = '0x1E4a5963aBFD975d8c9021ce480b42188849D41d' as `0x${string}`;
 const PAYMENT_AMOUNT_OKB = BigInt('100000000000000000'); // 0.1 OKB (~$8) = 1e17 wei
 const PAYMENT_AMOUNT_USDT = BigInt('8000000'); // 8 USDT = 8000000 (6 decimals)
