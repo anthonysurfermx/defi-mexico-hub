@@ -43,7 +43,7 @@ const FAQ = [
   { q: 'Is this a trading bot?', a: 'Bobby is an intelligence layer, not an execution bot. It provides institutional-grade analysis, sentiment tracking, and risk assessment to help your group make better decisions. Zero custody.' },
   { q: 'What markets are covered?', a: 'Crypto (BTC, ETH, SOL, and more), US stocks (NVDA, TSLA, AAPL), and commodities (Gold, Silver). Configurable per group.' },
   { q: 'Is it safe for my group?', a: 'Bobby only requires permission to read and send messages. It cannot access wallets or private data. All signals are verifiable on-chain.' },
-  { q: 'How do I pay?', a: 'Payment via x402 protocol on OKX X Layer. Connect your Web3 wallet, pay 0.01 USDT, and Bobby activates instantly. Zero gas on X Layer.' },
+  { q: 'How do I pay?', a: 'Payment via x402 protocol on OKX X Layer. Connect your Web3 wallet, pay 8 USDT, and Bobby activates instantly. Zero gas on X Layer.' },
 ];
 
 export default function BobbyB2BPage() {
@@ -203,7 +203,7 @@ export default function BobbyB2BPage() {
         <div className="flex flex-col md:flex-row gap-8">
           {[
             { n: '01', title: 'Add Bot', desc: 'Invite @Bobbyagentraderbot to your group.' },
-            { n: '02', title: 'Pay via x402', desc: '0.01 USDT on X Layer. Instant activation.' },
+            { n: '02', title: 'Pay via x402', desc: '8 USDT on X Layer. Instant activation.' },
             { n: '03', title: 'Start Debating', desc: 'Agents begin monitoring. Use /analyze to trigger.' },
           ].map(step => (
             <div key={step.n} className="flex-1 relative">

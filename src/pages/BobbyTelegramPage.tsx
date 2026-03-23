@@ -17,8 +17,8 @@ import KineticShell from '@/components/kinetic/KineticShell';
 // Payment config — X Layer (Chain 196)
 const BOBBY_WALLET = '0xF841b428E6d743187D7BE2242eccC1078fdE2395' as `0x${string}`;
 const USDT_CONTRACT = '0x1E4a5963aBFD975d8c9021ce480b42188849D41d' as `0x${string}`;
-const PAYMENT_AMOUNT_OKB = BigInt('1000000000000000'); // 0.001 OKB = 1e15 wei
-const PAYMENT_AMOUNT_USDT = BigInt('10000'); // 0.01 USDT = 10000 (6 decimals)
+const PAYMENT_AMOUNT_OKB = BigInt('100000000000000000'); // 0.1 OKB (~$8) = 1e17 wei
+const PAYMENT_AMOUNT_USDT = BigInt('8000000'); // 8 USDT = 8000000 (6 decimals)
 const XLAYER_CHAIN_ID = 196;
 
 const ERC20_ABI = [{ name: 'transfer', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] }] as const;
@@ -309,11 +309,11 @@ export default function BobbyTelegramPage() {
                       <div className="flex gap-2">
                         <button onClick={() => setPayToken('okb')}
                           className={`flex-1 py-2 text-[10px] font-mono font-bold rounded transition-all ${payToken === 'okb' ? 'bg-green-500/15 border border-green-500/30 text-green-400' : 'bg-white/[0.03] border border-white/[0.06] text-white/30'}`}>
-                          0.001 OKB
+                          0.1 OKB (~$8)
                         </button>
                         <button onClick={() => setPayToken('usdt')}
                           className={`flex-1 py-2 text-[10px] font-mono font-bold rounded transition-all ${payToken === 'usdt' ? 'bg-green-500/15 border border-green-500/30 text-green-400' : 'bg-white/[0.03] border border-white/[0.06] text-white/30'}`}>
-                          0.01 USDT
+                          8 USDT
                         </button>
                       </div>
                     </div>
@@ -336,7 +336,7 @@ export default function BobbyTelegramPage() {
                       <button onClick={handlePay}
                         className="w-full py-3 bg-green-500 text-black font-mono text-[10px] font-black tracking-widest rounded active:scale-95 transition-all animate-pulse"
                         style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
-                        SIGN & PAY {payToken === 'okb' ? '0.001 OKB' : '0.01 USDT'}
+                        SIGN & PAY {payToken === 'okb' ? '0.1 OKB (~$8)' : '8 USDT'}
                       </button>
                     </>
                   )}
@@ -450,7 +450,7 @@ export default function BobbyTelegramPage() {
                 </div>
                 <div className="flex justify-between text-[9px] font-mono mt-2 pt-2 border-t border-white/[0.06]">
                   <span className="text-white/40">COST</span>
-                  <span className="text-green-400 font-bold text-sm">0.001 OKB</span>
+                  <span className="text-green-400 font-bold text-sm">0.1 OKB (~$8)</span>
                 </div>
               </div>
 
