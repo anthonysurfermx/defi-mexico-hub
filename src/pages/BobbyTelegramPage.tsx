@@ -231,8 +231,12 @@ export default function BobbyTelegramPage() {
                     style={{ boxShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
                     OPEN IN TELEGRAM →
                   </a>
-                  <p className="text-[8px] font-mono text-white/15 mt-3">
-                    Bot not responding? Make sure Bobby has admin privileges in the group.{' '}
+                  <button onClick={() => { navigator.clipboard.writeText('https://t.me/Bobbyagentraderbot'); }}
+                    className="text-[8px] font-mono text-white/15 mt-2 hover:text-white/30 transition-colors block">
+                    Link not working? Click to copy: t.me/Bobbyagentraderbot
+                  </button>
+                  <p className="text-[8px] font-mono text-white/15 mt-2">
+                    Bot not responding? Make sure Bobby has admin privileges.{' '}
                     <a href="https://t.me/Bobbyagentraderbot" className="text-green-400/40 hover:text-green-400">Contact Support</a>
                   </p>
                 </>
@@ -466,6 +470,10 @@ export default function BobbyTelegramPage() {
               <p className="text-[8px] font-mono text-white/15 mt-2">
                 After adding, Bobby will send you a payment link to activate.
               </p>
+              <button onClick={() => navigator.clipboard.writeText('https://t.me/Bobbyagentraderbot?startgroup=true')}
+                className="text-[7px] font-mono text-white/10 mt-1 hover:text-white/25 transition-colors">
+                Desktop? Click to copy link
+              </button>
             </div>
           </div>
         </motion.div>

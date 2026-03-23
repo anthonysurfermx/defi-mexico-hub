@@ -240,8 +240,8 @@ export default function BobbyB2BPage() {
           <h3 className="text-2xl font-black mb-2">Simple Intelligence</h3>
           <p className="text-white/40 text-sm mb-6">Access all 3 agents for your entire community.</p>
           <div className="mb-6">
-            <span className="font-mono text-5xl font-bold text-green-400">0.01</span>
-            <span className="font-mono text-lg text-white/30 italic"> USDT / 30 DAYS</span>
+            <span className="font-mono text-5xl font-bold text-green-400">$8</span>
+            <span className="font-mono text-lg text-white/30 italic"> USD / 30 DAYS</span>
           </div>
           <ul className="text-left space-y-3 mb-8 text-sm border-y border-white/[0.06] py-6">
             {['Unlimited market debates', 'Real-time voice notes', 'Custom market selection', 'X Layer on-chain proof'].map(f => (
