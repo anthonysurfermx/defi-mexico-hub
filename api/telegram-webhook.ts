@@ -235,7 +235,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle: DM messages
     if (update.message && update.message.chat.type === 'private') {
       const chatId = update.message.chat.id;
+      const userId = update.message.from?.id;
+      const username = update.message.from?.username || '';
       const text = update.message.text || '';
+
+      // B2C Connect Flow: /start connect_TOKEN
+      if (text.startsWith('/start connect_') && supabase) {
+        const token = text.replace('/start connect_', '').trim();
+        if (token) {
+          // Validate token and create connection
+          const { data: pending } = await supabase
+            .from('telegram_connections')
+            .select('*')
+            .eq('connect_token', token)
+            .eq('status', 'pending')
+            .single();
+
+          if (pending) {
+            await supabase.from('telegram_connections').update({
+              telegram_user_id: userId,
+              telegram_chat_id: chatId,
+              telegram_username: username,
+              status: 'active',
+              connected_at: new Date().toISOString(),
+            }).eq('id', pending.id);
+
+            // Get agent name
+            let agentName = 'YOUR AGENT';
+            if (pending.agent_profile_id) {
+              const { data: profile } = await supabase.from('agent_profiles').select('agent_name').eq('id', pending.agent_profile_id).single();
+              if (profile) agentName = profile.agent_name;
+            }
+
+            await sendTelegramMessage(chatId,
+              `🟢 <b>CONNECTED</b>\n\n` +
+              `I'm now routing all <b>${agentName}</b> intelligence reports to this chat.\n\n` +
+              `Expect your first briefing within the next cycle.\n\n` +
+              `📊 First 100 reports are <b>free</b>\n` +
+              `💬 Type <code>/pause</code> to mute\n` +
+              `💬 Type <code>/status</code> to check your connection`
+            );
+            return res.status(200).json({ ok: true });
+          } else {
+            await sendTelegramMessage(chatId,
+              `⚠️ Invalid or expired connection token.\n\n` +
+              `Please generate a new one from the terminal:\n` +
+              `👉 <a href="${BASE_URL}/agentic-world/bobby">Open Terminal</a>`
+            );
+            return res.status(200).json({ ok: true });
+          }
+        }
+      }
+
+      // Handle /pause and /mute for B2C
+      if ((text === '/pause' || text === '/mute') && supabase) {
+        await supabase.from('telegram_connections')
+          .update({ status: 'disconnected' })
+          .eq('telegram_chat_id', chatId)
+          .eq('status', 'active');
+        await sendTelegramMessage(chatId, '⏸ Notifications paused. Type /resume to reactivate.');
+        return res.status(200).json({ ok: true });
+      }
+
+      if ((text === '/resume' || text === '/unmute') && supabase) {
+        await supabase.from('telegram_connections')
+          .update({ status: 'active' })
+          .eq('telegram_chat_id', chatId)
+          .eq('status', 'disconnected');
+        await sendTelegramMessage(chatId, '▶️ Notifications resumed. Your agent will send reports again.');
+        return res.status(200).json({ ok: true });
+      }
 
       if (text.startsWith('/start')) {
         await sendTelegramMessage(chatId,
@@ -244,7 +313,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           `🟢 <b>Alpha Hunter</b> — finds opportunities\n` +
           `🔴 <b>Red Team</b> — challenges every thesis\n` +
           `🟡 <b>CIO</b> — makes the final decision\n\n` +
-          `<b>Add me to your Telegram group</b> to get multi-agent market analysis.\n\n` +
+          `<b>For individuals:</b> Create your agent at the terminal and connect me for DM reports.\n` +
+          `<b>For groups:</b> Add me to your Telegram group for multi-agent market analysis.\n\n` +
           `👉 <a href="${BASE_URL}/agentic-world/bobby/telegram">Learn more</a>\n\n` +
           `<i>Built on OKX X Layer · x402 Payment Protocol</i>`
         );

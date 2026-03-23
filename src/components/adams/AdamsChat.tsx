@@ -3106,14 +3106,49 @@ export function AdamsChat() {
           )}
         </div>
 
-        {/* Telegram CTA */}
-        <Link to="/agentic-world/bobby/b2b" className="block mt-auto bg-blue-500/[0.06] border border-blue-500/15 rounded p-3 hover:bg-blue-500/[0.1] transition-all">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm">⚡</span>
-            <span className="text-[9px] font-mono font-bold text-blue-400">TELEGRAM GROUPS</span>
-          </div>
-          <p className="text-[8px] font-mono text-white/25">Get these debates in your Telegram group →</p>
-        </Link>
+        {/* Telegram Delivery */}
+        <div className="mt-auto space-y-2">
+          {/* B2C: Get DM reports */}
+          <button onClick={async () => {
+            const token = crypto.randomUUID().slice(0, 12);
+            // Save pending connection to Supabase
+            try {
+              const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
+              const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
+              const agentProfile = localStorage.getItem('agent_profile');
+              const profileId = agentProfile ? JSON.parse(agentProfile).id : null;
+              await fetch(`${SB}/rest/v1/telegram_connections`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: `Bearer ${KEY}`, Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  wallet_address: address?.toLowerCase() || null,
+                  agent_profile_id: profileId,
+                  telegram_user_id: 0,
+                  telegram_chat_id: 0,
+                  connect_token: token,
+                  status: 'pending',
+                }),
+              });
+            } catch {}
+            window.open(`https://t.me/Bobbyagentraderbot?start=connect_${token}`, '_blank');
+          }}
+            className="block w-full bg-green-500/[0.06] border border-green-500/15 rounded p-3 hover:bg-green-500/[0.1] transition-all text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm">✈️</span>
+              <span className="text-[9px] font-mono font-bold text-green-400">ROUTE INTEL TO TELEGRAM</span>
+            </div>
+            <p className="text-[8px] font-mono text-white/25">Get your debates as DM · 100 free reports</p>
+          </button>
+
+          {/* B2B: Group activation */}
+          <Link to="/agentic-world/bobby/b2b" className="block bg-blue-500/[0.06] border border-blue-500/15 rounded p-3 hover:bg-blue-500/[0.1] transition-all">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm">⚡</span>
+              <span className="text-[9px] font-mono font-bold text-blue-400">TELEGRAM GROUPS</span>
+            </div>
+            <p className="text-[8px] font-mono text-white/25">Add Bobby to your trading group · $8/mo</p>
+          </Link>
+        </div>
       </aside>
 
       {/* === Right Panel — Orb + Chat + Input === */}
