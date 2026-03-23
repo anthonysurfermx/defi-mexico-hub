@@ -714,6 +714,23 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
       } catch (e) { console.error('Tweet failed', e); }
     }
 
+    // Deliver Bobby's public debate to active Telegram groups
+    if (threadId) {
+      const cycleSecret = process.env.BOBBY_CYCLE_SECRET;
+      fetch('https://defimexico.org/api/telegram-deliver', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cycleSecret ? { Authorization: `Bearer ${cycleSecret}` } : {}),
+        },
+        body: JSON.stringify({
+          thread_id: threadId,
+          conviction,
+          symbol: digestSymbol,
+        }),
+      }).catch(err => console.error('[bobby-cycle] Telegram delivery failed:', err));
+    }
+
     return res.status(200).json({
       ok: true,
       challengeMode,

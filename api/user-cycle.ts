@@ -585,9 +585,28 @@ async function runSingleProfile(
 
   await markRunSuccess(supabase, profile, now);
 
+  // Fire-and-forget: deliver to Telegram (DMs + Groups)
+  const threadId = typeof thread.id === 'string' ? thread.id : null;
+  if (threadId) {
+    const cycleSecret = process.env.BOBBY_CYCLE_SECRET;
+    fetch('https://defimexico.org/api/telegram-deliver', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cycleSecret ? { Authorization: `Bearer ${cycleSecret}` } : {}),
+      },
+      body: JSON.stringify({
+        thread_id: threadId,
+        agent_profile_id: profile.id,
+        conviction: debate.signal.conviction / 10,
+        symbol: debate.signal.execute ? debate.signal.symbol : null,
+      }),
+    }).catch(err => console.error('[user-cycle] Telegram delivery failed:', err));
+  }
+
   return {
     profileId: profile.id,
-    threadId: typeof thread.id === 'string' ? thread.id : null,
+    threadId,
     symbol: debate.signal.execute ? debate.signal.symbol : null,
     ok: true,
   };
