@@ -169,6 +169,53 @@ async function getTrackRecord(): Promise<{ wins: number; losses: number; winRate
   return { wins, losses, winRate: Math.round((wins / total) * 100), lastCalls };
 }
 
+// ---- Self-Correction Loop (Metacognition Upgrade C) ----
+// Fetch recent contradictions — trades where Bobby was wrong
+// Codex: cap at 5 entries, 1 line each, don't bloat prompt
+
+interface Contradiction {
+  symbol: string;
+  direction: string;
+  conviction: number;
+  pnlPct: number;
+  resolvedAt: string;
+  hoursAgo: number;
+}
+
+async function getRecentContradictions(): Promise<{ contradictions: Contradiction[]; block: string }> {
+  const data = await sbQuery('forum_threads',
+    'resolution=in.(loss,break_even)&resolved_at=not.is.null&symbol=not.is.null&select=symbol,direction,conviction_score,resolution_pnl_pct,resolved_at&order=resolved_at.desc&limit=5'
+  );
+
+  if (!data.length) return { contradictions: [], block: '\nRECENT MISTAKES: None — record clean.' };
+
+  const now = Date.now();
+  const contradictions: Contradiction[] = data
+    .filter((d: any) => {
+      // Only last 72 hours
+      const resolvedTime = new Date(d.resolved_at).getTime();
+      return (now - resolvedTime) < 72 * 60 * 60 * 1000;
+    })
+    .map((d: any) => ({
+      symbol: d.symbol,
+      direction: d.direction || 'long',
+      conviction: d.conviction_score ? Math.round(d.conviction_score * 10) : 0,
+      pnlPct: d.resolution_pnl_pct || 0,
+      resolvedAt: d.resolved_at,
+      hoursAgo: Math.round((now - new Date(d.resolved_at).getTime()) / (60 * 60 * 1000)),
+    }));
+
+  if (!contradictions.length) return { contradictions: [], block: '\nRECENT MISTAKES: None in last 72h — record clean.' };
+
+  // Codex: 1 line per entry, capped at 5
+  const lines = contradictions.map(c =>
+    `- ${c.hoursAgo}h ago: ${c.direction.toUpperCase()} ${c.symbol} @ ${c.conviction}/10 → ${c.pnlPct > 0 ? '+' : ''}${c.pnlPct.toFixed(1)}%`
+  );
+  const block = `\nRECENT MISTAKES (${contradictions.length}):\n${lines.join('\n')}`;
+
+  return { contradictions, block };
+}
+
 // ---- Main handler ----
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -216,10 +263,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ============================================================
     // PHASE 1: Freeze market snapshot
     // ============================================================
-    const [intel, positions, track] = await Promise.all([
+    const [intel, positions, track, corrections] = await Promise.all([
       fetchIntel(),
       fetchPositions(okxMode),
       getTrackRecord(),
+      getRecentContradictions(),
     ]);
 
     const testState = body.testState as {
@@ -296,7 +344,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const memoryBlock = `\nBOBBY'S TRACK RECORD: Win Rate ${track.winRate}% | Last calls: ${track.lastCalls}${
       track.winRate < 60 ? '\nWARNING: Accuracy below 60%. Be extra cautious.' : ''
-    }${calibrationBlock}`;
+    }${calibrationBlock}${corrections.block}`;
 
     const positionsBlock = effectivePositions.length > 0
       ? `\nOPEN POSITIONS:\n${effectivePositions.map((p: any) =>
@@ -318,9 +366,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`[Cycle] TEST VERDICT: ${testVerdict.direction} ${testVerdict.symbol} conviction ${testVerdict.conviction}/10`);
     } else {
 
+    // Contradiction-aware prompts (Metacognition Upgrade C)
+    const hasContradictions = corrections.contradictions.length > 0;
+    const contradictionNote = hasContradictions
+      ? ` Bobby recently failed on: ${corrections.contradictions.slice(0, 3).map(c => `${c.direction.toUpperCase()} ${c.symbol}`).join(', ')}. If your thesis resembles a recent failure, explain what changed.`
+      : '';
+
     // Alpha Hunter (Haiku — cheap, aggressive, scans full market)
     alphaPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage. ${langRule} 2-3 short paragraphs.`,
+      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
       `MARKET SCAN:\n${contextBlock}`, 350
     );
 
@@ -328,7 +382,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     redPost = await callClaude('claude-sonnet-4-20250514',
       `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
         track.winRate < 60 ? ' Bobby has been WRONG recently. Be extra aggressive.' : ''
-      }`,
+      }${hasContradictions ? ` Use Bobby's recent failures as ammunition: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
     );
 
@@ -345,7 +399,7 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
 - direction must be "long", "short", or "none".
 - NEVER omit the VERDICT line. It is mandatory.${
         track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
-      }`,
+      }${hasContradictions ? `\nSELF-CORRECTION: You recently failed on these calls. If your current thesis resembles one, explain what is DIFFERENT this time or sit out.` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 400
     );
     } // end else (non-test debate)
@@ -762,6 +816,41 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
           symbol: digestSymbol,
         }),
       }).catch(err => console.error('[bobby-cycle] Telegram delivery failed:', err));
+    }
+
+    // ============================================================
+    // PHASE 7: Debate Quality Scoring (Metacognition Upgrade D)
+    // Non-blocking, fire-and-forget. Codex P1: AFTER execution, not before.
+    // Stores in forum_threads.debate_quality for next cycle's context.
+    // ============================================================
+    if (threadId && !useTestVerdict) {
+      (async () => {
+        try {
+          const qualityRaw = await callClaude('claude-haiku-4-5-20251001',
+            `Score this trading debate 1-5 on each dimension. Return ONLY valid JSON, nothing else:
+{"specificity":N,"data_citation":N,"actionability":N,"novel_insight":N,"red_team_rigor":N,"overall":N,"weakness":"one sentence"}`,
+            `ALPHA:\n${alphaPost.slice(0, 500)}\n\nRED TEAM:\n${redPost.slice(0, 500)}\n\nCIO:\n${cioPost.slice(0, 500)}`, 120
+          );
+          const jsonMatch = qualityRaw.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const quality = JSON.parse(jsonMatch[0]);
+            // Patch the thread with debate quality
+            await fetch(`${SB_URL}/rest/v1/forum_threads?id=eq.${threadId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: SB_KEY,
+                Authorization: `Bearer ${SB_KEY}`,
+              },
+              body: JSON.stringify({ trigger_data: {
+                ...((thread as any)?.trigger_data || {}),
+                debate_quality: quality,
+              }}),
+            });
+            console.log(`[Cycle] Debate quality scored: overall=${quality.overall}/5, weakness="${quality.weakness}"`);
+          }
+        } catch (e) { console.warn('[Cycle] Debate quality scoring failed (non-critical):', e); }
+      })(); // fire-and-forget — does NOT block response
     }
 
     return res.status(200).json({
