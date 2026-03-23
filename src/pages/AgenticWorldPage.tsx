@@ -271,37 +271,7 @@ export default function AgenticWorldPage() {
         </Link>
       </section>
 
-      {/* Infrastructure Section */}
-      <section className="py-16 md:py-24 px-6 md:px-16 bg-[#0e0e0e] border-t border-white/5">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="font-mono text-[10px] tracking-[0.6em] text-white/25 uppercase mb-8">Built on OKX Ecosystem</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-12">
-            {[
-              { name: 'OKX DEX API', desc: 'On-chain swaps on X Layer', color: 'text-green-400' },
-              { name: 'OKX CEX API', desc: 'Perpetual futures trading', color: 'text-green-400' },
-              { name: 'X Layer Chain', desc: 'On-chain trade proof (Chain 196)', color: 'text-blue-400' },
-              { name: 'OnchainOS Skills', desc: 'Price feeds & signals', color: 'text-amber-400' },
-            ].map(item => (
-              <div key={item.name} className="text-center">
-                <div className={`font-mono text-sm font-bold ${item.color}`}>{item.name}</div>
-                <div className="text-[9px] font-mono text-white/25 mt-1">{item.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-16">
-            {[
-              { name: 'CLAUDE CODE', color: 'bg-green-500' },
-              { name: 'OpenClaw', color: 'bg-amber-500' },
-              { name: 'OKX X LAYER', color: 'bg-blue-500' },
-            ].map(infra => (
-              <div key={infra.name} className="flex flex-col items-center gap-3 opacity-50 hover:opacity-100 transition-all">
-                <div className="text-white font-black text-xl md:text-2xl tracking-tighter">{infra.name}</div>
-                <div className={`h-[2px] w-8 ${infra.color}`} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Minimal footer line — no infrastructure section */}
 
       {/* Footer */}
       <footer className="w-full bg-[#050505] py-10 border-t border-green-900/20">
