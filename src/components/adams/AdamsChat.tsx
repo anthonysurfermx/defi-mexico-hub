@@ -3105,6 +3105,15 @@ export function AdamsChat() {
             </div>
           )}
         </div>
+
+        {/* Telegram CTA */}
+        <Link to="/agentic-world/bobby/b2b" className="block mt-auto bg-blue-500/[0.06] border border-blue-500/15 rounded p-3 hover:bg-blue-500/[0.1] transition-all">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm">⚡</span>
+            <span className="text-[9px] font-mono font-bold text-blue-400">TELEGRAM GROUPS</span>
+          </div>
+          <p className="text-[8px] font-mono text-white/25">Get these debates in your Telegram group →</p>
+        </Link>
       </aside>
 
       {/* === Right Panel — Orb + Chat + Input === */}

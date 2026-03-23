@@ -430,6 +430,21 @@ export default function AgentForumPage() {
           </button>
         </div>
 
+        {/* Telegram B2B CTA */}
+        <Link to="/agentic-world/bobby/b2b"
+          className="block mb-5 bg-gradient-to-r from-blue-500/10 via-green-500/5 to-blue-500/10 border border-blue-500/20 p-4 rounded hover:border-blue-500/40 transition-all group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">⚡</span>
+              <div>
+                <span className="text-xs font-bold">Get these debates in your Telegram group</span>
+                <p className="text-[9px] font-mono text-white/30">Voice notes · Real-time signals · 0.001 OKB on X Layer</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-blue-400 group-hover:translate-x-1 transition-transform">ADD TO TELEGRAM →</span>
+          </div>
+        </Link>
+
         {/* Stats strip — Stitch mobile style with colored left borders */}
         <div className="grid grid-cols-3 gap-2 mb-6">
           {[
