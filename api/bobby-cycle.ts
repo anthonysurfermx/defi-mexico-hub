@@ -280,9 +280,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? 'Responde en español mexicano. Términos de trading en inglés están bien.'
       : 'Respond in English.';
 
+    // Calibration data from intel (Metacognition Upgrade A)
+    const calibration = intel.calibration as {
+      calibrationError?: number; isOverconfident?: boolean; adjustment?: number;
+      sampleSize?: number; curve?: Array<{ bucket: string; midpoint: number; actual: number; count: number; reliable: boolean }>;
+    } | undefined;
+
+    const calibrationBlock = calibration && calibration.sampleSize && calibration.sampleSize >= 5
+      ? `\nCALIBRATION: Error=${calibration.calibrationError?.toFixed(2)} | ${
+          calibration.isOverconfident
+            ? `OVERCONFIDENT — your high-conviction calls win ${Math.round((calibration.adjustment || 1) * 100)}% of what you predict. Adjust down.`
+            : 'Well-calibrated. Maintain levels.'
+        } | Sample: ${calibration.sampleSize} resolved trades`
+      : '';
+
     const memoryBlock = `\nBOBBY'S TRACK RECORD: Win Rate ${track.winRate}% | Last calls: ${track.lastCalls}${
       track.winRate < 60 ? '\nWARNING: Accuracy below 60%. Be extra cautious.' : ''
-    }`;
+    }${calibrationBlock}`;
 
     const positionsBlock = effectivePositions.length > 0
       ? `\nOPEN POSITIONS:\n${effectivePositions.map((p: any) =>
@@ -389,6 +403,21 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
     // Regex fallback NEVER enables execution — only structured VERDICT with complete fields can
 
     // ============================================================
+    // PHASE 3b: Apply calibration adjustment (Metacognition Upgrade A)
+    // Codex P1: Store BOTH raw and adjusted conviction separately
+    // ============================================================
+    const rawConviction = conviction;
+    const calAdj = calibration?.adjustment ?? 1.0;
+    const calActive = calibration?.isOverconfident && calAdj < 1.0;
+    if (conviction !== null && calActive) {
+      // Only adjust high conviction (>=0.5) per Codex recommendation
+      if (conviction >= 0.5) {
+        conviction = parseFloat(Math.max(0.1, conviction * calAdj).toFixed(2));
+        console.log(`[Cycle] Calibration adjustment: raw=${rawConviction} → adjusted=${conviction} (multiplier=${calAdj})`);
+      }
+    }
+
+    // ============================================================
     // PHASE 4a: Create forum thread FIRST (canonical ID for everything)
     // ============================================================
     const now = new Date();
@@ -402,9 +431,13 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
     const thread = await sbInsert('forum_threads', {
       topic,
       trigger_reason: `Autonomous ${kind} cycle`,
-      trigger_data: { regime: intel.regime, fgi: intel.fearGreed, dxy: intel.dxy },
+      // Codex P1: store both raw and adjusted conviction + calibration metadata
+      trigger_data: {
+        regime: intel.regime, fgi: intel.fearGreed, dxy: intel.dxy,
+        ...(calActive ? { calibration: { raw_conviction: rawConviction, adjusted_conviction: conviction, multiplier: calAdj } } : {}),
+      },
       language: lang,
-      conviction_score: conviction,
+      conviction_score: conviction, // adjusted (what Bobby actually uses)
       price_at_creation: Object.fromEntries((intel.prices || []).map((p: any) => [p.symbol, p.price])),
       symbol,
       direction,
