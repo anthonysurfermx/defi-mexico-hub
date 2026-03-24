@@ -404,7 +404,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
 - VIBE_PHRASE is a casual 1-2 sentence trading mood (max 200 chars). Write like texting a friend. Reference specific prices/conditions you analyzed.${
         track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: You recently failed on these calls. If your current thesis resembles one, explain what is DIFFERENT this time or sit out.` : ''}`,
-      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 400
+      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
     );
     } // end else (non-test debate)
 
