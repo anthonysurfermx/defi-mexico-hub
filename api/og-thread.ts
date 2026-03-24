@@ -46,7 +46,7 @@ export default async function handler(req: Request) {
     const resolved = thread.resolution && thread.resolution !== 'pending';
 
     return new ImageResponse(
-      ({
+      {
         type: 'div',
         props: {
           style: {
@@ -174,7 +174,7 @@ export default async function handler(req: Request) {
           ].filter(Boolean),
         },
       },
-      }) as any,
+      } as any,
       { width: 1200, height: 630 }
     );
   } catch (error) {
