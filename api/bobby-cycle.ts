@@ -392,14 +392,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 RULES:
 - 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
-- Then you MUST end with a JSON block exactly like this (no markdown fences):
+- Then you MUST end with EXACTLY these two lines (no markdown fences):
 VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry":70500,"stop":69200,"target":73900,"invalidation":"DXY breaks above 126"}
-- If sitting out: {"execute":false,"conviction":3,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if DXY drops below 124"}
+VIBE_PHRASE: BTC order flow stacking at 70.5k, whales loading quietly. Let's ride.
+- If sitting out:
+VERDICT: {"execute":false,"conviction":3,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if DXY drops below 124"}
+VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time.
 - conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL (only these 3 for now).
 - direction must be "long", "short", or "none".
-- NEVER omit the VERDICT line. It is mandatory.
-- After VERDICT, add a VIBE_PHRASE line: a casual 1-2 sentence trading vibe (max 200 chars). Write like a trader texting a friend — reference specific prices or market conditions you just analyzed. Examples: "ETH broke 7,500 support but volume isn't confirming. Whales are quiet. Netflix day." or "BTC order flow is stacking at 365k, whales loading. Let's ride." If you have open positions, mention them. If sitting out, say why casually.
-VIBE_PHRASE: your casual trading mood here${
+- NEVER omit VERDICT or VIBE_PHRASE. Both are mandatory. VIBE_PHRASE must come right after VERDICT.
+- VIBE_PHRASE is a casual 1-2 sentence trading mood (max 200 chars). Write like texting a friend. Reference specific prices/conditions you analyzed.${
         track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: You recently failed on these calls. If your current thesis resembles one, explain what is DIFFERENT this time or sit out.` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 400
