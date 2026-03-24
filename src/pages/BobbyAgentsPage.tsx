@@ -7,8 +7,10 @@ import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import KineticShell from '@/components/kinetic/KineticShell';
+import { useTradingRoom } from '@/hooks/useTradingRoom';
 
 export default function BobbyAgentsPage() {
+  const { profile, profileId, hasAgent, roomMode, accentColor, accentBg, accentBorder, accentGlow } = useTradingRoom();
   const [summary, setSummary] = useState<any>(null);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,11 @@ export default function BobbyAgentsPage() {
     const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
     const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
-    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=10&select=id,symbol,direction,conviction_score,status,created_at`, { headers })
+    // Fetch debates: personal if agent exists, global otherwise
+    const debateFilter = roomMode === 'personal' && profileId
+      ? `scope=eq.private&agent_profile_id=eq.${profileId}`
+      : `or=(scope.is.null,scope.eq.public)`;
+    fetch(`${SB}/rest/v1/forum_threads?${debateFilter}&order=created_at.desc&limit=10&select=id,symbol,direction,conviction_score,status,created_at`, { headers })
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setDecisions(d); })
       .catch(() => {});
@@ -38,11 +44,11 @@ export default function BobbyAgentsPage() {
         setAgentStatus(age < 12 * 3600000 ? 'ACTIVE' : age < 24 * 3600000 ? 'IDLE' : 'OFFLINE');
       })
       .catch(() => setAgentStatus('OFFLINE'));
-  }, []);
+  }, [roomMode, profileId]);
 
   const s = summary;
-  const agentName = (() => { try { return localStorage.getItem('bobby_agent_name') || 'Bobby'; } catch { return 'Bobby'; } })();
-  const personality = (() => { try { const p = JSON.parse(localStorage.getItem('agent_profile') || '{}'); return p.personality || 'analytical'; } catch { return 'analytical'; } })();
+  const agentName = profile?.agent_name || (() => { try { return localStorage.getItem('bobby_agent_name') || 'Bobby'; } catch { return 'Bobby'; } })();
+  const personality = profile?.personality || 'analytical';
   const cioColor = personality === 'direct'
     ? { color: 'text-orange-400', bgColor: 'border-orange-500/20', glow: 'shadow-[0_0_15px_rgba(249,115,22,0.1)]' }
     : personality === 'wise'
