@@ -121,7 +121,7 @@ export default function BobbyAnalyticsPage() {
                 <div key={kpi.label} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] p-6 rounded relative group hover:bg-white/[0.04] transition-all">
                   <div className="absolute top-0 right-0 w-1 h-1 bg-green-500 m-2" />
                   <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase">{kpi.label}</span>
-                  <div className={`mt-2 text-2xl md:text-3xl font-mono font-bold tracking-tighter ${kpi.color}`}>{kpi.value}</div>
+                  <div className={`mt-2 text-2xl md:text-3xl font-mono font-bold tracking-tighter ${kpi.color}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</div>
                 </div>
               ))}
             </motion.div>

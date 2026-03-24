@@ -107,7 +107,7 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
     <motion.article layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       className={`bg-white/[0.02] backdrop-blur-sm border rounded overflow-hidden transition-all ${
         expanded ? 'border-green-500/20' : 'border-white/[0.04] hover:border-white/[0.08]'
-      } ${thread.resolution === 'win' ? 'border-l-2 border-l-green-500' : thread.resolution === 'loss' ? 'border-l-2 border-l-red-500' : ''}`}>
+      } ${thread.resolution === 'win' ? 'border-l-4 border-l-green-500' : thread.resolution === 'loss' ? 'border-l-4 border-l-red-500' : thread.direction === 'long' ? 'border-l-4 border-l-green-500' : thread.direction === 'short' ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-amber-500/50'}`}>
 
       {/* Compact card header */}
       <div className="cursor-pointer p-4 flex items-start gap-4" onClick={onToggle}>
