@@ -526,6 +526,28 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
           data_snapshot: snapshot,
         });
       }
+
+      // On-chain commit: EVERY debate gets recorded, not just executed trades
+      // This is Bobby's verifiable track record — predictions before outcomes
+      if (symbol && conviction !== null) {
+        try {
+          const commitRes = await fetchLocalApi('/api/xlayer-record', {
+            action: 'commit',
+            threadId,
+            symbol,
+            agent: 'cio',
+            conviction: Math.round((conviction ?? 0) * 10),
+            entryPrice: entryPrice || 0,
+            targetPrice: targetPrice || 0,
+            stopPrice: stopPrice || 0,
+          }, true);
+          if (commitRes.ok && commitRes.txHash) {
+            console.log(`[Cycle] On-chain commit: ${commitRes.txHash}`);
+          }
+        } catch (e) {
+          console.warn('[Cycle] On-chain commit failed (non-critical):', e);
+        }
+      }
     }
 
     // ============================================================
