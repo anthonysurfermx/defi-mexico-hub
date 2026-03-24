@@ -104,15 +104,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
 
     // ── Stats ──
-    const wins = closedPositions.filter((p: any) => p.result === 'WIN').length;
-    const losses = closedPositions.filter((p: any) => p.result === 'LOSS').length;
-    const totalClosed = closedPositions.length;
-    const winRate = totalClosed > 0 ? (wins / totalClosed * 100) : 0;
-    const totalRealizedPnl = closedPositions.reduce((sum: number, p: any) => sum + p.realizedPnl, 0);
     const totalUnrealizedPnl = openPositions.reduce((sum: number, p: any) => sum + p.unrealizedPnl, 0);
 
     // ── Starting capital estimation ──
-    const startingCapital = 100; // $100 USDT — The Bobby $100 Challenge
+    // ── The $100 Challenge starts NOW — ignore pre-challenge test trades ──
+    const CHALLENGE_START = '2026-03-24T19:00:00.000Z'; // Challenge begins with $100 deposit
+    const startingCapital = 100;
+    const challengeTrades = closedPositions.filter((p: any) => p.closeTime && p.closeTime >= CHALLENGE_START);
+    const preChallengeTradeCount = closedPositions.length - challengeTrades.length;
+
+    // Stats only from challenge trades
+    const challengeWins = challengeTrades.filter((p: any) => p.result === 'WIN').length;
+    const challengeLosses = challengeTrades.filter((p: any) => p.result === 'LOSS').length;
+    const challengeRealizedPnl = challengeTrades.reduce((sum: number, p: any) => sum + p.realizedPnl, 0);
+
     const currentValue = totalEquity;
     const totalReturn = ((currentValue - startingCapital) / startingCapital) * 100;
 
@@ -126,19 +131,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         startingCapital,
         currentEquity: totalEquity,
         totalReturn: parseFloat(totalReturn.toFixed(2)),
-        realizedPnl: parseFloat(totalRealizedPnl.toFixed(4)),
+        realizedPnl: parseFloat(challengeRealizedPnl.toFixed(4)),
         unrealizedPnl: parseFloat(totalUnrealizedPnl.toFixed(4)),
-        totalTrades: totalClosed,
-        wins,
-        losses,
-        winRate: parseFloat(winRate.toFixed(1)),
+        totalTrades: challengeTrades.length,
+        wins: challengeWins,
+        losses: challengeLosses,
+        winRate: challengeTrades.length > 0 ? parseFloat((challengeWins / challengeTrades.length * 100).toFixed(1)) : 0,
+        challengeStartedAt: CHALLENGE_START,
+        preChallengeTradesExcluded: preChallengeTradeCount,
       },
 
       // Live positions
       openPositions,
 
-      // Historical trades
-      closedPositions,
+      // Historical trades (challenge only for equity curve)
+      closedPositions: challengeTrades,
+
+      // Pre-challenge trades (for reference, not counted in stats)
+      preChallengePositions: closedPositions.filter((p: any) => !p.closeTime || p.closeTime < CHALLENGE_START),
 
       // Recent fills
       recentFills: fills.slice(0, 20),
