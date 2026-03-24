@@ -436,56 +436,73 @@ function buildMetacognitionPrompt(data: any): string {
   const cal = data.calibration;
   const perf = data.performance;
   const quality = data.debateQuality;
-  const corrections = data.corrections;
+  const corrections = data.corrections || [];
   const userName = data.userName || null;
   const regime = data.regime || 'unknown';
   const fearGreed = data.fearGreed;
+  const scored = data.debatesScoredCount || 0;
 
-  return `You are Bobby's metacognition explainer. ${userName ? `The user's name is ${userName} — address them by name occasionally to make it personal.` : ''}
+  return `Analyze this metacognition snapshot for ${userName || 'the user'}.
 
-Your job is to walk through each section of the Metacognition Dashboard and explain what it means using simple analogies. Imagine you're explaining a car's diagnostic panel to someone who drives but isn't a mechanic.
+Your job is NOT to explain each dashboard card.
+Your job is to identify the deepest pattern in Bobby's behavior right now.
 
-SECTION 1 — CALIBRATION ERROR (${cal?.calibrationError ?? 'N/A'})
-Think of this like a weather forecast accuracy score. When Bobby says "70% confident", does it actually win 70% of the time?
-- Current error: ${cal?.calibrationError ?? 'no data'} (0 = perfect forecaster, >0.2 = unreliable)
-- Overconfident: ${cal?.isOverconfident ? 'YES — Bobby thinks he is better than he actually is' : 'No — predictions roughly match reality'}
-- Based on: ${cal?.sampleSize ?? 0} resolved trades
-${cal?.curve?.length ? `- Breakdown by confidence bucket:\n${cal.curve.map((b: any) => `  ${b.bucket}: Bobby predicted ~${(b.midpoint * 100).toFixed(0)}% win rate, actual was ${(b.actual * 100).toFixed(0)}% (${b.count} trades${b.reliable ? '' : ', too few to trust'})`).join('\n')}` : '- Not enough data for calibration curve yet'}
+Focus on:
+1. The single most important diagnosis
+2. The strongest cross-connections between sections
+3. What operational adjustment follows from that diagnosis
+4. One non-obvious insight most people would miss
 
-SECTION 2 — WIN RATE & MOOD
-Like a batting average in baseball — how often does Bobby get it right?
-- Win Rate: ${perf?.winRate ?? 'N/A'}%
-- Current Mood: ${perf?.mood ?? 'unknown'} (${perf?.mood === 'confident' ? 'feeling good about recent calls' : perf?.mood === 'cautious' ? 'mixed results, being more selective' : perf?.mood === 'defensive' ? 'losing streak, reducing risk' : 'unknown state'})
-- Safe Mode: ${perf?.isSafeMode ? 'ACTIVE — Bobby automatically reduced position sizes because win rate dropped below 70%. Like a race car going into pit lane.' : 'OFF — normal operation'}
-- Dynamic Conviction: ${perf?.dynamicConviction ?? 'N/A'} (Bobby's overall confidence level right now, 0-1 scale)
+Make at least 3 cross-references like these:
+- calibration error + debate quality → "I'm confidently repeating consensus"
+- mood + corrections → "cautious for the right reasons" or "cautious but still making the same mistakes"
+- regime + fear/greed + dynamic conviction → market context affecting decisions
+- debate quality weakness + overconfidence → systematic blind spot
+- sample size + trustworthiness → "this diagnosis is provisional"
 
-SECTION 3 — MARKET REGIME
-Like knowing if you're driving on a highway, city streets, or off-road — different conditions need different strategies.
-- Current Regime: ${regime}
-${fearGreed ? `- Fear & Greed Index: ${fearGreed.value} (${fearGreed.classification}) — ${fearGreed.value < 25 ? 'extreme fear, historically a good buying opportunity' : fearGreed.value < 45 ? 'fearful, markets are nervous' : fearGreed.value < 55 ? 'neutral' : fearGreed.value < 75 ? 'greedy, markets may be overextended' : 'extreme greed, historically dangerous'}` : '- Fear & Greed: not available'}
+If evidence conflicts, say exactly where. If sample is thin, reduce confidence.
+Reference Alpha Hunter and Red Team by name when explaining debate dynamics.
+Address ${userName || 'the user'} by name at most once, in the opening.
+Give 1 operational adjustment only (process change, not trade pick).
+End with a provocative question.
 
-SECTION 4 — DEBATE QUALITY METRICS (scored by independent AI judge)
-Think of this like a teacher grading an essay. An independent AI (Claude Haiku) reads every debate and scores it.
-${quality ? `- Specificity: ${quality.specificity}/5 — ${quality.specificity >= 4 ? 'Excellent. Agents cite exact prices and levels.' : quality.specificity >= 3 ? 'Decent. Some specific numbers but could be sharper.' : 'Weak. Too vague and generic.'}
-- Data Citation: ${quality.data_citation}/5 — ${quality.data_citation >= 4 ? 'Strong. Agents back up claims with real data.' : quality.data_citation >= 3 ? 'OK. Some data points but gaps in evidence.' : 'Poor. Making claims without evidence.'}
-- Actionability: ${quality.actionability}/5 — ${quality.actionability >= 4 ? 'Great. A trader could act on this right now.' : quality.actionability >= 3 ? 'Moderate. General direction but missing exact entries/stops.' : 'Low. Just commentary, not actionable.'}
-- Novel Insight: ${quality.novel_insight}/5 — ${quality.novel_insight >= 4 ? 'Impressive. Seeing things others would miss.' : quality.novel_insight >= 3 ? 'Acceptable. Some interesting angles.' : 'Low. Repeating what everyone already knows.'}
-- Red Team Rigor: ${quality.red_team_rigor}/5 — ${quality.red_team_rigor >= 4 ? 'Excellent devil\'s advocate. Really challenged the thesis.' : quality.red_team_rigor >= 3 ? 'Decent pushback but could dig deeper.' : 'Too soft. Needs to challenge harder.'}
-- Biggest Weakness: "${quality.weakness || 'None identified'}"
-- Debates Scored: ${data.debatesScoredCount || 1}` : '- No debates have been scored yet. Haiku will evaluate the next debate automatically.'}
+DATA
 
-SECTION 5 — SELF-CORRECTION LOG
-Like a pilot reviewing black box data after a rough landing. Bobby looks at recent losses and learns.
-${corrections?.length ? `Recent losses:\n${corrections.map((c: any) => `- ${c.symbol} ${c.direction}: Bobby was ${(c.conviction_score * 10).toFixed(0)}/10 confident → LOST${c.resolution_pnl_pct != null ? ` ${c.resolution_pnl_pct}%` : ''}. ${c.conviction_score > 0.6 ? 'High confidence loss — this is concerning.' : 'Low confidence loss — at least Bobby was uncertain.'}`).join('\n')}\nThese losses feed back into the next debate — the agents see them and adjust.` : '- No recent losses. Either Bobby is on a streak or hasn\'t been trading actively.'}
+CALIBRATION
+- calibrationError: ${cal?.calibrationError ?? 'N/A'}
+- isOverconfident: ${cal?.isOverconfident ? 'yes' : 'no'}
+- sampleSize: ${cal?.sampleSize ?? 0}
+${cal?.curve?.length ? `- curve:\n${cal.curve.map((b: any) => `  ${b.bucket}: predicted ${(b.midpoint * 100).toFixed(0)}%, actual ${(b.actual * 100).toFixed(0)}%, n=${b.count}, reliable=${b.reliable ? 'yes' : 'no'}`).join('\n')}` : '- curve: insufficient data'}
 
-OVERALL ASSESSMENT:
-Give ${userName || 'the user'} an honest, big-picture summary:
-1. Is Bobby trustworthy right now? (based on calibration + win rate)
-2. Are the debates getting better or worse? (based on quality scores)
-3. What should ${userName || 'they'} watch out for? (based on mood, regime, corrections)
-4. One specific thing that's going well and one that needs improvement.
+PERFORMANCE
+- winRate: ${perf?.winRate ?? 'N/A'}%
+- mood: ${perf?.mood ?? 'unknown'}
+- safeMode: ${perf?.isSafeMode ? 'on' : 'off'}
+- dynamicConviction: ${perf?.dynamicConviction ?? 'N/A'}
 
-Use analogies. Be honest. If Bobby is struggling, say so clearly. Never sugarcoat.`;
+MARKET
+- regime: ${regime}
+- fearGreed: ${fearGreed ? `${fearGreed.value} (${fearGreed.classification})` : 'not available'}
+
+DEBATE QUALITY (scored by independent AI judge, Haiku)
+${quality ? `- specificity: ${quality.specificity}/5
+- data_citation: ${quality.data_citation}/5
+- actionability: ${quality.actionability}/5
+- novel_insight: ${quality.novel_insight}/5
+- red_team_rigor: ${quality.red_team_rigor}/5
+- weakness: "${quality.weakness || 'none'}"
+- debatesScored: ${scored}` : `- no debate quality data yet (scored: ${scored})`}
+
+SELF-CORRECTION LOG (recent losses)
+${corrections.length ? corrections.map((c: any) => `- ${c.symbol} ${c.direction}: conviction ${(c.conviction_score * 10).toFixed(0)}/10, result=${c.resolution}, pnl=${c.resolution_pnl_pct ?? 'N/A'}%`).join('\n') : '- no recent corrections'}
+
+Now produce the analysis. Remember:
+- Start with INITIATING METACOGNITION SEQUENCE and SYNCING for ${userName || 'user'}
+- Lead with insight, not summary
+- Cross-reference aggressively
+- Translate quant-speak into trader psychology
+- Be uncomfortable if the data warrants it
+- End with TAGS: line`;
 }
 
 
@@ -527,7 +544,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: `Invalid context: ${context}. Valid: ${Object.keys(promptBuilders).join(', ')}` });
   }
 
-  const systemPrompt = `You are an on-chain analyst at DeFi Mexico.
+  // Metacognition gets its own system prompt — Bobby in post-mortem mode
+  const metacognitionSystemPrompt = `You are Bobby, a CIO-class AI trading agent, doing a brutally honest post-mortem review of your own decision engine.
+
+Write in short terminal-style lines, each starting with ">".
+${language === 'es' ? 'Respond in Spanish. Use crypto/trading slang natural in LatAm trading communities.' : 'Respond in English. Use trading floor jargon naturally.'}
+Keep it concise, high-signal, and personal. Sound like a veteran trader reviewing their own PnL in private — not a SaaS dashboard explainer.
+
+Rules:
+- Start with > INITIATING METACOGNITION SEQUENCE...
+- Then > SYNCING NEURAL WEIGHTS FOR USER: {userName} (if available)
+- Lead with your strongest non-obvious diagnosis, NOT a summary of panels.
+- Every claim MUST connect at least 2 different parts of the dashboard. No isolated stat readings.
+- Translate quant-speak into trader psychology ("calibration error 0.18" → "I'm being dangerously overconfident").
+- Reference your agents by name (Alpha Hunter, Red Team) when explaining debate dynamics.
+- If sample size is thin (<10), explicitly say the diagnosis is provisional.
+- Give ONE operational adjustment (process, not trade picks). No "buy X" or "sell Y".
+- Be willing to call yourself out. If you look sloppy, say it directly.
+- Use at most 1 analogy, only if it genuinely sharpens the point.
+- End with a provocative question that makes the user rethink something.
+- After your analysis, output TAGS: with 2-3 tags classifying the state (e.g. "Overconfident, Needs Recalibration, Red Team Strong").
+
+Output structure:
+> HEADLINE: one-sentence diagnosis (the single most important finding)
+> WHY THIS MATTERS: 3-5 lines with cross-referenced evidence
+> TRUST LEVEL NOW: 1-2 lines — should the user trust Bobby today?
+> ONE ADJUSTMENT: 1 specific operational change
+> ONE THING MOST PEOPLE MISS: 1 surprising insight from the data
+> QUESTION: 1 provocative question for the user
+
+Never hallucinate numbers. Never walk through panels mechanically.`;
+
+  const systemPrompt = context === 'metacognition' ? metacognitionSystemPrompt : `You are an on-chain analyst at DeFi Mexico.
 Write in short terminal-style lines, each starting with ">".
 Be direct, use data points, identify patterns.
 Write 4-6 paragraphs max. Keep each line under 100 characters.
