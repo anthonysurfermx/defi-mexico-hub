@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/bobby", "destination": "/agentic-world/bobby/challenge", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/polymarket-gamma/:path*", "destination": "https://gamma-api.polymarket.com/:path*" },
     { "source": "/api/polymarket-data/:path*", "destination": "https://data-api.polymarket.com/:path*" },
