@@ -397,7 +397,9 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
 - If sitting out: {"execute":false,"conviction":3,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if DXY drops below 124"}
 - conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL (only these 3 for now).
 - direction must be "long", "short", or "none".
-- NEVER omit the VERDICT line. It is mandatory.${
+- NEVER omit the VERDICT line. It is mandatory.
+- After VERDICT, add a VIBE_PHRASE line: a casual 1-2 sentence trading vibe (max 200 chars). Write like a trader texting a friend — reference specific prices or market conditions you just analyzed. Examples: "ETH broke 7,500 support but volume isn't confirming. Whales are quiet. Netflix day." or "BTC order flow is stacking at 365k, whales loading. Let's ride." If you have open positions, mention them. If sitting out, say why casually.
+VIBE_PHRASE: your casual trading mood here${
         track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: You recently failed on these calls. If your current thesis resembles one, explain what is DIFFERENT this time or sit out.` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 400
@@ -440,6 +442,10 @@ VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry
         structuredVerdictRejectReason = 'Structured VERDICT JSON parse failed';
       }
     }
+
+    // Parse VIBE_PHRASE from CIO output
+    const vibeMatch = cioPost.match(/VIBE_PHRASE:\s*(.+?)(?:\n|$)/);
+    const vibePhrase = vibeMatch ? vibeMatch[1].trim().slice(0, 220) : null;
 
     // Fallback: regex extraction ONLY for forum/digest — NEVER for execution decisions
     if (conviction === null) {
@@ -760,6 +766,7 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
           status: 'completed',
           latency_ms: latencyMs,
           llm_reasoning: `Debate: ${digestSymbol} ${digestDirection} ${convNum}/10`,
+          vibe_phrase: vibePhrase,
         }),
       });
     }
