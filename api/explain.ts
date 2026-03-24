@@ -437,35 +437,57 @@ function buildMetacognitionPrompt(data: any): string {
   const perf = data.performance;
   const quality = data.debateQuality;
   const corrections = data.corrections;
+  const userName = data.userName || null;
+  const regime = data.regime || 'unknown';
+  const fearGreed = data.fearGreed;
 
-  return `Explain Bobby's metacognition dashboard to someone who isn't a quant.
+  return `You are Bobby's metacognition explainer. ${userName ? `The user's name is ${userName} — address them by name occasionally to make it personal.` : ''}
 
-CALIBRATION DATA:
-- Calibration Error: ${cal?.calibrationError ?? 'N/A'} (lower is better, <0.1 is well calibrated)
-- Is Overconfident: ${cal?.isOverconfident ?? 'unknown'}
-- Sample Size: ${cal?.sampleSize ?? 0} resolved debates
-- Curve Buckets: ${cal?.curve?.map((b: any) => `${b.bucket}: predicted=${(b.midpoint * 100).toFixed(0)}% actual=${(b.actual * 100).toFixed(0)}% n=${b.count}`).join(' | ') || 'No data'}
+Your job is to walk through each section of the Metacognition Dashboard and explain what it means using simple analogies. Imagine you're explaining a car's diagnostic panel to someone who drives but isn't a mechanic.
 
-PERFORMANCE:
+SECTION 1 — CALIBRATION ERROR (${cal?.calibrationError ?? 'N/A'})
+Think of this like a weather forecast accuracy score. When Bobby says "70% confident", does it actually win 70% of the time?
+- Current error: ${cal?.calibrationError ?? 'no data'} (0 = perfect forecaster, >0.2 = unreliable)
+- Overconfident: ${cal?.isOverconfident ? 'YES — Bobby thinks he is better than he actually is' : 'No — predictions roughly match reality'}
+- Based on: ${cal?.sampleSize ?? 0} resolved trades
+${cal?.curve?.length ? `- Breakdown by confidence bucket:\n${cal.curve.map((b: any) => `  ${b.bucket}: Bobby predicted ~${(b.midpoint * 100).toFixed(0)}% win rate, actual was ${(b.actual * 100).toFixed(0)}% (${b.count} trades${b.reliable ? '' : ', too few to trust'})`).join('\n')}` : '- Not enough data for calibration curve yet'}
+
+SECTION 2 — WIN RATE & MOOD
+Like a batting average in baseball — how often does Bobby get it right?
 - Win Rate: ${perf?.winRate ?? 'N/A'}%
-- Mood: ${perf?.mood ?? 'unknown'}
-- Safe Mode: ${perf?.isSafeMode ? 'ACTIVE' : 'OFF'}
-- Dynamic Conviction: ${perf?.dynamicConviction ?? 'N/A'}
+- Current Mood: ${perf?.mood ?? 'unknown'} (${perf?.mood === 'confident' ? 'feeling good about recent calls' : perf?.mood === 'cautious' ? 'mixed results, being more selective' : perf?.mood === 'defensive' ? 'losing streak, reducing risk' : 'unknown state'})
+- Safe Mode: ${perf?.isSafeMode ? 'ACTIVE — Bobby automatically reduced position sizes because win rate dropped below 70%. Like a race car going into pit lane.' : 'OFF — normal operation'}
+- Dynamic Conviction: ${perf?.dynamicConviction ?? 'N/A'} (Bobby's overall confidence level right now, 0-1 scale)
 
-DEBATE QUALITY (AI-evaluated, 1-5 scale):
-${quality ? `- Specificity: ${quality.specificity}/5
-- Data Citation: ${quality.data_citation}/5
-- Actionability: ${quality.actionability}/5
-- Novel Insight: ${quality.novel_insight}/5
-- Red Team Rigor: ${quality.red_team_rigor}/5
-- Latest Weakness: ${quality.weakness || 'None'}
-- Debates Scored: ${data.debatesScoredCount || 1}` : '- No debates scored yet'}
+SECTION 3 — MARKET REGIME
+Like knowing if you're driving on a highway, city streets, or off-road — different conditions need different strategies.
+- Current Regime: ${regime}
+${fearGreed ? `- Fear & Greed Index: ${fearGreed.value} (${fearGreed.classification}) — ${fearGreed.value < 25 ? 'extreme fear, historically a good buying opportunity' : fearGreed.value < 45 ? 'fearful, markets are nervous' : fearGreed.value < 55 ? 'neutral' : fearGreed.value < 75 ? 'greedy, markets may be overextended' : 'extreme greed, historically dangerous'}` : '- Fear & Greed: not available'}
 
-RECENT LOSSES (Self-Correction Log):
-${corrections?.length ? corrections.map((c: any) => `- ${c.symbol} ${c.direction} at conviction ${(c.conviction_score * 10).toFixed(0)}/10 → ${c.resolution} (${c.resolution_pnl_pct != null ? c.resolution_pnl_pct + '%' : 'N/A'})`).join('\n') : '- No recent losses'}
+SECTION 4 — DEBATE QUALITY METRICS (scored by independent AI judge)
+Think of this like a teacher grading an essay. An independent AI (Claude Haiku) reads every debate and scores it.
+${quality ? `- Specificity: ${quality.specificity}/5 — ${quality.specificity >= 4 ? 'Excellent. Agents cite exact prices and levels.' : quality.specificity >= 3 ? 'Decent. Some specific numbers but could be sharper.' : 'Weak. Too vague and generic.'}
+- Data Citation: ${quality.data_citation}/5 — ${quality.data_citation >= 4 ? 'Strong. Agents back up claims with real data.' : quality.data_citation >= 3 ? 'OK. Some data points but gaps in evidence.' : 'Poor. Making claims without evidence.'}
+- Actionability: ${quality.actionability}/5 — ${quality.actionability >= 4 ? 'Great. A trader could act on this right now.' : quality.actionability >= 3 ? 'Moderate. General direction but missing exact entries/stops.' : 'Low. Just commentary, not actionable.'}
+- Novel Insight: ${quality.novel_insight}/5 — ${quality.novel_insight >= 4 ? 'Impressive. Seeing things others would miss.' : quality.novel_insight >= 3 ? 'Acceptable. Some interesting angles.' : 'Low. Repeating what everyone already knows.'}
+- Red Team Rigor: ${quality.red_team_rigor}/5 — ${quality.red_team_rigor >= 4 ? 'Excellent devil\'s advocate. Really challenged the thesis.' : quality.red_team_rigor >= 3 ? 'Decent pushback but could dig deeper.' : 'Too soft. Needs to challenge harder.'}
+- Biggest Weakness: "${quality.weakness || 'None identified'}"
+- Debates Scored: ${data.debatesScoredCount || 1}` : '- No debates have been scored yet. Haiku will evaluate the next debate automatically.'}
 
-Explain what each section means in plain language. Is Bobby well-calibrated? Are the debates high quality? Is the self-correction working? Give honest assessment — if the data shows Bobby is struggling, say so. If Bobby is improving, highlight that. Be specific with numbers.`;
+SECTION 5 — SELF-CORRECTION LOG
+Like a pilot reviewing black box data after a rough landing. Bobby looks at recent losses and learns.
+${corrections?.length ? `Recent losses:\n${corrections.map((c: any) => `- ${c.symbol} ${c.direction}: Bobby was ${(c.conviction_score * 10).toFixed(0)}/10 confident → LOST${c.resolution_pnl_pct != null ? ` ${c.resolution_pnl_pct}%` : ''}. ${c.conviction_score > 0.6 ? 'High confidence loss — this is concerning.' : 'Low confidence loss — at least Bobby was uncertain.'}`).join('\n')}\nThese losses feed back into the next debate — the agents see them and adjust.` : '- No recent losses. Either Bobby is on a streak or hasn\'t been trading actively.'}
+
+OVERALL ASSESSMENT:
+Give ${userName || 'the user'} an honest, big-picture summary:
+1. Is Bobby trustworthy right now? (based on calibration + win rate)
+2. Are the debates getting better or worse? (based on quality scores)
+3. What should ${userName || 'they'} watch out for? (based on mood, regime, corrections)
+4. One specific thing that's going well and one that needs improvement.
+
+Use analogies. Be honest. If Bobby is struggling, say so clearly. Never sugarcoat.`;
 }
+
 
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,

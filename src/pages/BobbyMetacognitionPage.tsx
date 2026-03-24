@@ -560,9 +560,12 @@ export default function BobbyMetacognitionPage() {
               data={{
                 calibration: intel?.calibration || null,
                 performance: intel?.performance || null,
+                regime: intel?.regime || 'unknown',
+                fearGreed: intel?.fearGreed || null,
                 debateQuality: quality || null,
                 debatesScoredCount,
                 corrections: contradictions.slice(0, 5),
+                userName: (() => { try { return localStorage.getItem('bobby_agent_name') || null; } catch { return null; } })(),
               }}
               commandLabel="bobby --explain metacognition"
               buttonLabel="EXPLAIN DASHBOARD WITH AI"
