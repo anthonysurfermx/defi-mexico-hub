@@ -26,9 +26,9 @@ const RESULT_MAP: Record<string, number> = {
 // Updated ABI — commit-reveal pattern (Codex Audit v3)
 const CONTRACT_ABI = [
   // Phase 1
-  'function commitTrade(bytes32 _debateHash, string _symbol, uint8 _agent, uint8 _conviction, uint256 _entryPrice, uint256 _targetPrice, uint256 _stopPrice)',
+  'function commitTrade(bytes32 _debateHash, string _symbol, uint8 _agent, uint8 _conviction, uint96 _entryPrice, uint96 _targetPrice, uint96 _stopPrice)',
   // Phase 2
-  'function resolveTrade(bytes32 _debateHash, int256 _pnlBps, uint8 _result, uint256 _exitPrice)',
+  'function resolveTrade(bytes32 _debateHash, int256 _pnlBps, uint8 _result, uint96 _exitPrice)',
   // Views
   'function getWinRate() view returns (uint256)',
   'function totalTrades() view returns (uint256)',
