@@ -12,6 +12,7 @@ export default function BobbyAgentsPage() {
   const [summary, setSummary] = useState<any>(null);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [agentStatus, setAgentStatus] = useState<'ACTIVE' | 'IDLE' | 'OFFLINE'>('IDLE');
 
   useEffect(() => {
     fetch('/api/bobby-pnl')
@@ -22,12 +23,21 @@ export default function BobbyAgentsPage() {
 
     const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4';
-    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=10&select=id,symbol,direction,conviction_score,status,created_at`, {
-      headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
-    })
+    const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+    fetch(`${SB}/rest/v1/forum_threads?order=created_at.desc&limit=10&select=id,symbol,direction,conviction_score,status,created_at`, { headers })
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setDecisions(d); })
       .catch(() => {});
+
+    // Check real agent status from latest cycle
+    fetch(`${SB}/rest/v1/agent_cycles?status=eq.completed&order=started_at.desc&limit=1&select=started_at`, { headers })
+      .then(r => r.json())
+      .then((cycles: any[]) => {
+        if (!Array.isArray(cycles) || !cycles.length) { setAgentStatus('OFFLINE'); return; }
+        const age = Date.now() - new Date(cycles[0].started_at).getTime();
+        setAgentStatus(age < 12 * 3600000 ? 'ACTIVE' : age < 24 * 3600000 ? 'IDLE' : 'OFFLINE');
+      })
+      .catch(() => setAgentStatus('OFFLINE'));
   }, []);
 
   const s = summary;
@@ -43,19 +53,19 @@ export default function BobbyAgentsPage() {
     {
       rank: '01', name: `${agentName} CIO`, role: 'Final Decision Maker',
       winRate: s ? s.winRate : 0, totalReturn: s ? s.totalReturn : 0,
-      trades: s ? s.totalTrades : 0, status: 'ACTIVE',
+      trades: s ? s.totalTrades : 0, status: agentStatus,
       ...cioColor,
     },
     {
       rank: '02', name: 'Alpha Hunter', role: 'Opportunity Scanner',
       winRate: null, totalReturn: '--',
-      trades: decisions.length, status: 'ACTIVE',
+      trades: decisions.length, status: agentStatus,
       color: 'text-green-400', bgColor: 'border-green-500/20', glow: '',
     },
     {
       rank: '03', name: 'Red Team', role: 'Thesis Destroyer',
       winRate: null, totalReturn: '--',
-      trades: decisions.length, status: 'ACTIVE',
+      trades: decisions.length, status: agentStatus,
       color: 'text-red-400', bgColor: 'border-red-500/20', glow: '',
     },
   ];
@@ -92,7 +102,7 @@ export default function BobbyAgentsPage() {
                       <div className="flex items-center gap-3">
                         <span className={`text-lg md:text-xl font-bold font-mono ${agent.color}`}>{agent.name}</span>
                         <span className={`text-[8px] font-mono px-2 py-0.5 rounded ${
-                          agent.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-white/20'
+                          agent.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400' : agent.status === 'IDLE' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'
                         }`}>{agent.status}</span>
                       </div>
                       <p className="text-[10px] font-mono text-white/25 mt-0.5">{agent.role}</p>

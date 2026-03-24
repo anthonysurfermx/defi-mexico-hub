@@ -836,14 +836,34 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
       (async () => {
         try {
           const qualityRaw = await callClaude('claude-haiku-4-5-20251001',
-            `Score this trading debate 1-5 on each dimension. Return ONLY valid JSON, nothing else:
-{"specificity":N,"data_citation":N,"actionability":N,"novel_insight":N,"red_team_rigor":N,"overall":N,"weakness":"one sentence"}`,
-            `ALPHA:\n${alphaPost.slice(0, 500)}\n\nRED TEAM:\n${redPost.slice(0, 500)}\n\nCIO:\n${cioPost.slice(0, 500)}`, 120
+            `You are a trading debate evaluator. Score this 3-agent debate on each dimension using integers 1-5.
+Calibration anchors:
+- 1 = vague, no data, generic advice anyone could give
+- 3 = decent analysis with some specific references but missing key context
+- 5 = exceptional — cites 3+ specific prices/metrics, provides novel non-obvious insight, actionable with exact levels
+
+Return ONLY valid JSON, no markdown, no explanation:
+{"specificity":N,"data_citation":N,"actionability":N,"novel_insight":N,"red_team_rigor":N,"overall":N,"weakness":"one sentence identifying the biggest flaw"}`,
+            `ALPHA HUNTER:\n${alphaPost.slice(0, 600)}\n\nRED TEAM:\n${redPost.slice(0, 600)}\n\nCIO VERDICT:\n${cioPost.slice(0, 600)}`, 150
           );
           const jsonMatch = qualityRaw.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            const quality = JSON.parse(jsonMatch[0]);
-            // Patch the thread with debate quality
+            const raw = JSON.parse(jsonMatch[0]);
+            // Validate & clamp all scores to 1-5 integers
+            const clamp = (v: unknown) => {
+              const n = typeof v === 'number' ? Math.round(v) : 3;
+              return Math.max(1, Math.min(5, n));
+            };
+            const quality = {
+              specificity: clamp(raw.specificity),
+              data_citation: clamp(raw.data_citation),
+              actionability: clamp(raw.actionability),
+              novel_insight: clamp(raw.novel_insight),
+              red_team_rigor: clamp(raw.red_team_rigor),
+              overall: clamp(raw.overall),
+              weakness: typeof raw.weakness === 'string' ? raw.weakness.slice(0, 300) : 'No weakness identified',
+            };
+            // Codex P1 fix: save to top-level debate_quality column, NOT trigger_data
             await fetch(`${SB_URL}/rest/v1/forum_threads?id=eq.${threadId}`, {
               method: 'PATCH',
               headers: {
@@ -851,10 +871,7 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
                 apikey: SB_KEY,
                 Authorization: `Bearer ${SB_KEY}`,
               },
-              body: JSON.stringify({ trigger_data: {
-                ...((thread as any)?.trigger_data || {}),
-                debate_quality: quality,
-              }}),
+              body: JSON.stringify({ debate_quality: quality }),
             });
             console.log(`[Cycle] Debate quality scored: overall=${quality.overall}/5, weakness="${quality.weakness}"`);
           }

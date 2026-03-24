@@ -146,6 +146,7 @@ export default function BobbyMetacognitionPage() {
   const [intel, setIntel] = useState<IntelData | null>(null);
   const [contradictions, setContradictions] = useState<Contradiction[]>([]);
   const [debateQuality, setDebateQuality] = useState<DebateQuality | null>(null);
+  const [debatesScoredCount, setDebatesScoredCount] = useState(0);
   const [totalDebates, setTotalDebates] = useState(0);
   const [agreementRate, setAgreementRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -181,16 +182,23 @@ export default function BobbyMetacognitionPage() {
       })
       .catch(() => {});
 
-    // Fetch debate quality from latest thread (if column exists)
+    // Fetch debate quality — last 10 scored debates, average dimensions
     fetch(
-      `${SB}/rest/v1/forum_threads?order=created_at.desc&limit=1&select=debate_quality`,
+      `${SB}/rest/v1/forum_threads?debate_quality=not.is.null&order=created_at.desc&limit=10&select=debate_quality,created_at`,
       { headers: SB_HEADERS },
     )
       .then(r => r.json())
       .then((rows: any[]) => {
-        if (Array.isArray(rows) && rows.length > 0 && rows[0].debate_quality) {
-          setDebateQuality(rows[0].debate_quality);
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const dims = ['specificity', 'data_citation', 'actionability', 'novel_insight', 'red_team_rigor'] as const;
+        const avg: Record<string, number> = {};
+        for (const d of dims) {
+          const vals = rows.map(r => r.debate_quality?.[d]).filter((v: any) => typeof v === 'number');
+          avg[d] = vals.length > 0 ? parseFloat((vals.reduce((s: number, v: number) => s + v, 0) / vals.length).toFixed(1)) : 0;
         }
+        const weakness = rows[0]?.debate_quality?.weakness || null;
+        setDebateQuality({ ...avg, weakness } as any);
+        setDebatesScoredCount(rows.length);
       })
       .catch(() => {});
 
@@ -222,15 +230,8 @@ export default function BobbyMetacognitionPage() {
     reliable: c.reliable,
   })) || [];
 
-  // Default debate quality (placeholder while column doesn't exist yet)
-  const quality: DebateQuality = debateQuality || {
-    specificity: 3.2,
-    data_citation: 3.8,
-    actionability: 4.1,
-    novel_insight: 2.5,
-    red_team_rigor: 3.0,
-    weakness: 'Novel insight generation — agents converge too quickly on consensus.',
-  };
+  // Real debate quality — null means no scores yet (NEVER fake data)
+  const quality = debateQuality;
 
   const cal = intel?.calibration;
   const perf = intel?.performance;
@@ -433,32 +434,62 @@ export default function BobbyMetacognitionPage() {
             </div>
           </motion.div>
 
-          {/* RIGHT: Debate Quality Metrics */}
+          {/* RIGHT: Debate Quality Metrics — REAL DATA ONLY */}
           <motion.div {...fadeUp} transition={{ delay: 0.3 }}
             className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4">
-            <div className="mb-4">
-              <p className="text-[8px] font-mono text-green-400/40 tracking-widest">DEBATE QUALITY METRICS</p>
-              <p className="text-[8px] font-mono text-white/20">LAST DEBATE ANALYSIS (0-5 SCALE)</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[8px] font-mono text-green-400/40 tracking-widest">METACOGNITION_METRICS</p>
+                <p className="text-[8px] font-mono text-white/20">
+                  {quality ? `AGGREGATE AVERAGE • LAST ${debatesScoredCount} DEBATE${debatesScoredCount !== 1 ? 'S' : ''}` : 'AWAITING EVALUATION'}
+                </p>
+              </div>
+              <span className="text-[8px] font-mono text-white/30 border border-white/10 px-2 py-0.5 rounded-sm">
+                EVAL_ENGINE: HAIKU_3
+              </span>
             </div>
 
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-3 w-full" />)}
               </div>
-            ) : (
+            ) : quality ? (
               <div className="space-y-4">
+                {debatesScoredCount < 5 && (
+                  <div className="text-[9px] font-mono text-amber-400/60 bg-amber-500/[0.06] border border-amber-500/10 rounded px-2 py-1 mb-2">
+                    {debatesScoredCount === 0
+                      ? 'AWAITING_POST_MORTEM_EVALUATION'
+                      : `PRELIMINARY_DATA • n=${debatesScoredCount}`}
+                  </div>
+                )}
                 <QualityBar label="Specificity" value={quality.specificity} />
                 <QualityBar label="Data Citation" value={quality.data_citation} />
                 <QualityBar label="Actionability" value={quality.actionability} />
                 <QualityBar label="Novel Insight" value={quality.novel_insight} />
                 <QualityBar label="Red Team Rigor" value={quality.red_team_rigor} />
               </div>
+            ) : (
+              <div className="space-y-4 opacity-30">
+                {['Specificity', 'Data Citation', 'Actionability', 'Novel Insight', 'Red Team Rigor'].map(l => (
+                  <QualityBar key={l} label={l} value={0} />
+                ))}
+                <p className="text-center text-[9px] font-mono text-amber-400/40 mt-3">
+                  AWAITING_POST_MORTEM_EVALUATION
+                </p>
+                <p className="text-center text-[8px] font-mono text-white/20">
+                  The AI judge evaluates debates asynchronously.
+                </p>
+              </div>
             )}
 
-            {quality.weakness && (
-              <div className="mt-4 p-2 bg-amber-500/[0.06] border border-amber-500/10 rounded">
-                <p className="text-[8px] font-mono text-amber-400/60 tracking-wider mb-0.5">WEAKNESS IDENTIFIED</p>
-                <p className="text-[10px] font-mono text-amber-400/80">{quality.weakness}</p>
+            {quality?.weakness && (
+              <div className="mt-4 pt-3 border-t border-white/[0.06]">
+                <p className="text-[8px] font-mono text-red-400/60 tracking-wider mb-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> LATEST_CRITICAL_WEAKNESS
+                </p>
+                <p className="text-[10px] font-mono text-white/60 italic border-l-2 border-red-500/30 pl-3 leading-relaxed line-clamp-2">
+                  {quality.weakness}
+                </p>
               </div>
             )}
 

@@ -198,7 +198,9 @@ export default function BobbyHistoryPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-white/30">BIAS</span>
-                    <span className="text-amber-400">ADAPTIVE</span>
+                    <span className={summary.winRate >= 60 ? 'text-green-400' : summary.winRate >= 40 ? 'text-amber-400' : 'text-red-400'}>
+                      {summary.winRate >= 60 ? 'AGGRESSIVE' : summary.winRate >= 40 ? 'ADAPTIVE' : 'DEFENSIVE'}
+                    </span>
                   </div>
                 </div>
               </motion.div>
