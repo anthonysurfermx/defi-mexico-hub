@@ -4,8 +4,10 @@
 // Used by all Bobby pages for consistent design system
 // ============================================================
 
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ReactNode, useEffect, useState } from 'react';
+import { TradingRoomProvider, useTradingRoom } from '@/hooks/useTradingRoom';
+import { Lock } from 'lucide-react';
 
 interface KineticShellProps {
   children: ReactNode;
@@ -61,11 +63,23 @@ const SIDE_ITEMS = [
 ];
 
 export default function KineticShell({ children, activeTab, showSidebar = false }: KineticShellProps) {
-  const location = useLocation();
-  const currentTab = activeTab || NAV_ITEMS.find(n => location.pathname === n.path)?.id || 'terminal';
+  return (
+    <TradingRoomProvider>
+      <KineticShellInner activeTab={activeTab} showSidebar={showSidebar}>
+        {children}
+      </KineticShellInner>
+    </TradingRoomProvider>
+  );
+}
 
-  // Read personalized agent name
-  const agentName = (() => {
+function KineticShellInner({ children, activeTab, showSidebar = false }: KineticShellProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentTab = activeTab || NAV_ITEMS.find(n => location.pathname === n.path)?.id || 'terminal';
+  const { profile, hasAgent, roomMode, setRoomMode, accentColor } = useTradingRoom();
+
+  // Agent name: from context (real DB) → localStorage fallback → default
+  const agentName = profile?.agent_name || (() => {
     try {
       const saved = localStorage.getItem('bobby_agent_name');
       if (saved && saved.length >= 2) return saved;
@@ -73,18 +87,60 @@ export default function KineticShell({ children, activeTab, showSidebar = false 
     return 'BOBBY';
   })();
 
+  // Dynamic accent color for nav based on room mode
+  const navAccent = roomMode === 'personal' && hasAgent ? accentColor : 'text-green-500';
+  const navGlow = roomMode === 'personal' && hasAgent
+    ? 'shadow-[0_0_15px_rgba(234,179,8,0.08)]'
+    : 'shadow-[0_0_15px_rgba(34,197,94,0.08)]';
+
   return (
     <div className="min-h-screen bg-[#050505] text-[#e5e2e1] font-['Inter'] selection:bg-green-500 selection:text-black">
       {/* === Top Nav === */}
-      <nav className="sticky top-0 w-full flex justify-between items-center px-6 h-14 bg-[#131313]/80 backdrop-blur-md z-50 shadow-[0_0_15px_rgba(34,197,94,0.08)] border-b border-white/5">
-        <Link to="/agentic-world/bobby" className="text-lg font-black tracking-tighter text-green-500 font-mono hover:opacity-80 transition-opacity">
-          {agentName} AGENT TRADER
+      <nav className={`sticky top-0 w-full flex justify-between items-center px-4 md:px-6 h-14 bg-[#131313]/80 backdrop-blur-md z-50 ${navGlow} border-b border-white/5`}>
+        <Link to="/agentic-world/bobby" className={`text-lg font-black tracking-tighter ${navAccent} font-mono hover:opacity-80 transition-opacity`}>
+          {roomMode === 'personal' && hasAgent
+            ? `${agentName} TRADING ROOM`
+            : `${agentName} AGENT TRADER`}
         </Link>
-        <div className="hidden md:flex gap-6 items-center font-mono uppercase tracking-widest text-[10px]">
+
+        {/* Workspace Toggle */}
+        <div className="hidden md:flex items-center gap-1 font-mono text-[9px] bg-white/[0.03] border border-white/[0.06] rounded-sm overflow-hidden">
+          <button
+            onClick={() => setRoomMode('global')}
+            className={`px-3 py-1.5 transition-all ${
+              roomMode === 'global'
+                ? 'bg-green-500/15 text-green-400'
+                : 'text-white/30 hover:text-white/50'
+            }`}
+          >
+            PUBLIC NETWORK
+          </button>
+          {hasAgent ? (
+            <button
+              onClick={() => setRoomMode('personal')}
+              className={`px-3 py-1.5 transition-all ${
+                roomMode === 'personal'
+                  ? `${profile?.personality === 'direct' ? 'bg-orange-500/15 text-orange-400' : profile?.personality === 'wise' ? 'bg-indigo-500/15 text-indigo-400' : 'bg-yellow-500/15 text-yellow-400'}`
+                  : 'text-white/30 hover:text-white/50'
+              }`}
+            >
+              MY AGENT: {agentName}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/agentic-world/deploy')}
+              className="px-3 py-1.5 text-white/20 hover:text-white/40 transition-all flex items-center gap-1"
+            >
+              <Lock className="w-2.5 h-2.5" /> MY AGENT
+            </button>
+          )}
+        </div>
+
+        <div className="hidden md:flex gap-4 lg:gap-6 items-center font-mono uppercase tracking-widest text-[10px]">
           {NAV_ITEMS.map(item => (
             <Link key={item.id} to={item.path}
               className={currentTab === item.id
-                ? 'text-green-500 border-b-2 border-green-500 pb-1 font-bold'
+                ? `${navAccent} border-b-2 ${roomMode === 'personal' && hasAgent ? 'border-current' : 'border-green-500'} pb-1 font-bold`
                 : 'text-gray-500 hover:text-gray-300 transition-colors'
               }>
               {item.label}
@@ -92,8 +148,10 @@ export default function KineticShell({ children, activeTab, showSidebar = false 
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[9px] font-mono text-green-500 tracking-wider hidden sm:inline">ONLINE</span>
+          <div className={`w-2 h-2 rounded-full animate-pulse ${roomMode === 'personal' && hasAgent ? 'bg-current ' + navAccent : 'bg-green-500'}`} />
+          <span className={`text-[9px] font-mono tracking-wider hidden sm:inline ${navAccent}`}>
+            {roomMode === 'personal' ? 'PERSONAL' : 'ONLINE'}
+          </span>
         </div>
       </nav>
 
