@@ -527,31 +527,32 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
         });
       }
 
-      // On-chain commit: EVERY debate gets recorded, not just executed trades
-      // This is Bobby's verifiable track record — predictions before outcomes
-      // For sit-outs: use current price as entry, ±5% as target/stop
+      // On-chain commit: EVERY debate gets recorded on X Layer
+      // Direct ethers call — no HTTP self-call (avoids timeout in Vercel)
+      const xlayerContract = process.env.BOBBY_CONTRACT_ADDRESS || '';
+      const xlayerKey = process.env.BOBBY_RECORDER_KEY || '';
       const currentPrice = (intel.prices || []).find((p: any) => p.symbol === symbol)?.price || 0;
       const commitEntry = entryPrice || currentPrice;
-      const commitTarget = targetPrice || (commitEntry * 1.05);
-      const commitStop = stopPrice || (commitEntry * 0.95);
-      if (symbol && conviction !== null && commitEntry > 0) {
+      if (symbol && conviction !== null && commitEntry > 0 && xlayerContract && xlayerKey) {
         try {
-          const commitRes = await fetchLocalApi('/api/xlayer-record', {
-            action: 'commit',
-            threadId,
-            symbol,
-            agent: 'cio',
-            conviction: Math.round((conviction ?? 0) * 10),
-            direction: direction || 'none',
-            entryPrice: commitEntry,
-            targetPrice: commitTarget,
-            stopPrice: commitStop,
-          }, true);
-          if (commitRes.ok && commitRes.txHash) {
-            console.log(`[Cycle] On-chain commit: ${commitRes.txHash}`);
-          }
-        } catch (e) {
-          console.warn('[Cycle] On-chain commit failed (non-critical):', e);
+          const { ethers } = await import('ethers');
+          const provider = new ethers.JsonRpcProvider('https://rpc.xlayer.tech');
+          const wallet = new ethers.Wallet(xlayerKey, provider);
+          const iface = new ethers.Interface([
+            'function commitTrade(bytes32,string,uint8,uint8,uint96,uint96,uint96)',
+          ]);
+          const debateHash = ethers.keccak256(ethers.toUtf8Bytes(threadId));
+          const convInt = Math.round((conviction ?? 0) * 10);
+          const txData = iface.encodeFunctionData('commitTrade', [
+            debateHash, symbol, 0, convInt,
+            BigInt(Math.round(commitEntry * 1e8)),
+            BigInt(Math.round((targetPrice || commitEntry * 1.05) * 1e8)),
+            BigInt(Math.round((stopPrice || commitEntry * 0.95) * 1e8)),
+          ]);
+          const tx = await wallet.sendTransaction({ to: xlayerContract, data: txData, gasLimit: 300000n });
+          console.log(`[Cycle] On-chain commit: ${tx.hash}`);
+        } catch (e: any) {
+          console.warn('[Cycle] On-chain commit failed (non-critical):', e.message);
         }
       }
     }
