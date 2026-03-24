@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { RefreshCw, MessageSquare, ChevronDown, ChevronUp, Zap, TrendingUp, Clock, Flame, Share2, Filter } from 'lucide-react';
+import { useTradingRoom } from '@/hooks/useTradingRoom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { TradingViewChart } from '@/components/charts/TradingViewChart';
@@ -347,13 +348,23 @@ export default function AgentForumPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState('new');
+  const { profile, profileId, hasAgent, roomMode } = useTradingRoom();
   const [scope, setScope] = useState<'public' | 'my'>('public');
-  const agentName = localStorage.getItem('bobby_agent_name') || 'BOBBY';
+  const agentName = profile?.agent_name || localStorage.getItem('bobby_agent_name') || 'BOBBY';
+
+  // Sync scope with room mode
+  useEffect(() => {
+    setScope(roomMode === 'personal' && hasAgent ? 'my' : 'public');
+  }, [roomMode, hasAgent]);
 
   const fetchThreads = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?order=created_at.desc&limit=50&select=*`, {
+      // Server-side filtering — don't fetch all threads and filter client-side
+      const scopeFilter = scope === 'my' && profileId
+        ? `scope=eq.private&agent_profile_id=eq.${profileId}`
+        : `or=(scope.is.null,scope.eq.public)`;
+      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?${scopeFilter}&order=created_at.desc&limit=50&select=*`, {
         headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
       });
       if (!res.ok) { setLoading(false); return; }
@@ -375,9 +386,9 @@ export default function AgentForumPage() {
       if (threadData.length > 0 && !expandedId) setExpandedId(threadData[0].id);
     } catch (e) { console.error('[Forum] Fetch error:', e); }
     setLoading(false);
-  }, [expandedId]);
+  }, [expandedId, scope, profileId]);
 
-  useEffect(() => { fetchThreads(); }, []);
+  useEffect(() => { fetchThreads(); }, [scope]);
 
   // Stats
   const forumStats = useMemo(() => {
@@ -399,12 +410,7 @@ export default function AgentForumPage() {
   const filteredThreads = useMemo(() => {
     let filtered = threads;
 
-    // Scope filter: public = Bobby's debates, my = user's private debates
-    if (scope === 'my' && address) {
-      filtered = filtered.filter(t => t.scope === 'private' && t.owner_wallet?.toLowerCase() === address.toLowerCase());
-    } else {
-      filtered = filtered.filter(t => !t.scope || t.scope === 'public');
-    }
+    // Scope filtering is now server-side in fetchThreads()
 
     if (category !== 'all') {
       filtered = filtered.filter(t => detectSymbol(t.topic) === category || t.symbol?.toLowerCase() === category);
@@ -444,13 +450,15 @@ export default function AgentForumPage() {
             }`}>
             BOBBY'S CHALLENGE
           </button>
-          <button onClick={() => setScope('my')}
+          <button onClick={() => { if (hasAgent) setScope('my'); }}
             className={`px-4 py-2 text-[10px] font-mono font-bold tracking-wider rounded transition-all ${
-              scope === 'my'
-                ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
+              !hasAgent
+                ? 'bg-white/[0.01] border border-white/[0.04] text-white/15 cursor-not-allowed'
+                : scope === 'my'
+                ? `${profile?.personality === 'direct' ? 'bg-orange-500/15 border-orange-500/30 text-orange-400' : profile?.personality === 'wise' ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400' : 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'}`
                 : 'bg-white/[0.02] border border-white/[0.04] text-white/30 hover:text-white/50'
             }`}>
-            {agentName}'S ROOM
+            {hasAgent ? `${agentName}'S ROOM` : 'DEPLOY AGENT'}
           </button>
         </div>
 

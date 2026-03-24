@@ -9,6 +9,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { useTradingRoom } from '@/hooks/useTradingRoom';
 import KineticShell from '@/components/kinetic/KineticShell';
 
 interface PnlData {
@@ -41,9 +42,18 @@ interface PnlData {
   }>;
 }
 
+interface UserConviction {
+  asset: string;
+  conviction: number;
+  context: string;
+  latestDebate?: { symbol: string; direction: string; conviction_score: number; status: string };
+}
+
 export default function BobbyChallengePage() {
+  const { profile, profileId, hasAgent, roomMode, accentColor, accentBorder } = useTradingRoom();
   const [pnl, setPnl] = useState<PnlData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userConvictions, setUserConvictions] = useState<UserConviction[]>([]);
   const [nextScan, setNextScan] = useState('--:--:--');
   const [nextScanPct, setNextScanPct] = useState(0);
   const [lastRun, setLastRun] = useState<string | null>(null);
@@ -110,6 +120,31 @@ export default function BobbyChallengePage() {
         });
       }).catch(() => {});
   }, []);
+
+  // Fetch personal conviction board when in personal mode
+  useEffect(() => {
+    if (roomMode !== 'personal' || !profile?.wallet_address) return;
+    const wallet = profile.wallet_address;
+    // Fetch user_interests (tracked assets + conviction)
+    fetch(`${SB}/rest/v1/user_interests?wallet_address=eq.${wallet}&active=eq.true&order=created_at.desc&limit=8&select=asset,context,last_conviction,target_threshold`, { headers })
+      .then(r => r.json())
+      .then(async (interests: any[]) => {
+        if (!Array.isArray(interests)) return;
+        // Fetch latest private debates for each asset
+        let debates: any[] = [];
+        if (profileId) {
+          const debRes = await fetch(`${SB}/rest/v1/forum_threads?scope=eq.private&agent_profile_id=eq.${profileId}&order=created_at.desc&limit=10&select=symbol,direction,conviction_score,status,created_at`, { headers });
+          debates = await debRes.json().catch(() => []);
+        }
+        const convictions: UserConviction[] = interests.map(i => ({
+          asset: i.asset,
+          conviction: typeof i.last_conviction === 'string' ? parseFloat(i.last_conviction) : (i.last_conviction || 0),
+          context: i.context || '',
+          latestDebate: Array.isArray(debates) ? debates.find((d: any) => d.symbol === i.asset) : undefined,
+        }));
+        setUserConvictions(convictions);
+      }).catch(() => {});
+  }, [roomMode, profile, profileId]);
 
   // Countdown to next 6h scan
   useEffect(() => {
@@ -266,6 +301,50 @@ export default function BobbyChallengePage() {
               <p className="mt-3 text-white/40 text-sm font-mono italic leading-relaxed">
                 <span className="text-white/20 not-italic">{`> `}</span>Bobby is currently scanning the market. Awaiting first vibe assessment...
               </p>
+            </motion.div>
+          )}
+
+          {/* === CONVICTION BOARD — Personal Mode === */}
+          {roomMode === 'personal' && hasAgent && userConvictions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-8"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[8px] font-mono text-white/30 tracking-widest">CONVICTION_BOARD</span>
+                <span className={`text-[8px] font-mono px-2 py-0.5 rounded-sm ${accentColor} bg-white/[0.03]`}>
+                  {profile?.markets?.length || 0} MARKETS
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {userConvictions.map(uc => {
+                  const conv = Math.abs(uc.conviction);
+                  const direction = uc.latestDebate?.direction || (uc.conviction > 0.3 ? 'long' : uc.conviction < -0.3 ? 'short' : 'neutral');
+                  const dirColor = direction === 'long' ? 'text-green-400' : direction === 'short' ? 'text-red-400' : 'text-white/40';
+                  const dirLabel = direction === 'long' ? 'BULLISH' : direction === 'short' ? 'BEARISH' : 'NEUTRAL';
+                  return (
+                    <div key={uc.asset}
+                      className={`bg-white/[0.02] border ${accentBorder} rounded-lg p-3 hover:bg-white/[0.04] transition-all`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono font-bold text-white">{uc.asset}</span>
+                        <span className={`text-[8px] font-mono font-bold ${dirColor}`}>{dirLabel}</span>
+                      </div>
+                      <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden mb-2">
+                        <div
+                          className={`h-full rounded-full transition-all ${direction === 'long' ? 'bg-green-500' : direction === 'short' ? 'bg-red-500' : 'bg-white/20'}`}
+                          style={{ width: `${Math.min(100, conv * 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-[9px] font-mono text-white/30">
+                        {uc.latestDebate ? uc.latestDebate.status.toUpperCase() : 'WATCHING'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
 
