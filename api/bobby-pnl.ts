@@ -112,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const totalUnrealizedPnl = openPositions.reduce((sum: number, p: any) => sum + p.unrealizedPnl, 0);
 
     // ── Starting capital estimation ──
-    const startingCapital = 10; // $10 USDT initial deposit
+    const startingCapital = 100; // $100 USDT — The Bobby $100 Challenge
     const currentValue = totalEquity;
     const totalReturn = ((currentValue - startingCapital) / startingCapital) * 100;
 
