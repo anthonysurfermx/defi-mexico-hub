@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { Brain, AlertTriangle, Activity, Shield, TrendingDown } from 'lucide-react';
 import KineticShell from '@/components/kinetic/KineticShell';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 
 // ---- Supabase direct (same pattern as BobbyChallengePage) ----
 const SB = 'https://egpixaunlnzauztbrnuz.supabase.co';
@@ -550,6 +551,24 @@ export default function BobbyMetacognitionPage() {
             </div>
           )}
         </motion.div>
+
+        {/* ========== EXPLAIN WITH AI ========== */}
+        {!loading && (
+          <motion.div {...fadeUp} transition={{ delay: 0.5 }}>
+            <AIInsightsTerminal
+              context="metacognition"
+              data={{
+                calibration: intel?.calibration || null,
+                performance: intel?.performance || null,
+                debateQuality: quality || null,
+                debatesScoredCount,
+                corrections: contradictions.slice(0, 5),
+              }}
+              commandLabel="bobby --explain metacognition"
+              buttonLabel="EXPLAIN DASHBOARD WITH AI"
+            />
+          </motion.div>
+        )}
 
         {/* ========== FOOTER: System info ========== */}
         <motion.div {...fadeUp} transition={{ delay: 0.45 }}

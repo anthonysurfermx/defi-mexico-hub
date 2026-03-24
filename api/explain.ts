@@ -432,6 +432,41 @@ Explain in 5-7 lines:
 Detect the user's language and respond accordingly.`;
 }
 
+function buildMetacognitionPrompt(data: any): string {
+  const cal = data.calibration;
+  const perf = data.performance;
+  const quality = data.debateQuality;
+  const corrections = data.corrections;
+
+  return `Explain Bobby's metacognition dashboard to someone who isn't a quant.
+
+CALIBRATION DATA:
+- Calibration Error: ${cal?.calibrationError ?? 'N/A'} (lower is better, <0.1 is well calibrated)
+- Is Overconfident: ${cal?.isOverconfident ?? 'unknown'}
+- Sample Size: ${cal?.sampleSize ?? 0} resolved debates
+- Curve Buckets: ${cal?.curve?.map((b: any) => `${b.bucket}: predicted=${(b.midpoint * 100).toFixed(0)}% actual=${(b.actual * 100).toFixed(0)}% n=${b.count}`).join(' | ') || 'No data'}
+
+PERFORMANCE:
+- Win Rate: ${perf?.winRate ?? 'N/A'}%
+- Mood: ${perf?.mood ?? 'unknown'}
+- Safe Mode: ${perf?.isSafeMode ? 'ACTIVE' : 'OFF'}
+- Dynamic Conviction: ${perf?.dynamicConviction ?? 'N/A'}
+
+DEBATE QUALITY (AI-evaluated, 1-5 scale):
+${quality ? `- Specificity: ${quality.specificity}/5
+- Data Citation: ${quality.data_citation}/5
+- Actionability: ${quality.actionability}/5
+- Novel Insight: ${quality.novel_insight}/5
+- Red Team Rigor: ${quality.red_team_rigor}/5
+- Latest Weakness: ${quality.weakness || 'None'}
+- Debates Scored: ${data.debatesScoredCount || 1}` : '- No debates scored yet'}
+
+RECENT LOSSES (Self-Correction Log):
+${corrections?.length ? corrections.map((c: any) => `- ${c.symbol} ${c.direction} at conviction ${(c.conviction_score * 10).toFixed(0)}/10 → ${c.resolution} (${c.resolution_pnl_pct != null ? c.resolution_pnl_pct + '%' : 'N/A'})`).join('\n') : '- No recent losses'}
+
+Explain what each section means in plain language. Is Bobby well-calibrated? Are the debates high quality? Is the self-correction working? Give honest assessment — if the data shows Bobby is struggling, say so. If Bobby is improving, highlight that. Be specific with numbers.`;
+}
+
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,
   'exchange-metrics': buildExchangeMetricsPrompt,
@@ -445,6 +480,7 @@ const promptBuilders: Record<string, (data: any) => string> = {
   'smartmoney-alpha': buildSmartMoneyAlphaPrompt,
   'chat-opportunity': buildChatOpportunityPrompt,
   'chat-deep-analysis': buildChatDeepAnalysisPrompt,
+  'metacognition': buildMetacognitionPrompt,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
