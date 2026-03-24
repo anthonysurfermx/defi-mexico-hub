@@ -181,13 +181,18 @@ export default function BobbyChallengePage() {
   const chartData = useMemo(() => {
     if (!pnl || !s) return [];
     let cumPnl = 0;
-    return [
+    const points = [
       { trade: 0, equity: s.startingCapital, label: 'START', result: 'START', symbol: '', pnl: undefined as number | undefined },
       ...pnl.closedPositions.map((t, i) => {
         cumPnl += t.realizedPnl;
         return { trade: i + 1, equity: s.startingCapital + cumPnl, label: `#${i + 1}`, result: t.result, symbol: t.symbol, pnl: t.realizedPnl };
       }),
     ];
+    // If no trades yet, show current equity as "NOW" point so chart renders
+    if (pnl.closedPositions.length === 0) {
+      points.push({ trade: 1, equity: s.currentEquity, label: 'NOW', result: 'START', symbol: '', pnl: undefined });
+    }
+    return points;
   }, [pnl, s]);
 
   return (
@@ -365,11 +370,11 @@ export default function BobbyChallengePage() {
                   <div className="font-mono text-xs text-white/40 mb-8 tracking-widest">NET_BALANCE_AVAILABLE</div>
                   <div>
                     <div className="text-6xl md:text-7xl font-mono font-black text-green-400 tracking-tighter mb-2" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      ${s.currentEquity.toFixed(2)}
+                      ${s.totalTrades === 0 ? s.startingCapital.toFixed(2) : s.currentEquity.toFixed(2)}
                     </div>
                     <div className="flex items-center gap-2 text-xs font-mono text-white/30">
                       <span className={s.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {s.totalReturn >= 0 ? '+' : ''}{s.totalReturn}%
+                        {s.totalTrades === 0 ? '0.00' : `${s.totalReturn >= 0 ? '+' : ''}${s.totalReturn}`}%
                       </span>
                       <span>from ${s.startingCapital} initial</span>
                     </div>
