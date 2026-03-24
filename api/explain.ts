@@ -5,20 +5,20 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Rate limiting: simple in-memory store (resets on cold start, good enough for MVP)
+// Rate limiting: 10 requests per day per IP (resets on cold start + 24h window)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 50;
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function isRateLimited(ip: string): boolean {
+function isRateLimited(ip: string): { limited: boolean; remaining: number } {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
+    return { limited: false, remaining: RATE_LIMIT - 1 };
   }
   entry.count++;
-  return entry.count > RATE_LIMIT;
+  return { limited: entry.count > RATE_LIMIT, remaining: Math.max(0, RATE_LIMIT - entry.count) };
 }
 
 // Prompt builders per context
@@ -527,10 +527,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Rate limiting
+  // Rate limiting: 10 requests per day per IP
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
-  if (isRateLimited(ip)) {
-    return res.status(429).json({ error: 'Rate limit exceeded. Try again later.' });
+  const rateCheck = isRateLimited(ip);
+  if (rateCheck.limited) {
+    return res.status(429).json({ error: `Daily limit reached (${RATE_LIMIT}/day). Resets in 24h. Save your queries for the insights that matter most.` });
   }
 
   const { context, data, language = 'en' } = req.body || {};
