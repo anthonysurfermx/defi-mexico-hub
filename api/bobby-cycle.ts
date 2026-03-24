@@ -529,7 +529,12 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
 
       // On-chain commit: EVERY debate gets recorded, not just executed trades
       // This is Bobby's verifiable track record — predictions before outcomes
-      if (symbol && conviction !== null) {
+      // For sit-outs: use current price as entry, ±5% as target/stop
+      const currentPrice = (intel.prices || []).find((p: any) => p.symbol === symbol)?.price || 0;
+      const commitEntry = entryPrice || currentPrice;
+      const commitTarget = targetPrice || (commitEntry * 1.05);
+      const commitStop = stopPrice || (commitEntry * 0.95);
+      if (symbol && conviction !== null && commitEntry > 0) {
         try {
           const commitRes = await fetchLocalApi('/api/xlayer-record', {
             action: 'commit',
@@ -537,9 +542,10 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
             symbol,
             agent: 'cio',
             conviction: Math.round((conviction ?? 0) * 10),
-            entryPrice: entryPrice || 0,
-            targetPrice: targetPrice || 0,
-            stopPrice: stopPrice || 0,
+            direction: direction || 'none',
+            entryPrice: commitEntry,
+            targetPrice: commitTarget,
+            stopPrice: commitStop,
           }, true);
           if (commitRes.ok && commitRes.txHash) {
             console.log(`[Cycle] On-chain commit: ${commitRes.txHash}`);
