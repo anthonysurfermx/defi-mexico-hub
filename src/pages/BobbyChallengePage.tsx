@@ -451,7 +451,7 @@ export default function BobbyChallengePage() {
                         <span className="w-2 h-2 bg-green-500 rounded-full" />
                         Live_Execution_Log
                       </h2>
-                      <a href="https://www.oklink.com/xlayer/address/0x09a81ff70ddbc5e8b88f168b3eef01384b6cdcea"
+                      <a href="https://www.oklink.com/xlayer/address/0xf841b428e6d743187d7be2242eccc1078fde2395"
                         target="_blank" rel="noopener noreferrer"
                         className="font-mono text-[10px] text-white/30 hover:text-green-400 transition-colors flex items-center gap-1">
                         VIEW_ON_CHAIN →
@@ -612,12 +612,12 @@ export default function BobbyChallengePage() {
                     <div className="relative z-10 space-y-3">
                       <div className="p-3 bg-black/40 rounded flex items-center justify-between border border-white/5">
                         <span className="font-mono text-[10px] text-white/30">X_WALLET</span>
-                        <span className="font-mono text-[10px] text-green-400">0x09a8...dcea</span>
+                        <span className="font-mono text-[10px] text-green-400">0xF841...2395</span>
                       </div>
                       <p className="text-[10px] text-white/20 italic leading-relaxed font-mono">
                         All trades are committed to X Layer before the outcome is known. Fully verifiable on-chain.
                       </p>
-                      <a href="https://www.oklink.com/xlayer/address/0x09a81ff70ddbc5e8b88f168b3eef01384b6cdcea"
+                      <a href="https://www.oklink.com/xlayer/address/0xf841b428e6d743187d7be2242eccc1078fde2395"
                         target="_blank" rel="noopener noreferrer"
                         className="block w-full py-2 bg-white/5 hover:bg-white/10 text-center font-mono text-[10px] border border-white/10 uppercase tracking-widest transition-all rounded">
                         Audit_On_Chain
