@@ -52,6 +52,7 @@ export default function BobbyChallengePage() {
     id: string; symbol: string; direction: string; conviction_score: number;
     created_at: string; status: string; posts: Array<{ agent: string; content: string }>;
   }>>([]);
+  const [vibe, setVibe] = useState<{ mood: string; phrase: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/bobby-pnl')
@@ -82,6 +83,55 @@ export default function BobbyChallengePage() {
           })),
         }));
         setRecentDecisions(decisions);
+      }).catch(() => {});
+
+    // Fetch Bobby's vibe — mood from latest cycle
+    fetch(`${SB}/rest/v1/agent_cycles?order=started_at.desc&limit=1&select=mood,safe_mode_active,trades_executed,signals_found`, { headers })
+      .then(r => r.json())
+      .then((cycles: any[]) => {
+        if (!Array.isArray(cycles) || !cycles.length) return;
+        const c = cycles[0];
+        const mood = c.mood || 'cautious';
+        const safe = c.safe_mode_active;
+        const noTrades = c.trades_executed === 0;
+        const noSignals = c.signals_found === 0;
+
+        const VIBES: Record<string, string[]> = {
+          confident: [
+            "The charts are speaking and I like what they're saying.",
+            "Good setups today. Patience paid off.",
+            "I see conviction in the order flow. Let's ride.",
+            "Markets are cooperating. Executing with confidence.",
+            "On-chain data aligns with price action. Time to move.",
+          ],
+          cautious: [
+            "Not feeling it today. Netflix might be the better trade.",
+            "Markets are giving mixed signals. I'll watch from the sideline.",
+            "Low conviction across the board. Cash is a position too.",
+            "Choppy waters. I'd rather miss a trade than force one.",
+            "Nothing screams opportunity right now. Patience mode.",
+            "The market is trying to trap me. Not today.",
+          ],
+          defensive: [
+            "Red flags everywhere. Capital preservation mode activated.",
+            "I've seen this movie before. It doesn't end well.",
+            "Hard pass on everything I'm seeing. Protecting the bag.",
+            "When in doubt, stay out. And I have a LOT of doubt.",
+            "The smartest trade right now is no trade at all.",
+          ],
+        };
+
+        if (safe) {
+          setVibe({ mood: 'defensive', phrase: "Safe Mode ON. I've been wrong too often lately. Scaling down." });
+        } else if (noSignals) {
+          setVibe({ mood: 'cautious', phrase: "Scanned the markets. Nothing worth risking capital on. Going for a walk." });
+        } else if (noTrades && mood === 'cautious') {
+          const phrases = VIBES.cautious;
+          setVibe({ mood, phrase: phrases[Math.floor(Math.random() * phrases.length)] });
+        } else {
+          const phrases = VIBES[mood] || VIBES.cautious;
+          setVibe({ mood, phrase: phrases[Math.floor(Math.random() * phrases.length)] });
+        }
       }).catch(() => {});
   }, []);
 
@@ -168,6 +218,42 @@ export default function BobbyChallengePage() {
               </div>
             </div>
           </motion.header>
+
+          {/* === VIBE TRADING — Bobby's current mood === */}
+          {vibe && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className={`mb-8 p-5 rounded-lg border-l-4 backdrop-blur-sm ${
+                vibe.mood === 'confident'
+                  ? 'border-l-green-500 bg-green-500/[0.04] border border-green-500/10'
+                  : vibe.mood === 'defensive'
+                  ? 'border-l-red-500 bg-red-500/[0.04] border border-red-500/10'
+                  : 'border-l-amber-500 bg-amber-500/[0.04] border border-amber-500/10'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`text-[10px] font-mono tracking-widest uppercase ${
+                  vibe.mood === 'confident' ? 'text-green-500' : vibe.mood === 'defensive' ? 'text-red-500' : 'text-amber-500'
+                }`}>
+                  VIBE_CHECK
+                </span>
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                  vibe.mood === 'confident'
+                    ? 'bg-green-500/20 text-green-400'
+                    : vibe.mood === 'defensive'
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-amber-500/20 text-amber-400'
+                }`}>
+                  {vibe.mood.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-white/70 text-sm font-mono italic leading-relaxed">
+                "{vibe.phrase}"
+              </p>
+            </motion.div>
+          )}
 
           {loading ? (
             <div className="text-center py-20">
