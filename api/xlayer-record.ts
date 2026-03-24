@@ -154,14 +154,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const convUint8 = conviction < 2 ? Math.round(conviction * 10) : Math.round(conviction);
         const txData = iface.encodeFunctionData('commitTrade', [
           debateHash, symbol, agentEnum, convUint8,
-          Math.round(entryPrice * 1e8), 
-          Math.round((targetPrice || 0) * 1e8), 
-          Math.round((stopPrice || 0) * 1e8)
+          BigInt(Math.round(entryPrice * 1e8)),
+          BigInt(Math.round((targetPrice || 0) * 1e8)),
+          BigInt(Math.round((stopPrice || 0) * 1e8))
         ]);
 
         const tx = await wallet.sendTransaction({
           to: CONTRACT_ADDRESS,
           data: txData,
+          gasLimit: 300000n,
         });
 
         return res.status(200).json({
