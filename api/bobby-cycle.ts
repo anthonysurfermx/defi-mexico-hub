@@ -9,6 +9,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { canOpenPosition, getPositionSize } from '../src/lib/onchainos/risk-manager.js';
 import type { TradeParams } from '../src/lib/onchainos/types.js';
+import { ethers } from 'ethers';
 
 export const config = { maxDuration: 120 };
 
@@ -535,7 +536,6 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
       const commitEntry = entryPrice || currentPrice;
       if (symbol && conviction !== null && commitEntry > 0 && xlayerContract && xlayerKey) {
         try {
-          const { ethers } = await import('ethers');
           const provider = new ethers.JsonRpcProvider('https://rpc.xlayer.tech');
           const wallet = new ethers.Wallet(xlayerKey, provider);
           const iface = new ethers.Interface([
@@ -549,7 +549,9 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
             BigInt(Math.round((targetPrice || commitEntry * 1.05) * 1e8)),
             BigInt(Math.round((stopPrice || commitEntry * 0.95) * 1e8)),
           ]);
-          const tx = await wallet.sendTransaction({ to: xlayerContract, data: txData, gasLimit: 300000n });
+          const txPromise = wallet.sendTransaction({ to: xlayerContract, data: txData, gasLimit: 300000n });
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TX timeout 10s')), 10000));
+          const tx = await Promise.race([txPromise, timeoutPromise]) as any;
           console.log(`[Cycle] On-chain commit: ${tx.hash}`);
         } catch (e: any) {
           console.warn('[Cycle] On-chain commit failed (non-critical):', e.message);
