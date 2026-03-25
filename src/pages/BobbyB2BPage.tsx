@@ -258,6 +258,72 @@ export default function BobbyB2BPage() {
         </div>
       </section>
 
+      {/* Active Communities */}
+      <section className="py-20">
+        <div className="max-w-5xl mx-auto px-6 md:px-8">
+          <div className="text-center mb-12">
+            <span className="text-[9px] font-mono text-white/20 tracking-widest block mb-3">ACTIVE_DEPLOYMENTS</span>
+            <h2 className="text-2xl md:text-3xl font-black mb-3">Bobby is already live in these communities</h2>
+            <p className="text-white/40 text-sm">Real groups. Real debates. 24/7 autonomous intelligence.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* DeFi México */}
+            <a href="https://t.me/defi_mexico" target="_blank" rel="noopener noreferrer"
+              className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 hover:bg-white/[0.04] transition-all duration-300 group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center text-xl">
+                  🇲🇽
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg group-hover:text-green-400 transition-colors">DeFi México</h3>
+                  <span className="text-[9px] font-mono text-green-400/60 tracking-widest">ACTIVE • SPANISH</span>
+                </div>
+                <span className="ml-auto text-[8px] font-mono text-white/20 tracking-widest bg-green-500/10 border border-green-500/20 px-2 py-1 rounded">LIVE</span>
+              </div>
+              <p className="text-white/50 text-sm leading-relaxed mb-3">
+                The largest DeFi community in Mexico. Bobby delivers daily market debates, whale signal alerts, and macro analysis in Spanish.
+              </p>
+              <div className="flex gap-4 text-[9px] font-mono text-white/25 tracking-widest">
+                <span>DEBATES: DAILY</span>
+                <span>LANG: ES</span>
+                <span>AGENTS: 3</span>
+              </div>
+            </a>
+
+            {/* DeFai */}
+            <a href="https://t.me/defienespanol" target="_blank" rel="noopener noreferrer"
+              className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 hover:bg-white/[0.04] transition-all duration-300 group">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xl">
+                  🤖
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg group-hover:text-amber-400 transition-colors">DeFai</h3>
+                  <span className="text-[9px] font-mono text-amber-400/60 tracking-widest">ACTIVE • BILINGUAL</span>
+                </div>
+                <span className="ml-auto text-[8px] font-mono text-white/20 tracking-widest bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded">LIVE</span>
+              </div>
+              <p className="text-white/50 text-sm leading-relaxed mb-3">
+                AI-focused DeFi community. Bobby provides bilingual analysis bridging traditional finance and crypto-native audiences.
+              </p>
+              <div className="flex gap-4 text-[9px] font-mono text-white/25 tracking-widest">
+                <span>DEBATES: DAILY</span>
+                <span>LANG: EN/ES</span>
+                <span>AGENTS: 3</span>
+              </div>
+            </a>
+          </div>
+
+          <div className="text-center mt-8">
+            <a href="https://t.me/Bobbyagentraderbot?startgroup=true" target="_blank" rel="noopener noreferrer"
+              className="inline-block text-[10px] font-mono text-green-400/60 tracking-widest hover:text-green-400 transition-colors border-b border-green-400/20 hover:border-green-400/60 pb-1">
+              ADD BOBBY TO YOUR GROUP →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ */}
       <section className="py-20 bg-[#0e0e0e]">
         <div className="max-w-3xl mx-auto px-6 md:px-8">
