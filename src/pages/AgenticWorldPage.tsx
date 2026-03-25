@@ -212,6 +212,22 @@ export default function AgenticWorldPage() {
         </div>
       </section>
 
+      {/* Demo Video */}
+      <section className="px-6 md:px-12 lg:px-24 pb-12 max-w-[1600px] mx-auto">
+        <div className="text-center mb-6">
+          <span className="text-[9px] font-mono text-white/20 tracking-widest">WATCH_THE_DEMO</span>
+        </div>
+        <div className="relative w-full aspect-video bg-black/50 border border-white/[0.06] rounded-xl overflow-hidden">
+          <iframe
+            src="https://www.youtube.com/embed/i7FzQiYnYqg"
+            title="Bobby Agent Trader Demo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        </div>
+      </section>
+
       {/* Product Bento Grid */}
       <section className="p-6 md:p-12 lg:p-24 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
