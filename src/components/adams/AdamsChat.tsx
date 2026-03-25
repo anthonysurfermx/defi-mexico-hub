@@ -1285,10 +1285,10 @@ export function AdamsChat() {
     return (entry as Record<string, unknown>)[lang] ?? (entry as Record<string, unknown>)['en'] as any;
   }
 
-  // Only show AdvisorSetup AFTER trading mode is selected (not competing)
-  useEffect(() => {
-    if (needsSetup && tradingMode) setShowSetup(true);
-  }, [needsSetup, tradingMode]);
+  // AdvisorSetup disabled — replaced by Deploy Agent wizard in KineticShell
+  // useEffect(() => {
+  //   if (needsSetup && tradingMode) setShowSetup(true);
+  // }, [needsSetup, tradingMode]);
 
   // Load conversation — prefer localStorage, fallback to DB, then onboarding
   const hasInitialized = useRef(false);
