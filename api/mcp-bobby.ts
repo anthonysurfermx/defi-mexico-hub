@@ -7,9 +7,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const BASE_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'https://defi-mexico-hub.vercel.app';
+const BASE_URL = 'https://defimexico.org';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
