@@ -768,7 +768,8 @@ export function AdamsChat() {
 
   // Language must be declared early — used by voice, i18n, and intent detection
   // Detect from profile, localStorage, or browser language
-  const lang = profile?.language || localStorage.getItem('bobby_lang') || (navigator.language.startsWith('es') ? 'es' : 'en');
+  const [detectedLang, setDetectedLang] = useState<string | null>(null);
+  const lang = detectedLang || profile?.language || localStorage.getItem('bobby_lang') || (navigator.language.startsWith('es') ? 'es' : 'en');
   const advisorName = profile?.advisorName || localStorage.getItem('bobby_agent_name') || 'Bobby';
 
   // ---- Bobby's Voice ----
@@ -1490,6 +1491,13 @@ export function AdamsChat() {
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text || inputText).trim();
     if (!msg || isProcessing) return;
+    // Auto-detect language from user message and persist
+    const hasSpanish = /[áéíóúñ¿¡]|(\b(que|qué|como|cómo|debería|mercado|comprar|vender)\b)/i.test(msg);
+    const msgLang = hasSpanish ? 'es' : 'en';
+    if (msgLang !== lang) {
+      setDetectedLang(msgLang);
+      localStorage.setItem('bobby_lang', msgLang);
+    }
     // Mark user as interacted — unlocks Bobby's voice from this point on
     if (!hasUserInteractedRef.current) {
       hasUserInteractedRef.current = true;
