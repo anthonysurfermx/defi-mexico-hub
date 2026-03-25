@@ -350,6 +350,7 @@ export default function AgentForumPage() {
   const [sort, setSort] = useState('new');
   const { profile, profileId, hasAgent, roomMode } = useTradingRoom();
   const [scope, setScope] = useState<'public' | 'my'>('public');
+  const [lang, setLang] = useState<'all' | 'en' | 'es'>('all');
   const agentName = profile?.agent_name || localStorage.getItem('bobby_agent_name') || 'BOBBY';
 
   // Sync scope with room mode
@@ -364,7 +365,8 @@ export default function AgentForumPage() {
       const scopeFilter = scope === 'my' && profileId
         ? `scope=eq.private&agent_profile_id=eq.${profileId}`
         : `or=(scope.is.null,scope.eq.public)`;
-      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?${scopeFilter}&order=created_at.desc&limit=50&select=*`, {
+      const langFilter = lang !== 'all' ? `&language=eq.${lang}` : '';
+      const res = await fetch(`${SB_URL}/rest/v1/forum_threads?${scopeFilter}${langFilter}&order=created_at.desc&limit=50&select=*`, {
         headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
       });
       if (!res.ok) { setLoading(false); return; }
@@ -388,7 +390,7 @@ export default function AgentForumPage() {
     setLoading(false);
   }, [expandedId, scope, profileId]);
 
-  useEffect(() => { fetchThreads(); }, [scope]);
+  useEffect(() => { fetchThreads(); }, [scope, lang]);
 
   // Stats
   const forumStats = useMemo(() => {
@@ -460,6 +462,20 @@ export default function AgentForumPage() {
             }`}>
             {hasAgent ? `${agentName}'S ROOM` : 'DEPLOY AGENT'}
           </button>
+
+          {/* Language filter */}
+          <div className="ml-auto flex gap-1">
+            {(['all', 'en', 'es'] as const).map(l => (
+              <button key={l} onClick={() => setLang(l)}
+                className={`px-3 py-2 text-[10px] font-mono font-bold tracking-wider rounded transition-all ${
+                  lang === l
+                    ? 'bg-white/10 border border-white/20 text-white/80'
+                    : 'bg-white/[0.02] border border-white/[0.04] text-white/30 hover:text-white/50'
+                }`}>
+                {l === 'all' ? 'ALL' : l.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Telegram B2B CTA */}
