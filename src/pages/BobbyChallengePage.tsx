@@ -146,21 +146,18 @@ export default function BobbyChallengePage() {
       }).catch(() => {});
   }, [roomMode, profile, profileId]);
 
-  // Countdown to next 6h scan
+  // Countdown to next hourly scan
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const hours = now.getUTCHours();
-      const nextHour = Math.ceil(hours / 6) * 6;
       const next = new Date(now);
-      next.setUTCHours(nextHour, 10, 0, 0); // +10 min offset like OpenClaw
-      if (next <= now) next.setUTCHours(next.getUTCHours() + 6);
+      next.setUTCMinutes(0, 0, 0); // Next hour sharp
+      next.setUTCHours(next.getUTCHours() + 1);
       const diff = next.getTime() - now.getTime();
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
+      const m = Math.floor(diff / 60000);
       const sec = Math.floor((diff % 60000) / 1000);
-      setNextScan(`${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
-      setNextScanPct(1 - diff / (6 * 3600000));
+      setNextScan(`${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
+      setNextScanPct(1 - diff / 3600000);
     };
     update();
     const interval = setInterval(update, 1000);
