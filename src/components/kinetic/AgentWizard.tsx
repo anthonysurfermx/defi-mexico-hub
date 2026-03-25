@@ -77,6 +77,7 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
   const [marketTab, setMarketTab] = useState<'CRYPTO' | 'STOCKS' | 'MACRO'>('CRYPTO');
   const [cadence, setCadence] = useState(6);
   const [delivery, setDelivery] = useState<string[]>(['web']);
+  const [language, setLanguage] = useState(navigator.language.startsWith('es') ? 'es' : navigator.language.startsWith('pt') ? 'pt' : 'en');
   const [deploying, setDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState(0);
   const [prices, setPrices] = useState<Record<string, number>>({});
@@ -338,6 +339,31 @@ export default function AgentWizard({ onComplete, onSkip }: AgentWizardProps) {
                     </div>
                   </div>
 
+                  {/* Language */}
+                  <div>
+                    <span className="text-[9px] font-mono text-white/25 tracking-widest block mb-3">AGENT LANGUAGE</span>
+                    <div className="space-y-2">
+                      {[
+                        { code: 'es', label: 'Español', flag: '🇲🇽' },
+                        { code: 'en', label: 'English', flag: '🇺🇸' },
+                        { code: 'pt', label: 'Português', flag: '🇧🇷' },
+                      ].map(l => (
+                        <button key={l.code} onClick={() => { setLanguage(l.code); localStorage.setItem('bobby_lang', l.code); }}
+                          className={`w-full flex items-center gap-3 p-3 rounded border transition-all text-left ${
+                            language === l.code
+                              ? 'border-green-500/40 bg-green-500/[0.06]'
+                              : 'border-white/[0.06] bg-white/[0.02] hover:border-white/15'
+                          }`}>
+                          <span className="text-lg">{l.flag}</span>
+                          <div className="text-sm font-bold">{l.label}</div>
+                          {language === l.code && <Check className="w-4 h-4 text-green-400 ml-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Delivery */}
                   <div>
                     <span className="text-[9px] font-mono text-white/25 tracking-widest block mb-3">DELIVERY CHANNELS</span>
