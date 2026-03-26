@@ -89,13 +89,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       // Parallel RPC calls for stats
       const [winRateHex, totalHex, commitsHex, pendingHex, winsHex, lossesHex, pnlHex] = await Promise.all([
-        ethCall('0x5e7a3e56'),  // getWinRate()
-        ethCall('0xc4e41b22'),  // totalTrades()
-        ethCall('0xe8a4c04e'),  // totalCommitments() — new
-        ethCall('0xf39a3c85'),  // pendingCount() — new
-        ethCall('0xc09b1ab3'),  // wins()
-        ethCall('0xfda49eb4'),  // losses()
-        ethCall('0x8c871019'),  // totalPnlBps()
+        ethCall('0x6f61e432'),  // getWinRate()
+        ethCall('0xe275c997'),  // totalTrades()
+        ethCall('0x78bb86d3'),  // totalCommitments()
+        ethCall('0xea70b4af'),  // pendingCount()
+        ethCall('0x24de908d'),  // wins()
+        ethCall('0x6f22d6a5'),  // losses()
+        ethCall('0x4b9290b8'),  // totalPnlBps()
       ]);
 
       return res.status(200).json({
