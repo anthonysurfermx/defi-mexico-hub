@@ -34,7 +34,10 @@ async function fetchIndicators(instId: string, bar = '1H'): Promise<IndicatorRes
     };
     const res = await fetch('https://www.okx.com/api/v5/aigc/mcp/indicators', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Bobby-Agent-Trader/1.0 (OKX-Hackathon)',
+      },
       body: JSON.stringify(body),
     });
     if (!res.ok) return null;
