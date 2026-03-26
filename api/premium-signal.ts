@@ -94,7 +94,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to === '0xf841b428e6d743187d7be2242eccc1078fde2395' || // TrackRecord
             to === '0xa4704e92e9d9eca646716c14a124907c356c78d7';   // AgentEconomy
 
-          if (validRecipient && value >= MIN_PAYMENT) {
+          // Accept either: value transfer to Bobby OR contract interaction (commit/debate fee)
+          if (validRecipient && (value >= MIN_PAYMENT || tx.result.input?.length > 10)) {
             verified = true;
             verificationDetails = {
               ...verificationDetails,
