@@ -63,7 +63,10 @@ async function callClaude(model: string, system: string, userMsg: string, maxTok
     },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: userMsg }] }),
   });
-  if (!res.ok) throw new Error(`Claude ${model}: ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`Claude ${model}: ${res.status} ${errBody.slice(0, 200)}`);
+  }
   const data = await res.json() as { content: Array<{ text: string }> };
   return data.content[0]?.text || '';
 }
