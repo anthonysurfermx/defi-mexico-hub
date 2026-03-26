@@ -12,6 +12,30 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 import { useTradingRoom } from '@/hooks/useTradingRoom';
 import KineticShell from '@/components/kinetic/KineticShell';
 
+// On-chain stat reader — calls X Layer RPC directly
+function OnChainStat({ label, selector }: { label: string; selector: string }) {
+  const [value, setValue] = useState<number | null>(null);
+  useEffect(() => {
+    fetch('https://rpc.xlayer.tech', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'eth_call',
+        params: [{ to: '0xf841b428e6d743187d7be2242eccc1078fde2395', data: selector }, 'latest'],
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.result) setValue(parseInt(d.result, 16)); })
+      .catch(() => {});
+  }, [selector]);
+  return (
+    <div className="p-2 bg-black/40 rounded border border-white/5 text-center">
+      <div className="font-mono text-lg font-bold text-green-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{value ?? '—'}</div>
+      <div className="font-mono text-[8px] text-white/30 tracking-widest">{label}</div>
+    </div>
+  );
+}
+
 interface PnlData {
   summary: {
     startingCapital: number;
@@ -613,11 +637,19 @@ export default function BobbyChallengePage() {
                     <h3 className="font-mono text-xs text-white/40 uppercase mb-4 relative z-10">Proof_of_Custody</h3>
                     <div className="relative z-10 space-y-3">
                       <div className="p-3 bg-black/40 rounded flex items-center justify-between border border-white/5">
-                        <span className="font-mono text-[10px] text-white/30">X_WALLET</span>
+                        <span className="font-mono text-[10px] text-white/30">CONTRACT</span>
                         <span className="font-mono text-[10px] text-green-400">0xF841...2395</span>
                       </div>
+                      <div className="p-3 bg-black/40 rounded flex items-center justify-between border border-white/5">
+                        <span className="font-mono text-[10px] text-white/30">TREASURY</span>
+                        <span className="font-mono text-[10px] text-green-400">0x09a8...dcea</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <OnChainStat label="COMMITS" selector="0x78bb86d3" />
+                        <OnChainStat label="PENDING" selector="0xea70b4af" />
+                      </div>
                       <p className="text-[10px] text-white/20 italic leading-relaxed font-mono">
-                        All trades are committed to X Layer before the outcome is known. Fully verifiable on-chain.
+                        Every debate committed on X Layer before the outcome. Verified via OKX Agent Trade Kit.
                       </p>
                       <a href="https://www.oklink.com/xlayer/address/0xf841b428e6d743187d7be2242eccc1078fde2395"
                         target="_blank" rel="noopener noreferrer"

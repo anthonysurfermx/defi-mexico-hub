@@ -113,12 +113,14 @@ function MetacognitionLoader() {
   const steps = [
     '> INITIATING METACOGNITION SEQUENCE...',
     '> CONNECTING TO OKX OnchainOS...',
+    '> LOADING OKX AGENT TRADE KIT — 70+ INDICATORS...',
+    '> FETCHING RSI, MACD, BOLLINGER, SUPERTREND, AHR999...',
     '> LOADING WHALE SIGNALS + FUNDING RATES...',
     '> FETCHING POLYMARKET SMART MONEY DATA...',
     '> READING FEAR & GREED INDEX...',
-    '> COMPUTING CALIBRATION CURVE (59 samples)...',
-    '> EVALUATING DEBATE QUALITY SCORES...',
-    '> CROSS-REFERENCING 10 DATA SOURCES...',
+    '> COMPUTING CALIBRATION CURVE...',
+    '> EVALUATING DEBATE QUALITY SCORES [HAIKU_JUDGE]...',
+    '> CROSS-REFERENCING 12 DATA SOURCES...',
     '> ANALYZING SELF-CORRECTION PATTERNS...',
     '> SYNTHESIZING METACOGNITION REPORT...',
   ];
@@ -132,7 +134,7 @@ function MetacognitionLoader() {
       } else {
         clearInterval(timer);
       }
-    }, 1800);
+    }, 1500);
     return () => clearInterval(timer);
   }, []);
 
