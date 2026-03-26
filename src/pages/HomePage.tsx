@@ -455,11 +455,11 @@ export default function HomePage() {
                   </Link>
                 </div>
                 <Link
-                  to="/agentic-world"
+                  to="/agentic-world/leaderboard"
                   className="flex items-center gap-2.5 px-6 py-3.5 bg-amber-900/30 border border-amber-400/40 text-amber-300 hover:text-amber-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {t('home.agenticHero.cta', { defaultValue: 'EXPLORE AGENTIC WORLD' })}
+                  AI AGENT LEADERBOARD
                 </Link>
               </div>
             </div>
