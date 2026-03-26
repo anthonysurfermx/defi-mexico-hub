@@ -287,13 +287,13 @@ export default function BobbySignalsPage() {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    fetch('/api/bobby-intel')
+    fetch('/api/bobby-signals')
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
       .then(d => {
-        const ti = d?.technicalIndicators;
+        const ti = d?.indicators;
         if (Array.isArray(ti) && ti.length > 0) {
           setData(ti);
         } else {
