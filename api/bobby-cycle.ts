@@ -53,7 +53,48 @@ async function sbQuery(table: string, query: string): Promise<any[]> {
 
 // ---- Claude helper ----
 
+// Model mapping: Anthropic → OpenAI equivalents
+const OPENAI_FALLBACK: Record<string, string> = {
+  'claude-haiku-4-5-20251001': 'gpt-4o-mini',
+  'claude-sonnet-4-20250514': 'gpt-4o',
+};
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
 async function callClaude(model: string, system: string, userMsg: string, maxTokens: number): Promise<string> {
+  const openaiModel = OPENAI_FALLBACK[model] || 'gpt-4o-mini';
+
+  // Try OpenAI first (primary)
+  if (OPENAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: openaiModel,
+          max_tokens: maxTokens,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: userMsg },
+          ],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+        return data.choices[0]?.message?.content || '';
+      }
+      const errBody = await res.text().catch(() => '');
+      console.warn(`[Cycle] OpenAI ${openaiModel} failed (${res.status}), falling back to Anthropic. ${errBody.slice(0, 100)}`);
+    } catch (e: any) {
+      console.warn(`[Cycle] OpenAI error, falling back to Anthropic: ${e.message}`);
+    }
+  }
+
+  // Fallback to Anthropic
+  if (!ANTHROPIC_API_KEY) throw new Error('Both OpenAI and Anthropic API keys unavailable');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -65,11 +106,12 @@ async function callClaude(model: string, system: string, userMsg: string, maxTok
   });
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
-    throw new Error(`Claude ${model}: ${res.status} ${errBody.slice(0, 200)}`);
+    throw new Error(`Anthropic ${model}: ${res.status} ${errBody.slice(0, 200)}`);
   }
   const data = await res.json() as { content: Array<{ text: string }> };
   return data.content[0]?.text || '';
 }
+
 
 // ---- Fetch local internal API ----
 // noFallback=true for mutant actions (open_position, close_position) — NEVER retry those

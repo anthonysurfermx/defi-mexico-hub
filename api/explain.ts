@@ -1,8 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
+
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: ANTHROPIC_KEY,
 });
 
 // Rate limiting: 10 requests per day per IP (resets on cold start + 24h window)
@@ -617,18 +620,67 @@ After your analysis, output a single line starting with "TAGS:" followed by 2-4 
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
 
-    const stream = await anthropic.messages.stream({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    let streamed = false;
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+    // Try OpenAI first (primary)
+    if (OPENAI_KEY) {
+      try {
+        const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            max_tokens: 800,
+            stream: true,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+          }),
+        });
+        const reader = openaiRes.body?.getReader();
+        const decoder = new TextDecoder();
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+            for (const line of lines) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const text = parsed.choices?.[0]?.delta?.content;
+                if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
+              } catch {}
+            }
+          }
+          streamed = true;
+        }
+      } catch (openaiErr: any) {
+        console.warn('[Explain] OpenAI failed, trying Anthropic:', openaiErr.message?.slice(0, 100));
       }
     }
+
+    // Fallback to Anthropic
+    if (!streamed && ANTHROPIC_KEY) {
+      try {
+        const stream = await anthropic.messages.stream({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }],
+        });
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+          }
+        }
+        streamed = true;
+      } catch (anthropicErr: any) {
+        console.warn('[Explain] Anthropic also failed:', anthropicErr.message?.slice(0, 100));
+      }
+    }
+
+    if (!streamed) throw new Error('Both OpenAI and Anthropic unavailable');
 
     res.write('data: [DONE]\n\n');
     res.end();
