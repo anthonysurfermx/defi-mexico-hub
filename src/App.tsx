@@ -67,6 +67,7 @@ const DeployAgentPage = lazy(() => import('@/pages/DeployAgentPage'));
 const BobbyB2BPage = lazy(() => import('@/pages/BobbyB2BPage'));
 const BobbyMetacognitionPage = lazy(() => import('@/pages/BobbyMetacognitionPage'));
 const BobbySignalsPage = lazy(() => import('@/pages/BobbySignalsPage'));
+const BobbyDocsPage = lazy(() => import('@/pages/BobbyDocsPage'));
 
 
 // Auth pages
@@ -640,6 +641,15 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <BobbySignalsPage />
+            </Suspense>
+          ),
+        },
+
+        {
+          path: 'agentic-world/bobby/docs',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyDocsPage />
             </Suspense>
           ),
         },
