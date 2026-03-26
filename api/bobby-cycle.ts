@@ -379,16 +379,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `MARKET SCAN:\n${contextBlock}`, 350
     );
 
-    // Red Team (Sonnet — adversarial, needs nuance)
-    redPost = await callClaude('claude-sonnet-4-20250514',
+    // Red Team (Haiku — adversarial, cost-optimized)
+    redPost = await callClaude('claude-haiku-4-5-20251001',
       `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
         track.winRate < 60 ? ' Bobby has been WRONG recently. Be extra aggressive.' : ''
       }${hasContradictions ? ` Use Bobby's recent failures as ammunition: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
     );
 
-    // Bobby CIO (Sonnet — judge, structured output for reliable parsing)
-    cioPost = await callClaude('claude-sonnet-4-20250514',
+    // Bobby CIO — Sonnet when conviction could be high, Haiku when market is clearly dead
+    // Cost optimization: ~70% of cycles are low conviction, save Sonnet for real decisions
+    const marketLooksWeak = track.winRate < 40 || (intel.fearGreed?.value ?? 50) < 15;
+    const cioModel = marketLooksWeak ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-20250514';
+    cioPost = await callClaude(cioModel,
       `You are Bobby CIO. You heard Alpha and Red Team. Pick a side.
 
 RULES:
@@ -865,7 +868,9 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
     // AWAITED — fire-and-forget dies on Vercel when response is sent.
     // Haiku takes ~2-3s, acceptable overhead for real data.
     // ============================================================
-    if (threadId && !useTestVerdict) {
+    // Skip quality scoring on very low conviction — saves ~$0.001/cycle, 70% of cycles
+    const shouldScoreQuality = threadId && !useTestVerdict && (conviction === null || conviction >= 0.3);
+    if (shouldScoreQuality) {
       try {
         const qualityRaw = await callClaude('claude-haiku-4-5-20251001',
           `You are a trading debate evaluator. Score this 3-agent debate on each dimension using integers 1-5.
