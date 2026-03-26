@@ -921,7 +921,18 @@ async function fetchTechnicalIndicators(instId = 'BTC-USDT', bar = '1H'): Promis
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return { symbol: instId, timeframe: bar, indicators: data?.data || data };
+    // OKX response: { data: [{ data: [{ instId, timeframes: { "1H": { indicators: { RSI: [...] } } } }] }] }
+    const nested = data?.data?.[0]?.data?.[0]?.timeframes?.[bar]?.indicators;
+    if (!nested) return null;
+    // Flatten: { RSI: [{ts, values: {rsi: "27.7"}}] } → { RSI: {value: 27.7, ...raw} }
+    const flat: Record<string, any> = {};
+    for (const [key, arr] of Object.entries(nested)) {
+      if (Array.isArray(arr) && arr.length > 0) {
+        const latest = (arr as any[])[0];
+        flat[key] = latest.values || latest;
+      }
+    }
+    return { symbol: instId, timeframe: bar, indicators: flat };
   } catch { return null; }
 }
 
