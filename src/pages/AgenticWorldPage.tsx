@@ -273,6 +273,47 @@ export default function AgenticWorldPage() {
         </div>
       </section>
 
+      {/* Infrastructure on X Layer */}
+      <section className="px-6 md:px-12 lg:px-24 py-12 border-t border-white/5">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="h-px w-8 bg-green-500" />
+            <span className="font-mono text-green-400 text-[10px] tracking-[0.3em] uppercase">Infrastructure on X Layer</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: 'SMART CONTRACTS', value: '4', sub: 'Deployed on Chain 196' },
+              { label: 'MCP TOOLS', value: '12', sub: 'Free + Premium (x402)' },
+              { label: 'AGENT NFTs', value: '3', sub: 'On-chain Identity' },
+              { label: 'AI MODELS', value: '5', sub: 'Claude + GPT + Gemini' },
+            ].map(s => (
+              <div key={s.label} className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-4 text-center">
+                <div className="font-mono text-2xl font-black text-green-400">{s.value}</div>
+                <div className="font-mono text-[8px] text-white/30 tracking-widest mt-1">{s.label}</div>
+                <div className="font-mono text-[7px] text-white/15 mt-0.5">{s.sub}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+            {[
+              { name: 'TrackRecord', addr: '0xf841b428e6d743187d7be2242eccc1078fde2395', desc: 'Commit-reveal predictions' },
+              { name: 'ConvictionOracle', addr: '0x03fa39b3a5b316b7cacdabd3442577ee32ab5f3a', desc: 'Conviction feed for protocols' },
+              { name: 'AgentEconomy', addr: '0xa4704E92E9d9eCA646716C14a124907C356C78D7', desc: 'Agent-to-agent payments' },
+              { name: 'AgentRegistry', addr: '0x823a1670f521a35d4fafe4502bdcb3a8148bba8b', desc: 'Agent Identity NFTs' },
+            ].map(c => (
+              <a key={c.name} href={`https://www.oklink.com/xlayer/address/${c.addr}`} target="_blank" rel="noopener noreferrer"
+                className="bg-white/[0.01] border border-white/[0.04] rounded-lg px-3 py-2 flex items-center justify-between hover:border-green-500/20 transition-all group">
+                <div>
+                  <div className="font-mono text-[9px] text-white/50 font-bold">{c.name}</div>
+                  <div className="font-mono text-[7px] text-white/20">{c.desc}</div>
+                </div>
+                <span className="font-mono text-[7px] text-green-400/40 group-hover:text-green-400 transition-colors">VIEW↗</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Telegram B2B Banner */}
       <section className="px-6 md:px-12 lg:px-24 pb-12">
         <Link to="/agentic-world/bobby/b2b"
