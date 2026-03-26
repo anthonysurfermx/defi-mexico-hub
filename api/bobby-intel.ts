@@ -886,6 +886,46 @@ async function fetchTopStocks(): Promise<Array<{ symbol: string; price: number; 
 }
 
 // ============================================================
+// OKX Agent Trade Kit — Technical Indicators (70+ signals)
+// Uses OKX public API: /api/v5/aigc/mcp/indicators
+// No auth required — free for all
+// ============================================================
+interface TechnicalIndicators {
+  symbol: string;
+  timeframe: string;
+  indicators: Record<string, any>;
+}
+
+async function fetchTechnicalIndicators(instId = 'BTC-USDT', bar = '1H'): Promise<TechnicalIndicators | null> {
+  try {
+    const body = {
+      instId,
+      timeframes: [bar],
+      indicators: {
+        RSI: { paramList: [14] },
+        MACD: { paramList: [12, 26, 9] },
+        BB: { paramList: [20, 2] },
+        MA: { paramList: [50, 200] },
+        EMA: { paramList: [12, 26] },
+        KDJ: { paramList: [9, 3, 3] },
+        ATR: { paramList: [14] },
+        SUPERTREND: { paramList: [10, 3] },
+        AHR999: {},
+        BTCRAINBOW: {},
+      },
+    };
+    const res = await fetch('https://www.okx.com/api/v5/aigc/mcp/indicators', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { symbol: instId, timeframe: bar, indicators: data?.data || data };
+  } catch { return null; }
+}
+
+// ============================================================
 // HANDLER — Runs all intelligence pipelines in parallel
 // ============================================================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -897,7 +937,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Run all intelligence sources in parallel
-    const [rawSignals, polyConsensus, recentCycles, cryptoPrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData, stockPrices, xlayerSignals, dexLeaderboard, trendingTokens, trenchTokens, calibration] = await Promise.allSettled([
+    const [rawSignals, polyConsensus, recentCycles, cryptoPrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData, stockPrices, xlayerSignals, dexLeaderboard, trendingTokens, trenchTokens, calibration, btcIndicators, ethIndicators] = await Promise.allSettled([
       collectDexSignals(),
       collectPolymarketIntelligence(),
       fetchRecentCycles(5),
@@ -917,7 +957,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fetchTrendingTokens(),
       fetchTrenchTokens(),
       fetchCalibrationCurve(),
-    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null)) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null, any, any, DexLeaderEntry[], TrendingToken[], TrenchToken[], CalibrationData | null];
+      fetchTechnicalIndicators('BTC-USDT', '1H'),
+      fetchTechnicalIndicators('ETH-USDT', '1H'),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null)) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null, any, any, DexLeaderEntry[], TrendingToken[], TrenchToken[], CalibrationData | null, TechnicalIndicators | null, TechnicalIndicators | null];
 
     const livePrices = [...(cryptoPrices || []), ...(stockPrices || [])];
 
@@ -1049,6 +1091,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       trenches: trenchFormatted,
       performance,
       calibration: calibration || { curve: [], calibrationError: 0, isOverconfident: false, adjustment: 1.0, sampleSize: 0, breakEvenCount: 0 },
+      technicalIndicators: [btcIndicators, ethIndicators].filter(Boolean),
       regime: regime.label,
       meta: {
         signalsRaw: rawSignals.length,
