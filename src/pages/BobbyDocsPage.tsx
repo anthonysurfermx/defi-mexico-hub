@@ -174,6 +174,18 @@ export default function BobbyDocsPage() {
             />
           </div>
 
+          {/* AGENT MARKETPLACE CTA */}
+          <a href="/agentic-world/bobby/marketplace" className="block bg-green-500/5 border border-green-500/20 rounded-xl p-5 hover:bg-green-500/10 hover:border-green-500/30 transition-all group">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-mono text-[9px] text-green-400/60 tracking-widest mb-1">AGENT_COMMERCE</div>
+                <div className="font-mono text-sm text-white/80 font-bold">10 Use Cases — How Agents Buy Intelligence from Bobby</div>
+                <div className="font-mono text-[10px] text-white/30 mt-1">AI Trading Fund · AI Risk Manager · AI Newsletter · AI Academy Tutor · and 6 more</div>
+              </div>
+              <span className="font-mono text-green-400 text-sm group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </a>
+
           {/* FOOTER */}
           <div className="flex flex-wrap gap-4 text-[8px] font-mono text-white/15 tracking-wider">
             <span>BOBBY_AGENT_TRADER_V3</span>
