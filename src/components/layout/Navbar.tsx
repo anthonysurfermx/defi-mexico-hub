@@ -50,11 +50,9 @@ const Navbar = () => {
     { label: "Inicio", href: "/" },
     { label: "Startups", href: "/startups" },
     { label: "Comunidades", href: "/comunidades" },
-    { label: "NFT Collection", href: "/nft-gallery" },
     { label: "TikTok", href: "/tiktok" },
     { label: "Eventos", href: "/eventos" },
     { label: "Blog", href: "/blog" },
-    { label: "Métricas", href: "/metricas" }
   ];
 
   const ecosistemaItems = [
@@ -62,12 +60,14 @@ const Navbar = () => {
     { label: "MVPs Hackathon", href: "/hackathon-projects", icon: Trophy },
     { label: "Comunidades", href: "/comunidades", icon: Users },
     { label: "Trabajos Web3", href: "/ecosistema/trabajos", icon: Briefcase },
+    { label: "Métricas", href: "/metricas", icon: BarChart3 },
   ];
 
   const learnItems = [
     { label: "Blog", href: "/blog", icon: FileText },
     { label: "Video Tutorials", href: "/academia/videos", icon: Video },
     { label: "Mercado LP", href: "/academia/juego/mercado-lp", icon: Gamepad2 },
+    { label: "NFT Collection", href: "/nft-gallery", icon: Gamepad2 },
   ];
 
   const agenticItems = [
@@ -285,22 +285,6 @@ const Navbar = () => {
               </DropdownMenu>
 
               <Link
-                to="/nft-gallery"
-                className={`relative text-sm font-medium transition-colors group ${
-                  isActivePage("/nft-gallery")
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                NFT Collection
-                <span
-                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
-                    isActivePage("/nft-gallery") ? "w-full" : ""
-                  }`}
-                />
-              </Link>
-
-              <Link
                 to="/tiktok"
                 className={`relative text-sm font-medium transition-colors group ${
                   isActivePage("/tiktok")
@@ -332,21 +316,6 @@ const Navbar = () => {
                 />
               </Link>
 
-              <Link
-                to="/metricas"
-                className={`relative text-sm font-medium transition-colors group ${
-                  isActivePage("/metricas")
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Métricas
-                <span
-                  className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
-                    isActivePage("/metricas") ? "w-full" : ""
-                  }`}
-                />
-              </Link>
             </nav>
 
             {/* Desktop Actions */}
@@ -592,16 +561,6 @@ const Navbar = () => {
                       </p>
                       <div className="space-y-1">
                         <Link
-                          to="/nft-gallery"
-                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                            isActivePage("/nft-gallery")
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          NFT Collection
-                        </Link>
-                        <Link
                           to="/tiktok"
                           className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                             isActivePage("/tiktok")
@@ -620,16 +579,6 @@ const Navbar = () => {
                           }`}
                         >
                           Eventos
-                        </Link>
-                        <Link
-                          to="/metricas"
-                          className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                            isActivePage("/metricas")
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          Métricas
                         </Link>
                       </div>
                     </motion.div>
