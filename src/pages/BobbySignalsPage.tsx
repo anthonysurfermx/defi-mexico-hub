@@ -292,13 +292,164 @@ export default function BobbySignalsPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResult, setSearchResult] = useState<IndicatorEntry | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchFilter, setSearchFilter] = useState<string | null>(null); // indicator filter
+  const [searchMode, setSearchMode] = useState<'asset' | 'indicator' | 'category' | 'smart'>('asset');
+
+  // Known categories
+  const CATEGORIES: Record<string, string[]> = {
+    stocks: ['NVDA', 'AAPL', 'TSLA', 'META', 'MSFT', 'COIN', 'SPY', 'GOOG', 'AMZN'],
+    memecoins: ['PEPE', 'DOGE', 'SHIB', 'FLOKI', 'BONK', 'WIF', 'BRETT'],
+    defi: ['UNI', 'AAVE', 'MKR', 'CRV', 'COMP', 'SUSHI', 'LINK'],
+    ai: ['RENDER', 'FET', 'AGIX', 'OCEAN', 'TAO', 'NEAR', 'ICP'],
+    l1: ['BTC', 'ETH', 'SOL', 'AVAX', 'ADA', 'DOT', 'ATOM', 'SUI', 'APT'],
+    l2: ['ARB', 'OP', 'MATIC', 'MANTA', 'STRK', 'ZK'],
+    rwa: ['ONDO', 'POLYX', 'MPL', 'CFG'],
+    gaming: ['AXS', 'SAND', 'MANA', 'GALA', 'IMX', 'RONIN'],
+  };
+
+  // Known indicators
+  const INDICATOR_NAMES = ['RSI', 'MACD', 'BB', 'BOLLINGER', 'MA', 'EMA', 'KDJ', 'ATR', 'SUPERTREND', 'AHR999', 'RAINBOW'];
+
+  // Reusable asset indicator fetch (browser → OKX → cache)
+  async function fetchAssetIndicators(asset: string): Promise<IndicatorEntry | null> {
+    const instId = asset.includes('-') ? asset : `${asset}-USDT`;
+    try {
+      // Check cache
+      const cacheRes = await fetch(
+        `https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/indicator_cache?inst_id=eq.${instId}&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          },
+        }
+      );
+      const cached = await cacheRes.json();
+      const fresh = cached?.[0] && (Date.now() - new Date(cached[0].created_at).getTime()) < 24 * 60 * 60 * 1000;
+      if (fresh) {
+        return { symbol: cached[0].inst_id, timeframe: '1H', indicators: cached[0].indicators || {} };
+      }
+
+      // Fetch from OKX (browser)
+      const okxRes = await fetch('https://www.okx.com/api/v5/aigc/mcp/indicators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instId,
+          timeframes: ['1H'],
+          indicators: { RSI: { paramList: [14] }, MACD: { paramList: [12, 26, 9] }, BB: { paramList: [20, 2] }, MA: { paramList: [50, 200] }, EMA: { paramList: [12, 26] }, SUPERTREND: { paramList: [10, 3] }, ATR: { paramList: [14] }, KDJ: { paramList: [9, 3, 3] } },
+        }),
+      });
+      if (!okxRes.ok) return null;
+      const okxData = await okxRes.json();
+      if (okxData.code !== '0' && okxData.code !== 0) return null;
+      const nested = okxData?.data?.[0]?.data?.[0]?.timeframes?.['1H']?.indicators;
+      if (!nested) return null;
+      const flat: Record<string, any> = {};
+      for (const [key, arr] of Object.entries(nested)) {
+        if (Array.isArray(arr) && arr.length > 0) flat[key] = (arr as any[])[0].values || (arr as any[])[0];
+      }
+      // Cache in Supabase (fire-and-forget)
+      fetch('https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/indicator_cache', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({ inst_id: instId, timeframe: '1H', indicators: flat, source: 'OKX Agent Trade Kit (user search)' }),
+      }).catch(() => {});
+      return { symbol: instId, timeframe: '1H', indicators: flat };
+    } catch { return null; }
+  }
+
+  // Smart parser — understands anything
+  function parseQuery(raw: string): { assets: string[]; indicators: string[]; mode: string } {
+    const q = raw.toUpperCase().trim();
+    const words = q.split(/[\s,]+/).filter(Boolean);
+
+    const foundIndicators: string[] = [];
+    const foundAssets: string[] = [];
+    let foundCategory: string | null = null;
+
+    for (const word of words) {
+      // Check if it's an indicator name
+      const clean = word.replace(/[^A-Z0-9]/g, '');
+      if (INDICATOR_NAMES.includes(clean)) {
+        foundIndicators.push(clean === 'BOLLINGER' ? 'BB' : clean);
+        continue;
+      }
+      // Check categories
+      const catKey = Object.keys(CATEGORIES).find(k => k.toUpperCase() === clean || clean === k.toUpperCase() + 'S');
+      if (catKey) {
+        foundCategory = catKey;
+        continue;
+      }
+      // Check keywords
+      if (['OVERSOLD', 'OVERBOUGHT', 'BULLISH', 'BEARISH', 'SQUEEZE', 'GOLDEN', 'DEATH'].includes(clean)) {
+        foundIndicators.push(clean);
+        continue;
+      }
+      // Skip filler words
+      if (['DE', 'OF', 'THE', 'FOR', 'QUE', 'ESTA', 'WHAT', 'IS', 'SHOW', 'ME', 'DAME', 'EL', 'LA', 'EN', 'A'].includes(clean)) continue;
+      // Assume it's an asset
+      if (clean.length >= 2 && clean.length <= 10) foundAssets.push(clean);
+    }
+
+    // If category found, expand to assets
+    if (foundCategory && CATEGORIES[foundCategory]) {
+      return { assets: CATEGORIES[foundCategory], indicators: foundIndicators, mode: 'category' };
+    }
+
+    return {
+      assets: foundAssets.length ? foundAssets : [],
+      indicators: foundIndicators,
+      mode: foundAssets.length ? (foundIndicators.length ? 'smart' : 'asset') : (foundIndicators.length ? 'indicator' : 'asset'),
+    };
+  }
 
   const handleSearch = async () => {
     const query = searchQuery.trim().toUpperCase();
     if (!query) return;
 
-    // Map common names to OKX instId
-    const instId = query.includes('-') ? query : `${query}-USDT`;
+    const parsed = parseQuery(query);
+    setSearchFilter(parsed.indicators.length ? parsed.indicators.join(',') : null);
+
+    // If only searching by indicator (no specific asset), filter existing data
+    if (parsed.mode === 'indicator' && !parsed.assets.length) {
+      setSearchMode('indicator');
+      setSearchResult(null);
+      setSearchError(null);
+      setSearchLoading(false);
+      return;
+    }
+
+    // If category, search multiple assets
+    if (parsed.mode === 'category') {
+      setSearchMode('category');
+      setSearchLoading(true);
+      setSearchError(null);
+      // Search first 3 assets of the category
+      const results: IndicatorEntry[] = [];
+      for (const asset of parsed.assets.slice(0, 3)) {
+        const result = await fetchAssetIndicators(asset);
+        if (result) results.push(result);
+      }
+      if (results.length) {
+        setSearchResult(results[0]);
+        // Add extras to main data temporarily
+        setData(prev => [...results, ...prev.filter(d => !results.find(r => r.symbol === d.symbol))]);
+      } else {
+        setSearchError(`No data found for ${query}`);
+      }
+      setSearchLoading(false);
+      return;
+    }
+
+    // Single asset search
+    const asset = parsed.assets[0] || query.replace(/[^A-Z0-9]/g, '');
+    const instId = asset.includes('-') ? asset : `${asset}-USDT`;
 
     setSearchLoading(true);
     setSearchError(null);
@@ -493,7 +644,7 @@ export default function BobbySignalsPage() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  placeholder="BTC, ETH, SOL, NVDA, PEPE, DOGE, AAPL..."
+                  placeholder="PEPE, RSI de ONDO, memecoins, NVDA MACD, stocks, oversold..."
                   className="flex-1 bg-transparent font-mono text-sm text-green-400 placeholder:text-white/15 outline-none border-b border-white/10 focus:border-green-500/40 pb-1 transition-colors"
                 />
                 <button
@@ -504,6 +655,15 @@ export default function BobbySignalsPage() {
                   {searchLoading ? 'SCANNING...' : 'ANALYZE'}
                 </button>
               </div>
+              {searchFilter && (
+                <div className="flex items-center gap-1 mt-2">
+                  <span className="font-mono text-[7px] text-white/20">FILTER:</span>
+                  {searchFilter.split(',').map(f => (
+                    <span key={f} className="font-mono text-[7px] px-1 py-0.5 rounded bg-cyan-500/10 text-cyan-400/70 border border-cyan-500/10">{f}</span>
+                  ))}
+                  <button onClick={() => { setSearchFilter(null); setSearchQuery(''); }} className="font-mono text-[7px] text-white/20 hover:text-white/40 ml-1">CLEAR</button>
+                </div>
+              )}
               {searchError && (
                 <p className="font-mono text-[9px] text-red-400/70 mt-2">{'>'} {searchError}</p>
               )}
@@ -518,7 +678,11 @@ export default function BobbySignalsPage() {
                 </div>
                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {parseIndicators(searchResult).map(ind => (
+                    {parseIndicators(searchResult).filter(ind => {
+                      if (!searchFilter) return true;
+                      const filters = searchFilter.split(',');
+                      return filters.some(f => ind.name.toUpperCase().includes(f) || ind.signal.toUpperCase().includes(f));
+                    }).map(ind => (
                       <div key={ind.name} className="flex items-center justify-between p-2 bg-black/30 rounded border border-white/5">
                         <span className="font-mono text-[9px] text-white/50">{ind.name}</span>
                         <div className="flex items-center gap-1.5">
