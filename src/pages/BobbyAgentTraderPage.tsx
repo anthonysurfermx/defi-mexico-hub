@@ -136,7 +136,7 @@ const NAV_ITEMS = [
 const ICON_NAV = [
   { Icon: Terminal, label: 'Command', path: '/agentic-world/bobby' },
   { Icon: Brain, label: 'Intel', path: '/agentic-world/bobby/analytics' },
-  { Icon: Zap, label: 'Exec', path: '/agentic-world/bobby/challenge' },
+  { Icon: Zap, label: 'Commerce', path: '/agentic-world/bobby/marketplace' },
   { Icon: Vault, label: 'Vault', path: '/agentic-world/bobby/history' },
 ];
 

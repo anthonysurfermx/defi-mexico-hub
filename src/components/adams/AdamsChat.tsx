@@ -3384,7 +3384,7 @@ export function AdamsChat() {
                     const entryMatch = text.match(/(?:entry|entr[ao]|comprar?)\s*(?:\w+\s+)*?(?:en|at|a)?\s*\$?([\d,]+(?:\.\d+)?)/i);
                     const targetMatch = text.match(/target\s*(?:\w+\s+)*?(?:en|at|a|in)?\s*\$?([\d,]+(?:\.\d+)?)/i);
                     const stopMatch = text.match(/stop\s*(?:loss)?\s*(?:\w+\s+)*?(?:en|at|a|in)?\s*\$?([\d,]+(?:\.\d+)?)/i);
-                    if (symMatch) {
+                    if (symMatch && false) { // Hidden for now — trade cards moved to dedicated execution page
                       const dir = dirMatch ? (/short|vender/i.test(dirMatch[1]) ? 'short' : 'long') : 'long';
                       return (
                         <PerpsTradeCard
@@ -3513,8 +3513,7 @@ export function AdamsChat() {
           </div>
         </div>
 
-        {/* Right Sidebar: Execution Timeline */}
-        <ExecutionTimeline messages={messages} />
+        {/* Execution Timeline hidden — moved to dedicated page */}
       </div>
 
       {/* ===== INPUT BAR — Bottom ===== */}
