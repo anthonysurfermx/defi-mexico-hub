@@ -9,6 +9,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { canOpenPosition, getPositionSize } from '../src/lib/onchainos/risk-manager.js';
 import type { TradeParams } from '../src/lib/onchainos/types.js';
+import type { TechnicalAssetSignal, TechnicalMarketSummary } from '../src/lib/bobby-technical.js';
 import { ethers } from 'ethers';
 
 export const config = { maxDuration: 120 };
@@ -172,6 +173,43 @@ async function fetchIntel(): Promise<any | null> {
     } catch { continue; }
   }
   return null;
+}
+
+function formatSigned(value: number | null | undefined, decimals = 2): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'n/a';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}`;
+}
+
+function getTechnicalAsset(
+  technicalPulse: TechnicalMarketSummary | null | undefined,
+  symbol: string | null | undefined,
+): TechnicalAssetSignal | null {
+  if (!technicalPulse?.assets?.length || !symbol) return technicalPulse?.leader || null;
+  return technicalPulse.assets.find((asset) => asset.symbol === symbol) || technicalPulse.leader || null;
+}
+
+function formatTechnicalPulseBlock(technicalPulse: TechnicalMarketSummary | null | undefined): string {
+  if (!technicalPulse?.assets?.length) return '';
+  const leader = technicalPulse.leader;
+  const leaderLine = leader
+    ? `LEADER: ${leader.symbol} ${leader.signal.toUpperCase()} | score ${formatSigned(leader.compositeScore, 3)} | conviction ${(leader.conviction * 100).toFixed(0)}% | entry ${leader.tradePlan.entry ?? 'n/a'} | stop ${leader.tradePlan.stop ?? 'n/a'} | target ${leader.tradePlan.target ?? 'n/a'}`
+    : 'LEADER: none';
+  const assetLines = technicalPulse.assets.slice(0, 3).map((asset) => {
+    const indicatorLines = Object.entries(asset.breakdown)
+      .sort(([, a], [, b]) => (b.weight || 0) - (a.weight || 0))
+      .map(([name, reading]) => `${name}: ${reading.bias} score ${formatSigned(reading.score, 2)} w ${reading.weight.toFixed(2)}`)
+      .join(' | ');
+    return `${asset.symbol}: ${asset.signal.toUpperCase()} | score ${formatSigned(asset.compositeScore, 3)} | agreement ${(asset.agreement * 100).toFixed(0)}% | ${indicatorLines}`;
+  }).join('\n');
+  return `\n<TECHNICAL_PULSE source="OKX Agent Trade Kit">\nREGIME: ${technicalPulse.regime}\n${leaderLine}\n${assetLines}\n</TECHNICAL_PULSE>`;
+}
+
+function directionMatchesTechnical(
+  asset: TechnicalAssetSignal | null,
+  direction: string | null,
+): boolean | null {
+  if (!asset || !direction || asset.direction === 'none') return null;
+  return asset.direction === direction;
 }
 
 // ---- Fetch OKX positions (optional — works without) ----
@@ -343,6 +381,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       btcPrice: intel.prices?.find((p: any) => p.symbol === 'BTC')?.price,
       ethPrice: intel.prices?.find((p: any) => p.symbol === 'ETH')?.price,
       performance: intel.performance,
+      technical: intel.technicalPulse?.leader || null,
     };
 
     // ============================================================
@@ -398,22 +437,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ).join('\n')}`
       : '\nNO OPEN POSITIONS — Bobby is fully cash. Free to recommend fresh setups.';
 
-    // OKX Agent Trade Kit — 70+ technical indicators (RSI, MACD, BB, SuperTrend, AHR999, etc.)
-    const indicators = intel.technicalIndicators as Array<{ symbol: string; timeframe: string; indicators: any }> | undefined;
-    const indicatorBlock = indicators?.length
-      ? `\n<TECHNICAL_INDICATORS source="OKX Agent Trade Kit">\n${indicators.map((ti: any) => {
-          const ind = ti.indicators;
-          if (!ind) return '';
-          // Format each indicator group into readable text
-          const lines: string[] = [`${ti.symbol} (${ti.timeframe}):`];
-          for (const [key, val] of Object.entries(ind)) {
-            if (val && typeof val === 'object') {
-              lines.push(`  ${key}: ${JSON.stringify(val).slice(0, 200)}`);
-            }
-          }
-          return lines.join('\n');
-        }).filter(Boolean).join('\n')}\n</TECHNICAL_INDICATORS>`
-      : '';
+    const technicalPulse = intel.technicalPulse as TechnicalMarketSummary | undefined;
+    const indicatorBlock = formatTechnicalPulseBlock(technicalPulse);
 
     const contextBlock = `${intel.briefing}${indicatorBlock}${memoryBlock}${positionsBlock}`;
 
@@ -482,29 +507,24 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
     let stopPrice: number | null = null;
     let targetPrice: number | null = null;
     let cioSaysExecute = false; // CRITICAL: only execute if CIO explicitly says so
+    let structuredExecuteRequested = false;
     let structuredVerdictRejectReason: string | null = null;
+    let technicalAlignment: 'aligned' | 'contrarian' | 'neutral' | 'unknown' = 'unknown';
+    const convictionAnchor = typeof intel.performance?.dynamicConviction === 'number'
+      ? intel.performance.dynamicConviction
+      : null;
 
     const verdictMatch = cioPost.match(/VERDICT:\s*(\{[^}]+\})/);
     if (verdictMatch) {
       try {
         const v = JSON.parse(verdictMatch[1]);
+        structuredExecuteRequested = v.execute === true;
         conviction = typeof v.conviction === 'number' ? v.conviction / 10 : null;
         symbol = v.symbol && v.symbol !== 'none' ? v.symbol.toUpperCase() : null;
         direction = v.direction && v.direction !== 'none' ? v.direction.toLowerCase() : null;
         entryPrice = typeof v.entry === 'number' ? v.entry : null;
         stopPrice = typeof v.stop === 'number' ? v.stop : null;
         targetPrice = typeof v.target === 'number' ? v.target : null;
-        // execute:true requires ALL fields to be present in JSON — no regex backfill
-        if (v.execute === true && symbol && direction && conviction !== null && stopPrice) {
-          cioSaysExecute = true;
-        } else if (v.execute === true) {
-          const missing: string[] = [];
-          if (!symbol) missing.push('symbol');
-          if (!direction) missing.push('direction');
-          if (conviction === null) missing.push('conviction');
-          if (!stopPrice) missing.push('stop');
-          structuredVerdictRejectReason = `Structured VERDICT invalid for execution: missing ${missing.join(', ')}`;
-        }
       } catch (e) {
         console.warn('[Cycle] Failed to parse CIO VERDICT JSON:', e);
         structuredVerdictRejectReason = 'Structured VERDICT JSON parse failed';
@@ -530,10 +550,53 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
     }
     // Regex fallback NEVER enables execution — only structured VERDICT with complete fields can
 
+    const technicalAsset = getTechnicalAsset(technicalPulse, symbol);
+    const technicalPlan = technicalAsset?.tradePlan && technicalAsset.tradePlan.direction === direction
+      ? technicalAsset.tradePlan
+      : null;
+    const technicalMatch = directionMatchesTechnical(technicalAsset, direction);
+    technicalAlignment = technicalMatch === true
+      ? 'aligned'
+      : technicalMatch === false
+        ? 'contrarian'
+        : technicalAsset
+          ? 'neutral'
+          : 'unknown';
+
+    if (structuredExecuteRequested && technicalPlan) {
+      if (entryPrice === null && technicalPlan.entry !== null) entryPrice = technicalPlan.entry;
+      if (stopPrice === null && technicalPlan.stop !== null) stopPrice = technicalPlan.stop;
+      if (targetPrice === null && technicalPlan.target !== null) targetPrice = technicalPlan.target;
+    }
+
+    if (structuredExecuteRequested && symbol && direction && conviction !== null && stopPrice) {
+      cioSaysExecute = true;
+    } else if (structuredExecuteRequested) {
+      const missing: string[] = [];
+      if (!symbol) missing.push('symbol');
+      if (!direction) missing.push('direction');
+      if (conviction === null) missing.push('conviction');
+      if (!entryPrice) missing.push('entry');
+      if (!stopPrice) missing.push('stop');
+      structuredVerdictRejectReason = `Structured VERDICT invalid for execution: missing ${missing.join(', ')}`;
+    }
+
     // ============================================================
     // PHASE 3b: Apply calibration adjustment (Metacognition Upgrade A)
     // Codex P1: Store BOTH raw and adjusted conviction separately
     // ============================================================
+    const llmConviction = conviction;
+    const backendBlendWeight = technicalAlignment === 'aligned'
+      ? 0.4
+      : technicalAlignment === 'contrarian'
+        ? 0.2
+        : 0.3;
+    if (conviction !== null && convictionAnchor !== null && (structuredExecuteRequested || direction)) {
+      conviction = parseFloat(Math.max(0.1, Math.min(0.95,
+        (conviction * (1 - backendBlendWeight)) + (convictionAnchor * backendBlendWeight)
+      )).toFixed(2));
+    }
+
     const rawConviction = conviction;
     const calAdj = calibration?.adjustment ?? 1.0;
     const calActive = calibration?.isOverconfident && calAdj < 1.0;
@@ -562,6 +625,15 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
       // Codex P1: store both raw and adjusted conviction + calibration metadata
       trigger_data: {
         regime: intel.regime, fgi: intel.fearGreed, dxy: intel.dxy,
+        technical: technicalPulse || null,
+        conviction_model: intel.performance?.convictionModel || null,
+        backend_blend: {
+          llm_conviction: llmConviction,
+          backend_anchor: convictionAnchor,
+          blend_weight: convictionAnchor !== null ? backendBlendWeight : null,
+          post_blend_conviction: rawConviction,
+          technical_alignment: technicalAlignment,
+        },
         ...(calActive ? { calibration: { raw_conviction: rawConviction, adjusted_conviction: conviction, multiplier: calAdj } } : {}),
       },
       language: lang,
@@ -579,7 +651,13 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
 
     // Save debate posts immediately
     if (threadId) {
-      const snapshot = { regime: intel.regime, fgi: intel.fearGreed, dxy: intel.dxy, trackRecord: track };
+      const snapshot = {
+        regime: intel.regime,
+        fgi: intel.fearGreed,
+        dxy: intel.dxy,
+        trackRecord: track,
+        technicalLeader: technicalPulse?.leader || null,
+      };
       for (const post of [
         { agent: 'alpha', content: alphaPost },
         { agent: 'redteam', content: redPost },
