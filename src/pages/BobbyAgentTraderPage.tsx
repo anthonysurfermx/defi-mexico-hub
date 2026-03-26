@@ -231,8 +231,7 @@ export default function BobbyAgentTraderPage() {
 
           {/* === Main Content Area === */}
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-            {/* === HACKATHON SUBMISSION — First thing judges see === */}
-            <HackathonDemo />
+            {/* Hackathon demo moved to landing page — terminal is product-only */}
             {/* === Chat Area === */}
             <div className="flex-1 min-h-0 overflow-hidden">
               <AdamsChat />
