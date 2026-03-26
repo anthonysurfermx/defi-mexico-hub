@@ -59,6 +59,7 @@ export default function MainLayout() {
     { name: 'Blog', href: '/blog', Icon: PixelFileText, description: 'Growth insights & DeFi analysis' },
     { name: 'Video Tutoriales', href: '/academia/videos', Icon: PixelYoutube, description: 'Videos educativos de DeFi' },
     { name: 'Mercado LP', href: '/academia/juego/mercado-lp', Icon: PixelGamepad, description: 'Mini game educativo DeFi' },
+    { name: 'NFT Collection', href: '/nft-gallery', Icon: PixelTrophy, description: 'Digital art collection' },
   ];
 
   // Navegación del ecosistema (dropdown)
@@ -68,14 +69,16 @@ export default function MainLayout() {
     { name: t('nav.communities'), href: '/comunidades', Icon: PixelNetwork, description: 'Groups and communities' },
     { name: t('nav.events'), href: '/eventos', Icon: PixelCalendar, description: 'Events and conferences' },
     { name: 'Trabajos Web3', href: '/ecosistema/trabajos', Icon: PixelBriefcase, description: 'Web3 jobs in Mexico' },
+    { name: 'Métricas', href: '/metricas', Icon: PixelBarChart, description: 'DeFi ecosystem metrics' },
   ];
 
-  // Navegación "Agentic World" (dropdown) - Polymarket Agent Radar first (star feature)
+  // Navegación "Agentic World" (dropdown)
   const agenticNavigation = [
-    { name: t('agenticWorld.navPolymarket'), href: '/agentic-world/polymarket', Icon: PixelLobster, description: t('agenticWorld.navPolymarketDesc') },
-    { name: t('agenticWorld.navLeaderboard'), href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: t('agenticWorld.navLeaderboardDesc') },
-    { name: 'Bobby Agent Trader', href: '/agentic-world/bobby', Icon: PixelTarget, description: 'AI-powered autonomous trading — Bobby Axelrod mode' },
-    { name: 'Agent Trading Forum', href: '/agentic-world/forum', Icon: PixelTarget, description: '24/7 autonomous debates — Alpha Hunter vs Red Team vs Bobby CIO' },
+    { name: 'Deploy Your AI Agent', href: '/agentic-world', Icon: PixelTarget, description: 'Create your personal AI Trading Room' },
+    { name: 'Bobby Agent Trader', href: '/agentic-world/bobby', Icon: PixelLobster, description: 'AI-powered autonomous trading terminal' },
+    { name: 'Agent Commerce', href: '/agentic-world/bobby/marketplace', Icon: PixelTrophy, description: '10 use cases — agents buying intelligence' },
+    { name: 'Agent Trading Forum', href: '/agentic-world/forum', Icon: PixelTarget, description: '24/7 autonomous debates — Alpha Hunter vs Red Team vs CIO' },
+    { name: 'AI Agent Leaderboard', href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: 'Skills & MCPs ecosystem directory' },
   ];
 
   const isActive = (path: string) => {
