@@ -75,140 +75,24 @@ function HackathonDemo() {
   if (dismissed) return null;
 
   return (
-    <div className="relative w-full font-mono" style={{ background: '#050505' }}>
-      {/* Animated border glow */}
-      <div className="absolute inset-0 rounded-none pointer-events-none"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(34,197,94,0.08) 25%, rgba(34,197,94,0.15) 50%, rgba(34,197,94,0.08) 75%, transparent 100%)',
-          animation: 'hackathonGlow 3s ease-in-out infinite',
-        }}
-      />
-      <style>{`
-        @keyframes hackathonGlow {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-        @keyframes hackathonScan {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-5 space-y-4">
-
-        {/* HEADER */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <div className="relative overflow-hidden">
-              <h2 className="text-sm md:text-base font-black tracking-tight text-green-400">
-                BOBBY AGENT TRADER
-              </h2>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-400/20 to-transparent"
-                style={{ animation: 'hackathonScan 4s linear infinite' }} />
-            </div>
-            <span className="text-[9px] text-white/20">|</span>
-            <span className="text-[9px] text-white/40 tracking-widest">OKX X LAYER AI HACKATHON</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[8px] tracking-widest rounded">
-              LIVE ON X LAYER
-            </span>
-            <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] tracking-widest rounded">
-              CHAIN 196
-            </span>
-            <button
-              onClick={() => setDismissed(true)}
-              className="ml-2 text-white/20 hover:text-white/50 text-[10px] transition-colors"
-              title="Dismiss"
-            >
-              [x]
-            </button>
-          </div>
-        </div>
-
-        {/* LIVE STATS ROW */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { label: 'DEBATES', value: debateCount, color: 'green' },
-            { label: 'ON-CHAIN COMMITS', value: commitCount, color: 'green' },
-            { label: 'AGENT NFTs', value: 3, color: 'amber', sub: 'Alpha Hunter / Red Team / CIO' },
-            { label: 'SMART CONTRACTS', value: 4, color: 'amber', sub: 'TrackRecord / Oracle / Economy / Registry' },
-          ].map(stat => (
-            <div key={stat.label} className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3 text-center">
-              <div className={`text-xl md:text-2xl font-black ${stat.color === 'green' ? 'text-green-400' : 'text-amber-400'}`}
-                style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {stat.value !== null ? stat.value : <span className="inline-block w-8 h-5 bg-white/5 rounded animate-pulse" />}
-              </div>
-              <div className="text-[8px] text-white/30 tracking-widest mt-1">{stat.label}</div>
-              {stat.sub && <div className="text-[7px] text-white/15 mt-0.5">{stat.sub}</div>}
-            </div>
-          ))}
-        </div>
-
-        {/* SMART CONTRACTS ROW */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="relative w-full font-mono bg-green-500/5 border-b border-green-500/10">
+      <div className="flex items-center justify-between px-4 py-1.5 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+          <span className="text-[9px] text-green-400 font-bold tracking-widest shrink-0">OKX X LAYER HACKATHON</span>
+          <span className="text-[8px] text-white/20">|</span>
+          <span className="text-[8px] text-white/30 shrink-0">{debateCount ?? '—'} debates</span>
+          <span className="text-[8px] text-white/30 shrink-0">{commitCount ?? '—'} on-chain</span>
+          <span className="text-[8px] text-white/30 shrink-0">4 contracts</span>
+          <span className="text-[8px] text-white/30 shrink-0">3 NFTs</span>
           {CONTRACTS.map(c => (
-            <div key={c.name} className="bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-[9px] text-white/50 font-bold truncate">{c.name}</div>
-                <div className="text-[8px] text-green-400/60 truncate">{truncAddr(c.address)}</div>
-              </div>
-              <a
-                href={`${OKLINK_BASE}/${c.address}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-shrink-0 text-[7px] text-green-400/50 hover:text-green-400 tracking-widest transition-colors whitespace-nowrap"
-              >
-                VIEW ON XLAYER &rarr;
-              </a>
-            </div>
+            <a key={c.name} href={`${OKLINK_BASE}/${c.address}`} target="_blank" rel="noopener noreferrer"
+              className="text-[7px] text-green-400/40 hover:text-green-400 shrink-0 transition-colors">
+              {c.name.replace('Bobby', '')}↗
+            </a>
           ))}
         </div>
-
-        {/* ARCHITECTURE ROW */}
-        <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-3">
-          <div className="text-[10px] text-white/50 leading-relaxed">
-            <span className="text-green-400 font-bold">ARCHITECTURE:</span>{' '}
-            3 AI agents debate &rarr; commit prediction on-chain &rarr; verify outcome &rarr; agent-to-agent payment
-          </div>
-          <div className="text-[8px] text-white/20 mt-1.5 tracking-wide">
-            Powered by: <span className="text-white/30">OKX OnchainOS</span> &bull;{' '}
-            <span className="text-white/30">OKX Agent Trade Kit</span> &bull;{' '}
-            <span className="text-white/30">X Layer</span> &bull;{' '}
-            <span className="text-white/30">Claude AI</span>
-          </div>
-        </div>
-
-        {/* LINKS ROW */}
-        <div className="flex flex-wrap items-center gap-3 text-[9px]">
-          <a
-            href="https://github.com/anthonysurfermx/Bobby-Agent-Trader"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded text-white/40 hover:text-green-400 hover:border-green-500/20 transition-all"
-          >
-            GITHUB &rarr;
-          </a>
-          <a
-            href="https://youtube.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded text-white/40 hover:text-green-400 hover:border-green-500/20 transition-all"
-          >
-            VIDEO_DEMO &rarr;
-          </a>
-          <span className="px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded text-white/25">
-            MCP: <span className="text-white/40">curl -X POST /api/mcp</span>
-          </span>
-          <span className="px-2.5 py-1 bg-white/[0.03] border border-white/[0.06] rounded text-white/25">
-            x402: <span className="text-amber-400/50">Premium tools require x402 payment on X Layer</span>
-          </span>
-        </div>
-
+        <button onClick={() => setDismissed(true)} className="text-white/20 hover:text-white/50 text-[9px] ml-2 shrink-0">[x]</button>
       </div>
-
-      {/* Bottom separator */}
-      <div className="h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
     </div>
   );
 }
