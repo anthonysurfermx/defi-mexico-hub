@@ -1,8 +1,7 @@
 // ============================================================
 // GET /api/bobby-signals — Technical indicators from latest cycle
 // Reads cached indicators from Supabase (forum_threads.trigger_data)
-// instead of calling OKX directly (Vercel IPs are blocked by OKX).
-// Bobby's cycle already fetches indicators — we just read the cache.
+// OKX blocks Vercel IPs — we read from Bobby's cycle cache instead.
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -18,9 +17,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
   try {
-    // Read latest thread that has technical data in trigger_data
+    // Read last 10 threads and find one with technical data
     const sbRes = await fetch(
-      `${SB_URL}/rest/v1/forum_threads?trigger_data->>technical=not.is.null&order=created_at.desc&limit=1&select=trigger_data,created_at,symbol,conviction_score`,
+      `${SB_URL}/rest/v1/forum_threads?trigger_data=not.is.null&order=created_at.desc&limit=10&select=trigger_data,created_at,symbol,conviction_score`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
     );
 
@@ -29,88 +28,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const rows = await sbRes.json();
-    if (!Array.isArray(rows) || !rows.length || !rows[0].trigger_data?.technical) {
-      // Fallback: try reading technicalPulse from trigger_data
-      const sbRes2 = await fetch(
-        `${SB_URL}/rest/v1/forum_threads?order=created_at.desc&limit=5&select=trigger_data,created_at,symbol`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      );
-      const rows2 = await sbRes2.json();
-      const withTech = rows2?.find((r: any) => r.trigger_data?.technical || r.trigger_data?.technicalLeader);
-
-      if (!withTech) {
-        return res.status(503).json({ error: 'No technical indicator data available yet. Waiting for next cycle.' });
-      }
-
-      return res.status(200).json({
-        ok: true,
-        source: 'OKX Agent Trade Kit (cached from Bobby cycle)',
-        ts: new Date(withTech.created_at).getTime(),
-        age: Date.now() - new Date(withTech.created_at).getTime(),
-        technical: withTech.trigger_data.technical || withTech.trigger_data.technicalLeader,
-        convictionModel: withTech.trigger_data.conviction_model || null,
-        indicators: formatAsIndicators(withTech.trigger_data),
-      });
+    if (!Array.isArray(rows) || !rows.length) {
+      return res.status(503).json({ error: 'No cycle data available yet' });
     }
 
-    const thread = rows[0];
-    const td = thread.trigger_data;
+    // Find first thread that has technical data
+    const withTech = rows.find((r: any) => r.trigger_data?.technical?.assets?.length > 0);
 
-    return res.status(200).json({
-      ok: true,
-      source: 'OKX Agent Trade Kit (cached from Bobby cycle)',
-      ts: new Date(thread.created_at).getTime(),
-      age: Date.now() - new Date(thread.created_at).getTime(),
-      technical: td.technical,
-      convictionModel: td.conviction_model || null,
-      indicators: formatAsIndicators(td),
-    });
-  } catch (e: any) {
-    return res.status(500).json({ error: e.message });
-  }
-}
+    if (!withTech) {
+      return res.status(503).json({ error: 'No technical indicator data available yet. Waiting for next cycle with OKX Agent Trade Kit.' });
+    }
 
-function formatAsIndicators(triggerData: any): any[] {
-  const tech = triggerData?.technical;
-  if (!tech) return [];
+    const tech = withTech.trigger_data.technical;
+    const convictionModel = withTech.trigger_data.conviction_model || null;
 
-  // If it's a single asset technical signal
-  if (tech.symbol && tech.breakdown) {
-    return [{
-      symbol: tech.symbol,
-      timeframe: '1H',
-      compositeScore: tech.compositeScore,
-      signal: tech.signal,
-      conviction: tech.conviction,
-      agreement: tech.agreement,
-      indicators: Object.fromEntries(
-        Object.entries(tech.breakdown).map(([name, reading]: [string, any]) => [
-          name,
-          { bias: reading.bias, score: reading.score, weight: reading.weight, raw: reading.raw }
-        ])
-      ),
-      tradePlan: tech.tradePlan || null,
-    }];
-  }
-
-  // If it's a full technicalPulse with multiple assets
-  if (tech.assets) {
-    return tech.assets.map((asset: any) => ({
+    // Format assets with their indicator breakdowns
+    const indicators = (tech.assets || []).map((asset: any) => ({
       symbol: asset.symbol,
       timeframe: '1H',
       compositeScore: asset.compositeScore,
       signal: asset.signal,
       conviction: asset.conviction,
       agreement: asset.agreement,
+      tradePlan: asset.tradePlan || null,
       indicators: Object.fromEntries(
         Object.entries(asset.breakdown || {}).map(([name, reading]: [string, any]) => [
           name,
           { bias: reading.bias, score: reading.score, weight: reading.weight, raw: reading.raw }
         ])
       ),
-      tradePlan: asset.tradePlan || null,
     }));
-  }
 
-  return [];
+    return res.status(200).json({
+      ok: true,
+      source: 'OKX Agent Trade Kit (cached from Bobby cycle)',
+      ts: new Date(withTech.created_at).getTime(),
+      age: Date.now() - new Date(withTech.created_at).getTime(),
+      regime: tech.regime || withTech.trigger_data.regime || null,
+      leader: tech.leader || null,
+      convictionModel,
+      indicators,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e.message });
+  }
 }
