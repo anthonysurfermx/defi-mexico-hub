@@ -647,7 +647,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
       } catch { /* non-blocking */ }
     }
 
-    if (!isDryRun && cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.6) {
+    if (!isDryRun && cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.5) {
       try {
         const currentPrice = intel.prices?.find((p: any) => p.symbol === symbol)?.price || entryPrice;
         
@@ -771,7 +771,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
       } catch (err) {
         tradeRejectedReason = `Execution exception: ${err instanceof Error ? err.message : String(err)}`;
       }
-    } else if (conviction !== null && conviction < 0.6) {
+    } else if (conviction !== null && conviction < 0.5) {
       tradeRejectedReason = 'Conviction below 6/10 threshold';
     } else if (!isDryRun && structuredVerdictRejectReason) {
       tradeRejectedReason = structuredVerdictRejectReason;
@@ -833,7 +833,7 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
       symbol: digestSymbol,
       direction: digestDirection,
       conviction: convNum,
-      verdict: conviction !== null && conviction >= 0.6 ? 'execute' : conviction !== null && conviction >= 0.4 ? 'watch' : 'reject',
+      verdict: conviction !== null && conviction >= 0.5 ? 'execute' : conviction !== null && conviction >= 0.4 ? 'watch' : 'reject',
     }];
 
     // Save global digest (for anonymous users + anyone who opens Bobby)
