@@ -287,6 +287,126 @@ export default function BobbySignalsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResult, setSearchResult] = useState<IndicatorEntry | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const handleSearch = async () => {
+    const query = searchQuery.trim().toUpperCase();
+    if (!query) return;
+
+    // Map common names to OKX instId
+    const instId = query.includes('-') ? query : `${query}-USDT`;
+
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchResult(null);
+
+    try {
+      // First check Supabase cache
+      const cacheRes = await fetch(
+        `https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/indicator_cache?inst_id=eq.${instId}&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+            Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          },
+        }
+      );
+      const cached = await cacheRes.json();
+      const freshEnough = cached?.[0] && (Date.now() - new Date(cached[0].created_at).getTime()) < 24 * 60 * 60 * 1000;
+
+      if (freshEnough) {
+        setSearchResult({
+          symbol: cached[0].inst_id,
+          timeframe: cached[0].timeframe || '1H',
+          indicators: cached[0].indicators || {},
+          compositeScore: cached[0].composite_score,
+          signal: cached[0].signal,
+          conviction: cached[0].conviction,
+          agreement: cached[0].agreement,
+        });
+        setSearchLoading(false);
+        return;
+      }
+
+      // Cache miss — fetch from OKX directly (browser not blocked)
+      const okxRes = await fetch('https://www.okx.com/api/v5/aigc/mcp/indicators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instId,
+          timeframes: ['1H'],
+          indicators: {
+            RSI: { paramList: [14] },
+            MACD: { paramList: [12, 26, 9] },
+            BB: { paramList: [20, 2] },
+            MA: { paramList: [50, 200] },
+            EMA: { paramList: [12, 26] },
+            SUPERTREND: { paramList: [10, 3] },
+            ATR: { paramList: [14] },
+            KDJ: { paramList: [9, 3, 3] },
+          },
+        }),
+      });
+
+      if (!okxRes.ok) {
+        setSearchError(`${query} not found on OKX. Try: BTC, ETH, SOL, NVDA, PEPE, DOGE...`);
+        setSearchLoading(false);
+        return;
+      }
+
+      const okxData = await okxRes.json();
+      if (okxData.code !== '0' && okxData.code !== 0) {
+        setSearchError(`${query} not available. Try another asset.`);
+        setSearchLoading(false);
+        return;
+      }
+
+      const nested = okxData?.data?.[0]?.data?.[0]?.timeframes?.['1H']?.indicators;
+      if (!nested) {
+        setSearchError(`No indicator data for ${query}.`);
+        setSearchLoading(false);
+        return;
+      }
+
+      // Flatten indicators
+      const flat: Record<string, any> = {};
+      for (const [key, arr] of Object.entries(nested)) {
+        if (Array.isArray(arr) && arr.length > 0) {
+          flat[key] = (arr as any[])[0].values || (arr as any[])[0];
+        }
+      }
+
+      const result: IndicatorEntry = { symbol: instId, timeframe: '1H', indicators: flat };
+      setSearchResult(result);
+
+      // Save to Supabase cache (fire-and-forget)
+      fetch('https://egpixaunlnzauztbrnuz.supabase.co/rest/v1/indicator_cache', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVncGl4YXVubG56YXV6dGJybnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTc3MDQsImV4cCI6MjA3MDg3MzcwNH0.jlWxBgUiBLOOptESdBYzisWAbiMnDa5ktzFaCGskew4',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          inst_id: instId,
+          timeframe: '1H',
+          indicators: flat,
+          source: 'OKX Agent Trade Kit (user search)',
+        }),
+      }).catch(() => {}); // fire-and-forget
+
+    } catch (e: any) {
+      setSearchError(e.message || 'Search failed');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetch('/api/bobby-signals')
       .then(r => {
@@ -363,6 +483,58 @@ export default function BobbySignalsPage() {
                 PWR: OKX_AGENT_TRADE_KIT
               </span>
             </div>
+
+            {/* SEARCH BAR */}
+            <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[8px] text-white/30 tracking-widest shrink-0">SEARCH_ASSET:</span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  placeholder="BTC, ETH, SOL, NVDA, PEPE, DOGE, AAPL..."
+                  className="flex-1 bg-transparent font-mono text-sm text-green-400 placeholder:text-white/15 outline-none border-b border-white/10 focus:border-green-500/40 pb-1 transition-colors"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={searchLoading || !searchQuery.trim()}
+                  className="font-mono text-[9px] tracking-widest px-3 py-1.5 bg-green-500/15 text-green-400 border border-green-500/20 rounded-sm hover:bg-green-500/25 transition-all disabled:opacity-30"
+                >
+                  {searchLoading ? 'SCANNING...' : 'ANALYZE'}
+                </button>
+              </div>
+              {searchError && (
+                <p className="font-mono text-[9px] text-red-400/70 mt-2">{'>'} {searchError}</p>
+              )}
+            </div>
+
+            {/* SEARCH RESULT */}
+            {searchResult && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-green-400 tracking-widest">{searchResult.symbol.replace('-USDT', '')}</span>
+                  <span className="font-mono text-[8px] text-white/30">CUSTOM_SCAN</span>
+                </div>
+                <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {parseIndicators(searchResult).map(ind => (
+                      <div key={ind.name} className="flex items-center justify-between p-2 bg-black/30 rounded border border-white/5">
+                        <span className="font-mono text-[9px] text-white/50">{ind.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[9px] font-bold text-white/80">{ind.value}</span>
+                          <span className={`font-mono text-[7px] px-1 py-0.5 rounded ${
+                            ind.color === 'green' ? 'bg-green-500/15 text-green-400' :
+                            ind.color === 'red' ? 'bg-red-500/15 text-red-400' :
+                            'bg-amber-500/15 text-amber-400'
+                          }`}>{ind.signal}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* 2. THE ANCHOR */}
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-4">
