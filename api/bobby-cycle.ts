@@ -462,13 +462,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Alpha Hunter (Haiku — cheap, aggressive, scans full market)
     alphaPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage. CITE technical indicators (RSI, MACD, BB, SuperTrend, AHR999) from the OKX Agent Trade Kit data when supporting your thesis.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
+      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage. You MUST reference the TECHNICAL_PULSE section — cite the composite score, the signal (BULLISH/BEARISH), and at least 2 specific indicators (RSI, MACD, BB, SuperTrend, AHR999) with their exact values from OKX Agent Trade Kit. If the technical score supports your thesis, say so explicitly.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
       `MARKET SCAN:\n${contextBlock}`, 350
     );
 
     // Red Team (Haiku — adversarial, cost-optimized)
     redPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. USE technical indicators (RSI overbought, MACD divergence, BB squeeze) from OKX Agent Trade Kit to counter Alpha's argument. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
+      `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. Reference the TECHNICAL_PULSE composite score — if it contradicts Alpha, use it as ammunition. Cite specific indicator readings (RSI overbought, MACD divergence, BB squeeze, death cross) from OKX Agent Trade Kit with exact numbers. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
         track.winRate < 60 ? ' Bobby has been WRONG recently. Be extra aggressive.' : ''
       }${hasContradictions ? ` Use Bobby's recent failures as ammunition: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
