@@ -1,83 +1,116 @@
 // ============================================================
-// GET /api/bobby-signals — Fast technical indicators endpoint
-// Only fetches OKX Agent Trade Kit indicators (no whale signals,
-// no Polymarket, no Fear & Greed). ~2-3s response time.
+// GET /api/bobby-signals — Technical indicators from latest cycle
+// Reads cached indicators from Supabase (forum_threads.trigger_data)
+// instead of calling OKX directly (Vercel IPs are blocked by OKX).
+// Bobby's cycle already fetches indicators — we just read the cache.
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const config = { maxDuration: 15 };
+export const config = { maxDuration: 10 };
 
-interface IndicatorResult {
-  symbol: string;
-  timeframe: string;
-  indicators: Record<string, any>;
-}
-
-async function fetchIndicators(instId: string, bar = '1H'): Promise<IndicatorResult | null> {
-  try {
-    const body = {
-      instId,
-      timeframes: [bar],
-      indicators: {
-        RSI: { paramList: [14] },
-        MACD: { paramList: [12, 26, 9] },
-        BB: { paramList: [20, 2] },
-        MA: { paramList: [50, 200] },
-        EMA: { paramList: [12, 26] },
-        KDJ: { paramList: [9, 3, 3] },
-        ATR: { paramList: [14] },
-        SUPERTREND: { paramList: [10, 3] },
-        AHR999: {},
-        BTCRAINBOW: {},
-      },
-    };
-    const res = await fetch('https://www.okx.com/api/v5/aigc/mcp/indicators', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Bobby-Agent-Trader/1.0 (OKX-Hackathon)',
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const nested = data?.data?.[0]?.data?.[0]?.timeframes?.[bar]?.indicators;
-    if (!nested) return null;
-    const flat: Record<string, any> = {};
-    for (const [key, arr] of Object.entries(nested)) {
-      if (Array.isArray(arr) && arr.length > 0) {
-        flat[key] = (arr as any[])[0].values || (arr as any[])[0];
-      }
-    }
-    return { symbol: instId, timeframe: bar, indicators: flat };
-  } catch { return null; }
-}
+const SB_URL = process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 
-  res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
   try {
-    const [btc, eth] = await Promise.all([
-      fetchIndicators('BTC-USDT', '1H'),
-      fetchIndicators('ETH-USDT', '1H'),
-    ]);
+    // Read latest thread that has technical data in trigger_data
+    const sbRes = await fetch(
+      `${SB_URL}/rest/v1/forum_threads?trigger_data->>technical=not.is.null&order=created_at.desc&limit=1&select=trigger_data,created_at,symbol,conviction_score`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+    );
 
-    const results = [btc, eth].filter(Boolean) as IndicatorResult[];
-
-    if (!results.length) {
-      return res.status(503).json({ error: 'OKX indicator API unavailable' });
+    if (!sbRes.ok) {
+      return res.status(503).json({ error: 'Supabase unavailable' });
     }
+
+    const rows = await sbRes.json();
+    if (!Array.isArray(rows) || !rows.length || !rows[0].trigger_data?.technical) {
+      // Fallback: try reading technicalPulse from trigger_data
+      const sbRes2 = await fetch(
+        `${SB_URL}/rest/v1/forum_threads?order=created_at.desc&limit=5&select=trigger_data,created_at,symbol`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const rows2 = await sbRes2.json();
+      const withTech = rows2?.find((r: any) => r.trigger_data?.technical || r.trigger_data?.technicalLeader);
+
+      if (!withTech) {
+        return res.status(503).json({ error: 'No technical indicator data available yet. Waiting for next cycle.' });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        source: 'OKX Agent Trade Kit (cached from Bobby cycle)',
+        ts: new Date(withTech.created_at).getTime(),
+        age: Date.now() - new Date(withTech.created_at).getTime(),
+        technical: withTech.trigger_data.technical || withTech.trigger_data.technicalLeader,
+        convictionModel: withTech.trigger_data.conviction_model || null,
+        indicators: formatAsIndicators(withTech.trigger_data),
+      });
+    }
+
+    const thread = rows[0];
+    const td = thread.trigger_data;
 
     return res.status(200).json({
       ok: true,
-      source: 'OKX Agent Trade Kit',
-      ts: Date.now(),
-      indicators: results,
+      source: 'OKX Agent Trade Kit (cached from Bobby cycle)',
+      ts: new Date(thread.created_at).getTime(),
+      age: Date.now() - new Date(thread.created_at).getTime(),
+      technical: td.technical,
+      convictionModel: td.conviction_model || null,
+      indicators: formatAsIndicators(td),
     });
   } catch (e: any) {
     return res.status(500).json({ error: e.message });
   }
+}
+
+function formatAsIndicators(triggerData: any): any[] {
+  const tech = triggerData?.technical;
+  if (!tech) return [];
+
+  // If it's a single asset technical signal
+  if (tech.symbol && tech.breakdown) {
+    return [{
+      symbol: tech.symbol,
+      timeframe: '1H',
+      compositeScore: tech.compositeScore,
+      signal: tech.signal,
+      conviction: tech.conviction,
+      agreement: tech.agreement,
+      indicators: Object.fromEntries(
+        Object.entries(tech.breakdown).map(([name, reading]: [string, any]) => [
+          name,
+          { bias: reading.bias, score: reading.score, weight: reading.weight, raw: reading.raw }
+        ])
+      ),
+      tradePlan: tech.tradePlan || null,
+    }];
+  }
+
+  // If it's a full technicalPulse with multiple assets
+  if (tech.assets) {
+    return tech.assets.map((asset: any) => ({
+      symbol: asset.symbol,
+      timeframe: '1H',
+      compositeScore: asset.compositeScore,
+      signal: asset.signal,
+      conviction: asset.conviction,
+      agreement: asset.agreement,
+      indicators: Object.fromEntries(
+        Object.entries(asset.breakdown || {}).map(([name, reading]: [string, any]) => [
+          name,
+          { bias: reading.bias, score: reading.score, weight: reading.weight, raw: reading.raw }
+        ])
+      ),
+      tradePlan: asset.tradePlan || null,
+    }));
+  }
+
+  return [];
 }

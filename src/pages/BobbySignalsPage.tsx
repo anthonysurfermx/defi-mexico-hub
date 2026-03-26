@@ -295,9 +295,19 @@ export default function BobbySignalsPage() {
       .then(d => {
         const ti = d?.indicators;
         if (Array.isArray(ti) && ti.length > 0) {
-          setData(ti);
+          // Adapt cached format: convert {bias, score, weight, raw} to flat indicator values
+          const adapted = ti.map((entry: any) => {
+            const indicators: Record<string, any> = {};
+            for (const [name, reading] of Object.entries(entry.indicators || {})) {
+              const r = reading as any;
+              // Use raw data if available, otherwise construct from score/bias
+              indicators[name] = r.raw || { value: r.score, bias: r.bias };
+            }
+            return { ...entry, indicators };
+          });
+          setData(adapted);
         } else {
-          setError('No technical indicator data available');
+          setError('No technical indicator data available. Waiting for next Bobby cycle.');
         }
       })
       .catch(e => setError(e.message))
