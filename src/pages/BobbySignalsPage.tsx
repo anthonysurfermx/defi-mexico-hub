@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import KineticShell from '@/components/kinetic/KineticShell';
-import AIInsightsTerminal from '@/components/agentic/AIInsightsTerminal';
+import { AIInsightsTerminal } from '@/components/agentic/AIInsightsTerminal';
 
 // ---- Types ----
 interface IndicatorEntry {
