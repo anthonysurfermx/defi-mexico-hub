@@ -3570,6 +3570,26 @@ export function AdamsChat() {
                   }`}>
                 {isListening ? <Mic className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <MicOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
               </button>
+              {/* Quick Action Buttons — Stitch Redesign */}
+              {!inputText && !isProcessing && messages.length < 3 && (
+                <div className="flex items-center gap-1 mr-1 overflow-x-auto no-scrollbar">
+                  {[
+                    { label: '₿ BTC', cmd: 'Analyze BTC' },
+                    { label: 'Ξ ETH', cmd: 'Analyze ETH' },
+                    { label: '◆ NVDA', cmd: 'Analyze NVDA' },
+                    { label: '◆ S&P 500', cmd: 'Analyze SPY' },
+                    { label: '◆ Oro', cmd: 'Analyze Gold' },
+                    { label: '$ Todos', cmd: 'Full market scan' },
+                    { label: '> Analizar Mercado', cmd: 'Full market analysis with all indicators' },
+                    { label: '× Debate', cmd: 'Should I long BTC right now?' },
+                  ].map(btn => (
+                    <button key={btn.label} onClick={() => { setInputText(btn.cmd); setTimeout(() => sendMessage(), 100); }}
+                      className="shrink-0 font-mono text-[9px] px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white/50 hover:text-green-400 hover:border-green-500/30 hover:bg-green-500/5 transition-all whitespace-nowrap">
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <input type="text" value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
