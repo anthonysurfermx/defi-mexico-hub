@@ -52,7 +52,7 @@ const NAV_ITEMS = [
   { id: 'analytics', label: 'ANALYTICS', path: '/agentic-world/bobby/analytics' },
   { id: 'metacognition', label: 'META', path: '/agentic-world/bobby/metacognition' },
   { id: 'signals', label: 'SIGNALS', path: '/agentic-world/bobby/signals' },
-  { id: 'docs', label: 'DOCS', path: '/agentic-world/bobby/docs' },
+  { id: 'docs', label: 'AI DOCS', path: '/agentic-world/bobby/docs' },
 ] as const;
 
 const SIDE_ITEMS = [

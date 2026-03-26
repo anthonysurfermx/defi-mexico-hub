@@ -1,5 +1,5 @@
 // ============================================================
-// Bobby Dev Docs — Integration portal for AI agents & developers
+// Bobby AI Docs — Integration portal for AI agents & developers
 // One link to rule them all: defimexico.org/llms.txt
 // ============================================================
 
@@ -50,7 +50,7 @@ const MCP_TOOLS = [
 export default function BobbyDocsPage() {
   return (
     <KineticShell activeTab="terminal">
-      <Helmet><title>Dev Docs | Bobby Agent Trader</title></Helmet>
+      <Helmet><title>AI Docs | Bobby Agent Trader</title></Helmet>
 
       <div className="min-h-screen bg-[#050505] pb-20 md:pb-8">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -59,7 +59,7 @@ export default function BobbyDocsPage() {
           <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <BookOpen className="w-5 h-5 text-green-400" />
-              <h1 className="font-mono text-lg text-white/90 tracking-wide">BOBBY_DEV_DOCS</h1>
+              <h1 className="font-mono text-lg text-white/90 tracking-wide">BOBBY_AI_DOCS</h1>
               <span className="font-mono text-[8px] text-green-400/60 border border-green-500/20 px-2 py-0.5 rounded-sm ml-auto">v3.0 — X LAYER</span>
             </div>
             <p className="font-mono text-[11px] text-white/50 leading-relaxed">
