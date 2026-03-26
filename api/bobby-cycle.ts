@@ -398,7 +398,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ).join('\n')}`
       : '\nNO OPEN POSITIONS — Bobby is fully cash. Free to recommend fresh setups.';
 
-    const contextBlock = `${intel.briefing}${memoryBlock}${positionsBlock}`;
+    // OKX Agent Trade Kit — 70+ technical indicators (RSI, MACD, BB, SuperTrend, AHR999, etc.)
+    const indicators = intel.technicalIndicators as Array<{ symbol: string; timeframe: string; indicators: any }> | undefined;
+    const indicatorBlock = indicators?.length
+      ? `\n<TECHNICAL_INDICATORS source="OKX Agent Trade Kit">\n${indicators.map((ti: any) => {
+          const ind = ti.indicators;
+          if (!ind) return '';
+          // Format each indicator group into readable text
+          const lines: string[] = [`${ti.symbol} (${ti.timeframe}):`];
+          for (const [key, val] of Object.entries(ind)) {
+            if (val && typeof val === 'object') {
+              lines.push(`  ${key}: ${JSON.stringify(val).slice(0, 200)}`);
+            }
+          }
+          return lines.join('\n');
+        }).filter(Boolean).join('\n')}\n</TECHNICAL_INDICATORS>`
+      : '';
+
+    const contextBlock = `${intel.briefing}${indicatorBlock}${memoryBlock}${positionsBlock}`;
 
     let alphaPost: string;
     let redPost: string;
@@ -420,13 +437,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Alpha Hunter (Haiku — cheap, aggressive, scans full market)
     alphaPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
+      `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage. CITE technical indicators (RSI, MACD, BB, SuperTrend, AHR999) from the OKX Agent Trade Kit data when supporting your thesis.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
       `MARKET SCAN:\n${contextBlock}`, 350
     );
 
     // Red Team (Haiku — adversarial, cost-optimized)
     redPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
+      `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. USE technical indicators (RSI overbought, MACD divergence, BB squeeze) from OKX Agent Trade Kit to counter Alpha's argument. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
         track.winRate < 60 ? ' Bobby has been WRONG recently. Be extra aggressive.' : ''
       }${hasContradictions ? ` Use Bobby's recent failures as ammunition: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
