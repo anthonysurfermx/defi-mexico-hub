@@ -509,6 +509,44 @@ Now produce the analysis. Remember:
 }
 
 
+function buildSignalsPrompt(data: any): string {
+  const indicators = data.indicators || [];
+  const regime = data.regime || 'unknown';
+  const leader = data.leader;
+  const convictionModel = data.convictionModel;
+  const userName = data.userName || null;
+
+  const assetBlocks = indicators.map((asset: any) => {
+    const indLines = Object.entries(asset.indicators || {}).map(([name, reading]: [string, any]) =>
+      `  ${name}: ${reading.bias} | score: ${reading.score?.toFixed(2)} | weight: ${reading.weight?.toFixed(2)}`
+    ).join('\n');
+    return `${asset.symbol} — ${asset.signal?.toUpperCase()} | composite: ${asset.compositeScore?.toFixed(3)} | conviction: ${(asset.conviction * 100).toFixed(0)}% | agreement: ${(asset.agreement * 100).toFixed(0)}%
+${indLines}
+Trade Plan: entry=${asset.tradePlan?.entry ?? 'n/a'} | stop=${asset.tradePlan?.stop ?? 'n/a'} | target=${asset.tradePlan?.target ?? 'n/a'}`;
+  }).join('\n\n');
+
+  return `You are Bobby CIO analyzing technical indicators from OKX Agent Trade Kit for ${userName || 'the user'}.
+
+REGIME: ${regime}
+${leader ? `LEADER ASSET: ${leader.symbol} — ${leader.signal} (score ${leader.compositeScore?.toFixed(3)})` : 'No clear leader'}
+${convictionModel ? `CONVICTION MODEL: okx=${convictionModel.okxWeight} poly=${convictionModel.polyWeight} tech=${convictionModel.techWeight}` : ''}
+
+ASSETS:
+${assetBlocks || 'No indicator data available'}
+
+Explain what these indicators mean for a trader RIGHT NOW:
+1. Start with the most important signal — what should the user pay attention to?
+2. Explain which indicators agree and which conflict
+3. Translate the composite scores into plain language ("strong short means...")
+4. If there's a trade plan, explain the risk/reward
+5. Give ONE clear actionable recommendation
+6. Mention the regime and how it affects the weights
+
+Be direct, use trader language. Reference specific indicator values.
+Sound like Bobby CIO doing a morning briefing, not a textbook.
+Address ${userName || 'the user'} by name once.`;
+}
+
 const promptBuilders: Record<string, (data: any) => string> = {
   'wallet': buildWalletPrompt,
   'exchange-metrics': buildExchangeMetricsPrompt,
@@ -523,6 +561,7 @@ const promptBuilders: Record<string, (data: any) => string> = {
   'chat-opportunity': buildChatOpportunityPrompt,
   'chat-deep-analysis': buildChatDeepAnalysisPrompt,
   'metacognition': buildMetacognitionPrompt,
+  'signals': buildSignalsPrompt,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

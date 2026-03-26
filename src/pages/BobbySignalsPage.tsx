@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import KineticShell from '@/components/kinetic/KineticShell';
+import AIInsightsTerminal from '@/components/agentic/AIInsightsTerminal';
 
 // ---- Types ----
 interface IndicatorEntry {
@@ -443,6 +444,30 @@ export default function BobbySignalsPage() {
                 </div>
               );
             })}
+
+            {/* Explain with AI */}
+            <div className="mt-6">
+              <AIInsightsTerminal
+                context="signals"
+                data={{
+                  indicators: data.map((entry: any) => ({
+                    symbol: entry.symbol,
+                    compositeScore: entry.compositeScore,
+                    signal: entry.signal,
+                    conviction: entry.conviction,
+                    agreement: entry.agreement,
+                    tradePlan: entry.tradePlan,
+                    indicators: entry.indicators,
+                  })),
+                  regime: null,
+                  leader: data[0] || null,
+                  convictionModel: null,
+                  userName: (() => { try { return localStorage.getItem('bobby_agent_name') || null; } catch { return null; } })(),
+                }}
+                commandLabel="bobby --explain signals"
+                buttonLabel="EXPLAIN SIGNALS WITH AI"
+              />
+            </div>
 
             {/* Footer */}
             <div className="text-center font-mono text-[8px] text-white/15 tracking-widest pt-2">
