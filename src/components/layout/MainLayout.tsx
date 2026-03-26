@@ -263,37 +263,7 @@ export default function MainLayout() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* NFT Collection Link */}
-              <Link
-                to="/nft-gallery"
-                className={`
-                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/nft-gallery')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelTrophy size={16} />
-                {t('nav.nftCollection')}
-              </Link>
-
-              {/* Métricas Link */}
-              <Link
-                to="/metricas"
-                className={`
-                  flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/metricas')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelBarChart size={16} />
-                {t('nav.metrics')}
-              </Link>
+              {/* NFT Collection and Métricas moved to dropdowns */}
             </div>
 
             {/* Desktop Actions */}
@@ -460,35 +430,6 @@ export default function MainLayout() {
                   {t('nav.more')}
                 </p>
               </div>
-              <Link
-                to="/nft-gallery"
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/nft-gallery')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelTrophy size={18} />
-                {t('nav.nftCollection')}
-              </Link>
-              <Link
-                to="/metricas"
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg
-                  transition-colors hover:bg-accent hover:text-accent-foreground
-                  ${isActive('/metricas')
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground'
-                  }
-                `}
-              >
-                <PixelBarChart size={18} />
-                {t('nav.metrics')}
-              </Link>
-
               {/* Mobile Actions */}
               <div className="pt-3 pb-1">
                 <Button size="sm" className="w-full justify-start bg-gradient-to-r from-primary to-purple-600" asChild>
