@@ -152,6 +152,12 @@ function round(value: number, decimals = 2): number {
   return Math.round(value * factor) / factor;
 }
 
+function normalizeBundleSymbol(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase();
+  if (!normalized) return normalized;
+  return normalized.split('-')[0] || normalized;
+}
+
 function sign(value: number): number {
   if (value > 0) return 1;
   if (value < 0) return -1;
@@ -576,7 +582,7 @@ export function buildTechnicalMarketSummary(
   regime: TechnicalRegime,
 ): TechnicalMarketSummary {
   const assets = bundles.map((bundle) => {
-    const symbol = bundle.symbol.replace(/-USDT$/i, '').toUpperCase();
+    const symbol = normalizeBundleSymbol(bundle.symbol);
     const currentPrice = priceMap[symbol] ?? null;
     const baseWeights = REGIME_WEIGHTS[regime];
 
