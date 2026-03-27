@@ -279,7 +279,7 @@ export default function PTSDemoPage() {
             </span>
           </div>
           <a
-            href="/demopts/terminal"
+            href="/demopts/onboarding"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all hover:scale-[1.02]"
             style={{
               background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -338,7 +338,7 @@ export default function PTSDemoPage() {
               </p>
 
               <a
-                href="/demopts/terminal"
+                href="/demopts/onboarding"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.03] active:scale-[0.98]"
                 style={{
                   background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -590,7 +590,7 @@ export default function PTSDemoPage() {
                 {DEMO_CHIPS.map(chip => (
                   <a
                     key={chip}
-                    href="/demopts/terminal"
+                    href="/demopts/onboarding"
                     className="px-5 py-2.5 rounded-lg border text-xs font-bold tracking-wide transition-all hover:scale-105 hover:border-[rgba(248,207,44,0.5)]"
                     style={{
                       background: 'rgba(30,31,43,0.8)',
@@ -605,7 +605,7 @@ export default function PTSDemoPage() {
               </div>
 
               <a
-                href="/demopts/terminal"
+                href="/demopts/onboarding"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -662,7 +662,7 @@ export default function PTSDemoPage() {
               </p>
 
               <a
-                href="/demopts/terminal"
+                href="/demopts/onboarding"
                 className="inline-flex items-center gap-2 px-10 py-4 rounded-lg text-base font-bold tracking-wide transition-all hover:scale-[1.03] active:scale-[0.98]"
                 style={{
                   background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
