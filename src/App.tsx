@@ -71,6 +71,7 @@ const BobbyDocsPage = lazy(() => import('@/pages/BobbyDocsPage'));
 const BobbyMarketplacePage = lazy(() => import('@/pages/BobbyMarketplacePage'));
 
 // PTS Demo (standalone white-label pages)
+const BobbyDeFiPage = lazy(() => import('@/pages/BobbyDeFiPage'));
 const PTSDemoPage = lazy(() => import('@/pages/PTSDemoPage'));
 const PTSTerminalPage = lazy(() => import('@/pages/PTSTerminalPage'));
 const PTSShellPage = lazy(() => import('@/pages/PTSShellPage'));
@@ -317,6 +318,7 @@ const router = createBrowserRouter(
             { path: 'meta', element: <Suspense fallback={<PageLoader />}><BobbyMetacognitionPage /></Suspense> },
             { path: 'signals', element: <Suspense fallback={<PageLoader />}><BobbySignalsPage /></Suspense> },
             { path: 'telegram', element: <Suspense fallback={<PageLoader />}><BobbyTelegramPage /></Suspense> },
+            { path: 'defi', element: <Suspense fallback={<PageLoader />}><BobbyDeFiPage /></Suspense> },
           ],
         },
         // ==========================================
@@ -695,6 +697,14 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <BobbySignalsPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'agentic-world/bobby/defi',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyDeFiPage />
             </Suspense>
           ),
         },

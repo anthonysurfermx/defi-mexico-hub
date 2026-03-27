@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { id: 'analytics', label: 'RENDIMIENTO', path: '/demopts/analytics' },
   { id: 'meta', label: 'META', path: '/demopts/meta' },
   { id: 'signals', label: 'SEÑALES', path: '/demopts/signals' },
+  { id: 'defi', label: 'DEFI', path: '/demopts/defi' },
   { id: 'telegram', label: 'TELEGRAM', path: '/demopts/telegram' },
 ];
 
