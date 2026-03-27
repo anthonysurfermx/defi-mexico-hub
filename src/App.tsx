@@ -75,6 +75,8 @@ const PTSDemoPage = lazy(() => import('@/pages/PTSDemoPage'));
 const PTSTerminalPage = lazy(() => import('@/pages/PTSTerminalPage'));
 const PTSShellPage = lazy(() => import('@/pages/PTSShellPage'));
 const PTSChatOnly = lazy(() => import('@/pages/PTSChatOnly'));
+const PTSLoginPage = lazy(() => import('@/pages/PTSLoginPage'));
+const PTSOnboardingPage = lazy(() => import('@/pages/PTSOnboardingPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -279,6 +281,22 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <PTSDemoPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'demopts/login',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <PTSLoginPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'demopts/onboarding',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <PTSOnboardingPage />
             </Suspense>
           ),
         },
