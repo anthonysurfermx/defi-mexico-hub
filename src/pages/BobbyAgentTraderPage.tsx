@@ -4,7 +4,7 @@
 // The chat (AdamsChat) is the main content
 // ============================================================
 
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { AdamsChat } from '@/components/adams/AdamsChat';
 import { ProactiveNotification } from '@/components/adams/ProactiveNotification';
@@ -40,6 +40,14 @@ class BobbyErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
 export default function BobbyAgentTraderPage() {
   const { address } = useAccount();
+
+  // Reset agent name to BOBBY when on Bobby's pages (PTS demo sets it to DANY)
+  useEffect(() => {
+    const current = localStorage.getItem('bobby_agent_name');
+    if (current === 'DANY' && !window.location.pathname.startsWith('/demopts')) {
+      localStorage.removeItem('bobby_agent_name');
+    }
+  }, []);
 
   return (
     <KineticShell activeTab="terminal">
