@@ -347,7 +347,7 @@ export default function PTSDemoPage() {
                   boxShadow: '0 0 40px rgba(248,207,44,0.15)',
                 }}
               >
-                QUIERO ENTRAR A GLOBAL INVESTOR <ArrowRight className="w-4 h-4" />
+                PROBAR GLOBAL INVESTOR AI <ArrowRight className="w-4 h-4" />
               </a>
 
               <div className="mt-4 flex flex-col gap-1.5">
@@ -671,7 +671,7 @@ export default function PTSDemoPage() {
                   boxShadow: '0 0 40px rgba(248,207,44,0.15)',
                 }}
               >
-                RESERVAR MI CUPO EN GLOBAL INVESTOR <ArrowRight className="w-5 h-5" />
+                PROBAR GLOBAL INVESTOR AI <ArrowRight className="w-5 h-5" />
               </a>
 
               <div className="mt-5 flex items-center justify-center gap-2">
