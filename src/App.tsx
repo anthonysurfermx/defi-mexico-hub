@@ -315,8 +315,6 @@ const router = createBrowserRouter(
             { path: 'analytics', element: <Suspense fallback={<PageLoader />}><BobbyAnalyticsPage /></Suspense> },
             { path: 'meta', element: <Suspense fallback={<PageLoader />}><BobbyMetacognitionPage /></Suspense> },
             { path: 'signals', element: <Suspense fallback={<PageLoader />}><BobbySignalsPage /></Suspense> },
-            { path: 'docs', element: <Suspense fallback={<PageLoader />}><BobbyDocsPage /></Suspense> },
-            { path: 'commerce', element: <Suspense fallback={<PageLoader />}><BobbyMarketplacePage /></Suspense> },
           ],
         },
         // ==========================================

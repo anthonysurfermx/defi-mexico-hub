@@ -11,15 +11,13 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { WhiteLabelProvider, PTS_THEME } from '@/contexts/WhiteLabelContext';
 
 const NAV_ITEMS = [
-  { id: 'terminal', label: 'TERMINAL', path: '/demopts/terminal' },
-  { id: 'challenge', label: 'CHALLENGE', path: '/demopts/challenge' },
+  { id: 'terminal', label: 'MI ARENA', path: '/demopts/terminal' },
+  { id: 'challenge', label: 'DESAFÍO', path: '/demopts/challenge' },
   { id: 'history', label: 'HISTORIAL', path: '/demopts/history' },
   { id: 'agents', label: 'AGENTES', path: '/demopts/agents' },
-  { id: 'analytics', label: 'ANALYTICS', path: '/demopts/analytics' },
+  { id: 'analytics', label: 'RENDIMIENTO', path: '/demopts/analytics' },
   { id: 'meta', label: 'META', path: '/demopts/meta' },
   { id: 'signals', label: 'SEÑALES', path: '/demopts/signals' },
-  { id: 'docs', label: 'AI DOCS', path: '/demopts/docs' },
-  { id: 'commerce', label: 'COMERCIO', path: '/demopts/commerce' },
 ];
 
 const TICKER_ASSETS = [
@@ -39,11 +37,16 @@ export default function PTSShellPage() {
   const location = useLocation();
 
   useEffect(() => {
-    const prev = localStorage.getItem('bobby_agent_name');
+    const prevName = localStorage.getItem('bobby_agent_name');
+    const prevLang = localStorage.getItem('i18nextLng');
     localStorage.setItem('bobby_agent_name', 'DANY');
+    localStorage.setItem('i18nextLng', 'es');
+    // Also set the language cookie/key used by AdamsChat
+    localStorage.setItem('bobby_language', 'es');
     return () => {
-      if (prev) localStorage.setItem('bobby_agent_name', prev);
+      if (prevName) localStorage.setItem('bobby_agent_name', prevName);
       else localStorage.removeItem('bobby_agent_name');
+      if (prevLang) localStorage.setItem('i18nextLng', prevLang);
     };
   }, []);
 
