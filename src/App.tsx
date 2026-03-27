@@ -73,6 +73,8 @@ const BobbyMarketplacePage = lazy(() => import('@/pages/BobbyMarketplacePage'));
 // PTS Demo (standalone white-label pages)
 const PTSDemoPage = lazy(() => import('@/pages/PTSDemoPage'));
 const PTSTerminalPage = lazy(() => import('@/pages/PTSTerminalPage'));
+const PTSShellPage = lazy(() => import('@/pages/PTSShellPage'));
+const PTSChatOnly = lazy(() => import('@/pages/PTSChatOnly'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -281,12 +283,23 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: 'demopts/terminal',
+          path: 'demopts',
           element: (
             <Suspense fallback={<PageLoader />}>
-              <PTSTerminalPage />
+              <PTSShellPage />
             </Suspense>
           ),
+          children: [
+            { path: 'terminal', element: <Suspense fallback={<PageLoader />}><PTSChatOnly /></Suspense> },
+            { path: 'challenge', element: <Suspense fallback={<PageLoader />}><BobbyChallengePage /></Suspense> },
+            { path: 'history', element: <Suspense fallback={<PageLoader />}><BobbyHistoryPage /></Suspense> },
+            { path: 'agents', element: <Suspense fallback={<PageLoader />}><BobbyAgentsPage /></Suspense> },
+            { path: 'analytics', element: <Suspense fallback={<PageLoader />}><BobbyAnalyticsPage /></Suspense> },
+            { path: 'meta', element: <Suspense fallback={<PageLoader />}><BobbyMetacognitionPage /></Suspense> },
+            { path: 'signals', element: <Suspense fallback={<PageLoader />}><BobbySignalsPage /></Suspense> },
+            { path: 'docs', element: <Suspense fallback={<PageLoader />}><BobbyDocsPage /></Suspense> },
+            { path: 'commerce', element: <Suspense fallback={<PageLoader />}><BobbyMarketplacePage /></Suspense> },
+          ],
         },
         // ==========================================
         // RUTAS PÚBLICAS CON MAIN LAYOUT
