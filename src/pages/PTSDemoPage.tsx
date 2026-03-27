@@ -1,5 +1,5 @@
 // ============================================================
-// PTS AI TRADER — White-label sales demo for Pro Trading Skills
+// DANY AGENT TRADER — White-label sales demo for Pro Trading Skills
 // Full sales page for Javier Trujillo (CEO of PTS)
 // Route: /demopts (standalone, no KineticShell/MainLayout)
 // ============================================================
@@ -57,82 +57,96 @@ const TYPE_COLORS: Record<string, string> = {
 const FEATURES = [
   {
     icon: Brain,
-    title: '3 Agentes de IA Debaten',
-    desc: 'Alpha Hunter busca oportunidades, Red Team destruye la tesis, el CIO decide. Tus alumnos ven el debate completo antes de cada senal.',
+    title: 'Tu CIO Personal de IA',
+    desc: '3 agentes debaten cada trade: uno busca la oportunidad, otro intenta destruirla, el tercero decide. Tus alumnos de Global Investor ven el debate completo — asi aprenden a pensar como traders institucionales.',
   },
   {
     icon: BarChart3,
-    title: '70+ Indicadores Tecnicos',
-    desc: 'RSI, MACD, Bollinger Bands, SuperTrend, ATR — powered by OKX Agent Trade Kit. Los mismos indicadores que ensenas en tu programa.',
+    title: '70+ Indicadores en Tiempo Real',
+    desc: 'RSI, MACD, Bollinger, SuperTrend, ATR — los mismos indicadores que Javier ensena en las sesiones en vivo. Pero ahora la IA los analiza 24/7, no solo lunes, miercoles y viernes.',
   },
   {
     icon: MessageSquare,
-    title: 'Telegram Integrado',
-    desc: 'Bobby se conecta a tu canal @protradingskills. Los debates llegan como mensajes. Tus alumnos interactuan directamente con la IA.',
+    title: 'Directo a tu Telegram',
+    desc: 'Cada debate y senal llega automaticamente a @protradingskills. Tus 1,500+ alumnos reciben analisis profesional sin que tu equipo mueva un dedo.',
   },
   {
     icon: Shield,
-    title: 'Track Record On-Chain',
-    desc: 'Cada prediccion se graba en blockchain ANTES del resultado. No hay cherry-picking. Es el track record mas honesto del mercado.',
+    title: 'Sin Cherry-Picking',
+    desc: 'Cada prediccion se graba en blockchain ANTES del resultado. Ningun guru puede decir eso. Es el track record mas transparente de cualquier academia en LATAM.',
   },
   {
     icon: Users,
-    title: 'Escalable a 1,500+ Alumnos',
-    desc: 'Bobby opera 24/7 sin descanso. Genera contenido para tus sesiones de lunes, miercoles y viernes. Tus profesores se enfocan en ensenar.',
+    title: 'Escala sin Limites',
+    desc: 'Hoy tienes 1,500 alumnos. Con Global Investor quieres 10,000. Dany genera contenido para todos sin contratar mas analistas. El costo no sube, el revenue si.',
   },
   {
     icon: DollarSign,
-    title: 'Nuevo Modelo de Ingresos',
-    desc: 'Cobra acceso premium via wallet. Los alumnos pagan por senales avanzadas. PTS genera revenue pasivo sin trabajo adicional.',
+    title: 'Nuevo Revenue Stream',
+    desc: 'Ofrece "PTS AI Premium" como add-on a Global Investor. Los alumnos pagan $29/mes por senales avanzadas de IA. Con 500 suscriptores = $14,500/mes adicionales.',
   },
 ];
 
 const STEPS = [
-  { step: '01', title: 'CONFIGURAR', desc: 'Personalizamos Bobby con tu marca, tus mercados, tu Telegram' },
-  { step: '02', title: 'CONECTAR', desc: 'Bobby se integra a @protradingskills y analiza tus mercados' },
-  { step: '03', title: 'DEBATIR', desc: 'Cada hora, 3 agentes debaten. Los debates llegan a tu canal' },
-  { step: '04', title: 'MONETIZAR', desc: 'Tus alumnos pagan por acceso premium. Revenue 24/7' },
+  { step: '01', title: 'CONFIGURAR', desc: 'Personalizamos la IA con la marca PTS, los mercados de Global Investor, y tu canal de Telegram' },
+  { step: '02', title: 'CONECTAR', desc: 'En 48 horas la IA esta corriendo en @protradingskills analizando SPY, QQQ, BTC, EUR/USD y los activos que tu elijas' },
+  { step: '03', title: 'ESCALAR', desc: 'Tus alumnos reciben analisis de 3 agentes de IA cada hora. Contenido ilimitado para tus sesiones en vivo' },
+  { step: '04', title: 'MONETIZAR', desc: 'Lanza "PTS AI Premium" como add-on. Los alumnos pagan por senales avanzadas. Tu revenue crece sin contratar mas gente' },
 ];
 
 const WHAT_PTS_GETS = [
-  'Terminal web personalizado con marca PTS',
-  'Bot de Telegram integrado',
-  '70+ indicadores tecnicos en tiempo real',
-  'Debates autonomos 24/7',
-  'Acceso a busqueda universal de activos',
-  'Dashboard de metacognicion',
-  'On-chain track record verificable',
-  'Soporte tecnico prioritario',
+  'Terminal web con la marca Pro Trading Skills',
+  'Bot en tu canal de Telegram @protradingskills',
+  '70+ indicadores tecnicos analizados 24/7',
+  'Debates autonomos de 3 agentes de IA cada hora',
+  'Busqueda de CUALQUIER activo: crypto, acciones, forex, commodities',
+  'Dashboard que muestra cuando la IA se equivoca (transparencia total)',
+  'Track record grabado en blockchain — imposible de falsificar',
+  'Soporte prioritario + actualizaciones incluidas',
 ];
 
 const PRICING = [
   {
-    name: 'SETUP',
+    name: 'IMPLEMENTACIÓN',
     price: '$1,200 USD',
     period: 'una vez',
     features: [
-      'Bobby personalizado con marca PTS',
-      'Config mercados (acciones, crypto, forex, options)',
-      'Integracion Telegram',
-      'Terminal web con tu branding',
-      'Onboarding para Javier y equipo',
+      'IA personalizada con marca Pro Trading Skills',
+      'Configurada para los mercados de Global Investor',
+      'Integración directa en tu canal de Telegram',
+      'Terminal web con branding PTS',
+      'Onboarding para Javier, Daniel y equipo',
+      'Lista en 48 horas',
     ],
     highlighted: false,
   },
   {
-    name: 'OPERACION',
+    name: 'OPERACIÓN MENSUAL',
     price: '$100 USD',
     period: '/mes',
     features: [
-      'Bobby corriendo 24/7',
-      'Debates diarios automaticos',
+      'IA corriendo 24/7 en tus mercados',
+      'Debates autonomos cada hora',
       'Soporte tecnico prioritario',
       'Actualizaciones de indicadores',
-      'Hosting y mantenimiento',
+      'Hosting y mantenimiento incluido',
     ],
     highlighted: true,
   },
 ];
+
+// Revenue projection for PTS
+const REVENUE_MODEL = {
+  currentSignalPrice: 200, // what PTS charges post-program
+  aiPremiumPrice: 29, // suggested AI add-on price
+  currentStudents: 1500,
+  conversionRate: 0.33, // 33% of students upgrade
+  projectedSubscribers: 500,
+  monthlyRevenue: 14500, // 500 x $29
+  annualRevenue: 174000,
+  costPerMonth: 100,
+  roi: '14,400%',
+};
 
 const STATS = [
   { label: 'DEBATES', value: '220+', sub: 'Autonomos' },
@@ -194,7 +208,7 @@ function AnimatedTerminal() {
           <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
           <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
         </div>
-        <span className="text-[10px] ml-2" style={{ color: PTS.textMuted }}>PTS AI TRADER — Terminal</span>
+        <span className="text-[10px] ml-2" style={{ color: PTS.textMuted }}>DANY AGENT TRADER — Terminal</span>
       </div>
       {/* Content */}
       <div className="p-4 space-y-1.5 min-h-[220px]">
@@ -241,8 +255,8 @@ export default function PTSDemoPage() {
   return (
     <div className="min-h-screen" style={{ background: PTS.bg, color: PTS.text }}>
       <Helmet>
-        <title>PTS AI TRADER — Demo Exclusiva para Pro Trading Skills</title>
-        <meta name="description" content="Bobby Agent Trader personalizado para Pro Trading Skills. 3 agentes de IA debaten cada trade." />
+        <title>DANY AGENT TRADER — Demo Exclusiva para Pro Trading Skills</title>
+        <meta name="description" content="Dany Agent Trader personalizado para Pro Trading Skills. 3 agentes de IA debaten cada trade." />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Helmet>
 
@@ -267,7 +281,7 @@ export default function PTSDemoPage() {
               className="text-sm font-bold tracking-wider"
               style={{ fontFamily: 'Manrope, sans-serif', color: PTS.gold }}
             >
-              PTS AI TRADER
+              DANY AGENT TRADER
             </span>
           </div>
           <span className="text-[10px] hidden sm:block" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
@@ -297,7 +311,7 @@ export default function PTSDemoPage() {
                 }}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                EXCLUSIVO PARA PRO TRADING SKILLS
+                EXCLUSIVO PARA GLOBAL INVESTOR — PRO TRADING SKILLS
               </div>
 
               <h1
@@ -313,7 +327,7 @@ export default function PTSDemoPage() {
                 style={{ color: 'rgba(226,225,242,0.55)', fontFamily: 'Inter, sans-serif' }}
               >
                 3 agentes de IA debaten cada trade antes de generar una senal.
-                Acciones, crypto, forex, opciones — los mercados que ensenas a tus 1,500+ alumnos.
+                Acciones, crypto, forex, opciones — los mercados de Global Investor. Ninguna academia en LATAM tiene esto.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -448,7 +462,7 @@ export default function PTSDemoPage() {
               CAPACIDADES
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold mb-10" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Bobby trabaja para ti <span style={{ color: PTS.gold }}>24/7</span>
+              Dany trabaja para ti <span style={{ color: PTS.gold }}>24/7</span>
             </h2>
           </AnimatedSection>
 
@@ -503,10 +517,10 @@ export default function PTSDemoPage() {
                 DEMO EN VIVO
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Prueba Bobby <span style={{ color: PTS.gold }}>ahora mismo</span>
+                Prueba Dany <span style={{ color: PTS.gold }}>ahora mismo</span>
               </h2>
               <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.45)', fontFamily: 'Inter, sans-serif' }}>
-                Escribe cualquier activo y Bobby te dara un analisis completo con debate de 3 agentes
+                Escribe cualquier activo y Dany te dara un analisis completo con debate de 3 agentes
               </p>
 
               {/* Quick action chips */}
@@ -558,10 +572,10 @@ export default function PTSDemoPage() {
                   QUE OBTIENE PTS
                 </div>
                 <h2 className="text-2xl md:text-3xl font-extrabold mb-6" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                  Todo lo que incluye tu <span style={{ color: PTS.gold }}>Bobby personalizado</span>
+                  Todo lo que incluye tu <span style={{ color: PTS.gold }}>Dany personalizado</span>
                 </h2>
                 <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                  Bobby se convierte en el CIO de inteligencia artificial de Pro Trading Skills.
+                  Dany se convierte en el CIO de inteligencia artificial de Pro Trading Skills.
                   Tu marca, tus mercados, tu canal.
                 </p>
               </div>
@@ -732,7 +746,7 @@ export default function PTSDemoPage() {
                 <span style={{ color: PTS.gold }}>1,500 alumnos</span>?
               </h2>
               <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                La implementacion toma 48 horas. Bobby empieza a debatir desde el dia uno.
+                La implementacion toma 48 horas. Dany empieza a debatir desde el dia uno.
               </p>
 
               <a
@@ -760,7 +774,7 @@ export default function PTSDemoPage() {
       <footer className="border-t py-6" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-[10px]" style={{ color: 'rgba(226,225,242,0.2)', fontFamily: 'Space Grotesk, monospace' }}>
-            2026 Bobby Agent Trader. Todos los derechos reservados.
+            2026 Dany Agent Trader. Todos los derechos reservados.
           </span>
           <a
             href="/agentic-world/bobby"
