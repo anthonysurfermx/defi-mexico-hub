@@ -52,6 +52,29 @@ async function sbQuery(table: string, query: string): Promise<any[]> {
   } catch { return []; }
 }
 
+async function sbPatch(table: string, filters: string, data: Record<string, unknown>): Promise<boolean> {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/${table}?${filters}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.warn(`[Cycle] ${table} patch failed:`, res.status, errBody);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn(`[Cycle] ${table} patch error:`, e);
+    return false;
+  }
+}
+
 // ---- Claude helper ----
 
 // Model mapping: Anthropic → OpenAI equivalents
@@ -157,6 +180,266 @@ function resolveChallengeMode(reqMethod: string, requestedMode: string): Challen
   if (requestedMode === 'challenge_paper' || requestedMode === 'paper') return 'paper';
   if (requestedMode === 'challenge_live' || requestedMode === 'live') return 'live';
   return 'dryrun';
+}
+
+type YieldVenueType = 'defi_onchain' | 'okx_earn' | 'none';
+
+interface YieldCandidate {
+  investmentId: string | null;
+  platform: string;
+  chain: string;
+  token: string;
+  apy: number;
+  tvl?: number | null;
+  productGroup?: string | null;
+  venueType?: Exclude<YieldVenueType, 'none'>;
+  riskScore?: number | null;
+  maxExitSeconds?: number | null;
+  notes?: string | null;
+}
+
+interface YieldVerdict {
+  deploy: boolean;
+  keepCashPct: number;
+  allocationUsd: number;
+  platform: string | null;
+  chain: string | null;
+  token: string | null;
+  investmentId: string | null;
+  venueType: YieldVenueType;
+  expectedApy: number;
+  maxExitSeconds: number | null;
+  riskScore: number | null;
+  rationale: string;
+  whyNotTrade: string;
+}
+
+interface ActiveYieldPosition {
+  id: string;
+  status: string;
+  platform?: string | null;
+  chain?: string | null;
+  token?: string | null;
+  principal_usd?: number | string | null;
+  target_apy?: number | string | null;
+}
+
+const DEFAULT_YIELD_CANDIDATES: YieldCandidate[] = [
+  {
+    investmentId: '9502',
+    platform: 'Aave V3',
+    chain: 'ethereum',
+    token: 'USDC',
+    apy: 3.2,
+    tvl: 3520000000,
+    productGroup: 'LENDING',
+    venueType: 'defi_onchain',
+    riskScore: 2.5,
+    maxExitSeconds: 12,
+    notes: 'Deep liquidity, fastest conservative unwind on current list.',
+  },
+  {
+    investmentId: '9501',
+    platform: 'Aave V3',
+    chain: 'ethereum',
+    token: 'USDT',
+    apy: 2.8,
+    tvl: 2100000000,
+    productGroup: 'LENDING',
+    venueType: 'defi_onchain',
+    riskScore: 2.6,
+    maxExitSeconds: 12,
+    notes: 'Same-chain stable lending, avoids token conversion.',
+  },
+  {
+    investmentId: '7200',
+    platform: 'Compound V3',
+    chain: 'ethereum',
+    token: 'USDC',
+    apy: 2.5,
+    tvl: 1800000000,
+    productGroup: 'LENDING',
+    venueType: 'defi_onchain',
+    riskScore: 2.8,
+    maxExitSeconds: 12,
+    notes: 'Battle-tested but lower APY than Aave.',
+  },
+  {
+    investmentId: '5400',
+    platform: 'Kamino',
+    chain: 'solana',
+    token: 'USDC',
+    apy: 8.2,
+    tvl: 320000000,
+    productGroup: 'LENDING',
+    venueType: 'defi_onchain',
+    riskScore: 4.8,
+    maxExitSeconds: 2,
+    notes: 'Higher APY but adds chain and operational complexity.',
+  },
+  {
+    investmentId: '4500',
+    platform: 'NAVI',
+    chain: 'sui',
+    token: 'USDC',
+    apy: 6.1,
+    tvl: 180000000,
+    productGroup: 'LENDING',
+    venueType: 'defi_onchain',
+    riskScore: 4.5,
+    maxExitSeconds: 3,
+    notes: 'Strong yield, thinner liquidity and more chain risk.',
+  },
+];
+
+const MIN_YIELD_IDLE_USD = 25;
+const DEFAULT_YIELD_CASH_BUFFER_PCT = 20;
+
+function parseNumeric(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function formatUsd(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '$0';
+  return `$${value.toFixed(value >= 100 ? 0 : 2)}`;
+}
+
+function formatTvl(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return 'n/a';
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
+function normalizeYieldCandidate(raw: any): YieldCandidate | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const platform = typeof raw.platform === 'string' ? raw.platform.trim() : '';
+  const chain = typeof raw.chain === 'string' ? raw.chain.trim().toLowerCase() : '';
+  const token = typeof raw.token === 'string' ? raw.token.trim().toUpperCase() : '';
+  const apy = parseNumeric(raw.apy);
+  if (!platform || !chain || !token || apy === null) return null;
+  const venueType = raw.venueType === 'okx_earn' ? 'okx_earn' : 'defi_onchain';
+  return {
+    investmentId: raw.investmentId ? String(raw.investmentId) : null,
+    platform,
+    chain,
+    token,
+    apy,
+    tvl: parseNumeric(raw.tvl),
+    productGroup: typeof raw.productGroup === 'string' ? raw.productGroup : null,
+    venueType,
+    riskScore: parseNumeric(raw.riskScore),
+    maxExitSeconds: parseNumeric(raw.maxExitSeconds),
+    notes: typeof raw.notes === 'string' ? raw.notes : null,
+  };
+}
+
+function resolveYieldCandidates(raw: unknown): YieldCandidate[] {
+  if (!Array.isArray(raw)) return DEFAULT_YIELD_CANDIDATES;
+  const parsed = raw
+    .map((candidate) => normalizeYieldCandidate(candidate))
+    .filter((candidate): candidate is YieldCandidate => candidate !== null);
+  return parsed.length ? parsed : DEFAULT_YIELD_CANDIDATES;
+}
+
+function formatYieldCandidatesBlock(candidates: YieldCandidate[]): string {
+  if (!candidates.length) return 'No yield candidates available.';
+  return candidates
+    .slice()
+    .sort((a, b) => b.apy - a.apy)
+    .map((candidate, index) => {
+      const exit = typeof candidate.maxExitSeconds === 'number' ? `${candidate.maxExitSeconds}s exit` : 'exit n/a';
+      const risk = typeof candidate.riskScore === 'number' ? `risk ${candidate.riskScore.toFixed(1)}/10` : 'risk n/a';
+      const group = candidate.productGroup || 'UNKNOWN';
+      const notes = candidate.notes ? ` | ${candidate.notes}` : '';
+      return `${index + 1}. ${candidate.platform} | ${candidate.chain} | ${candidate.token} | APY ${candidate.apy.toFixed(2)}% | TVL ${formatTvl(candidate.tvl)} | ${group} | ${risk} | ${exit}${notes}`;
+    })
+    .join('\n');
+}
+
+function findYieldCandidate(candidates: YieldCandidate[], verdict: Partial<YieldVerdict>): YieldCandidate | null {
+  if (verdict.investmentId) {
+    const byId = candidates.find((candidate) => candidate.investmentId === verdict.investmentId);
+    if (byId) return byId;
+  }
+  if (!verdict.platform || !verdict.chain || !verdict.token) return null;
+  const platform = verdict.platform.toLowerCase();
+  const chain = verdict.chain.toLowerCase();
+  const token = verdict.token.toUpperCase();
+  return candidates.find((candidate) =>
+    candidate.platform.toLowerCase() === platform &&
+    candidate.chain.toLowerCase() === chain &&
+    candidate.token.toUpperCase() === token
+  ) || null;
+}
+
+function parseYieldVerdict(cioPost: string, candidates: YieldCandidate[], idleCashUsd: number): YieldVerdict | null {
+  const verdictMatch = cioPost.match(/VERDICT:\s*(\{[\s\S]*?\})/);
+  if (!verdictMatch) return null;
+
+  try {
+    const raw = JSON.parse(verdictMatch[1]);
+    const deploy = raw.deploy === true;
+    const keepCashPctRaw = parseNumeric(raw.keepCashPct);
+    const keepCashPct = Math.max(0, Math.min(100, keepCashPctRaw ?? (deploy ? DEFAULT_YIELD_CASH_BUFFER_PCT : 100)));
+    const candidate = deploy
+      ? findYieldCandidate(candidates, {
+          investmentId: raw.investmentId ? String(raw.investmentId) : null,
+          platform: typeof raw.platform === 'string' ? raw.platform : null,
+          chain: typeof raw.chain === 'string' ? raw.chain : null,
+          token: typeof raw.token === 'string' ? raw.token : null,
+        } as Partial<YieldVerdict>)
+      : null;
+
+    if (deploy && !candidate) return null;
+
+    const fallbackAllocation = Math.max(0, idleCashUsd * (1 - keepCashPct / 100));
+    const allocationUsdRaw = parseNumeric(raw.allocationUsd);
+    const allocationUsd = Math.max(0, Math.min(idleCashUsd, allocationUsdRaw ?? fallbackAllocation));
+
+    if (deploy && allocationUsd <= 0) return null;
+
+    const rationale = typeof raw.rationale === 'string' ? raw.rationale.slice(0, 500) : '';
+    const whyNotTrade = typeof raw.whyNotTrade === 'string' ? raw.whyNotTrade.slice(0, 300) : '';
+
+    return {
+      deploy,
+      keepCashPct: Number(keepCashPct.toFixed(2)),
+      allocationUsd: Number(allocationUsd.toFixed(2)),
+      platform: deploy ? candidate?.platform || null : null,
+      chain: deploy ? candidate?.chain || null : null,
+      token: deploy ? candidate?.token || null : null,
+      investmentId: deploy ? candidate?.investmentId || null : null,
+      venueType: deploy ? (candidate?.venueType || 'defi_onchain') : 'none',
+      expectedApy: deploy ? Number((parseNumeric(raw.expectedApy) ?? candidate?.apy ?? 0).toFixed(4)) : 0,
+      maxExitSeconds: deploy ? (parseNumeric(raw.maxExitSeconds) ?? candidate?.maxExitSeconds ?? null) : 0,
+      riskScore: deploy ? (parseNumeric(raw.riskScore) ?? candidate?.riskScore ?? null) : 0,
+      rationale,
+      whyNotTrade,
+    };
+  } catch (e) {
+    console.warn('[Cycle] Failed to parse yield VERDICT JSON:', e);
+    return null;
+  }
+}
+
+function yieldRecommendationStatus(
+  activeYieldPosition: ActiveYieldPosition | null,
+  yieldRecommendation: YieldVerdict | null,
+  yieldDebateTriggered: boolean,
+): 'none' | 'recommended' | 'active' | 'skipped' {
+  if (activeYieldPosition) {
+    return activeYieldPosition.status === 'recommended' ? 'recommended' : 'active';
+  }
+  if (yieldRecommendation?.deploy) return 'recommended';
+  if (yieldDebateTriggered) return 'skipped';
+  return 'none';
 }
 
 // ---- Fetch market intel (frozen snapshot) ----
@@ -336,6 +619,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const lang = language === 'es' ? 'es' : 'en';
   const kind = req.method === 'GET' ? 'cron' : (body.kind || 'manual');
   const requestedMode = body.mode || kind;
+  const yieldCandidates = resolveYieldCandidates(body.yieldCandidates);
   const challengeMode = resolveChallengeMode(req.method, requestedMode);
   const okxMode = challengeMode === 'paper' ? 'paper' : 'live';
   const isDryRun = challengeMode === 'dryrun';
@@ -483,6 +767,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 RULES:
 - 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
+- This is a TRADE verdict only. If there is no trade edge, say execute:false. Yield parking is handled in a separate debate.
 - Then you MUST end with EXACTLY these two lines (no markdown fences):
 VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry":70500,"stop":69200,"target":73900,"invalidation":"DXY breaks above 126"}
 VIBE_PHRASE: BTC order flow stacking at 70.5k, whales loading quietly. Let's ride.
@@ -622,6 +907,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
     const thread = await sbInsert('forum_threads', {
       topic,
       trigger_reason: `Autonomous ${kind} cycle`,
+      cycle_id: cycleId || null,
       // Codex P1: store both raw and adjusted conviction + calibration metadata
       trigger_data: {
         regime: intel.regime, fgi: intel.fearGreed, dxy: intel.dxy,
@@ -711,6 +997,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
     let txHash: string | null = null;
     let finalBalanceStr: string | null = null;
     let effectiveBalanceForExecution: number | null = overriddenBalance;
+    let availableCashUsd: number | null = overriddenAvailableBalance;
 
     // Always fetch balance from the selected execution venue (live or paper)
     if (overriddenBalance !== null) {
@@ -721,6 +1008,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
         if (balCheck.ok) {
           finalBalanceStr = String(balCheck.totalEquity || '???');
           effectiveBalanceForExecution = balCheck.totalEquity || null;
+          availableCashUsd = balCheck.availableBalance || balCheck.totalEquity || null;
         }
       } catch { /* non-blocking */ }
     }
@@ -742,6 +1030,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
           const totalEq = balRes.totalEquity || 100;
           finalBalanceStr = String(totalEq);
           const availBal = balRes.availableBalance || totalEq;
+          availableCashUsd = availBal;
           const balanceObj = { ccy: 'USDT', availBal: String(availBal), totalEq: String(totalEq), frozenBal: '0' };
           
           const positionSizeUsd = getPositionSize(totalEq, conviction);
@@ -856,6 +1145,231 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
     }
 
     // ============================================================
+    // PHASE 4c: Yield debate + logging (idle cash parking)
+    // Debate only for now — execution wiring comes later.
+    // ============================================================
+    let yieldThreadId: string | null = null;
+    let yieldPositionId: string | null = null;
+    let yieldRecommendation: YieldVerdict | null = null;
+    let yieldDebateTriggered = false;
+    let yieldDebateSkipReason: string | null = null;
+
+    const activeYieldRows = await sbQuery(
+      'agent_yield_positions',
+      'status=in.(recommended,deployed,withdrawing)&order=created_at.desc&limit=1'
+    );
+    const activeYieldPosition = (activeYieldRows[0] as ActiveYieldPosition | undefined) || null;
+    const idleCashUsd = typeof availableCashUsd === 'number' && Number.isFinite(availableCashUsd)
+      ? availableCashUsd
+      : effectiveBalanceForExecution;
+
+    const shouldConsiderYield = !executionResult && conviction !== null && conviction < 0.5 && effectivePositions.length === 0;
+    if (shouldConsiderYield) {
+      if (activeYieldPosition) {
+        yieldDebateSkipReason = `Existing yield state ${activeYieldPosition.status} on ${activeYieldPosition.platform || 'unknown'} ${activeYieldPosition.token || ''}`.trim();
+      } else if (typeof idleCashUsd !== 'number' || idleCashUsd < MIN_YIELD_IDLE_USD) {
+        yieldDebateSkipReason = `Idle cash below minimum threshold (${formatUsd(idleCashUsd)} < ${formatUsd(MIN_YIELD_IDLE_USD)})`;
+      } else if (!yieldCandidates.length) {
+        yieldDebateSkipReason = 'No yield candidate inventory available';
+      }
+    }
+
+    if (shouldConsiderYield && !yieldDebateSkipReason && typeof idleCashUsd === 'number') {
+      yieldDebateTriggered = true;
+      const yieldInventoryBlock = formatYieldCandidatesBlock(yieldCandidates);
+      const yieldContextBlock = `${contextBlock}
+
+IDLE CASH CONTEXT:
+- Trade rejected reason: ${tradeRejectedReason || 'No trade edge'}
+- Idle cash available: ${formatUsd(idleCashUsd)}
+- Trading venue: OKX ${challengeMode === 'paper' ? 'paper' : 'live'}
+- Current yield state: none active
+- Objective: park idle capital without blocking the next high-conviction trade
+
+YIELD CANDIDATES:
+${yieldInventoryBlock}`;
+
+      const yieldAlphaPost = await callClaude('claude-haiku-4-5-20251001',
+        `You are Alpha Hunter. The trade was rejected, so now you are Bobby's treasury offense. Pick the single best idle-cash parking trade from the YIELD CANDIDATES only.
+
+RULES:
+- Prefer stablecoin products, deep TVL, and fast exits.
+- You MUST state allocation USD, keep-cash percentage, APY, exit speed, and why this beats leaving cash idle.
+- Call out bridge or operational complexity explicitly.
+- Do not suggest LPs, lockups, or anything not listed.
+${langRule} Keep it to 2 short paragraphs.`,
+        `YIELD PARKING TASK:\n${yieldContextBlock}`, 350
+      );
+
+      const yieldRedPost = await callClaude('claude-haiku-4-5-20251001',
+        `You are Red Team. Destroy Alpha's yield idea.
+
+RULES:
+- Attack bridge risk, exit latency, smart contract risk, stablecoin conversion risk, and opportunity cost of not having instant cash.
+- If staying 100% cash is safer than every listed candidate, say it directly.
+- Use exact APY / TVL / exit speed details from the YIELD CANDIDATES block as ammunition.
+${langRule} Keep it to 2 short paragraphs.`,
+        `YIELD PARKING TASK:\n${yieldContextBlock}\n\nALPHA HUNTER'S YIELD THESIS:\n${yieldAlphaPost}`, 350
+      );
+
+      const yieldCioPost = await callClaude('claude-sonnet-4-20250514',
+        `You are Bobby CIO. The trade was rejected because conviction stayed below threshold. Decide whether Bobby should keep cash idle or park it in one yield product until the next trade.
+
+RULES:
+- 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
+- ONLY use products from YIELD CANDIDATES.
+- Favor liquid stablecoin lending or internal yield. Avoid LPs and lockups.
+- Keep at least 20% in cash unless there is a very strong reason not to.
+- If operational complexity is too high, set deploy:false.
+- Then you MUST end with EXACTLY these two lines (no markdown fences):
+VERDICT: {"deploy":true,"keepCashPct":20,"allocationUsd":80,"platform":"Aave V3","chain":"ethereum","token":"USDC","investmentId":"9502","venueType":"defi_onchain","expectedApy":3.2,"maxExitSeconds":12,"riskScore":2.5,"rationale":"Deep liquidity and fast unwind beat higher-yield but higher-friction options.","whyNotTrade":"Trade conviction stayed below threshold"}
+VIBE_PHRASE: No clean trade. Let the cash clock in on Aave and keep dry powder ready.
+- If staying in cash:
+VERDICT: {"deploy":false,"keepCashPct":100,"allocationUsd":0,"platform":"none","chain":"none","token":"USDT","investmentId":null,"venueType":"none","expectedApy":0,"maxExitSeconds":0,"riskScore":0,"rationale":"Operational and exit risk outweigh current yield.","whyNotTrade":"Trade conviction stayed below threshold"}
+VIBE_PHRASE: No edge in the market and no clean yield rail yet. Stay liquid.
+- NEVER invent a candidate that is not listed.
+- NEVER omit VERDICT or VIBE_PHRASE. VIBE_PHRASE must come immediately after VERDICT.`,
+        `YIELD PARKING TASK:\n${yieldContextBlock}\n\nALPHA:\n${yieldAlphaPost}\n\nRED TEAM:\n${yieldRedPost}`, 500
+      );
+
+      yieldRecommendation = parseYieldVerdict(yieldCioPost, yieldCandidates, idleCashUsd);
+      const yieldVibeMatch = yieldCioPost.match(/VIBE_PHRASE:\s*(.+?)(?:\n|$)/);
+      const yieldVibePhrase = yieldVibeMatch ? yieldVibeMatch[1].trim().slice(0, 220) : null;
+
+      const yieldTopic = `${lang === 'es' ? 'Yield Parking' : 'Yield Parking'} — ${topicDate}`;
+      const yieldThread = await sbInsert('forum_threads', {
+        topic: yieldTopic,
+        trigger_reason: 'Trade rejected → yield parking debate',
+        cycle_id: cycleId || null,
+        trigger_data: {
+          debate_type: 'yield',
+          rejected_trade_thread_id: threadId || null,
+          rejected_trade_reason: tradeRejectedReason || null,
+          idle_cash_usd: idleCashUsd,
+          candidate_inventory: yieldCandidates,
+          active_yield_position: activeYieldPosition || null,
+          phase: 'debate_only',
+          yield_verdict: yieldRecommendation,
+        },
+        language: lang,
+        conviction_score: null,
+        symbol: yieldRecommendation?.token || null,
+        direction: null,
+        entry_price: null,
+        stop_price: null,
+        target_price: null,
+        expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        kind: 'yield_idle',
+        price_at_creation: Object.fromEntries((intel.prices || []).map((p: any) => [p.symbol, p.price])),
+      });
+      yieldThreadId = (yieldThread?.id as string | undefined) || null;
+
+      if (yieldThreadId) {
+        const yieldSnapshot = {
+          idleCashUsd,
+          rejectedTradeReason: tradeRejectedReason,
+          candidates: yieldCandidates,
+          tradeThreadId: threadId || null,
+          phase: 'debate_only',
+        };
+        for (const post of [
+          { agent: 'alpha', content: yieldAlphaPost },
+          { agent: 'redteam', content: yieldRedPost },
+          { agent: 'cio', content: yieldCioPost },
+        ]) {
+          await sbInsert('forum_posts', {
+            thread_id: yieldThreadId,
+            agent: post.agent,
+            content: post.content,
+            data_snapshot: yieldSnapshot,
+          });
+        }
+      }
+
+      await sbInsert('agent_yield_events', {
+        cycle_id: cycleId || null,
+        thread_id: yieldThreadId,
+        event_type: 'debate_started',
+        actor: 'system',
+        status: 'logged',
+        amount_usd: idleCashUsd,
+        reason: 'Trade rejected below conviction threshold',
+        payload: {
+          challenge_mode: challengeMode,
+          rejected_trade_thread_id: threadId || null,
+          rejected_trade_reason: tradeRejectedReason || null,
+          candidates: yieldCandidates,
+        },
+      });
+
+      if (yieldRecommendation?.deploy) {
+        const cashBufferUsd = Math.max(0, Number((idleCashUsd - yieldRecommendation.allocationUsd).toFixed(2)));
+        const yieldPosition = await sbInsert('agent_yield_positions', {
+          cycle_id: cycleId || null,
+          thread_id: yieldThreadId,
+          status: 'recommended',
+          venue_type: yieldRecommendation.venueType === 'okx_earn' ? 'okx_earn' : 'defi_onchain',
+          funding_source: 'okx_cex',
+          investment_id: yieldRecommendation.investmentId,
+          platform: yieldRecommendation.platform,
+          chain: yieldRecommendation.chain,
+          token: yieldRecommendation.token,
+          principal_usd: yieldRecommendation.allocationUsd,
+          cash_buffer_usd: cashBufferUsd,
+          target_apy: yieldRecommendation.expectedApy,
+          risk_score: yieldRecommendation.riskScore,
+          max_exit_seconds: yieldRecommendation.maxExitSeconds,
+          selection_rationale: yieldRecommendation.rationale,
+          verdict_json: yieldRecommendation,
+          metadata: {
+            challenge_mode: challengeMode,
+            phase: 'debate_only',
+            why_not_trade: yieldRecommendation.whyNotTrade,
+            vibe_phrase: yieldVibePhrase,
+          },
+        });
+        yieldPositionId = (yieldPosition?.id as string | undefined) || null;
+
+        await sbInsert('agent_yield_events', {
+          cycle_id: cycleId || null,
+          position_id: yieldPositionId,
+          thread_id: yieldThreadId,
+          event_type: 'recommended',
+          actor: 'cio',
+          status: 'logged',
+          amount_usd: yieldRecommendation.allocationUsd,
+          apy: yieldRecommendation.expectedApy,
+          reason: yieldRecommendation.rationale || 'Yield recommendation approved',
+          payload: {
+            verdict: yieldRecommendation,
+            vibe_phrase: yieldVibePhrase,
+          },
+        });
+        if (yieldThreadId) {
+          await sbPatch('forum_threads', `id=eq.${yieldThreadId}`, { status: 'active' });
+        }
+      } else {
+        yieldDebateSkipReason = yieldRecommendation?.rationale || 'Yield debate ended with stay-in-cash verdict';
+        await sbInsert('agent_yield_events', {
+          cycle_id: cycleId || null,
+          thread_id: yieldThreadId,
+          event_type: yieldRecommendation ? 'skipped' : 'error',
+          actor: 'cio',
+          status: 'logged',
+          amount_usd: idleCashUsd,
+          reason: yieldDebateSkipReason || 'Structured yield verdict parse failed',
+          payload: {
+            verdict: yieldRecommendation,
+            phase: 'debate_only',
+          },
+        });
+        if (yieldThreadId) {
+          await sbPatch('forum_threads', `id=eq.${yieldThreadId}`, { status: 'rejected' });
+        }
+      }
+    }
+
+    // ============================================================
     // PHASE 5: Update thread with execution results
     // ============================================================
     if (threadId) {
@@ -896,6 +1410,15 @@ ${cioPost}
 EXECUTION RESULT:
 ${executionResult ? `TRADE EXECUTED ON OKX ${challengeMode === 'paper' ? 'DEMO' : '& COMMITTED ON X LAYER'}` : `NO TRADE. Reason: ${tradeRejectedReason}`}
 
+YIELD RESULT:
+${yieldRecommendation?.deploy
+  ? `YIELD RECOMMENDED: Deploy ${formatUsd(yieldRecommendation.allocationUsd)} into ${yieldRecommendation.platform} ${yieldRecommendation.token} on ${yieldRecommendation.chain} at ${yieldRecommendation.expectedApy.toFixed(2)}% APY. Keep ${yieldRecommendation.keepCashPct}% cash.`
+  : yieldDebateTriggered
+    ? `YIELD DEBATED BUT SKIPPED. Reason: ${yieldDebateSkipReason || 'CIO chose to stay in cash.'}`
+    : activeYieldPosition
+      ? `YIELD ALREADY ACTIVE: ${activeYieldPosition.platform || 'unknown'} ${activeYieldPosition.token || ''} (${activeYieldPosition.status}).`
+      : 'No yield action this cycle.'}
+
 CHALLENGE MODE:
 ${challengeMode.toUpperCase()}
 
@@ -927,6 +1450,8 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
       kind,
     });
 
+    const yieldStatusSnapshot = yieldRecommendationStatus(activeYieldPosition, yieldRecommendation, yieldDebateTriggered);
+
     // ============================================================
     // PHASE 6: Update cycle as completed
     // ============================================================
@@ -945,6 +1470,10 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
           latency_ms: latencyMs,
           llm_reasoning: `Debate: ${digestSymbol} ${digestDirection} ${convNum}/10`,
           vibe_phrase: vibePhrase,
+          idle_cash_usd: idleCashUsd,
+          yield_debate_triggered: yieldDebateTriggered,
+          yield_recommendation_status: yieldStatusSnapshot,
+          yield_position_id: yieldPositionId || activeYieldPosition?.id || null,
         }),
       });
     }
@@ -1071,6 +1600,11 @@ Return ONLY valid JSON, no markdown, no explanation:
       tradeRejectedReason,
       txHash,
       tpslOk: tpslResult?.ok ?? null,
+      yieldDebateTriggered,
+      yieldThreadId,
+      yieldPositionId,
+      yieldRecommendation,
+      yieldDebateSkipReason,
       usedTestVerdict: !!useTestVerdict,
       usedTestState: !!useTestState,
       effectiveBalance: effectiveBalanceForExecution,
