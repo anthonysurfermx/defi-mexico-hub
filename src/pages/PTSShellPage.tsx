@@ -76,6 +76,11 @@ export default function PTSShellPage() {
         .pts-shell .shadow-\\[0_0_15px_rgba\\(34\\,197\\,94\\,0\\.05\\)\\] { box-shadow: 0 0 15px rgba(248,207,44,0.05) !important; }
         .pts-shell .shadow-\\[0_0_20px_rgba\\(34\\,197\\,94\\,0\\.3\\)\\] { box-shadow: 0 0 20px rgba(248,207,44,0.3) !important; }
         .pts-shell [style*="background: #050505"], .pts-shell [style*="background:#050505"] { background: #11121e !important; }
+
+        /* Hide KineticShell's own chrome — PTS shell provides its own */
+        .pts-shell [data-kinetic-shell] > nav.sticky { display: none !important; }
+        .pts-shell [data-kinetic-shell] > div.h-7 { display: none !important; }
+        .pts-shell [data-kinetic-shell] > nav.fixed { display: none !important; }
       `}</style>
 
       <div className={`pts-shell ${isTerminal ? 'fixed inset-0 z-[100]' : 'min-h-screen'} flex flex-col overflow-hidden`} style={{ background: '#11121e' }}>

@@ -98,7 +98,7 @@ function KineticShellInner({ children, activeTab, showSidebar = false }: Kinetic
     : 'shadow-[0_0_15px_rgba(34,197,94,0.08)]';
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e5e2e1] font-['Inter'] selection:bg-green-500 selection:text-black">
+    <div data-kinetic-shell className="min-h-screen bg-[#050505] text-[#e5e2e1] font-['Inter'] selection:bg-green-500 selection:text-black">
       {/* === Top Nav === */}
       <nav className={`sticky top-0 w-full flex justify-between items-center px-4 md:px-6 h-14 bg-[#131313]/80 backdrop-blur-md z-50 ${navGlow} border-b border-white/5`}>
         <Link to="/agentic-world/bobby" className={`text-lg font-black tracking-tighter ${navAccent} font-mono hover:opacity-80 transition-opacity`}>
