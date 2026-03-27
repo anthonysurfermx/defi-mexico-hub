@@ -56,7 +56,26 @@ export default function PTSShellPage() {
         <title>Dany Agent Trader | Pro Trading Skills — Global Investor</title>
       </Helmet>
 
-      <div className={`${isTerminal ? 'fixed inset-0 z-[100]' : 'min-h-screen'} flex flex-col overflow-hidden`} style={{ background: '#11121e' }}>
+      {/* Global CSS override: green → gold for all child Bobby pages */}
+      <style>{`
+        .pts-shell .text-green-400, .pts-shell .text-green-500 { color: #F8CF2C !important; }
+        .pts-shell .bg-green-400, .pts-shell .bg-green-500 { background-color: #F8CF2C !important; }
+        .pts-shell .bg-green-500\\/10, .pts-shell .bg-green-500\\/15, .pts-shell .bg-green-500\\/20 { background-color: rgba(248,207,44,0.1) !important; }
+        .pts-shell .bg-green-400\\/10, .pts-shell .bg-green-400\\/20 { background-color: rgba(248,207,44,0.1) !important; }
+        .pts-shell .border-green-400, .pts-shell .border-green-500 { border-color: #F8CF2C !important; }
+        .pts-shell .border-green-500\\/20, .pts-shell .border-green-500\\/30, .pts-shell .border-green-500\\/40 { border-color: rgba(248,207,44,0.2) !important; }
+        .pts-shell .hover\\:text-green-300:hover, .pts-shell .hover\\:text-green-400:hover { color: #ffeebe !important; }
+        .pts-shell .hover\\:bg-green-500:hover { background-color: #F8CF2C !important; }
+        .pts-shell .hover\\:bg-green-500\\/10:hover, .pts-shell .hover\\:bg-green-500\\/15:hover, .pts-shell .hover\\:bg-green-500\\/30:hover { background-color: rgba(248,207,44,0.15) !important; }
+        .pts-shell .hover\\:border-green-500\\/20:hover, .pts-shell .hover\\:border-green-500\\/30:hover, .pts-shell .hover\\:border-green-500\\/40:hover { border-color: rgba(248,207,44,0.3) !important; }
+        .pts-shell .text-green-400\\/50, .pts-shell .text-green-400\\/60, .pts-shell .text-green-400\\/70 { color: rgba(248,207,44,0.6) !important; }
+        .pts-shell .from-green-500, .pts-shell .via-green-500, .pts-shell .to-green-500 { --tw-gradient-stops: #F8CF2C !important; }
+        .pts-shell .shadow-\\[0_0_15px_rgba\\(34\\,197\\,94\\,0\\.05\\)\\] { box-shadow: 0 0 15px rgba(248,207,44,0.05) !important; }
+        .pts-shell .shadow-\\[0_0_20px_rgba\\(34\\,197\\,94\\,0\\.3\\)\\] { box-shadow: 0 0 20px rgba(248,207,44,0.3) !important; }
+        .pts-shell [style*="background: #050505"], .pts-shell [style*="background:#050505"] { background: #11121e !important; }
+      `}</style>
+
+      <div className={`pts-shell ${isTerminal ? 'fixed inset-0 z-[100]' : 'min-h-screen'} flex flex-col overflow-hidden`} style={{ background: '#11121e' }}>
 
         {/* TOP NAV */}
         <nav className="flex-shrink-0 flex justify-between items-center px-4 md:px-6 h-12 z-50"
