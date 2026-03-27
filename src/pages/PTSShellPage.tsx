@@ -82,6 +82,9 @@ export default function PTSShellPage() {
         .pts-shell [data-kinetic-shell] > nav.sticky { display: none !important; }
         .pts-shell [data-kinetic-shell] > div.h-7 { display: none !important; }
         .pts-shell [data-kinetic-shell] > nav.fixed { display: none !important; }
+        /* Hide Forum + Dashboard link buttons in AdamsChat (they point to Bobby routes) */
+        .pts-shell a[href="/agentic-world/forum"],
+        .pts-shell a[href="/agentic-world/polymarket"] { display: none !important; }
       `}</style>
 
       <div className={`pts-shell ${isTerminal ? 'fixed inset-0 z-[100]' : 'min-h-screen'} flex flex-col overflow-hidden`} style={{ background: '#11121e' }}>
