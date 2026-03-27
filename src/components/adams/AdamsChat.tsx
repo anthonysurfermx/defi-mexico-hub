@@ -3551,14 +3551,7 @@ export function AdamsChat() {
                     {a.display}
                   </button>
                 ))}
-                <Link to="/agentic-world/forum"
-                  className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] border border-yellow-500/10 bg-yellow-500/[0.03] text-yellow-400/50 hover:bg-yellow-500/[0.08] hover:text-yellow-400/80 hover:border-yellow-500/20 transition-all font-mono whitespace-nowrap flex-shrink-0">
-                  <span>⚔</span> Forum
-                </Link>
-                <Link to="/agentic-world/polymarket"
-                  className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] border border-cyan-500/10 bg-cyan-500/[0.03] text-cyan-400/50 hover:bg-cyan-500/[0.08] hover:text-cyan-400/80 hover:border-cyan-500/20 transition-all font-mono whitespace-nowrap flex-shrink-0">
-                  <span>◉</span> Dashboard
-                </Link>
+                {/* Forum + Dashboard removed — accessible via main nav */}
               </div>
             </div>
             <div className="max-w-4xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2.5 flex items-center gap-1.5 sm:gap-2">
