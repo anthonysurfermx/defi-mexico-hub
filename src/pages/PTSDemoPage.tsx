@@ -1,20 +1,20 @@
 // ============================================================
-// DANY AGENT TRADER — White-label sales demo for Pro Trading Skills
-// Full sales page for Javier Trujillo (CEO of PTS)
+// GLOBAL INVESTOR — Student-facing landing page
 // Route: /demopts (standalone, no KineticShell/MainLayout)
+// Target: Hispanic man, 25-35, LATAM, wants to live from trading
 // ============================================================
 
 import { Helmet } from 'react-helmet-async';
 import { motion, useInView } from 'framer-motion';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import {
-  Brain, BarChart3, Users, MessageSquare, Shield, DollarSign,
-  ChevronRight, Zap, ArrowRight, Check, Terminal, TrendingUp,
-  Activity, Globe, Cpu, Lock, Clock, Sparkles,
+  Brain, BarChart3, Shield, ChevronDown,
+  ArrowRight, Check, Terminal, Sparkles, Cpu,
+  Users, Youtube, TrendingUp,
 } from 'lucide-react';
 
 // ============================================================
-// BRAND TOKENS — PTS (from Stitch)
+// BRAND TOKENS — PTS
 // ============================================================
 const PTS = {
   gold: '#F8CF2C',
@@ -31,166 +31,119 @@ const PTS = {
 // ============================================================
 // DATA
 // ============================================================
-const MARKETS = [
-  { symbol: 'SPY', name: 'S&P 500', type: 'INDEX' },
-  { symbol: 'QQQ', name: 'Nasdaq 100', type: 'INDEX' },
-  { symbol: 'NVDA', name: 'NVIDIA', type: 'STOCK' },
-  { symbol: 'AAPL', name: 'Apple', type: 'STOCK' },
-  { symbol: 'TSLA', name: 'Tesla', type: 'STOCK' },
-  { symbol: 'META', name: 'Meta', type: 'STOCK' },
-  { symbol: 'BTC', name: 'Bitcoin', type: 'CRYPTO' },
-  { symbol: 'ETH', name: 'Ethereum', type: 'CRYPTO' },
-  { symbol: 'EUR/USD', name: 'Euro/Dollar', type: 'FOREX' },
-  { symbol: 'GBP/USD', name: 'Libra/Dollar', type: 'FOREX' },
-  { symbol: 'GOLD', name: 'Oro', type: 'COMMODITY' },
-  { symbol: 'OIL', name: 'Petroleo', type: 'COMMODITY' },
+const SOCIAL_PROOF = [
+  { icon: Users, value: '+3,000', label: 'Alumnos activos' },
+  { icon: Youtube, value: '45K', label: 'Suscriptores YouTube' },
+  { icon: TrendingUp, value: '99%', label: 'Rentables en 3 meses' },
 ];
 
-const TYPE_COLORS: Record<string, string> = {
-  INDEX: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  STOCK: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  CRYPTO: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  FOREX: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  COMMODITY: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-};
-
-const FEATURES = [
+const DIFFERENTIATORS = [
   {
     icon: Brain,
-    title: 'Tu CIO Personal de IA',
-    desc: '3 agentes debaten cada trade: uno busca la oportunidad, otro intenta destruirla, el tercero decide. Tus alumnos de Global Investor ven el debate completo — asi aprenden a pensar como traders institucionales.',
+    title: '3 Agentes que Debaten',
+    desc: 'No es un bot que dispara senales a lo loco. Son 3 agentes de IA que analizan, cuestionan y confirman cada trade entre ellos. Solo cuando los tres estan de acuerdo, te llega la notificacion.',
   },
   {
     icon: BarChart3,
     title: '70+ Indicadores en Tiempo Real',
-    desc: 'RSI, MACD, Bollinger, SuperTrend, ATR — los mismos indicadores que Javier ensena en las sesiones en vivo. Pero ahora la IA los analiza 24/7, no solo lunes, miercoles y viernes.',
-  },
-  {
-    icon: MessageSquare,
-    title: 'Directo a tu Telegram',
-    desc: 'Cada debate y senal llega automaticamente a @protradingskills. Tus 1,500+ alumnos reciben analisis profesional sin que tu equipo mueva un dedo.',
+    desc: 'SPY, QQQ, NVDA, Bitcoin, Ethereum, EUR/USD, oro. Dany monitorea todo simultaneamente — algo que ningun trader humano puede hacer solo.',
   },
   {
     icon: Shield,
-    title: 'Sin Cherry-Picking',
-    desc: 'Cada prediccion se graba en blockchain ANTES del resultado. Ningun guru puede decir eso. Es el track record mas transparente de cualquier academia en LATAM.',
-  },
-  {
-    icon: Users,
-    title: 'Escala sin Limites',
-    desc: 'Hoy tienes 1,500 alumnos. Con Global Investor quieres 10,000. Dany genera contenido para todos sin contratar mas analistas. El costo no sube, el revenue si.',
-  },
-  {
-    icon: DollarSign,
-    title: 'Nuevo Revenue Stream',
-    desc: 'Ofrece "PTS AI Premium" como add-on a Global Investor. Los alumnos pagan $29/mes por senales avanzadas de IA. Con 500 suscriptores = $14,500/mes adicionales.',
+    title: 'Transparencia Verificable',
+    desc: 'Cada prediccion queda grabada de forma permanente. No se puede borrar ni editar. Por primera vez, puedes verificar el historial completo de senales.',
   },
 ];
 
 const STEPS = [
-  { step: '01', title: 'CONFIGURAR', desc: 'Personalizamos la IA con la marca PTS, los mercados de Global Investor, y tu canal de Telegram' },
-  { step: '02', title: 'CONECTAR', desc: 'En 48 horas la IA esta corriendo en @protradingskills analizando SPY, QQQ, BTC, EUR/USD y los activos que tu elijas' },
-  { step: '03', title: 'ESCALAR', desc: 'Tus alumnos reciben analisis de 3 agentes de IA cada hora. Contenido ilimitado para tus sesiones en vivo' },
-  { step: '04', title: 'MONETIZAR', desc: 'Lanza "PTS AI Premium" como add-on. Los alumnos pagan por senales avanzadas. Tu revenue crece sin contratar mas gente' },
-];
-
-const WHAT_PTS_GETS = [
-  'Terminal web con la marca Pro Trading Skills',
-  'Bot en tu canal de Telegram @protradingskills',
-  '70+ indicadores tecnicos analizados 24/7',
-  'Debates autonomos de 3 agentes de IA cada hora',
-  'Busqueda de CUALQUIER activo: crypto, acciones, forex, commodities',
-  'Dashboard que muestra cuando la IA se equivoca (transparencia total)',
-  'Track record grabado en blockchain — imposible de falsificar',
-  'Soporte prioritario + actualizaciones incluidas',
-];
-
-const PRICING = [
   {
-    name: 'IMPLEMENTACIÓN',
-    price: '$1,200 USD',
-    period: 'una vez',
-    features: [
-      'IA personalizada con marca Pro Trading Skills',
-      'Configurada para los mercados de Global Investor',
-      'Integración directa en tu canal de Telegram',
-      'Terminal web con branding PTS',
-      'Onboarding para Javier, Daniel y equipo',
-      'Lista en 48 horas',
-    ],
-    highlighted: false,
+    step: '01',
+    title: 'Inscribete en Global Investor',
+    desc: 'Accedes al programa completo de formacion + Dany Agent Trader desde el dia uno.',
   },
   {
-    name: 'OPERACIÓN MENSUAL',
-    price: '$100 USD',
-    period: '/mes',
-    features: [
-      'IA corriendo 24/7 en tus mercados',
-      'Debates autonomos cada hora',
-      'Soporte tecnico prioritario',
-      'Actualizaciones de indicadores',
-      'Hosting y mantenimiento incluido',
-    ],
-    highlighted: true,
+    step: '02',
+    title: 'Aprende con PTS',
+    desc: '9 modulos, lives con Javier y Daniel, comunidad de traders reales que comparten setups y estructura de mercado.',
+  },
+  {
+    step: '03',
+    title: 'Activa a Dany en Telegram',
+    desc: 'Senales de IA 24/7 directo a tu Telegram. Entrada, stop loss, take profit — todo analizado por 3 agentes.',
+  },
+  {
+    step: '04',
+    title: 'Opera con ventaja',
+    desc: 'Tu decides, Dany analiza. Tu pones la disciplina, la IA pone los datos. Juntos ganan.',
   },
 ];
 
-// Revenue projection for PTS
-const REVENUE_MODEL = {
-  currentSignalPrice: 200, // what PTS charges post-program
-  aiPremiumPrice: 29, // suggested AI add-on price
-  currentStudents: 1500,
-  conversionRate: 0.33, // 33% of students upgrade
-  projectedSubscribers: 500,
-  monthlyRevenue: 14500, // 500 x $29
-  annualRevenue: 174000,
-  costPerMonth: 100,
-  roi: '14,400%',
-};
-
-const STATS = [
-  { label: 'DEBATES', value: '220+', sub: 'Autonomos' },
-  { label: 'ON-CHAIN', value: '56+', sub: 'Commits verificables' },
-  { label: 'INDICADORES', value: '70+', sub: 'OKX Agent Trade Kit' },
-  { label: 'CONTRATOS', value: '4', sub: 'En X Layer' },
+const CHECKLIST = [
+  'Programa completo de formacion PTS (9 modulos + 40 lecciones)',
+  'Sesiones en vivo con Javier y Daniel (lunes, miercoles, viernes)',
+  'Acceso a Dany Agent Trader — senales de IA 24/7',
+  '3 agentes que debaten cada trade antes de notificarte',
+  '70+ indicadores tecnicos en tiempo real',
+  'Historial verificable de cada prediccion',
+  'Canal exclusivo de Global Investor en Telegram',
+  'Soporte directo con el equipo PTS',
 ];
 
 const DEMO_CHIPS = ['SPY', 'QQQ', 'NVDA', 'BTC', 'ETH', 'GOLD'];
+
+const FAQ_ITEMS = [
+  {
+    q: 'La IA me va a reemplazar como trader?',
+    a: 'Para nada. Dany no toma trades por ti. Tu sigues siendo el que decide cuando entrar, donde poner el stop loss, y cuando cerrar la operacion. Dany te da el analisis — la accion del precio, la estructura de mercado, los indicadores — y tu tomas la decision final. Piensa en Dany como tu analista personal que trabaja 24/7.',
+  },
+  {
+    q: 'Y si las senales son malas?',
+    a: 'Buena pregunta. Cada prediccion queda grabada de forma permanente y publica. No se puede borrar ni editar despues del hecho. Si Dany se equivoca, queda registrado igual que cuando acierta. Esa transparencia es lo que nos diferencia de cualquier otro servicio de senales. Ademas, los 3 agentes debaten entre ellos antes de emitir una senal — no es un indicador basico tirando flechas.',
+  },
+  {
+    q: 'No sera otro bot de senales?',
+    a: 'No tiene nada que ver. Los bots tipicos son un indicador basico que cruza una media movil y te manda "COMPRA BTC". Dany tiene 3 agentes: el Alpha Hunter busca la oportunidad y analiza la estructura de mercado, el Red Team intenta destruir la tesis con riesgos y contraargumentos, y el CIO toma la decision final con entry, stop loss y take profit. Es como tener un equipo de analistas institucionales debatiendo cada setup.',
+  },
+  {
+    q: 'Necesito saber de tecnologia?',
+    a: 'Cero. Si sabes usar Telegram, sabes usar Dany. Te llega una notificacion con el analisis completo: que activo, en que direccion, donde entrar, donde salir si pierdes, y donde tomar ganancias. Todo en espanol, todo explicado para que aprendas mientras operas.',
+  },
+];
 
 // ============================================================
 // ANIMATED TERMINAL COMPONENT
 // ============================================================
 const TERMINAL_LINES = [
-  { text: '> bobby.analyze("SPY")', color: PTS.gold, delay: 0 },
-  { text: '[Alpha Hunter] SPY at $582.34 — bullish structure intact', color: '#6ee7b7', delay: 800 },
-  { text: '[Alpha Hunter] RSI(14): 58.2 | MACD: bullish cross | BB: mid-band', color: '#6ee7b7', delay: 1600 },
-  { text: '[Red Team] Warning: VIX rising +8% today. Resistance at $585', color: '#fca5a5', delay: 2800 },
-  { text: '[Red Team] Volume declining on rally — distribution pattern?', color: '#fca5a5', delay: 3600 },
-  { text: '[CIO] VERDICT: CAUTIOUS LONG — size 60% of max', color: PTS.gold, delay: 5000 },
-  { text: '[CIO] Entry: $581.50 | Stop: $576.20 | Target: $592.00', color: PTS.gold, delay: 5800 },
-  { text: '[System] Signal committed on-chain: 0x3f7a...c21d', color: '#a5b4fc', delay: 7000 },
+  { text: '> dany.analizar("SPY")', color: PTS.gold, delay: 0 },
+  { text: '[Alpha Hunter] SPY en $582.34 — estructura alcista intacta', color: '#6ee7b7', delay: 800 },
+  { text: '[Alpha Hunter] RSI(14): 58.2 | MACD: cruce alcista | Bollinger: banda media', color: '#6ee7b7', delay: 1600 },
+  { text: '[Red Team] Alerta: VIX subiendo +8% hoy. Resistencia en $585', color: '#fca5a5', delay: 2800 },
+  { text: '[Red Team] Volumen cayendo en rally — distribucion?', color: '#fca5a5', delay: 3600 },
+  { text: '[CIO] VEREDICTO: LONG CAUTELOSO — 60% del tamano maximo', color: PTS.gold, delay: 5000 },
+  { text: '[CIO] Entrada: $581.50 | Stop Loss: $576.20 | Take Profit: $592.00', color: PTS.gold, delay: 5800 },
+  { text: '[Sistema] Senal registrada permanentemente: 0x3f7a...c21d', color: '#a5b4fc', delay: 7000 },
   { text: '> _', color: PTS.gold, delay: 8000 },
 ];
 
 function AnimatedTerminal() {
   const [visibleLines, setVisibleLines] = useState<number>(0);
 
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    TERMINAL_LINES.forEach((line, i) => {
-      timers.push(setTimeout(() => setVisibleLines(i + 1), line.delay));
-    });
-    // Loop the animation
-    const loopTimer = setTimeout(() => {
+  // Use useRef to track timers for cleanup
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Start animation on mount
+  useState(() => {
+    const startAnimation = () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
       setVisibleLines(0);
-      // Restart
       TERMINAL_LINES.forEach((line, i) => {
-        timers.push(setTimeout(() => setVisibleLines(i + 1), line.delay + 500));
+        timersRef.current.push(setTimeout(() => setVisibleLines(i + 1), line.delay));
       });
-    }, 10000);
-    timers.push(loopTimer);
-    return () => timers.forEach(clearTimeout);
-  }, []);
+      timersRef.current.push(setTimeout(startAnimation, 10000));
+    };
+    startAnimation();
+  });
 
   return (
     <div
@@ -249,14 +202,55 @@ function AnimatedSection({ children, className = '', delay = 0 }: { children: Re
 }
 
 // ============================================================
+// FAQ ACCORDION ITEM
+// ============================================================
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{
+        background: 'rgba(30,31,43,0.6)',
+        borderColor: open ? 'rgba(248,207,44,0.3)' : 'rgba(153,144,121,0.1)',
+      }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-4 p-5 text-left"
+      >
+        <span className="text-sm font-bold" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          {q}
+        </span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: PTS.gold }} />
+        </motion.div>
+      </button>
+      <motion.div
+        initial={false}
+        animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="overflow-hidden"
+      >
+        <p
+          className="px-5 pb-5 text-sm leading-relaxed"
+          style={{ color: 'rgba(226,225,242,0.5)', fontFamily: 'Inter, sans-serif' }}
+        >
+          {a}
+        </p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN PAGE
 // ============================================================
 export default function PTSDemoPage() {
   return (
     <div className="min-h-screen" style={{ background: PTS.bg, color: PTS.text }}>
       <Helmet>
-        <title>DANY AGENT TRADER — Demo Exclusiva para Pro Trading Skills</title>
-        <meta name="description" content="Dany Agent Trader personalizado para Pro Trading Skills. 3 agentes de IA debaten cada trade." />
+        <title>Global Investor — Aprende a Operar con IA | Pro Trading Skills</title>
+        <meta name="description" content="Global Investor es el primer programa de trading en espanol con inteligencia artificial. 3 agentes de IA debaten cada trade. Formacion + IA 24/7." />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Helmet>
 
@@ -281,12 +275,20 @@ export default function PTSDemoPage() {
               className="text-sm font-bold tracking-wider"
               style={{ fontFamily: 'Manrope, sans-serif', color: PTS.gold }}
             >
-              DANY AGENT TRADER
+              GLOBAL INVESTOR
             </span>
           </div>
-          <span className="text-[10px] hidden sm:block" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
-            Powered by Bobby Agent Trader
-          </span>
+          <a
+            href="/demopts/terminal"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all hover:scale-[1.02]"
+            style={{
+              background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
+              color: PTS.btnText,
+              fontFamily: 'Manrope, sans-serif',
+            }}
+          >
+            PROBAR DANY GRATIS
+          </a>
         </div>
       </nav>
 
@@ -295,7 +297,6 @@ export default function PTSDemoPage() {
 
       {/* ========== 1. HERO ========== */}
       <section className="relative overflow-hidden">
-        {/* Background gradient */}
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 30% 20%, rgba(248,207,44,0.08) 0%, transparent 60%)` }} />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -311,48 +312,59 @@ export default function PTSDemoPage() {
                 }}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                EXCLUSIVO PARA GLOBAL INVESTOR — PRO TRADING SKILLS
+                SOLO 50 CUPOS CON ACCESO A DANY AGENT TRADER
               </div>
 
               <h1
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.1] tracking-tight mb-5"
                 style={{ fontFamily: 'Manrope, sans-serif' }}
               >
-                Tu propio CIO de Inteligencia Artificial{' '}
-                <span style={{ color: PTS.gold }}>que nunca duerme.</span>
+                Aprende a Operar.{' '}
+                <span style={{ color: PTS.gold }}>Deja que la IA Analice por Ti.</span>
               </h1>
 
               <p
-                className="text-sm sm:text-base leading-relaxed mb-8 max-w-lg"
+                className="text-sm sm:text-base leading-relaxed mb-4 max-w-lg"
                 style={{ color: 'rgba(226,225,242,0.55)', fontFamily: 'Inter, sans-serif' }}
               >
-                3 agentes de IA debaten cada trade antes de generar una senal.
-                Acciones, crypto, forex, opciones — los mercados de Global Investor. Ninguna academia en LATAM tiene esto.
+                Global Investor es el primer programa de trading en espanol que combina formacion profesional con un sistema de inteligencia artificial que analiza 70+ indicadores, debate cada senal entre 3 agentes, y opera 24/7 en tu Telegram.
               </p>
 
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="/demopts/terminal"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
-                    color: PTS.btnText,
-                    fontFamily: 'Manrope, sans-serif',
-                  }}
-                >
-                  VER DEMO EN VIVO <ArrowRight className="w-4 h-4" />
-                </a>
-                <a
-                  href="/demopts/terminal/marketplace"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold tracking-wide border transition-all hover:bg-white/[0.03]"
-                  style={{
-                    borderColor: 'rgba(153,144,121,0.4)',
-                    color: PTS.text,
-                    fontFamily: 'Manrope, sans-serif',
-                  }}
-                >
-                  AGENT COMMERCE
-                </a>
+              <p
+                className="text-base font-semibold mb-8"
+                style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
+              >
+                Tu aprendes. Dany analiza. Juntos, operan mejor.
+              </p>
+
+              <a
+                href="/demopts/terminal"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.03] active:scale-[0.98]"
+                style={{
+                  background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
+                  color: PTS.btnText,
+                  fontFamily: 'Manrope, sans-serif',
+                  boxShadow: '0 0 40px rgba(248,207,44,0.15)',
+                }}
+              >
+                QUIERO ENTRAR A GLOBAL INVESTOR <ArrowRight className="w-4 h-4" />
+              </a>
+
+              <div className="mt-4 flex flex-col gap-1.5">
+                <p className="text-xs" style={{ color: 'rgba(226,225,242,0.35)', fontFamily: 'Inter, sans-serif' }}>
+                  Solo 50 cupos con acceso gratuito a Dany Agent Trader
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 max-w-[180px] h-2 rounded-full overflow-hidden" style={{ background: 'rgba(248,207,44,0.1)' }}>
+                    <div className="h-full rounded-full" style={{ width: '94%', background: `linear-gradient(90deg, ${PTS.gold}, ${PTS.goldLight})` }} />
+                  </div>
+                  <span
+                    className="text-xs font-bold"
+                    style={{ color: PTS.gold, fontFamily: 'Space Grotesk, monospace' }}
+                  >
+                    47/50 cupos disponibles
+                  </span>
+                </div>
               </div>
             </motion.div>
 
@@ -369,33 +381,30 @@ export default function PTSDemoPage() {
         </div>
       </section>
 
-      {/* ========== 2. MARKETS CONFIGURED ========== */}
+      {/* ========== 2. SOCIAL PROOF BAR ========== */}
       <section className="border-t border-b" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <AnimatedSection>
-            <div
-              className="text-[10px] tracking-[0.2em] mb-4 font-semibold"
-              style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
-            >
-              MERCADOS CONFIGURADOS PARA PTS
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {MARKETS.map(m => (
-                <div
-                  key={m.symbol}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border"
-                  style={{
-                    background: 'rgba(30,31,43,0.6)',
-                    borderColor: 'rgba(153,144,121,0.12)',
-                  }}
-                >
-                  <span className="font-bold text-sm" style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}>
-                    {m.symbol}
-                  </span>
-                  <span className="text-xs" style={{ color: 'rgba(226,225,242,0.35)' }}>{m.name}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${TYPE_COLORS[m.type]}`}>
-                    {m.type}
-                  </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {SOCIAL_PROOF.map((item) => (
+                <div key={item.label} className="flex items-center gap-4 justify-center">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(248,207,44,0.1)' }}
+                  >
+                    <item.icon className="w-6 h-6" style={{ color: PTS.gold }} />
+                  </div>
+                  <div>
+                    <div
+                      className="text-2xl font-extrabold"
+                      style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
+                    >
+                      {item.value}
+                    </div>
+                    <div className="text-xs" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
+                      {item.label}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -403,26 +412,29 @@ export default function PTSDemoPage() {
         </div>
       </section>
 
-      {/* ========== 3. HOW IT WORKS ========== */}
+      {/* ========== 3. THREE DIFFERENTIATORS ========== */}
       <section className="py-16 md:py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <AnimatedSection>
-            <div
-              className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
-              style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
-            >
-              COMO FUNCIONA
+            <div className="text-center mb-12">
+              <div
+                className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
+                style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
+              >
+                POR QUE GLOBAL INVESTOR ES DIFERENTE
+              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                No es un curso mas.{' '}
+                <span style={{ color: PTS.gold }}>Es formacion + IA.</span>
+              </h2>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold mb-10" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              De instalacion a senales en <span style={{ color: PTS.gold }}>48 horas</span>
-            </h2>
           </AnimatedSection>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {STEPS.map((s, i) => (
-              <AnimatedSection key={s.step} delay={i * 0.1}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {DIFFERENTIATORS.map((d, i) => (
+              <AnimatedSection key={d.title} delay={i * 0.12}>
                 <div
-                  className="relative p-5 rounded-xl border h-full group hover:border-[rgba(248,207,44,0.3)] transition-colors"
+                  className="p-7 rounded-xl border h-full group hover:border-[rgba(248,207,44,0.3)] transition-colors"
                   style={{
                     background: 'rgba(30,31,43,0.8)',
                     backdropFilter: 'blur(12px)',
@@ -430,17 +442,68 @@ export default function PTSDemoPage() {
                   }}
                 >
                   <div
-                    className="text-3xl font-extrabold mb-3"
-                    style={{ color: 'rgba(248,207,44,0.2)', fontFamily: 'Manrope, sans-serif' }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
+                    style={{ background: 'rgba(248,207,44,0.1)' }}
+                  >
+                    <d.icon className="w-6 h-6" style={{ color: PTS.gold }} />
+                  </div>
+                  <h3
+                    className="text-base font-bold tracking-wide mb-3"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    {d.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(226,225,242,0.45)', fontFamily: 'Inter, sans-serif' }}>
+                    {d.desc}
+                  </p>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== 4. HOW IT WORKS FOR THE STUDENT ========== */}
+      <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <AnimatedSection>
+            <div className="text-center mb-12">
+              <div
+                className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
+                style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
+              >
+                COMO FUNCIONA
+              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                De cero a operar con IA{' '}
+                <span style={{ color: PTS.gold }}>en 4 pasos</span>
+              </h2>
+            </div>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STEPS.map((s, i) => (
+              <AnimatedSection key={s.step} delay={i * 0.1}>
+                <div
+                  className="relative p-6 rounded-xl border h-full group hover:border-[rgba(248,207,44,0.3)] transition-colors"
+                  style={{
+                    background: 'rgba(30,31,43,0.8)',
+                    backdropFilter: 'blur(12px)',
+                    borderColor: 'rgba(153,144,121,0.1)',
+                  }}
+                >
+                  <div
+                    className="text-4xl font-extrabold mb-4"
+                    style={{ color: 'rgba(248,207,44,0.15)', fontFamily: 'Manrope, sans-serif' }}
                   >
                     {s.step}
                   </div>
-                  <div
-                    className="text-xs font-bold tracking-wider mb-2"
-                    style={{ color: PTS.gold, fontFamily: 'Space Grotesk, monospace' }}
+                  <h3
+                    className="text-sm font-bold tracking-wide mb-2"
+                    style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
                   >
                     {s.title}
-                  </div>
+                  </h3>
                   <p className="text-xs leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
                     {s.desc}
                   </p>
@@ -451,115 +514,7 @@ export default function PTSDemoPage() {
         </div>
       </section>
 
-      {/* ========== 4. FEATURES (2x3 grid) ========== */}
-      <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <AnimatedSection>
-            <div
-              className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
-              style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
-            >
-              CAPACIDADES
-            </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold mb-10" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Dany trabaja para ti <span style={{ color: PTS.gold }}>24/7</span>
-            </h2>
-          </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f, i) => (
-              <AnimatedSection key={f.title} delay={i * 0.08}>
-                <div
-                  className="p-6 rounded-xl border h-full group hover:border-[rgba(248,207,44,0.25)] transition-all"
-                  style={{
-                    background: 'rgba(30,31,43,0.8)',
-                    backdropFilter: 'blur(12px)',
-                    borderColor: 'rgba(153,144,121,0.1)',
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-                    style={{ background: 'rgba(248,207,44,0.1)' }}
-                  >
-                    <f.icon className="w-5 h-5" style={{ color: PTS.gold }} />
-                  </div>
-                  <h3
-                    className="text-sm font-bold tracking-wide mb-2"
-                    style={{ fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    {f.title}
-                  </h3>
-                  <p className="text-xs leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                    {f.desc}
-                  </p>
-                </div>
-              </AnimatedSection>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ========== 5. LIVE DEMO ========== */}
-      <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <AnimatedSection>
-            <div className="text-center max-w-2xl mx-auto">
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-semibold tracking-wide mb-6"
-                style={{
-                  background: 'rgba(248,207,44,0.08)',
-                  borderColor: 'rgba(248,207,44,0.25)',
-                  color: PTS.gold,
-                  fontFamily: 'Space Grotesk, monospace',
-                }}
-              >
-                <Terminal className="w-3.5 h-3.5" />
-                DEMO EN VIVO
-              </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Prueba Dany <span style={{ color: PTS.gold }}>ahora mismo</span>
-              </h2>
-              <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.45)', fontFamily: 'Inter, sans-serif' }}>
-                Escribe cualquier activo y Dany te dara un analisis completo con debate de 3 agentes
-              </p>
-
-              {/* Quick action chips */}
-              <div className="flex flex-wrap justify-center gap-2 mb-8">
-                {DEMO_CHIPS.map(chip => (
-                  <a
-                    key={chip}
-                    href="/demopts/terminal"
-                    className="px-4 py-2 rounded-lg border text-xs font-bold tracking-wide transition-all hover:scale-105"
-                    style={{
-                      background: 'rgba(30,31,43,0.8)',
-                      borderColor: 'rgba(248,207,44,0.2)',
-                      color: PTS.gold,
-                      fontFamily: 'Space Grotesk, monospace',
-                    }}
-                  >
-                    {chip}
-                  </a>
-                ))}
-              </div>
-
-              {/* CTA to terminal */}
-              <a
-                href="/demopts/terminal"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
-                  color: PTS.btnText,
-                  fontFamily: 'Manrope, sans-serif',
-                }}
-              >
-                ABRIR TERMINAL DE BOBBY <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* ========== 6. WHAT PTS GETS ========== */}
+      {/* ========== 5. WHAT YOU GET ========== */}
       <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <AnimatedSection>
@@ -569,19 +524,19 @@ export default function PTSDemoPage() {
                   className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
                   style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
                 >
-                  QUE OBTIENE PTS
+                  QUE INCLUYE
                 </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold mb-6" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                  Todo lo que incluye tu <span style={{ color: PTS.gold }}>Dany personalizado</span>
+                <h2 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Todo lo que recibes con{' '}
+                  <span style={{ color: PTS.gold }}>Global Investor</span>
                 </h2>
-                <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                  Dany se convierte en el CIO de inteligencia artificial de Pro Trading Skills.
-                  Tu marca, tus mercados, tu canal.
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
+                  Formacion profesional de trading + un sistema de inteligencia artificial que analiza los mercados por ti. No existe otro programa asi en espanol.
                 </p>
               </div>
               <div className="space-y-3">
-                {WHAT_PTS_GETS.map((item, i) => (
-                  <AnimatedSection key={item} delay={i * 0.06}>
+                {CHECKLIST.map((item, i) => (
+                  <AnimatedSection key={item} delay={i * 0.05}>
                     <div
                       className="flex items-center gap-3 p-3.5 rounded-lg border"
                       style={{
@@ -605,148 +560,105 @@ export default function PTSDemoPage() {
         </div>
       </section>
 
-      {/* ========== 7. PRICING ========== */}
+      {/* ========== 6. LIVE DEMO ========== */}
       <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <AnimatedSection>
-            <div className="text-center mb-10">
+            <div className="text-center max-w-2xl mx-auto">
               <div
-                className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
-                style={{ color: PTS.textMuted, fontFamily: 'Space Grotestring, monospace' }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-semibold tracking-wide mb-6"
+                style={{
+                  background: 'rgba(248,207,44,0.08)',
+                  borderColor: 'rgba(248,207,44,0.25)',
+                  color: PTS.gold,
+                  fontFamily: 'Space Grotesk, monospace',
+                }}
               >
-                INVERSION
+                <Terminal className="w-3.5 h-3.5" />
+                DEMO EN VIVO
               </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Pricing exclusivo para <span style={{ color: PTS.gold }}>PTS</span>
+              <h2 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Prueba a Dany{' '}
+                <span style={{ color: PTS.gold }}>ahora mismo</span>
               </h2>
+              <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.45)', fontFamily: 'Inter, sans-serif' }}>
+                Escribe cualquier activo y Dany te dara un analisis completo con debate de 3 agentes, entrada, stop loss y take profit
+              </p>
+
+              {/* Quick action chips */}
+              <div className="flex flex-wrap justify-center gap-2 mb-8">
+                {DEMO_CHIPS.map(chip => (
+                  <a
+                    key={chip}
+                    href="/demopts/terminal"
+                    className="px-5 py-2.5 rounded-lg border text-xs font-bold tracking-wide transition-all hover:scale-105 hover:border-[rgba(248,207,44,0.5)]"
+                    style={{
+                      background: 'rgba(30,31,43,0.8)',
+                      borderColor: 'rgba(248,207,44,0.2)',
+                      color: PTS.gold,
+                      fontFamily: 'Space Grotesk, monospace',
+                    }}
+                  >
+                    {chip}
+                  </a>
+                ))}
+              </div>
+
+              <a
+                href="/demopts/terminal"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
+                  color: PTS.btnText,
+                  fontFamily: 'Manrope, sans-serif',
+                }}
+              >
+                ABRIR TERMINAL DE DANY <ArrowRight className="w-4 h-4" />
+              </a>
             </div>
           </AnimatedSection>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
-            {PRICING.map((p, i) => (
-              <AnimatedSection key={p.name} delay={i * 0.15}>
-                <div
-                  className="p-7 rounded-xl border h-full flex flex-col"
-                  style={{
-                    background: p.highlighted ? 'rgba(248,207,44,0.04)' : 'rgba(30,31,43,0.8)',
-                    backdropFilter: 'blur(12px)',
-                    borderColor: p.highlighted ? 'rgba(248,207,44,0.4)' : 'rgba(153,144,121,0.12)',
-                  }}
-                >
-                  <div
-                    className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
-                    style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
-                  >
-                    {p.name}
-                  </div>
-                  <div className="flex items-baseline gap-1.5 mb-1">
-                    <span
-                      className="text-3xl font-extrabold"
-                      style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
-                    >
-                      {p.price}
-                    </span>
-                    <span className="text-xs" style={{ color: 'rgba(226,225,242,0.3)' }}>{p.period}</span>
-                  </div>
-
-                  <div className="space-y-2.5 mt-5 mb-7 flex-1">
-                    {p.features.map(f => (
-                      <div key={f} className="flex items-start gap-2.5">
-                        <ChevronRight className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: PTS.gold }} />
-                        <span className="text-xs leading-relaxed" style={{ color: 'rgba(226,225,242,0.5)', fontFamily: 'Inter, sans-serif' }}>
-                          {f}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    className="w-full py-3 rounded-lg text-xs font-bold tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99]"
-                    style={
-                      p.highlighted
-                        ? {
-                            background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
-                            color: PTS.btnText,
-                            fontFamily: 'Manrope, sans-serif',
-                          }
-                        : {
-                            background: 'transparent',
-                            border: '1px solid rgba(153,144,121,0.25)',
-                            color: 'rgba(226,225,242,0.5)',
-                            fontFamily: 'Manrope, sans-serif',
-                          }
-                    }
-                  >
-                    {p.highlighted ? 'ACTIVAR' : 'IMPLEMENTAR'}
-                  </button>
-                </div>
-              </AnimatedSection>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* ========== 8. INFRASTRUCTURE PROOF ========== */}
+      {/* ========== 7. OBJECTION HANDLING — FAQ ========== */}
       <section className="py-16 md:py-20 border-t" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <AnimatedSection>
             <div className="text-center mb-10">
               <div
                 className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
                 style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
               >
-                INFRAESTRUCTURA VERIFICABLE
+                PREGUNTAS FRECUENTES
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Todo verificable en <span style={{ color: PTS.gold }}>blockchain</span>
+                Dudas?{' '}
+                <span style={{ color: PTS.gold }}>Te las resolvemos.</span>
               </h2>
             </div>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {STATS.map((s, i) => (
-              <AnimatedSection key={s.label} delay={i * 0.1}>
-                <div
-                  className="p-5 rounded-xl border text-center"
-                  style={{
-                    background: 'rgba(30,31,43,0.8)',
-                    backdropFilter: 'blur(12px)',
-                    borderColor: 'rgba(153,144,121,0.1)',
-                  }}
-                >
-                  <div
-                    className="text-2xl md:text-3xl font-extrabold"
-                    style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    {s.value}
-                  </div>
-                  <div
-                    className="text-[10px] tracking-[0.15em] mt-1.5 font-semibold"
-                    style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Space Grotesk, monospace' }}
-                  >
-                    {s.label}
-                  </div>
-                  <div className="text-[10px] mt-0.5" style={{ color: 'rgba(226,225,242,0.2)' }}>
-                    {s.sub}
-                  </div>
-                </div>
+          <div className="space-y-3">
+            {FAQ_ITEMS.map((item, i) => (
+              <AnimatedSection key={item.q} delay={i * 0.08}>
+                <FAQItem q={item.q} a={item.a} />
               </AnimatedSection>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ========== 9. FINAL CTA ========== */}
+      {/* ========== 8. FINAL CTA ========== */}
       <section className="py-20 md:py-28 border-t" style={{ borderColor: 'rgba(248,207,44,0.15)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <AnimatedSection>
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4 leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Listo para darle IA a tus{' '}
-                <span style={{ color: PTS.gold }}>1,500 alumnos</span>?
+                Tu Equipo de IA{' '}
+                <span style={{ color: PTS.gold }}>ya Esta Operando</span>
               </h2>
-              <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                La implementacion toma 48 horas. Dany empieza a debatir desde el dia uno.
+              <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
+                Los primeros 50 alumnos acceden a Dany sin costo adicional. Despues se convierte en add-on de pago. No te quedes fuera.
               </p>
 
               <a
@@ -759,30 +671,51 @@ export default function PTSDemoPage() {
                   boxShadow: '0 0 40px rgba(248,207,44,0.15)',
                 }}
               >
-                AGENDAR LLAMADA <ArrowRight className="w-5 h-5" />
+                RESERVAR MI CUPO EN GLOBAL INVESTOR <ArrowRight className="w-5 h-5" />
               </a>
 
-              <p className="text-[10px] mt-6" style={{ color: 'rgba(226,225,242,0.2)', fontFamily: 'Space Grotesk, monospace' }}>
-                Powered by Bobby Agent Trader — DeFi Mexico
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <div className="flex-1 max-w-[180px] h-2 rounded-full overflow-hidden" style={{ background: 'rgba(248,207,44,0.1)' }}>
+                  <div className="h-full rounded-full" style={{ width: '94%', background: `linear-gradient(90deg, ${PTS.gold}, ${PTS.goldLight})` }} />
+                </div>
+                <span
+                  className="text-xs font-bold"
+                  style={{ color: PTS.gold, fontFamily: 'Space Grotesk, monospace' }}
+                >
+                  47/50 cupos disponibles
+                </span>
+              </div>
+
+              <p className="text-[10px] mt-8" style={{ color: 'rgba(226,225,242,0.2)', fontFamily: 'Space Grotesk, monospace' }}>
+                Powered by Pro Trading Skills x DeFi Mexico
               </p>
             </div>
           </AnimatedSection>
         </div>
       </section>
 
-      {/* ========== FOOTER ========== */}
+      {/* ========== 9. FOOTER ========== */}
       <footer className="border-t py-6" style={{ borderColor: 'rgba(153,144,121,0.1)' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-[10px]" style={{ color: 'rgba(226,225,242,0.2)', fontFamily: 'Space Grotesk, monospace' }}>
-            2026 Dany Agent Trader. Todos los derechos reservados.
-          </span>
-          <a
-            href="/demopts/terminal"
-            className="text-[10px] transition-colors hover:underline"
-            style={{ color: PTS.gold, fontFamily: 'Space Grotesk, monospace' }}
-          >
-            defimexico.org/demopts/terminal
-          </a>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span className="text-[10px]" style={{ color: 'rgba(226,225,242,0.2)', fontFamily: 'Space Grotesk, monospace' }}>
+              Pro Trading Skills &copy; 2026
+            </span>
+            <div className="flex items-center gap-4">
+              <a href="#" className="text-[10px] transition-colors hover:underline" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
+                Terminos
+              </a>
+              <a href="#" className="text-[10px] transition-colors hover:underline" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
+                Privacidad
+              </a>
+              <a href="#" className="text-[10px] transition-colors hover:underline" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
+                Contacto
+              </a>
+            </div>
+            <span className="text-[10px]" style={{ color: 'rgba(226,225,242,0.15)', fontFamily: 'Space Grotesk, monospace' }}>
+              Dany Agent Trader — Powered by Bobby Agent Trader
+            </span>
+          </div>
         </div>
       </footer>
     </div>
