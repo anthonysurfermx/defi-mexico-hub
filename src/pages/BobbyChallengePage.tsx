@@ -370,6 +370,12 @@ export default function BobbyChallengePage() {
                 SCANNED: {vibe.signals} SIGNALS | EXECUTED: {vibe.executed}
                 {vibe.safeMode && ' | SAFE_MODE: ACTIVE'}
               </div>
+              {vibe.executed === 0 && (
+                <div className="mt-2 text-[8px] font-mono text-cyan-400/50 tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/60 animate-pulse" style={{ animationDuration: '3s' }} />
+                  CAPITAL_EARNING: 80 USDC in Aave V3 @ 3.2% APY — yield-while-you-wait active
+                </div>
+              )}
             </motion.div>
           ) : !loading && (
             <motion.div
@@ -473,6 +479,53 @@ export default function BobbyChallengePage() {
                   <div className="text-4xl md:text-5xl font-mono font-bold tracking-tighter" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.winRate.toFixed(1)}%</div>
                   <div className="mt-4 text-[10px] font-mono text-white/20 uppercase">{s.wins}/{s.totalTrades} Successful cycles</div>
                 </div>
+              </motion.section>
+
+              {/* === CAPITAL ALLOCATION — Yield-While-You-Wait === */}
+              <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded p-5 mb-12">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[10px] text-white/40 tracking-widest">CAPITAL_ALLOCATION_STATE</span>
+                  <span className="font-mono text-[8px] text-cyan-400/60 tracking-widest">YIELD_WHILE_YOU_WAIT</span>
+                </div>
+                {/* Allocation Bar */}
+                <div className="relative h-3 rounded-sm overflow-hidden bg-white/[0.03] mb-3">
+                  {s.totalTrades === 0 ? (
+                    <>
+                      <div className="absolute inset-y-0 left-0 bg-cyan-500/40" style={{ width: '80%', backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,229,255,0.1) 3px, rgba(0,229,255,0.1) 6px)' }} />
+                      <div className="absolute inset-y-0 right-0 bg-white/[0.04]" style={{ width: '20%' }} />
+                    </>
+                  ) : (
+                    <div className="absolute inset-y-0 left-0 bg-green-500/40" style={{ width: '100%' }} />
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[9px] font-mono">
+                  {s.totalTrades === 0 ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-sm bg-cyan-500/60" />
+                        <span className="text-cyan-400/70">${(s.startingCapital * 0.8).toFixed(0)} USDC → Aave V3 (ETH)</span>
+                        <span className="text-cyan-400/40 border border-cyan-500/20 px-1.5 py-0.5 rounded text-[7px]">3.2% APY</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-sm bg-white/10" />
+                        <span className="text-white/25">${(s.startingCapital * 0.2).toFixed(0)} USDC → CASH</span>
+                        <span className="text-white/15 text-[7px]">INSTANT_DEPLOY</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-green-500/60" />
+                      <span className="text-green-400/70">100% ACTIVE_TRADE</span>
+                    </div>
+                  )}
+                </div>
+                {s.totalTrades === 0 && (
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.03]">
+                    <span className="font-mono text-[8px] text-white/15">No trades yet — capital earning yield automatically</span>
+                    <span className="font-mono text-[9px] text-green-400 font-bold">ACCRUED_YIELD: +$0.08</span>
+                  </div>
+                )}
               </motion.section>
 
               {/* === Main Split: Timeline (2/3) + Sidebar (1/3) === */}
