@@ -70,8 +70,9 @@ const BobbySignalsPage = lazy(() => import('@/pages/BobbySignalsPage'));
 const BobbyDocsPage = lazy(() => import('@/pages/BobbyDocsPage'));
 const BobbyMarketplacePage = lazy(() => import('@/pages/BobbyMarketplacePage'));
 
-// PTS Demo (standalone white-label sales page)
+// PTS Demo (standalone white-label pages)
 const PTSDemoPage = lazy(() => import('@/pages/PTSDemoPage'));
+const PTSTerminalPage = lazy(() => import('@/pages/PTSTerminalPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -276,6 +277,14 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <PTSDemoPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'demopts/terminal',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <PTSTerminalPage />
             </Suspense>
           ),
         },

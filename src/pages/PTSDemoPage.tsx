@@ -332,7 +332,7 @@ export default function PTSDemoPage() {
 
               <div className="flex flex-wrap gap-3">
                 <a
-                  href="/agentic-world/bobby"
+                  href="/demopts/terminal"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{
                     background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -343,7 +343,7 @@ export default function PTSDemoPage() {
                   VER DEMO EN VIVO <ArrowRight className="w-4 h-4" />
                 </a>
                 <a
-                  href="/agentic-world/bobby/marketplace"
+                  href="/demopts/terminal/marketplace"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold tracking-wide border transition-all hover:bg-white/[0.03]"
                   style={{
                     borderColor: 'rgba(153,144,121,0.4)',
@@ -528,7 +528,7 @@ export default function PTSDemoPage() {
                 {DEMO_CHIPS.map(chip => (
                   <a
                     key={chip}
-                    href="/agentic-world/bobby"
+                    href="/demopts/terminal"
                     className="px-4 py-2 rounded-lg border text-xs font-bold tracking-wide transition-all hover:scale-105"
                     style={{
                       background: 'rgba(30,31,43,0.8)',
@@ -544,7 +544,7 @@ export default function PTSDemoPage() {
 
               {/* CTA to terminal */}
               <a
-                href="/agentic-world/bobby"
+                href="/demopts/terminal"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -750,7 +750,7 @@ export default function PTSDemoPage() {
               </p>
 
               <a
-                href="/agentic-world/bobby"
+                href="/demopts/terminal"
                 className="inline-flex items-center gap-2 px-10 py-4 rounded-lg text-base font-bold tracking-wide transition-all hover:scale-[1.03] active:scale-[0.98]"
                 style={{
                   background: `linear-gradient(135deg, ${PTS.gold}, ${PTS.goldLight})`,
@@ -777,11 +777,11 @@ export default function PTSDemoPage() {
             2026 Dany Agent Trader. Todos los derechos reservados.
           </span>
           <a
-            href="/agentic-world/bobby"
+            href="/demopts/terminal"
             className="text-[10px] transition-colors hover:underline"
             style={{ color: PTS.gold, fontFamily: 'Space Grotesk, monospace' }}
           >
-            defimexico.org/agentic-world/bobby
+            defimexico.org/demopts/terminal
           </a>
         </div>
       </footer>
