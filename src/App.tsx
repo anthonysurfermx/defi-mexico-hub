@@ -77,6 +77,7 @@ const PTSShellPage = lazy(() => import('@/pages/PTSShellPage'));
 const PTSChatOnly = lazy(() => import('@/pages/PTSChatOnly'));
 const PTSLoginPage = lazy(() => import('@/pages/PTSLoginPage'));
 const PTSOnboardingPage = lazy(() => import('@/pages/PTSOnboardingPage'));
+const PTSChallengePage = lazy(() => import('@/pages/PTSChallengePage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -309,7 +310,7 @@ const router = createBrowserRouter(
           ),
           children: [
             { path: 'terminal', element: <Suspense fallback={<PageLoader />}><PTSChatOnly /></Suspense> },
-            { path: 'challenge', element: <Suspense fallback={<PageLoader />}><BobbyChallengePage /></Suspense> },
+            { path: 'challenge', element: <Suspense fallback={<PageLoader />}><PTSChallengePage /></Suspense> },
             { path: 'history', element: <Suspense fallback={<PageLoader />}><BobbyHistoryPage /></Suspense> },
             { path: 'agents', element: <Suspense fallback={<PageLoader />}><BobbyAgentsPage /></Suspense> },
             { path: 'analytics', element: <Suspense fallback={<PageLoader />}><BobbyAnalyticsPage /></Suspense> },
