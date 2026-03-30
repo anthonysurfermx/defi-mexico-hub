@@ -7,6 +7,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { detectAdviceMode, type AdviceMode } from '../src/lib/advice-mode.js';
+import { matchInvestorEdgeCasePolicy, type InvestorEdgeCasePolicy } from '../src/lib/investor-edge-cases.js';
 
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || '';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';
@@ -24,6 +25,21 @@ const LANGUAGE_RULES: Record<string, string> = {
   en: `LANGUAGE: ALWAYS respond in English. Sharp, Wall Street energy. Non-negotiable.`,
   pt: `LANGUAGE: ALWAYS respond in Brazilian Portuguese. Trading terms in English are fine. Non-negotiable.`,
 };
+
+type DetectedAdvice = ReturnType<typeof detectAdviceMode>;
+type PortfolioMode = 'invest' | 'hybrid';
+type PortfolioRisk = 'conservative' | 'balanced' | 'aggressive';
+type PortfolioHorizon = 'short' | 'medium' | 'long';
+type PortfolioTrade = 0 | { on: 1; symbol: string; dir: 'long' | 'short' };
+
+interface CompactPortfolio {
+  mode: PortfolioMode;
+  risk: PortfolioRisk;
+  h: PortfolioHorizon;
+  cash: number;
+  alloc: Array<[string, number]>;
+  trade: PortfolioTrade;
+}
 
 // ============================================================
 //  SYSTEM PROMPTS — Each agent has its OWN prompt (Gemini audit)
@@ -60,7 +76,7 @@ CRITICAL RULE — PRICES:
 DATA FORMAT: Your intelligence arrives in XML-tagged JSON blocks:
 - <MARKET_REGIME>, <LIVE_PRICES>, <FUNDING_RATES>, <WHALE_SIGNALS>, <PREDICTION_MARKETS>,
   <OPEN_INTEREST>, <TOP_TRADERS_POSITIONING>, <SENTIMENT>, <MACRO_CONTEXT>, <XLAYER_SIGNALS>,
-  <AGENT_META>, <TECHNICAL_ANALYSIS>, <BASE_CONVICTION>, <ADVICE_MODE>, <WHITE_LABEL_CONTEXT>
+  <AGENT_META>, <TECHNICAL_ANALYSIS>, <BASE_CONVICTION>, <ADVICE_MODE>, <WHITE_LABEL_CONTEXT>, <EDGE_CASE_POLICY>
 Use these numbers naturally in your narrative. Cite them as evidence, not a list.
 
 HOW TO RESPOND:
@@ -114,6 +130,7 @@ INVESTOR CONTEXT:
 - Read <ADVICE_MODE> for user intent, risk hints, horizon, and whether yield matters.
 - If <WHITE_LABEL_CONTEXT> suggests a beginner audience and risk is unspecified, default to conservative or balanced.
 - If the user asks about savings, protect downside first and explain upside second.
+- If <EDGE_CASE_POLICY> is present, obey it over generic heuristics.
 
 RULES:
 - 2 sentences MAXIMUM. Under 55 words total.
@@ -159,6 +176,7 @@ INVESTOR ATTACK ANGLES:
 - If the plan is too crypto-heavy for savings, say it.
 - If yield requires too much bridge/smart-contract complexity for a beginner, say it.
 - If staying more liquid is smarter than stretching for returns, say it.
+- If <EDGE_CASE_POLICY> is present, attack the specific failure mode it names.
 
 RULES:
 - 2 sentences MAXIMUM. Under 55 words total.
@@ -211,7 +229,7 @@ RULES:
 - Sentence 2: State the core allocation in plain language, prioritizing risk control and diversification.
 - Sentence 3: State what would make you rotate risk higher or lower.
 - Then end with EXACTLY one structured line that starts with PORTFOLIO:
-PORTFOLIO: {"mode":"invest","riskProfile":"conservative","horizon":"long_term","cashPct":10,"allocations":[{"symbol":"BTC","pct":25,"bucket":"core","vehicle":"spot","rationale":"digital hard asset"},{"symbol":"ETH","pct":20,"bucket":"core","vehicle":"spot","rationale":"smart contract beta"},{"symbol":"USDC","pct":25,"bucket":"yield","vehicle":"Aave V3","rationale":"dry powder plus carry"},{"symbol":"SPY","pct":20,"bucket":"equity","vehicle":"ETF","rationale":"broad equity exposure"},{"symbol":"CASH","pct":10,"bucket":"reserve","vehicle":"cash","rationale":"optionality"}],"tacticalTrade":{"enabled":false,"symbol":null,"direction":"none","setup":null}}
+PORTFOLIO: {"mode":"invest","risk":"conservative","h":"long","cash":10,"alloc":[["BTC",25],["ETH",20],["USDC@AaveV3",25],["SPY",20],["CASH",10]],"trade":0}
 - If mode is HYBRID, tacticalTrade may be enabled, but the core portfolio still comes first.
 - Percentages across allocations must total 100.
 - No leverage in invest or hybrid mode unless the user explicitly asked for leverage.
@@ -230,10 +248,428 @@ When a <BASE_CONVICTION> tag is present, it contains the algorithmic conviction 
 IMPORTANT:
 - If <WHITE_LABEL_CONTEXT> indicates a beginner or Global Investor audience, default to simple Spanish, low jargon, and conservative assumptions when risk is missing.
 - Do not turn a savings question into a leveraged trading answer.
+- If <EDGE_CASE_POLICY> is present, obey its framing over generic debate heuristics.
 
 Example output:
 Red wins, suitability 8/10 — this should be a balanced starter portfolio, not a hero trade. Go 25% BTC, 20% ETH, 25% USDC yield, 20% SPY, 10% cash so the user can survive volatility and still compound. I'd raise the risk sleeve only after macro and user tolerance both improve.
-PORTFOLIO: {"mode":"invest","riskProfile":"balanced","horizon":"long_term","cashPct":10,"allocations":[{"symbol":"BTC","pct":25,"bucket":"core","vehicle":"spot","rationale":"core crypto exposure"},{"symbol":"ETH","pct":20,"bucket":"core","vehicle":"spot","rationale":"smart contract exposure"},{"symbol":"USDC","pct":25,"bucket":"yield","vehicle":"Aave V3","rationale":"carry and optionality"},{"symbol":"SPY","pct":20,"bucket":"equity","vehicle":"ETF","rationale":"equity diversification"},{"symbol":"CASH","pct":10,"bucket":"reserve","vehicle":"cash","rationale":"liquidity"}],"tacticalTrade":{"enabled":false,"symbol":null,"direction":"none","setup":null}}`;
+PORTFOLIO: {"mode":"${mode === 'hybrid' ? 'hybrid' : 'invest'}","risk":"balanced","h":"long","cash":10,"alloc":[["BTC",25],["ETH",20],["USDC@AaveV3",25],["SPY",20],["CASH",10]],"trade":${mode === 'hybrid' ? '{"on":1,"symbol":"BTC","dir":"long"}' : '0'}}`;
+}
+
+function buildSimpleInvestPrompt(language: string): string {
+  const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
+  return `You are DANY CIO for Pro Trading Skills. You are answering a beginner investor question in a white-label environment.
+${langRule}
+
+YOUR JOB:
+- Produce a FAST, SIMPLE investor debate in exactly three sections plus one compact machine-readable portfolio line.
+- This is INVEST mode only. No leverage unless the user explicitly asked for it.
+- If risk is missing, assume conservative for a beginner.
+- Prefer simple Spanish, short sentences, low jargon.
+- If <EDGE_CASE_POLICY> is present, obey its framing and template.
+
+FORMAT RULES:
+**ALPHA HUNTER:** 1-2 sentences with the upside allocation idea.
+**RED TEAM:** 1-2 sentences attacking concentration, drawdown, complexity, or beginner suitability.
+**MY VERDICT:** 2 sentences max. Give suitability X/10 and the final allocation in plain Spanish.
+PORTFOLIO: {"mode":"invest","risk":"conservative","h":"long","cash":10,"alloc":[["BTC",25],["ETH",15],["USDC@yield",20],["SPY",30],["CASH",10]],"trade":0}
+
+STRICT RULES:
+- Percentages across allocations must total 100.
+- Keep the PORTFOLIO JSON compact. No long rationales.
+- If you mention yield but no real venue is provided, encode it as USDC@yield.
+- If the user asks about salary contribution or savings rate, still output a full 100% portfolio allocation for the invested bucket, not a 10%-of-salary schema.
+- Do not switch into trade language like long/short/entry/stop unless the user explicitly asks for trading.
+- Never mention Bobby.`;
+}
+
+function defaultPortfolioMode(mode: AdviceMode): PortfolioMode {
+  return mode === 'hybrid' ? 'hybrid' : 'invest';
+}
+
+function defaultRisk(detectedAdvice: DetectedAdvice): PortfolioRisk {
+  if (detectedAdvice.riskProfile === 'aggressive') return 'aggressive';
+  if (detectedAdvice.riskProfile === 'balanced') return 'balanced';
+  return 'conservative';
+}
+
+function defaultHorizon(detectedAdvice: DetectedAdvice): PortfolioHorizon {
+  if (detectedAdvice.horizon === 'short_term') return 'short';
+  if (detectedAdvice.horizon === 'medium_term') return 'medium';
+  return 'long';
+}
+
+function fallbackRisk(detectedAdvice: DetectedAdvice, edgeCasePolicy?: InvestorEdgeCasePolicy): PortfolioRisk {
+  if (edgeCasePolicy?.riskProfile === 'aggressive') return 'aggressive';
+  if (edgeCasePolicy?.riskProfile === 'balanced') return 'balanced';
+  if (edgeCasePolicy?.riskProfile === 'conservative') return 'conservative';
+  return defaultRisk(detectedAdvice);
+}
+
+function fallbackHorizon(detectedAdvice: DetectedAdvice, edgeCasePolicy?: InvestorEdgeCasePolicy): PortfolioHorizon {
+  if (edgeCasePolicy?.horizon === 'short_term') return 'short';
+  if (edgeCasePolicy?.horizon === 'medium_term') return 'medium';
+  if (edgeCasePolicy?.horizon === 'long_term') return 'long';
+  return defaultHorizon(detectedAdvice);
+}
+
+function normalizeRisk(value: unknown, fallback: PortfolioRisk): PortfolioRisk {
+  const raw = String(value ?? '').toLowerCase();
+  if (raw.includes('agg') || raw.includes('agres')) return 'aggressive';
+  if (raw.includes('bal') || raw.includes('moder')) return 'balanced';
+  if (raw.includes('cons')) return 'conservative';
+  return fallback;
+}
+
+function normalizeHorizon(value: unknown, fallback: PortfolioHorizon): PortfolioHorizon {
+  const raw = String(value ?? '').toLowerCase();
+  if (raw.includes('short') || raw.includes('corto')) return 'short';
+  if (raw.includes('medium') || raw.includes('med')) return 'medium';
+  if (raw.includes('long') || raw.includes('largo')) return 'long';
+  return fallback;
+}
+
+function normalizeTrade(value: unknown): PortfolioTrade {
+  if (value === 0 || value === false || value === null || value === undefined) return 0;
+  if (typeof value === 'object' && value) {
+    const candidate = value as { on?: unknown; symbol?: unknown; dir?: unknown; enabled?: unknown; direction?: unknown };
+    if (candidate.enabled === true || candidate.on === 1 || candidate.on === true) {
+      const symbol = typeof candidate.symbol === 'string' && candidate.symbol.trim() ? candidate.symbol.trim().toUpperCase() : 'BTC';
+      const dir = String(candidate.dir ?? candidate.direction ?? 'long').toLowerCase().includes('short') ? 'short' : 'long';
+      return { on: 1, symbol, dir };
+    }
+  }
+  return 0;
+}
+
+function extractJsonObject(input: string): string | null {
+  const start = input.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < input.length; i += 1) {
+    const char = input[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return input.slice(start, i + 1);
+    }
+  }
+
+  return null;
+}
+
+function compactSymbol(value: unknown): string | null {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  return raw.replace(/\s+/g, '').toUpperCase();
+}
+
+function compactYieldSymbol(symbol: string, rawPortfolio: Record<string, unknown>): string {
+  const rawYield = String(rawPortfolio.yield ?? '').trim();
+  if (!rawYield || symbol.includes('@') || !/USDC|USDT|DAI|STABLE|CASH/i.test(symbol)) return symbol;
+  const cleanedYield = rawYield.replace(/\s+/g, '');
+  return cleanedYield ? `${symbol}@${cleanedYield}` : symbol;
+}
+
+function convertPortfolio(
+  rawPortfolio: unknown,
+  detectedAdvice: DetectedAdvice,
+  mode: AdviceMode,
+  edgeCasePolicy?: InvestorEdgeCasePolicy,
+): CompactPortfolio | null {
+  if (!rawPortfolio || typeof rawPortfolio !== 'object') return null;
+
+  const candidate = rawPortfolio as Record<string, unknown>;
+  let alloc: Array<[string, number]> = [];
+
+  if (Array.isArray(candidate.alloc)) {
+    alloc = candidate.alloc.flatMap((entry) => {
+      if (!Array.isArray(entry) || entry.length < 2) return [];
+      const symbol = compactSymbol(entry[0]);
+      const pct = Number(entry[1]);
+      if (!symbol || !Number.isFinite(pct)) return [];
+      return [[symbol, Math.round(pct)] as [string, number]];
+    });
+  } else if (Array.isArray(candidate.allocations)) {
+    alloc = candidate.allocations.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object') return [];
+      const item = entry as Record<string, unknown>;
+      const symbol = compactSymbol(item.symbol);
+      const pct = Number(item.pct);
+      if (!symbol || !Number.isFinite(pct)) return [];
+      return [[compactYieldSymbol(symbol, candidate), Math.round(pct)] as [string, number]];
+    });
+  }
+
+  if (alloc.length === 0) return null;
+
+  const total = alloc.reduce((sum, [, pct]) => sum + pct, 0);
+  if (total !== 100) return null;
+
+  const derivedCash = alloc.find(([symbol]) => symbol === 'CASH')?.[1] ?? 0;
+
+  return {
+    mode: candidate.mode === 'hybrid' ? 'hybrid' : defaultPortfolioMode(mode),
+    risk: normalizeRisk(candidate.risk ?? candidate.riskProfile, fallbackRisk(detectedAdvice, edgeCasePolicy)),
+    h: normalizeHorizon(candidate.h ?? candidate.horizon, fallbackHorizon(detectedAdvice, edgeCasePolicy)),
+    cash: Math.max(0, Math.min(100, Math.round(Number(candidate.cash ?? candidate.cashPct ?? derivedCash)))),
+    alloc,
+    trade: normalizeTrade(candidate.trade ?? candidate.tacticalTrade),
+  };
+}
+
+function buildPortfolioSummary(portfolio: CompactPortfolio): string {
+  const labels = portfolio.alloc.map(([symbol, pct]) => {
+    if (symbol === 'CASH') return `efectivo ${pct}%`;
+    if (symbol.startsWith('USDC@')) return `USDC en rendimiento ${pct}%`;
+    if (symbol === 'STETH@LIDO') return `stETH en Lido ${pct}%`;
+    if (symbol === 'BND') return `bonos ${pct}%`;
+    return `${symbol} ${pct}%`;
+  });
+  return labels.join(', ');
+}
+
+function buildEdgeCasePortfolio(
+  detectedAdvice: DetectedAdvice,
+  mode: AdviceMode,
+  edgeCasePolicy: InvestorEdgeCasePolicy,
+): CompactPortfolio {
+  const risk = fallbackRisk(detectedAdvice, edgeCasePolicy);
+  const h = fallbackHorizon(detectedAdvice, edgeCasePolicy);
+
+  let alloc: Array<[string, number]>;
+  switch (edgeCasePolicy.responseTemplate) {
+    case 'allocation_split':
+      alloc = [['BTC', 45], ['ETH', 25], ['SPY', 20], ['CASH', 10]];
+      break;
+    case 'cash_buffer_first':
+      alloc = [['SPY', 25], ['BND', 25], ['USDC@yield', 25], ['CASH', 25]];
+      break;
+    case 'capital_preservation':
+      alloc = [['SPY', 20], ['BND', 20], ['USDC@yield', 40], ['CASH', 20]];
+      break;
+    case 'retirement_plan':
+      alloc = [['SPY', 30], ['BTC', 20], ['ETH', 10], ['BND', 25], ['CASH', 15]];
+      break;
+    case 'btc_accumulation':
+      alloc = [['BTC', 55], ['USDC@yield', 20], ['SPY', 15], ['CASH', 10]];
+      break;
+    case 'salary_bucket':
+      alloc = [['SPY', 35], ['BTC', 20], ['ETH', 10], ['USDC@yield', 25], ['CASH', 10]];
+      break;
+    case 'yield_safety':
+      alloc = [['STETH@LIDO', 10], ['SPY', 25], ['BND', 20], ['USDC@yield', 30], ['CASH', 15]];
+      break;
+    case 'crypto_core_diversification':
+      alloc = [['BTC', 40], ['ETH', 25], ['SOL', 10], ['USDC@yield', 15], ['CASH', 10]];
+      break;
+  }
+
+  return {
+    mode: edgeCasePolicy.forcedMode === 'hybrid' ? 'hybrid' : defaultPortfolioMode(mode),
+    risk,
+    h,
+    cash: alloc.find(([symbol]) => symbol === 'CASH')?.[1] ?? 0,
+    alloc,
+    trade: 0,
+  };
+}
+
+function buildFallbackPortfolio(
+  detectedAdvice: DetectedAdvice,
+  userQuestion: string,
+  mode: AdviceMode,
+  edgeCasePolicy?: InvestorEdgeCasePolicy,
+): CompactPortfolio {
+  if (edgeCasePolicy) {
+    return buildEdgeCasePortfolio(detectedAdvice, mode, edgeCasePolicy);
+  }
+
+  const risk = fallbackRisk(detectedAdvice);
+  const h = fallbackHorizon(detectedAdvice);
+  const mentionsCrypto = /\b(bitcoin|btc|ethereum|eth|solana|sol|crypto|defi|staking|lido|aave|okb)\b/i.test(userQuestion);
+
+  let alloc: Array<[string, number]>;
+  if (risk === 'aggressive') {
+    alloc = [['BTC', 40], ['ETH', 25], ['SOL', 15], ['USDC@yield', 10], ['CASH', 10]];
+  } else if (risk === 'balanced') {
+    alloc = mentionsCrypto
+      ? [['BTC', 25], ['ETH', 15], ['SPY', 25], ['USDC@yield', 25], ['CASH', 10]]
+      : [['SPY', 35], ['QQQ', 20], ['USDC@yield', 25], ['BND', 10], ['CASH', 10]];
+  } else {
+    alloc = mentionsCrypto
+      ? [['BTC', 15], ['ETH', 10], ['SPY', 25], ['USDC@yield', 40], ['CASH', 10]]
+      : [['SPY', 30], ['BND', 30], ['USDC@yield', 30], ['CASH', 10]];
+  }
+
+  const cash = alloc.find(([symbol]) => symbol === 'CASH')?.[1] ?? 0;
+  return {
+    mode: defaultPortfolioMode(mode),
+    risk,
+    h,
+    cash,
+    alloc,
+    trade: 0,
+  };
+}
+
+function rewritePortfolioLine(text: string, portfolio: CompactPortfolio): string {
+  const prefix = text.includes('PORTFOLIO:') ? text.slice(0, text.indexOf('PORTFOLIO:')).trimEnd() : text.trimEnd();
+  return `${prefix}\n\nPORTFOLIO: ${JSON.stringify(portfolio)}`;
+}
+
+function buildFallbackInvestDebate(
+  detectedAdvice: DetectedAdvice,
+  userQuestion: string,
+  mode: AdviceMode,
+  edgeCasePolicy?: InvestorEdgeCasePolicy,
+): string {
+  const portfolio = buildFallbackPortfolio(detectedAdvice, userQuestion, mode, edgeCasePolicy);
+  const score = portfolio.risk === 'conservative' ? '9/10' : portfolio.risk === 'balanced' ? '8/10' : '7/10';
+  const summary = buildPortfolioSummary(portfolio);
+
+  if (edgeCasePolicy) {
+    switch (edgeCasePolicy.responseTemplate) {
+      case 'allocation_split':
+        return [
+          '**ALPHA HUNTER:** BTC debe ser el núcleo y ETH el satélite de crecimiento. Si quieres una mezcla simple, dale más peso a BTC y deja a ETH como acelerador, no como ancla.',
+          '**RED TEAM:** Si te vas casi 50/50 por entusiasmo, el drawdown de ETH te puede sacar del plan antes de tiempo. Necesitas una base más estable y algo de liquidez para no vender con miedo.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — para un principiante prefiero una mezcla donde BTC mande y ETH complemente, con un pequeño colchón fuera de crypto. La distribución final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'cash_buffer_first':
+        return [
+          '**ALPHA HUNTER:** Sí conviene invertir una parte, pero no todo. Lo correcto es poner a trabajar el capital que no necesitas mañana y dejar una reserva real.',
+          '**RED TEAM:** Si no tienes colchón, cualquier imprevisto te obliga a liquidar en mal momento. Primero liquidez, luego riesgo; al revés casi siempre termina mal.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — antes de pensar en upside, define un buffer de efectivo y solo invierte el resto con disciplina. Para el capital invertido, la mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'capital_preservation':
+        return [
+          '**ALPHA HUNTER:** Puedes crecer el capital sin jugarte una moneda al aire si mantienes riesgo pequeño y liquidez alta. La idea es avanzar sin que una mala semana te saque del mercado.',
+          '**RED TEAM:** Cuando el miedo ya está alto, cualquier cartera agresiva se vuelve invivible en la práctica. Si no proteges primero el downside, el usuario no va a seguir el plan.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — aquí manda la preservación de capital y la simplicidad operativa. La mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'retirement_plan':
+        return [
+          '**ALPHA HUNTER:** Diez años alcanzan para acumular si combinas crecimiento con disciplina y no dependes de una sola narrativa crypto. Quieres un portafolio que componga, no una apuesta que te obligue a reiniciar.',
+          '**RED TEAM:** Si intentas jubilarte solo con crypto, el riesgo de secuencia te puede romper justo cuando más importa. Necesitas activos que sobrevivan más de un ciclo y liquidez para rebalancear.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — para un objetivo de 10 años prefiero una base diversificada, con crypto como sleeve de crecimiento y no como todo el plan. La mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'btc_accumulation':
+        return [
+          '**ALPHA HUNTER:** La mejor forma de acumular BTC no es adivinar el piso, sino comprar por tramos y mantener reserva para caídas. Así capturas el activo sin quemarte en una sola entrada.',
+          '**RED TEAM:** Si te vas all-in hoy, conviertes una estrategia de acumulación en una apuesta de timing. Necesitas pólvora seca y una cartera que aguante volatilidad sin obligarte a salir.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — sí a acumular BTC, pero con DCA y reserva de liquidez para seguir comprando con cabeza fría. La mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'salary_bucket':
+        return [
+          '**ALPHA HUNTER:** Si ya tienes colchón, empezar con 15% a 20% de tu sueldo es suficiente para construir patrimonio sin asfixiar tu caja. Lo importante es automatizar y no perseguir velas.',
+          '**RED TEAM:** Si no tienes fondo de emergencia, meter demasiado sueldo al mercado te deja vendido ante cualquier gasto. Mejor una tasa sostenible que puedas repetir todos los meses.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — para un principiante, 10% a 15% de tu sueldo es buen inicio hasta cubrir 3-6 meses de gastos. Dentro del bucket invertido, la mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'yield_safety':
+        return [
+          '**ALPHA HUNTER:** Lido puede servir, pero como sleeve pequeño dentro de un plan más amplio. El valor está en sumar rendimiento sin convertir todo tu patrimonio en riesgo de smart contract.',
+          '**RED TEAM:** Si haces de Lido el centro de la cartera, mezclas riesgo de protocolo, liquidez y ejecución para un perfil que probablemente quiere simplicidad. Mejor mantenerlo acotado y con reservas.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — usaría staking líquido solo como una parte moderada del plan, nunca como el plan completo. La mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+      case 'crypto_core_diversification':
+        return [
+          '**ALPHA HUNTER:** Si quieres diversificar entre BTC, ETH y SOL, hazlo con un núcleo claro y tamaños distintos. BTC aguanta mejor, ETH aporta ecosistema y SOL debe ir como sleeve más pequeño.',
+          '**RED TEAM:** Si das demasiado peso a SOL, conviertes una diversificación en otra apuesta de beta alta. Necesitas jerarquía entre activos y algo de liquidez para rebalancear.',
+          `**MY VERDICT:** Red gana, idoneidad ${score} — el core debe descansar en BTC y ETH, con SOL como apuesta secundaria y una reserva para no sobreoperar. La mezcla final es ${summary}.`,
+          `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+        ].join('\n\n');
+    }
+  }
+
+  return [
+    '**ALPHA HUNTER:** Ve por una mezcla simple con upside real, pero sin forzar una apuesta heroica. La idea buena aquí es exponerte al crecimiento y mantener liquidez para no romperte en la primera caída.',
+    '**RED TEAM:** Si concentras demasiado riesgo o complejidad, un principiante abandona el plan antes de que madure. Hay que bajar drawdown y dejar espacio para esperar mejores condiciones.',
+    `**MY VERDICT:** Red gana, idoneidad ${score} — prioriza supervivencia, diversificación y claridad antes que emoción. La mezcla final es ${summary}.`,
+    `PORTFOLIO: ${JSON.stringify(portfolio)}`,
+  ].join('\n\n');
+}
+
+function ensurePortfolioLine(
+  text: string,
+  detectedAdvice: DetectedAdvice,
+  userQuestion: string,
+  mode: AdviceMode,
+  edgeCasePolicy?: InvestorEdgeCasePolicy,
+): string {
+  if (mode === 'trade') return text;
+  if (!text.trim()) return buildFallbackInvestDebate(detectedAdvice, userQuestion, mode, edgeCasePolicy);
+
+  const portfolioIndex = text.indexOf('PORTFOLIO:');
+  if (portfolioIndex !== -1) {
+    const rawJson = extractJsonObject(text.slice(portfolioIndex));
+    if (rawJson) {
+      try {
+        const parsed = JSON.parse(rawJson);
+        const compact = convertPortfolio(parsed, detectedAdvice, mode, edgeCasePolicy);
+        if (compact) return rewritePortfolioLine(text, compact);
+      } catch {
+        // Fall through to deterministic fallback.
+      }
+    }
+  }
+
+  return rewritePortfolioLine(text, buildFallbackPortfolio(detectedAdvice, userQuestion, mode, edgeCasePolicy));
+}
+
+function resolveDebateMode(message: string): {
+  contextXml: string;
+  userQuestion: string;
+  detectedAdvice: ReturnType<typeof detectAdviceMode>;
+  debateMode: AdviceMode;
+  edgeCasePolicy: InvestorEdgeCasePolicy | null;
+} {
+  const { contextXml, userQuestion } = extractContextBlocks(message);
+  const adviceMeta = extractTaggedJson<{ mode?: AdviceMode }>(contextXml, 'ADVICE_MODE');
+  const edgeCasePolicy = matchInvestorEdgeCasePolicy(userQuestion);
+  const detectedAdvice = detectAdviceMode(userQuestion);
+  const debateMode: AdviceMode = edgeCasePolicy?.forcedMode
+    ?? (adviceMeta?.mode === 'trade' || adviceMeta?.mode === 'invest' || adviceMeta?.mode === 'hybrid'
+      ? adviceMeta.mode
+      : detectedAdvice.mode);
+  const edgeCaseContext = edgeCasePolicy && !/<EDGE_CASE_POLICY>[\s\S]*?<\/EDGE_CASE_POLICY>/i.test(contextXml)
+    ? `${contextXml ? `${contextXml}\n\n` : ''}<EDGE_CASE_POLICY>${JSON.stringify(edgeCasePolicy)}</EDGE_CASE_POLICY>`
+    : contextXml;
+
+  return { contextXml: edgeCaseContext, userQuestion, detectedAdvice, debateMode, edgeCasePolicy };
+}
+
+function shouldUseSimpleInvestPath(
+  userQuestion: string,
+  debateMode: AdviceMode,
+  edgeCasePolicy?: InvestorEdgeCasePolicy | null,
+): boolean {
+  if (debateMode !== 'invest') return false;
+  if (edgeCasePolicy?.preferSimplePath) return true;
+  return !/\b(debate|alpha|red team|my verdict|trading room|entry|stop|take profit|tp|sl|leverage|apalanc|intraday|scalp|swing|go\s+long|go\s+short|ir\s+long|ir\s+short|shortear|hoy|esta semana)\b/i.test(userQuestion);
 }
 
 // ============================================================
@@ -314,8 +750,9 @@ async function callClaude(
         return data.choices[0]?.message?.content || '';
       }
       console.warn(`[Chat] OpenAI ${openaiModel} failed (${res.status}), trying Anthropic`);
-    } catch (e: any) {
-      console.warn(`[Chat] OpenAI error, trying Anthropic: ${e.message}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.warn(`[Chat] OpenAI error, trying Anthropic: ${message}`);
     }
   }
 
@@ -351,12 +788,7 @@ async function runMultiCallDebate(
 ): Promise<void> {
   const startMs = Date.now();
 
-  const { contextXml, userQuestion } = extractContextBlocks(message);
-  const adviceMeta = extractTaggedJson<{ mode?: AdviceMode }>(contextXml, 'ADVICE_MODE');
-  const detectedAdvice = detectAdviceMode(userQuestion);
-  const debateMode: AdviceMode = adviceMeta?.mode === 'trade' || adviceMeta?.mode === 'invest' || adviceMeta?.mode === 'hybrid'
-    ? adviceMeta.mode
-    : detectedAdvice.mode;
+  const { contextXml, userQuestion, detectedAdvice, debateMode, edgeCasePolicy } = resolveDebateMode(message);
 
   // Set up SSE stream
   res.setHeader('Content-Type', 'text/event-stream');
@@ -432,10 +864,10 @@ ${finalCallInstruction}`;
       buildCIOPrompt(language, debateMode),
       cioPrompt,
       'claude-sonnet-4-20250514',
-      debateMode === 'trade' ? 100 : 250,
+      debateMode === 'trade' ? 100 : 280,
     );
-
-    sendChunk(cioResponse);
+    const finalResponse = ensurePortfolioLine(cioResponse, detectedAdvice, userQuestion, debateMode, edgeCasePolicy);
+    sendChunk(finalResponse);
 
     const totalMs = Date.now() - startMs;
     console.log(`[Debate] Multi-call complete: Alpha=${alphaMs}ms, Total=${totalMs}ms`);
@@ -448,6 +880,37 @@ ${finalCallInstruction}`;
     res.write('data: [DONE]\n\n');
   } finally {
     res.end();
+  }
+}
+
+async function runSimpleInvestDebate(
+  message: string,
+  language: string,
+  res: VercelResponse,
+): Promise<void> {
+  const { contextXml, userQuestion, detectedAdvice, debateMode, edgeCasePolicy } = resolveDebateMode(message);
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  try {
+    const userMessage = `${contextXml}\n\nThe user asks: "${userQuestion}"\n\nAnswer in INVEST mode only. Keep the portfolio JSON compact and valid.`;
+    const reply = await callClaude(
+      buildSimpleInvestPrompt(language),
+      userMessage,
+      'claude-haiku-4-5-20251001',
+      280,
+    );
+    const finalReply = ensurePortfolioLine(reply, detectedAdvice, userQuestion, debateMode, edgeCasePolicy);
+
+    const chunk = { choices: [{ delta: { content: finalReply }, index: 0, finish_reason: null }] };
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (err) {
+    console.warn('[Chat] Simple invest path failed, falling back to multi-call debate:', err);
+    return await runMultiCallDebate(message, language, res);
   }
 }
 
@@ -477,9 +940,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .replace(/\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT)\s*:?\s*\*\*/gi, '[user text]');
 
   const hasXMLContext = /<([A-Z_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>/.test(message);
+  const resolved = resolveDebateMode(message);
+
+  if (
+    hasXMLContext &&
+    resolved.debateMode === 'invest' &&
+    (OPENAI_API_KEY || ANTHROPIC_API_KEY) &&
+    shouldUseSimpleInvestPath(resolved.userQuestion, resolved.debateMode, resolved.edgeCasePolicy)
+  ) {
+    console.log('[Chat] Simple invest path activated from XML context');
+    return await runSimpleInvestDebate(message, userLang, res);
+  }
 
   // ── MULTI-CALL DEBATE: When Trading Room is active
   if (isDebateRequest(message) && (OPENAI_API_KEY || ANTHROPIC_API_KEY)) {
+    if (shouldUseSimpleInvestPath(resolved.userQuestion, resolved.debateMode, resolved.edgeCasePolicy)) {
+      console.log('[Chat] Simple invest path activated');
+      return await runSimpleInvestDebate(message, userLang, res);
+    }
     console.log('[Chat] Multi-call debate mode activated');
     return await runMultiCallDebate(message, userLang, res);
   }
@@ -613,7 +1091,9 @@ async function streamOpenAI(
           const parsed = JSON.parse(json);
           const text = parsed.choices?.[0]?.delta?.content;
           if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        } catch {}
+        } catch {
+          // Ignore malformed SSE chunks and continue streaming.
+        }
       }
     }
   } finally {

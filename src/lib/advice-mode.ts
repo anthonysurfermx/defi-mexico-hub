@@ -1,3 +1,5 @@
+import { matchInvestorEdgeCasePolicy } from './investor-edge-cases.js';
+
 export type AdviceMode = 'trade' | 'invest' | 'hybrid';
 
 export interface AdviceModeDetection {
@@ -25,14 +27,14 @@ const SOFT_TRADE_PATTERNS = [
 
 const HARD_INVEST_PATTERNS = [
   /\b(invest|investing|investment|portfolio|allocation|rebalance|retirement|savings|save|wealth)\b/i,
-  /\b(invertir|inversion|portafolio|cartera|asignaci[oó]n|rebalancear|ahorros|patrimonio)\b/i,
+  /\b(invertir|inversion|portafolio|cartera|asignaci[oó]n|rebalancear|ahorros|patrimonio|porcentaje|acumular|acumulaci[oó]n|jubilarm[ea]|sueldo|salario)\b/i,
   /\b(long\s*term|long-term|for\s+years|10\s+years|retire|retiro|largo\s+plazo)\b/i,
 ];
 
 const SOFT_INVEST_PATTERNS = [
   /\b(dca|dollar\s*cost|diversif|core\s+position|passive\s+income|compound|etf|index\s+fund)\b/i,
   /\b(yield|staking|apy|apr|lend|lending|vault|aave|lido|stablecoin)\b/i,
-  /\b(diversificar|ingreso\s+pasivo|rendimiento|staking|fondos?\s+indexados?)\b/i,
+  /\b(diversific\w*|ingreso\s+pasivo|rendimiento|staking|fondos?\s+indexados?|cash\s+vs\s+invertido|cash\s+vs\s+invertir|bitcoin\s+vs\s+ethereum|btc\s+vs\s+eth)\b/i,
   /\b(crypto\s+or\s+stocks|acciones\s+o\s+crypto|stocks?\s+vs\s+crypto)\b/i,
 ];
 
@@ -45,7 +47,7 @@ const BEGINNER_PATTERNS = [
 
 const CONSERVATIVE_PATTERNS = [
   /\b(low\s*risk|conservative|capital\s*preservation|safe|safer|protect)\b/i,
-  /\b(bajo\s+riesgo|conservador|conservadora|seguro|proteger\s+(?:mi\s+)?capital|proteger(?:me)?|inflaci[oó]n)\b/i,
+  /\b(bajo\s+riesgo|conservador|conservadora|seguro|proteger\s+(?:mi\s+)?capital|proteger(?:me)?|inflaci[oó]n|miedo\s+de\s+perder|perder\s+mi\s+dinero)\b/i,
 ];
 
 const BALANCED_PATTERNS = [
@@ -79,8 +81,19 @@ function scoreMatches(text: string, patterns: RegExp[]): number {
 
 export function detectAdviceMode(rawText: string): AdviceModeDetection {
   const text = rawText.trim();
+  const edgeCasePolicy = matchInvestorEdgeCasePolicy(text);
   const tradeScore = (scoreMatches(text, HARD_TRADE_PATTERNS) * 2) + scoreMatches(text, SOFT_TRADE_PATTERNS);
   const investScore = (scoreMatches(text, HARD_INVEST_PATTERNS) * 2) + scoreMatches(text, SOFT_INVEST_PATTERNS);
+  const wantsYield = /\b(yield|staking|apy|apr|lend|lending|aave|lido|vault|rendimiento|staking)\b/i.test(text);
+  const mentionsPortfolioBase = /\b(portfolio|allocation|cartera|portafolio|allocations?|porcentaje|cash|invertid[oa]s?|diversific\w*|acumular|acumulaci[oó]n)\b/i.test(text);
+  const horizonBase =
+    LONG_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
+      ? 'long_term'
+      : MEDIUM_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
+        ? 'medium_term'
+        : SHORT_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
+          ? 'short_term'
+          : null;
 
   const isBeginner = BEGINNER_PATTERNS.some((p) => p.test(text));
   const isConservative = CONSERVATIVE_PATTERNS.some((p) => p.test(text));
@@ -90,9 +103,15 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
     mode = 'hybrid';
   } else if (investScore > tradeScore) {
     mode = 'invest';
+  } else if (tradeScore === 0 && horizonBase === 'long_term') {
+    mode = 'invest';
   } else if (tradeScore === 0 && investScore === 0) {
-    // When no explicit signals, beginners and conservative users get invest mode
-    mode = (isBeginner || isConservative) ? 'invest' : 'trade';
+    // When no explicit signals, suitability-style questions should still route to invest mode.
+    mode = (isBeginner || isConservative || wantsYield || mentionsPortfolioBase) ? 'invest' : 'trade';
+  }
+
+  if (edgeCasePolicy) {
+    mode = edgeCasePolicy.forcedMode;
   }
 
   const delta = Math.abs(investScore - tradeScore);
@@ -104,6 +123,8 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
         : 'low';
 
   const reasons: string[] = [];
+  const horizon = edgeCasePolicy?.horizon ?? horizonBase;
+  const mentionsPortfolio = edgeCasePolicy ? true : mentionsPortfolioBase;
   if (mode === 'trade' || mode === 'hybrid') {
     if (HARD_TRADE_PATTERNS.some((pattern) => pattern.test(text))) reasons.push('explicit trade execution language');
     if (SOFT_TRADE_PATTERNS.some((pattern) => pattern.test(text))) reasons.push('short-horizon market timing language');
@@ -111,9 +132,11 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
   if (mode === 'invest' || mode === 'hybrid') {
     if (HARD_INVEST_PATTERNS.some((pattern) => pattern.test(text))) reasons.push('portfolio / long-term investing language');
     if (SOFT_INVEST_PATTERNS.some((pattern) => pattern.test(text))) reasons.push('allocation / yield / diversification language');
+    if (horizon === 'long_term' && !reasons.includes('portfolio / long-term investing language')) reasons.push('long-horizon accumulation language');
   }
+  if (edgeCasePolicy) reasons.unshift(`edge-case policy: ${edgeCasePolicy.id}`);
 
-  const riskProfile =
+  const riskProfileBase =
     AGGRESSIVE_PATTERNS.some((pattern) => pattern.test(text))
       ? 'aggressive'
       : CONSERVATIVE_PATTERNS.some((pattern) => pattern.test(text))
@@ -121,15 +144,7 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
         : BALANCED_PATTERNS.some((pattern) => pattern.test(text))
           ? 'balanced'
           : null;
-
-  const horizon =
-    LONG_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
-      ? 'long_term'
-      : MEDIUM_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
-        ? 'medium_term'
-        : SHORT_HORIZON_PATTERNS.some((pattern) => pattern.test(text))
-          ? 'short_term'
-          : null;
+  const riskProfile = edgeCasePolicy?.riskProfile ?? riskProfileBase;
 
   return {
     mode,
@@ -138,7 +153,7 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
     riskProfile,
     horizon,
     beginnerFriendly: BEGINNER_PATTERNS.some((pattern) => pattern.test(text)),
-    wantsYield: /\b(yield|staking|apy|apr|lend|lending|aave|lido|vault|rendimiento|staking)\b/i.test(text),
-    mentionsPortfolio: /\b(portfolio|allocation|cartera|portafolio|allocations?)\b/i.test(text),
+    wantsYield,
+    mentionsPortfolio,
   };
 }
