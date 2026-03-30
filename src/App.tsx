@@ -69,6 +69,7 @@ const BobbyMetacognitionPage = lazy(() => import('@/pages/BobbyMetacognitionPage
 const BobbySignalsPage = lazy(() => import('@/pages/BobbySignalsPage'));
 const BobbyDocsPage = lazy(() => import('@/pages/BobbyDocsPage'));
 const BobbyMarketplacePage = lazy(() => import('@/pages/BobbyMarketplacePage'));
+const BobbyInvestorDemoPage = lazy(() => import('@/pages/BobbyInvestorDemoPage'));
 
 // PTS Demo (standalone white-label pages)
 const BobbyDeFiPage = lazy(() => import('@/pages/BobbyDeFiPage'));
@@ -723,6 +724,15 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={<PageLoader />}>
               <BobbyMarketplacePage />
+            </Suspense>
+          ),
+        },
+
+        {
+          path: 'agentic-world/bobby/investor-demo',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <BobbyInvestorDemoPage />
             </Suspense>
           ),
         },

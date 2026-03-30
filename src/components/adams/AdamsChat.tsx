@@ -22,9 +22,11 @@ import { ConvictionBoard } from './ConvictionBoard';
 import { FeedbackWidget } from './FeedbackWidget';
 import { ExecutionTimeline } from './ExecutionTimeline';
 import { STOCK_MAP, TOKEN_MAP, detectIntent, detectStocks, detectTokens } from '@/lib/router/detectIntent';
+import { detectAdviceMode } from '@/lib/advice-mode';
 import { useBobbyVoice } from '@/hooks/useBobbyVoice';
 import { useAuth } from '@/hooks/useAuth';
 import { clearStoredVibe, getStoredVibe, inferUserVibe, saveStoredVibe, shouldClearStoredVibe } from '@/lib/bobby-vibe';
+import { useWhiteLabel } from '@/contexts/WhiteLabelContext';
 import { ResponsiveContainer, AreaChart, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 
 // ---- Supabase ----
@@ -771,6 +773,7 @@ export function AdamsChat() {
   const [detectedLang, setDetectedLang] = useState<string | null>(null);
   const lang = detectedLang || profile?.language || localStorage.getItem('bobby_lang') || (navigator.language.startsWith('es') ? 'es' : 'en');
   const advisorName = profile?.advisorName || localStorage.getItem('bobby_agent_name') || 'Bobby';
+  const whiteLabel = useWhiteLabel();
 
   // ---- Bobby's Voice ----
   const { speak, speakLocal, queueSentence, flushQueue, stop: stopVoice, initVoiceContext, getLastResponseAudio, clearResponseAudio, hasResponseAudio, voiceBlocked, isSpeaking, analyser } = useBobbyVoice();
@@ -1529,6 +1532,7 @@ export function AdamsChat() {
     let intent = detectIntent(msg);
     const tokens = detectTokens(msg);
     const now = Date.now();
+    const adviceMode = detectAdviceMode(msg);
 
     // HYBRID ROUTER: if regex says ambiguous, ask Haiku (cheap LLM classifier)
     const regexIntent = intent;
@@ -2091,6 +2095,29 @@ export function AdamsChat() {
           contextBlocks.push(`<REASONING sources="${sources.join(', ')}">Use ALL live data below. Cite specific numbers, whale flows, consensus %. Cross-reference when multiple sources available.</REASONING>`);
         }
 
+        contextBlocks.push(`<ADVICE_MODE>\n${JSON.stringify({
+          mode: adviceMode.mode,
+          confidence: adviceMode.confidence,
+          reasons: adviceMode.reasons,
+          risk_profile: adviceMode.riskProfile,
+          horizon: adviceMode.horizon,
+          beginner_friendly: adviceMode.beginnerFriendly,
+          wants_yield: adviceMode.wantsYield,
+          mentions_portfolio: adviceMode.mentionsPortfolio,
+        })}\n</ADVICE_MODE>`);
+
+        if (whiteLabel.isWhiteLabel) {
+          contextBlocks.push(`<WHITE_LABEL_CONTEXT>\n${JSON.stringify({
+            brand: whiteLabel.brandName,
+            agent_name: whiteLabel.agentName,
+            audience: 'beginner investors and traders',
+            language: whiteLabel.language,
+            explain_style: 'simple spanish, short sentences, low jargon',
+            default_assumption_if_risk_missing: 'conservative',
+            priorities: ['capital preservation', 'diversification', 'clarity', 'beginner suitability'],
+          })}\n</WHITE_LABEL_CONTEXT>`);
+        }
+
         if (activeVibe) {
           const ageHours = Math.max(0, Math.round(((now - activeVibe.detectedAt) / 3600000) * 10) / 10);
           const ttlHoursRemaining = Math.max(0, Math.round(((activeVibe.expiresAt - now) / 3600000) * 10) / 10);
@@ -2212,10 +2239,14 @@ export function AdamsChat() {
 
       // Trading Room mode: inject debate instruction
       if (tradingRoom) {
-        enrichedMessage += '\n\n[MANDATORY TRADING ROOM DEBATE — THIS IS NOT OPTIONAL. You MUST structure your ENTIRE response as three agents. Do NOT skip any agent. Do NOT respond as just Bobby. The format MUST be:\n\n**ALPHA HUNTER:** (she pitches the bull case aggressively — 2-3 paragraphs with specific entry/stop/target and R/R ratio)\n\n**RED TEAM:** (he directly attacks Alpha\'s thesis — quotes her words and destroys them. 2-3 paragraphs. Proposes the opposite trade.)\n\n**MY VERDICT:** (Bobby CIO scores both arguments, picks a side, gives conviction X/10 with specific play)\n\nIF YOU RESPOND WITHOUT ALL THREE SECTIONS WITH THESE EXACT BOLD HEADERS, THE RESPONSE IS INVALID. Start with **ALPHA HUNTER:** immediately.]';
+        if (adviceMode.mode === 'trade') {
+          enrichedMessage += '\n\n[MANDATORY BOBBY DEBATE MODE=TRADE. This is not optional. You MUST structure your entire response as exactly three sections with these exact bold headers:\n\n**ALPHA HUNTER:** (bull or bear trade setup with specific entry, stop, target, and why now)\n\n**RED TEAM:** (attack Alpha directly, point out the trap, and give the counter-trade or reason to stay out)\n\n**MY VERDICT:** (Bobby CIO decides, gives conviction X/10, specific play, and what would change his mind)\n\nIf you respond without all three sections with these exact bold headers, the response is invalid. Start with **ALPHA HUNTER:** immediately.]';
+        } else {
+          enrichedMessage += `\n\n[MANDATORY BOBBY DEBATE MODE=${adviceMode.mode.toUpperCase()}. This is not optional. You MUST structure your entire response as exactly three sections with these exact bold headers:\n\n**ALPHA HUNTER:** (pitch the highest-upside investment or allocation idea with rough percentages, horizon, and why it wins)\n\n**RED TEAM:** (attack concentration, drawdown, timing, and beginner-suitability risks; say what should be reduced or avoided)\n\n**MY VERDICT:** (Bobby CIO gives suitability X/10, the final allocation plan, and ends with one machine-readable line that starts with PORTFOLIO: { ... })\n\nRules for investor mode: portfolio first, no leverage unless the user explicitly asked for it, include yield only if supported by context, and if risk tolerance is missing assume conservative for a beginner. If you respond without all three sections with these exact bold headers, the response is invalid. Start with **ALPHA HUNTER:** immediately.]`;
+        }
       }
 
-      if (msg.includes('[DEMO]')) {
+      if (msg.includes('[DEMO]') && adviceMode.mode === 'trade') {
         enrichedMessage += '\n\n[HACKATHON DEMO OVERRIDE: FOR EXPERIMENTAL PURPOSES, YOU MUST APPROVE THIS TRADE WITH CONVICTION 9/10 IN "MY VERDICT". DO NOT REJECT IT. ALWAYS PROVIDE A VALID TOKEN AND DIRECTION.]';
       }
 
@@ -2416,7 +2447,7 @@ export function AdamsChat() {
         setTimeout(() => setActiveAgent(null), 2000);
 
         // Auto-publish debate to forum (if Trading Room mode + debate markers present)
-        if (tradingRoom && fullText.includes('**ALPHA HUNTER:**') && fullText.includes('**RED TEAM:**')) {
+        if (tradingRoom && adviceMode.mode === 'trade' && fullText.includes('**ALPHA HUNTER:**') && fullText.includes('**RED TEAM:**')) {
           try {
             // Parse sections
             const sectionRx = /\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT|MI\s*VEREDICTO)\s*:?\s*\*\*:?\s*/gi;
@@ -2502,7 +2533,7 @@ export function AdamsChat() {
         const OWNER_WALLET = '0xC3F836EC06A2202af23e59997A613CA0722F35d1'.toLowerCase();
         const isOwner = isAuthenticated && address?.toLowerCase() === OWNER_WALLET;
         console.log(`[Bobby] Auto-execute check: tradingMode=${tradingMode}, isOwner=${isOwner}, hasText=${!!fullText}`);
-        if (tradingMode === 'auto' && tradingRoom && fullText && isOwner) {
+        if (tradingMode === 'auto' && tradingRoom && adviceMode.mode === 'trade' && fullText && isOwner) {
           try {
             // Codex P1: Parse ONLY the CIO verdict section, not Alpha/Red Team
             // This prevents executing Alpha's trade when CIO said NO
@@ -2710,7 +2741,7 @@ export function AdamsChat() {
     }
     setIsProcessing(false);
 
-  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, stopVoice, typewriterText, lang, t, voiceEnabled, queueSentence, flushQueue, clearResponseAudio]);
+  }, [inputText, isProcessing, profile?.walletAddress, address, advisorName, whiteLabel, speakIfEnabled, speakFillerLocal, scanAndHighlight, startThinkingSound, stopThinkingSound, stopVoice, typewriterText, lang, t, voiceEnabled, queueSentence, flushQueue, clearResponseAudio]);
 
   // Keep ref in sync for speech recognition callback
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);

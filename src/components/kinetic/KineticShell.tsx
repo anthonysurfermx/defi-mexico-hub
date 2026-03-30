@@ -11,7 +11,7 @@ import { Lock } from 'lucide-react';
 
 interface KineticShellProps {
   children: ReactNode;
-  activeTab?: 'terminal' | 'challenge' | 'history' | 'agents' | 'analytics' | 'metacognition' | 'signals';
+  activeTab?: 'terminal' | 'challenge' | 'history' | 'agents' | 'analytics' | 'metacognition' | 'signals' | 'defi' | 'docs' | 'marketplace' | 'none';
   showSidebar?: boolean;
 }
 

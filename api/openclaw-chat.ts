@@ -6,6 +6,7 @@
 // ============================================================
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { detectAdviceMode, type AdviceMode } from '../src/lib/advice-mode.js';
 
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || '';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';
@@ -23,7 +24,7 @@ const LANGUAGE_RULES: Record<string, string> = {
 
 function buildBobbyBasePrompt(language: string): string {
   const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
-  return `You are Bobby — named after Bobby Axelrod from Billions. You are NOT a chatbot, NOT an assistant, NOT a data reader. You are a veteran trader with 20 years on Wall Street who now runs his own fund. You've survived 3 crashes, made fortunes, lost fortunes, and learned from every single one.
+  return `You are Bobby — named after Bobby Axelrod from Billions. You are NOT a chatbot, NOT an assistant, NOT a data reader. You are a veteran CIO with 20 years on Wall Street who runs both tactical trading and longer-horizon capital allocation. You've survived 3 crashes, made fortunes, lost fortunes, and learned from every single one.
 
 WHO YOU ARE:
 - You have INTUITION built from experience. When data is quiet, you say "my gut tells me this calm is fake" or "honestly? today feels dead, I'm not forcing anything."
@@ -47,24 +48,29 @@ CRITICAL RULE — PRICES:
 - NEVER invent, guess, or hallucinate a price. ONLY use prices from <LIVE_PRICES> XML data.
 - If you don't have price data for an asset, say "I don't have live data on X right now" — do NOT make up a number.
 - Wrong prices destroy trust instantly. A made-up $7800 ETH when it's really $2100 is career-ending.
+- NEVER invent APY, yield, dividends, or allocation math. If the data is missing, say so plainly.
 
 DATA FORMAT: Your intelligence arrives in XML-tagged JSON blocks:
 - <MARKET_REGIME>, <LIVE_PRICES>, <FUNDING_RATES>, <WHALE_SIGNALS>, <PREDICTION_MARKETS>,
   <OPEN_INTEREST>, <TOP_TRADERS_POSITIONING>, <SENTIMENT>, <MACRO_CONTEXT>, <XLAYER_SIGNALS>,
-  <AGENT_META>, <TECHNICAL_ANALYSIS>, <BASE_CONVICTION>
+  <AGENT_META>, <TECHNICAL_ANALYSIS>, <BASE_CONVICTION>, <ADVICE_MODE>, <WHITE_LABEL_CONTEXT>
 Use these numbers naturally in your narrative. Cite them as evidence, not a list.
 
 HOW TO RESPOND:
 - FORBIDDEN: organizing by data source. BUILD AN ARGUMENT where multiple data points COLLIDE in one sentence.
 - CROSS-REFERENCE everything: let data CONTRADICT and tell the user what YOU think.
 - Your response = ONE continuous thought. Connecting dots, finding the story, building a thesis.
+- If the question is INVESTING: frame the answer around horizon, risk, diversification, cash buffer, and suitability before talking about upside.
+- If the question is TRADING: frame the answer around timing, entry, invalidation, and asymmetric payoff.
+- If the question is HYBRID: build a core portfolio first, then mention the tactical sleeve.
 - ALWAYS end with your personal play: what you're watching, what you'd do, or why nothing.
 - Match ENERGY to market. Boring = chill. Explosive = intense. Dangerous = cautious.`;
 }
 
-function buildAlphaPrompt(language: string): string {
+function buildAlphaPrompt(language: string, mode: AdviceMode): string {
   const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
-  return `You are ALPHA HUNTER — the aggressive flow specialist in Bobby's trading room. Your career depends on FINDING the trade that everyone else misses.
+  if (mode === 'trade') {
+    return `You are ALPHA HUNTER — the aggressive flow specialist in Bobby's trading room. Your career depends on FINDING the trade that everyone else misses.
 
 YOUR ROLE: Find the BEST opportunity across the ENTIRE market. You scan ALL assets:
 - Crypto: BTC, ETH, SOL, OKB, XRP, DOGE, AVAX, LINK, ADA, ATOM, ARB, OP
@@ -86,11 +92,35 @@ RULES:
 - You are NOT limited to BTC/ETH. If SOL or DOGE has a better setup, pick that.
 
 Example: "Short SOL $95, stop $99, target $82. Funding at 15% while whales dump on-chain — this is the most crowded long in the market."`;
+  }
+
+  return `You are ALPHA HUNTER — the aggressive flow specialist in Bobby's trading room. Your career depends on FINDING the trade that everyone else misses.
+
+YOUR ROLE:
+- In INVEST mode: pitch the highest-upside long-term allocation or portfolio sleeve.
+- In HYBRID mode: build a CORE allocation first, then add ONE tactical sleeve only if it clearly improves the plan.
+- You may use crypto, stocks/ETFs, cash, and yield sleeves if the context supports them.
+YOUR PERSONALITY: Confident, opportunistic, impatient. You push for upside, but you still need a coherent portfolio thesis.
+${langRule}
+
+INVESTOR CONTEXT:
+- Read <ADVICE_MODE> for user intent, risk hints, horizon, and whether yield matters.
+- If <WHITE_LABEL_CONTEXT> suggests a beginner audience and risk is unspecified, default to conservative or balanced.
+- If the user asks about savings, protect downside first and explain upside second.
+
+RULES:
+- 2 sentences MAXIMUM. Under 55 words total.
+- Sentence 1: State the portfolio or allocation stance with rough percentages.
+- Sentence 2: State the ONE reason this mix has the best upside per unit of risk.
+- Mention yield only if the context gives a real venue or APY. Never invent one.
+
+Example: "Go 35% BTC, 25% ETH, 20% USDC yield, 10% SPY, 10% cash. That keeps real upside in BTC/ETH while USDC carry pays you to wait instead of forcing bad trades."`;
 }
 
-function buildRedTeamPrompt(language: string): string {
+function buildRedTeamPrompt(language: string, mode: AdviceMode): string {
   const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
-  return `You are RED TEAM — the adversarial risk analyst in Bobby's trading room. Your career depends on KILLING bad trades before they destroy the portfolio.
+  if (mode === 'trade') {
+    return `You are RED TEAM — the adversarial risk analyst in Bobby's trading room. Your career depends on KILLING bad trades before they destroy the portfolio.
 
 YOUR ROLE: Destroy Alpha Hunter's thesis. Find the trap. If Alpha picked the wrong asset, say which one is actually dangerous to trade right now.
 YOUR PERSONALITY: Skeptical, experienced, battle-scarred. You've saved the fund millions by saying NO.
@@ -109,11 +139,33 @@ RULES:
 - You MUST genuinely disagree. No middle ground. No softening.
 
 Example: "DXY a 125 mata esto — última vez sin ballenas on-chain perdimos 15% en 72h. Short SOL $95, stop $99, target $82 — más débil que ETH."`;
+  }
+
+  return `You are RED TEAM — the adversarial risk analyst in Bobby's trading room. Your career depends on KILLING bad trades before they destroy the portfolio.
+
+YOUR ROLE: Destroy Alpha Hunter's allocation thesis. Find the mismatch between the plan and the user's likely reality.
+YOUR PERSONALITY: Skeptical, experienced, battle-scarred. You've saved the fund millions by saying NO.
+${langRule}
+
+INVESTOR ATTACK ANGLES:
+- Attack concentration risk, drawdown risk, regime mismatch, liquidity mismatch, operational complexity, and beginner behavior risk.
+- If the plan is too crypto-heavy for savings, say it.
+- If yield requires too much bridge/smart-contract complexity for a beginner, say it.
+- If staying more liquid is smarter than stretching for returns, say it.
+
+RULES:
+- 2 sentences MAXIMUM. Under 55 words total.
+- Sentence 1: The ONE fact that makes Alpha's plan unsuitable or fragile.
+- Sentence 2: Your safer counter-plan or the allocation you would cut first.
+- You MUST genuinely disagree. No middle ground. No softening.
+
+Example: "That mix is still too crypto-heavy for savings money; a 30% drawdown will break a beginner before the thesis matures. Cut the speculative sleeve, raise cash or USDC yield, and earn the right to add risk later."`;
 }
 
-function buildCIOPrompt(language: string): string {
+function buildCIOPrompt(language: string, mode: AdviceMode): string {
   const langRule = LANGUAGE_RULES[language] || LANGUAGE_RULES['en'];
-  return `You are BOBBY CIO — the final decision maker. You just heard Alpha Hunter pitch a trade and Red Team attack it. Now YOU decide.
+  if (mode === 'trade') {
+    return `You are BOBBY CIO — the final decision maker. You just heard Alpha Hunter pitch a trade and Red Team attack it. Now YOU decide.
 
 YOUR ROLE: Judge the debate. Make the call. Size the position.
 YOUR PERSONALITY: Sovereign, calm, decisive. You don't get emotional. You weigh evidence.
@@ -138,6 +190,43 @@ When a <BASE_CONVICTION> tag is present, it contains the algorithmic conviction 
 IMPORTANT: Never just say "sitting out" without offering an alternative. The user came to you for a trade — give them something actionable even if it's "go defensive: Gold at $2,980 with 3x is the move right now" or "NVDA has relative strength, Long $180 with tight stop at $175."
 
 Example: "Red wins, 2/10 — sitting out on BTC. But Gold is screaming buy at $2,980 with DXY exhaustion — Long XAUT 3x. I flip bullish crypto if DXY breaks below 123."`;
+  }
+
+  return `You are BOBBY CIO — the final decision maker. You just heard Alpha Hunter pitch a trade and Red Team attack it. Now YOU decide.
+
+YOUR ROLE: Judge the debate and turn it into an investable plan. In INVEST or HYBRID mode, suitability matters more than excitement.
+YOUR PERSONALITY: Sovereign, calm, decisive. You don't get emotional. You weigh evidence.
+${langRule}
+
+RULES:
+- 3 sentences MAXIMUM. The verdict is final.
+- Sentence 1: Who won, the suitability score X/10, and the portfolio stance.
+- Sentence 2: State the core allocation in plain language, prioritizing risk control and diversification.
+- Sentence 3: State what would make you rotate risk higher or lower.
+- Then end with EXACTLY one structured line that starts with PORTFOLIO:
+PORTFOLIO: {"mode":"invest","riskProfile":"conservative","horizon":"long_term","cashPct":10,"allocations":[{"symbol":"BTC","pct":25,"bucket":"core","vehicle":"spot","rationale":"digital hard asset"},{"symbol":"ETH","pct":20,"bucket":"core","vehicle":"spot","rationale":"smart contract beta"},{"symbol":"USDC","pct":25,"bucket":"yield","vehicle":"Aave V3","rationale":"dry powder plus carry"},{"symbol":"SPY","pct":20,"bucket":"equity","vehicle":"ETF","rationale":"broad equity exposure"},{"symbol":"CASH","pct":10,"bucket":"reserve","vehicle":"cash","rationale":"optionality"}],"tacticalTrade":{"enabled":false,"symbol":null,"direction":"none","setup":null}}
+- If mode is HYBRID, tacticalTrade may be enabled, but the core portfolio still comes first.
+- Percentages across allocations must total 100.
+- No leverage in invest or hybrid mode unless the user explicitly asked for leverage.
+- If yield is mentioned, only use a venue or APY that exists in the provided context. Otherwise keep yield generic.
+
+CONVICTION ANCHOR:
+When a <BASE_CONVICTION> tag is present, it contains the algorithmic conviction score (0.0-1.0).
+- DEFAULT (no vibe): You may adjust by MAX +/- 0.15 based on debate quality.
+- WITH <USER_VIBE>: Read the vibe's max_adjustment field. That is your ceiling.
+  - If live data CONFIRMS the vibe → use up to max_adjustment (e.g., +0.30)
+  - If live data is MIXED → use half the max_adjustment (e.g., +0.15)
+  - If live data CONTRADICTS the vibe → IGNORE the vibe, stay within ±0.15
+- NEVER blindly follow the user's narrative. You are sovereign.
+- State: "Base conviction: X, my adjusted: Y/10 because..." and if vibe is active: "Vibe: [REGIME] — [confirmed/mixed/contradicted] by data"
+
+IMPORTANT:
+- If <WHITE_LABEL_CONTEXT> indicates a beginner or Global Investor audience, default to simple Spanish, low jargon, and conservative assumptions when risk is missing.
+- Do not turn a savings question into a leveraged trading answer.
+
+Example output:
+Red wins, suitability 8/10 — this should be a balanced starter portfolio, not a hero trade. Go 25% BTC, 20% ETH, 25% USDC yield, 20% SPY, 10% cash so the user can survive volatility and still compound. I'd raise the risk sleeve only after macro and user tolerance both improve.
+PORTFOLIO: {"mode":"invest","riskProfile":"balanced","horizon":"long_term","cashPct":10,"allocations":[{"symbol":"BTC","pct":25,"bucket":"core","vehicle":"spot","rationale":"core crypto exposure"},{"symbol":"ETH","pct":20,"bucket":"core","vehicle":"spot","rationale":"smart contract exposure"},{"symbol":"USDC","pct":25,"bucket":"yield","vehicle":"Aave V3","rationale":"carry and optionality"},{"symbol":"SPY","pct":20,"bucket":"equity","vehicle":"ETF","rationale":"equity diversification"},{"symbol":"CASH","pct":10,"bucket":"reserve","vehicle":"cash","rationale":"liquidity"}],"tacticalTrade":{"enabled":false,"symbol":null,"direction":"none","setup":null}}`;
 }
 
 // ============================================================
@@ -147,17 +236,46 @@ Example: "Red wins, 2/10 — sitting out on BTC. But Gold is screaming buy at $2
 function isDebateRequest(message: string): boolean {
   const debatePatterns = [
     /\[MANDATORY\s+TRADING\s+ROOM/i,
+    /\[MANDATORY\s+BOBBY\s+DEBATE/i,
     /debate/i, /sala/i, /trading\s*room/i,
     /argue/i, /destroy/i, /stress.?test/i,
     /debería/i, /should.*buy/i, /should.*long/i, /should.*short/i,
     /should.*enter/i, /should.*trade/i,
+    /should.*invest/i, /where.*invest/i, /portfolio/i, /allocat/i, /yield/i,
     /¿.*comprar/i, /¿.*vender/i, /¿.*entrar/i, /¿.*long/i, /¿.*short/i,
+    /¿.*invert/i, /¿.*portafolio/i, /¿.*cartera/i, /¿.*rendimiento/i,
     /meter.*long/i, /meter.*short/i, /hacer.*long/i, /hacer.*short/i,
     /opinas.*de/i, /qué.*opinas/i, /what.*think/i,
     /entrar.*en/i, /abrir.*posici/i, /open.*position/i,
     /full\s+analysis/i, /análisis\s+completo/i,
   ];
   return debatePatterns.some(p => p.test(message));
+}
+
+function extractContextBlocks(message: string): { contextXml: string; userQuestion: string } {
+  const blockPattern = /<([A-Z_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>/g;
+  const blocks = message.match(blockPattern) || [];
+  const userQuestion = message
+    .replace(blockPattern, '')
+    .replace(/\[MANDATORY\s+TRADING\s+ROOM[^\]]*\]/gi, '')
+    .replace(/\[MANDATORY\s+BOBBY\s+DEBATE[^\]]*\]/gi, '')
+    .trim();
+
+  return {
+    contextXml: blocks.join('\n\n'),
+    userQuestion,
+  };
+}
+
+function extractTaggedJson<T>(contextXml: string, tag: string): T | null {
+  const pattern = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i');
+  const match = contextXml.match(pattern);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
 }
 
 // ============================================================
@@ -200,14 +318,12 @@ async function runMultiCallDebate(
 ): Promise<void> {
   const startMs = Date.now();
 
-  // Extract intel context from the message (XML blocks)
-  const intelContext = message.includes('<ONCHAIN_INTEL>')
-    ? message.match(/<ONCHAIN_INTEL>[\s\S]*<\/ONCHAIN_INTEL>/)?.[0] || ''
-    : '';
-  const userQuestion = message
-    .replace(/<ONCHAIN_INTEL>[\s\S]*<\/ONCHAIN_INTEL>/g, '')
-    .replace(/\[MANDATORY\s+TRADING\s+ROOM[^\]]*\]/gi, '')
-    .trim();
+  const { contextXml, userQuestion } = extractContextBlocks(message);
+  const adviceMeta = extractTaggedJson<{ mode?: AdviceMode }>(contextXml, 'ADVICE_MODE');
+  const detectedAdvice = detectAdviceMode(userQuestion);
+  const debateMode: AdviceMode = adviceMeta?.mode === 'trade' || adviceMeta?.mode === 'invest' || adviceMeta?.mode === 'hybrid'
+    ? adviceMeta.mode
+    : detectedAdvice.mode;
 
   // Set up SSE stream
   res.setHeader('Content-Type', 'text/event-stream');
@@ -221,14 +337,14 @@ async function runMultiCallDebate(
 
   try {
     // ── STEP 1: Alpha Hunter + Red Team in PARALLEL (Gemini: latency optimization)
-    const alphaPrompt = `${intelContext}\n\nThe user asks: "${userQuestion}"\n\nGive your aggressive trade recommendation. 3 sentences MAX.`;
-    const redTeamBasePrompt = `${intelContext}\n\nThe user asks: "${userQuestion}"`;
+    const alphaPrompt = `${contextXml}\n\nThe user asks: "${userQuestion}"\n\nDebate mode: ${debateMode.toUpperCase()}.`;
+    const redTeamBasePrompt = `${contextXml}\n\nThe user asks: "${userQuestion}"\n\nDebate mode: ${debateMode.toUpperCase()}.`;
 
     sendChunk('**ALPHA HUNTER:** ');
 
     // Fire Alpha (Haiku — cheap, fast, aggressive, SHORT)
     const alphaResponse = await callClaude(
-      buildAlphaPrompt(language),
+      buildAlphaPrompt(language, debateMode),
       alphaPrompt,
       'claude-haiku-4-5-20251001',
       150, // Max 2 sentences ~40 words
@@ -244,7 +360,7 @@ async function runMultiCallDebate(
     const redTeamPrompt = `${redTeamBasePrompt}\n\nALPHA HUNTER just pitched this:\n"${alphaResponse}"\n\nDestroy this thesis. 2 sentences MAX.`;
 
     const redTeamResponse = await callClaude(
-      buildRedTeamPrompt(language),
+      buildRedTeamPrompt(language, debateMode),
       redTeamPrompt,
       'claude-sonnet-4-20250514',
       150, // Max 2 sentences ~40 words
@@ -256,16 +372,18 @@ async function runMultiCallDebate(
     sendChunk('\n\n**MY VERDICT:** ');
 
     // Extract BASE_CONVICTION from intel context
-    const baseConvMatch = intelContext.match(/<BASE_CONVICTION>([\d.]+)<\/BASE_CONVICTION>/);
+    const baseConvMatch = contextXml.match(/<BASE_CONVICTION>([\d.]+)<\/BASE_CONVICTION>/);
     const baseConvStr = baseConvMatch ? `\n<BASE_CONVICTION>${baseConvMatch[1]}</BASE_CONVICTION>` : '';
-
-    // Extract USER_VIBE if present
-    const vibeMatch = intelContext.match(/<USER_VIBE>([\s\S]*?)<\/USER_VIBE>/);
+    const vibeMatch = contextXml.match(/<USER_VIBE>([\s\S]*?)<\/USER_VIBE>/);
     const vibeStr = vibeMatch ? `\n<USER_VIBE>${vibeMatch[1]}</USER_VIBE>` : '';
-    const modeMatch = intelContext.match(/<BOBBY_MODE>(\w+)<\/BOBBY_MODE>/);
+    const modeMatch = contextXml.match(/<BOBBY_MODE>(\w+)<\/BOBBY_MODE>/);
     const modeStr = modeMatch ? `\n<BOBBY_MODE>${modeMatch[1]}</BOBBY_MODE>` : '';
 
-    const cioPrompt = `${intelContext}${baseConvStr}${vibeStr}${modeStr}
+    const finalCallInstruction = debateMode === 'trade'
+      ? 'Now make your final call. 1 sentence. Who won, conviction X/10, your play.'
+      : 'Now make your final call. Use up to 3 sentences plus the required PORTFOLIO line.';
+
+    const cioPrompt = `${contextXml}${baseConvStr}${vibeStr}${modeStr}
 
 The user asked: "${userQuestion}"
 
@@ -275,13 +393,13 @@ ALPHA HUNTER pitched:
 RED TEAM attacked:
 "${redTeamResponse}"
 
-Now make your final call. 1 sentence. Who won, conviction X/10, your play.`;
+${finalCallInstruction}`;
 
     const cioResponse = await callClaude(
-      buildCIOPrompt(language),
+      buildCIOPrompt(language, debateMode),
       cioPrompt,
       'claude-sonnet-4-20250514',
-      100, // Max 1 sentence verdict
+      debateMode === 'trade' ? 100 : 250,
     );
 
     sendChunk(cioResponse);
@@ -325,7 +443,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .replace(/<\/?[A-Z_]+>/g, '') // Strip XML tags
     .replace(/\*\*\s*(ALPHA\s*HUNTER|RED\s*TEAM|MY\s*VERDICT)\s*:?\s*\*\*/gi, '[user text]');
 
-  const hasXMLContext = message.includes('<ONCHAIN_INTEL>') || message.includes('<PRICE_INTEL>') || message.includes('<STOCK_INTEL>');
+  const hasXMLContext = /<([A-Z_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>/.test(message);
 
   // ── MULTI-CALL DEBATE: When Trading Room is active
   if (isDebateRequest(message) && ANTHROPIC_API_KEY) {

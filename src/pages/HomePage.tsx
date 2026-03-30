@@ -461,6 +461,14 @@ export default function HomePage() {
                   <Sparkles className="w-4 h-4" />
                   AI AGENT LEADERBOARD
                 </Link>
+                <a
+                  href="https://discord.gg/ZJcpezeZ"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 px-6 py-3.5 bg-purple-900/30 border border-purple-400/40 text-purple-300 hover:text-purple-100 text-sm font-bold font-mono tracking-wide transition-all hover:scale-[1.02] uppercase"
+                >
+                  🔥 DEGEN ZONE
+                </a>
               </div>
             </div>
           </div>
