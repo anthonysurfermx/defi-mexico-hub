@@ -37,14 +37,15 @@ const SOFT_INVEST_PATTERNS = [
 ];
 
 const BEGINNER_PATTERNS = [
-  /\b(beginner|new\s+to\s+this|where\s+do\s+i\s+start|first\s+time)\b/i,
-  /\b(principiante|soy\s+nuevo|soy\s+nueva|apenas\s+voy\s+empezando|empiezo)\b/i,
+  /\b(beginner|new\s+to\s+this|where\s+do\s+i\s+start|first\s+time|getting\s+started)\b/i,
+  /\b(principiante|soy\s+nuevo|soy\s+nueva|apenas\s+voy\s+empezando|empiezo|empezar\s+en)\b/i,
   /\b(tengo\s+\$?\d[\d,.]*\s*(?:usd|usdt|dolares|dólares|pesos)?\s*(?:para|y)\s*(?:invertir|empezar))\b/i,
+  /\b(por\s+d[oó]nde\s+empiezo|c[oó]mo\s+empiezo|quiero\s+empezar)\b/i,
 ];
 
 const CONSERVATIVE_PATTERNS = [
-  /\b(low\s*risk|conservative|capital\s*preservation|safe|safer)\b/i,
-  /\b(bajo\s+riesgo|conservador|conservadora|seguro|proteger\s+capital)\b/i,
+  /\b(low\s*risk|conservative|capital\s*preservation|safe|safer|protect)\b/i,
+  /\b(bajo\s+riesgo|conservador|conservadora|seguro|proteger\s+(?:mi\s+)?capital|proteger(?:me)?|inflaci[oó]n)\b/i,
 ];
 
 const BALANCED_PATTERNS = [
@@ -81,13 +82,17 @@ export function detectAdviceMode(rawText: string): AdviceModeDetection {
   const tradeScore = (scoreMatches(text, HARD_TRADE_PATTERNS) * 2) + scoreMatches(text, SOFT_TRADE_PATTERNS);
   const investScore = (scoreMatches(text, HARD_INVEST_PATTERNS) * 2) + scoreMatches(text, SOFT_INVEST_PATTERNS);
 
+  const isBeginner = BEGINNER_PATTERNS.some((p) => p.test(text));
+  const isConservative = CONSERVATIVE_PATTERNS.some((p) => p.test(text));
+
   let mode: AdviceMode = 'trade';
   if (investScore >= 2 && tradeScore >= 2 && Math.abs(investScore - tradeScore) <= 1) {
     mode = 'hybrid';
   } else if (investScore > tradeScore) {
     mode = 'invest';
   } else if (tradeScore === 0 && investScore === 0) {
-    mode = 'trade';
+    // When no explicit signals, beginners and conservative users get invest mode
+    mode = (isBeginner || isConservative) ? 'invest' : 'trade';
   }
 
   const delta = Math.abs(investScore - tradeScore);
