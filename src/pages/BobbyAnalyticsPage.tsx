@@ -106,7 +106,7 @@ export default function BobbyAnalyticsPage() {
         </motion.div>
 
         {loading ? (
-          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">LOADING ANALYTICS...</span></div>
+          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">CARGANDO ANÁLISIS...</span></div>
         ) : s ? (
           <>
             {/* KPI Row — 4 cards */}
@@ -214,9 +214,9 @@ export default function BobbyAnalyticsPage() {
                 <span className="text-[10px] font-mono text-white/30 tracking-widest uppercase mb-4 block">COUNCIL_OVERVIEW</span>
                 <div className="space-y-4">
                   {[
-                    { name: 'BOBBY_CIO', role: 'Final decision maker', color: 'text-green-400', barColor: 'bg-green-500', stat: `${s.winRate.toFixed(1)}% WR` },
-                    { name: 'ALPHA_HUNTER', role: 'Opportunity scanner', color: 'text-amber-400', barColor: 'bg-amber-500', stat: `${s.wins} signals` },
-                    { name: 'RED_TEAM', role: 'Thesis destroyer', color: 'text-red-400', barColor: 'bg-red-500', stat: `${s.losses} vetoes` },
+                    { name: 'BOBBY_CIO', role: 'Decisión final', color: 'text-green-400', barColor: 'bg-green-500', stat: `${s.winRate.toFixed(1)}% WR` },
+                    { name: 'ALPHA_HUNTER', role: 'Escáner de oportunidades', color: 'text-amber-400', barColor: 'bg-amber-500', stat: `${s.wins} señales` },
+                    { name: 'RED_TEAM', role: 'Destructor de tesis', color: 'text-red-400', barColor: 'bg-red-500', stat: `${s.losses} vetos` },
                   ].map(agent => (
                     <div key={agent.name} className="space-y-1">
                       <div className="flex justify-between font-mono text-[10px]">
@@ -272,7 +272,7 @@ export default function BobbyAnalyticsPage() {
             </div>
           </>
         ) : (
-          <div className="text-center py-20 text-white/20 text-sm font-mono">No analytics data available</div>
+          <div className="text-center py-20 text-white/20 text-sm font-mono">Sin datos de análisis disponibles</div>
         )}
       </div>
     </KineticShell>

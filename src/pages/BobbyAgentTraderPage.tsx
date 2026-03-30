@@ -23,13 +23,13 @@ class BobbyErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 p-8" style={{ background: '#050505' }}>
           <span className="text-4xl">⚠️</span>
-          <h2 className="text-[14px] font-mono font-bold text-white/50">Bobby encountered an error</h2>
+          <h2 className="text-[14px] font-mono font-bold text-white/50">Bobby encontró un error</h2>
           <p className="text-[10px] font-mono text-white/25 text-center max-w-md">{this.state.error}</p>
           <button
             onClick={() => { this.setState({ hasError: false, error: '' }); window.location.reload(); }}
             className="px-4 py-2 text-[11px] font-mono border border-green-500/30 text-green-400 bg-green-500/10 hover:bg-green-500/15 transition-all rounded"
           >
-            Reload Bobby
+            Recargar Bobby
           </button>
         </div>
       );

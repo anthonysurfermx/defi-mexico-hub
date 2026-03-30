@@ -46,25 +46,25 @@ function TickerTape() {
 
 const NAV_ITEMS = [
   { id: 'terminal', label: 'TERMINAL', path: '/agentic-world/bobby' },
-  { id: 'challenge', label: 'CHALLENGE', path: '/agentic-world/bobby/challenge' },
-  { id: 'history', label: 'HISTORY', path: '/agentic-world/bobby/history' },
-  { id: 'agents', label: 'AGENTS', path: '/agentic-world/bobby/agents' },
-  { id: 'analytics', label: 'ANALYTICS', path: '/agentic-world/bobby/analytics' },
+  { id: 'challenge', label: 'DESAFÍO', path: '/agentic-world/bobby/challenge' },
+  { id: 'history', label: 'HISTORIAL', path: '/agentic-world/bobby/history' },
+  { id: 'agents', label: 'AGENTES', path: '/agentic-world/bobby/agents' },
+  { id: 'analytics', label: 'ANÁLISIS', path: '/agentic-world/bobby/analytics' },
   { id: 'metacognition', label: 'META', path: '/agentic-world/bobby/metacognition' },
-  { id: 'signals', label: 'SIGNALS', path: '/agentic-world/bobby/signals' },
+  { id: 'signals', label: 'SEÑALES', path: '/agentic-world/bobby/signals' },
   { id: 'defi', label: 'DEFI', path: '/agentic-world/bobby/defi' },
   { id: 'docs', label: 'AI DOCS', path: '/agentic-world/bobby/docs' },
-  { id: 'marketplace', label: 'AGENT COMMERCE', path: '/agentic-world/bobby/marketplace' },
+  { id: 'marketplace', label: 'MARKETPLACE', path: '/agentic-world/bobby/marketplace' },
 ] as const;
 
 const SIDE_ITEMS = [
-  { icon: '⌘', label: 'Command', path: '/agentic-world/bobby/challenge' },
+  { icon: '⌘', label: 'Comando', path: '/agentic-world/bobby/challenge' },
   { icon: '◈', label: 'Intel', path: '/agentic-world/bobby/analytics' },
-  { icon: '◎', label: 'History', path: '/agentic-world/bobby/history' },
-  { icon: '△', label: 'Agents', path: '/agentic-world/bobby/agents' },
+  { icon: '◎', label: 'Historial', path: '/agentic-world/bobby/history' },
+  { icon: '△', label: 'Agentes', path: '/agentic-world/bobby/agents' },
   { icon: '◇', label: 'Debates', path: '/agentic-world/forum' },
   { icon: '◉', label: 'Meta', path: '/agentic-world/bobby/metacognition' },
-  { icon: '⚡', label: 'Signals', path: '/agentic-world/bobby/signals' },
+  { icon: '⚡', label: 'Señales', path: '/agentic-world/bobby/signals' },
 ];
 
 export default function KineticShell({ children, activeTab, showSidebar = false }: KineticShellProps) {
@@ -118,7 +118,7 @@ function KineticShellInner({ children, activeTab, showSidebar = false }: Kinetic
                 : 'text-white/30 hover:text-white/50'
             }`}
           >
-            PUBLIC NETWORK
+            RED PÚBLICA
           </button>
           {hasAgent ? (
             <button
@@ -129,14 +129,14 @@ function KineticShellInner({ children, activeTab, showSidebar = false }: Kinetic
                   : 'text-white/30 hover:text-white/50'
               }`}
             >
-              MY AGENT: {agentName}
+              MI AGENTE: {agentName}
             </button>
           ) : (
             <button
               onClick={() => navigate('/agentic-world/deploy')}
               className="px-3 py-1.5 text-white/20 hover:text-white/40 transition-all flex items-center gap-1"
             >
-              <Lock className="w-2.5 h-2.5" /> MY AGENT
+              <Lock className="w-2.5 h-2.5" /> MI AGENTE
             </button>
           )}
         </div>
@@ -155,7 +155,7 @@ function KineticShellInner({ children, activeTab, showSidebar = false }: Kinetic
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full animate-pulse ${roomMode === 'personal' && hasAgent ? 'bg-current ' + navAccent : 'bg-green-500'}`} />
           <span className={`text-[9px] font-mono tracking-wider hidden sm:inline ${navAccent}`}>
-            {roomMode === 'personal' ? 'PERSONAL' : 'ONLINE'}
+            {roomMode === 'personal' ? 'PERSONAL' : 'EN LÍNEA'}
           </span>
         </div>
       </nav>

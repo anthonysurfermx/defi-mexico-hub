@@ -53,7 +53,7 @@ export default function BobbyPortfolioPage() {
 
       <div className="max-w-md mx-auto px-5 pt-6 pb-20 space-y-6">
         {loading ? (
-          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">LOADING...</span></div>
+          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">CARGANDO...</span></div>
         ) : s ? (
           <>
             {/* Total Equity — Hero */}
@@ -169,7 +169,7 @@ export default function BobbyPortfolioPage() {
             </div>
           </>
         ) : (
-          <div className="text-center py-20 text-white/20 text-sm font-mono">No data</div>
+          <div className="text-center py-20 text-white/20 text-sm font-mono">Sin datos disponibles</div>
         )}
       </div>
     </KineticShell>

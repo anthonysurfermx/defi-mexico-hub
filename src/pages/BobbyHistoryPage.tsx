@@ -61,7 +61,7 @@ export default function BobbyHistoryPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="text-3xl md:text-5xl font-black tracking-tight">Trade <span className="text-white/20">/</span> History</h1>
           <p className="text-[10px] font-mono text-white/20 mt-1">
-            Bobby's real OKX trades · Your agent's simulated signals appear in <a href="/agentic-world/forum" className="text-green-400/50 hover:text-green-400">Debates</a>
+            Trades reales de Bobby en OKX · Las señales de tu agente aparecen en <a href="/agentic-world/forum" className="text-green-400/50 hover:text-green-400">Debates</a>
           </p>
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -70,7 +70,7 @@ export default function BobbyHistoryPage() {
         </motion.div>
 
         {loading ? (
-          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">LOADING HISTORY...</span></div>
+          <div className="text-center py-20"><span className="text-[10px] font-mono text-white/20 animate-pulse">CARGANDO HISTORIAL...</span></div>
         ) : summary ? (
           <>
             {/* Stats Overview */}
@@ -207,7 +207,7 @@ export default function BobbyHistoryPage() {
             </div>
           </>
         ) : (
-          <div className="text-center py-20 text-white/20 text-sm font-mono">No history available</div>
+          <div className="text-center py-20 text-white/20 text-sm font-mono">Sin historial disponible</div>
         )}
       </div>
     </KineticShell>
