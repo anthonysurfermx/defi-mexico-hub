@@ -11,6 +11,13 @@ import { detectAdviceMode, type AdviceMode } from '../src/lib/advice-mode.js';
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || '';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
+// Model mapping: Anthropic → OpenAI
+const OPENAI_MODEL_MAP: Record<string, string> = {
+  'claude-haiku-4-5-20251001': 'gpt-4o-mini',
+  'claude-sonnet-4-20250514': 'gpt-4o',
+};
 
 const LANGUAGE_RULES: Record<string, string> = {
   es: `LANGUAGE: ALWAYS respond in Spanish (Mexican). Trading terms in English are fine (long, short, whale, pump, dump, conviction, smart money) but ALL sentences MUST be in Spanish. Non-negotiable.`,
@@ -288,6 +295,32 @@ async function callClaude(
   model: string = 'claude-sonnet-4-20250514',
   maxTokens: number = 800,
 ): Promise<string> {
+  const openaiModel = OPENAI_MODEL_MAP[model] || 'gpt-4o-mini';
+
+  // Try OpenAI first (primary)
+  if (OPENAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({
+          model: openaiModel,
+          max_tokens: maxTokens,
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+        return data.choices[0]?.message?.content || '';
+      }
+      console.warn(`[Chat] OpenAI ${openaiModel} failed (${res.status}), trying Anthropic`);
+    } catch (e: any) {
+      console.warn(`[Chat] OpenAI error, trying Anthropic: ${e.message}`);
+    }
+  }
+
+  // Fallback to Anthropic
+  if (!ANTHROPIC_API_KEY) throw new Error('Both OpenAI and Anthropic unavailable');
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -446,7 +479,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hasXMLContext = /<([A-Z_]+)(?:\s+[^>]*)?>[\s\S]*?<\/\1>/.test(message);
 
   // ── MULTI-CALL DEBATE: When Trading Room is active
-  if (isDebateRequest(message) && ANTHROPIC_API_KEY) {
+  if (isDebateRequest(message) && (OPENAI_API_KEY || ANTHROPIC_API_KEY)) {
     console.log('[Chat] Multi-call debate mode activated');
     return await runMultiCallDebate(message, userLang, res);
   }
@@ -461,16 +494,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Try OpenAI streaming as primary fallback
+  if (OPENAI_API_KEY) {
+    try {
+      return await streamOpenAI(sanitizedMessage, history, userLang, res);
+    } catch (err) {
+      console.warn('[Chat] OpenAI streaming failed, trying Anthropic:', err);
+    }
+  }
+
+  // Try Anthropic as last fallback
   if (ANTHROPIC_API_KEY) {
     try {
       return await streamClaude(sanitizedMessage, history, userLang, res);
     } catch (err) {
-      console.error('[Chat] Claude fallback failed:', err);
-      return res.status(502).json({ error: 'Both OpenClaw and Claude unavailable' });
+      console.error('[Chat] All AI backends failed:', err);
+      return res.status(502).json({ error: 'All AI backends unavailable' });
     }
   }
 
-  return res.status(503).json({ error: 'No AI backend configured' });
+  return res.status(503).json({ error: 'No AI backend configured (need OPENAI_API_KEY or ANTHROPIC_API_KEY)' });
 }
 
 // ---- OpenClaw Gateway ----
@@ -526,6 +569,59 @@ async function tryOpenClaw(
 }
 
 // ---- Claude API Single-Call ----
+async function streamOpenAI(
+  message: string,
+  history: Array<{ role: string; content: string }> | undefined,
+  language: string,
+  res: VercelResponse,
+): Promise<void> {
+  const messages = [
+    { role: 'system' as const, content: buildBobbyBasePrompt(language) },
+    ...(history || []).slice(-10).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })),
+    { role: 'user' as const, content: message },
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+    body: JSON.stringify({ model: 'gpt-4o', max_tokens: 2048, stream: true, messages }),
+  });
+
+  if (!response.ok) throw new Error(`OpenAI streaming ${response.status}`);
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('No response body');
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+      for (const line of lines) {
+        const json = line.slice(6);
+        if (json === '[DONE]') { res.write('data: [DONE]\n\n'); continue; }
+        try {
+          const parsed = JSON.parse(json);
+          const text = parsed.choices?.[0]?.delta?.content;
+          if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        } catch {}
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    res.end();
+  }
+}
+
 async function streamClaude(
   message: string,
   history: Array<{ role: string; content: string }> | undefined,
