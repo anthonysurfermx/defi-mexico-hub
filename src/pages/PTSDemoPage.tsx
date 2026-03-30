@@ -41,50 +41,50 @@ const DIFFERENTIATORS = [
   {
     icon: Brain,
     title: '3 Agentes que Debaten',
-    desc: 'No es un bot que dispara senales a lo loco. Son 3 agentes de IA que analizan, cuestionan y confirman cada trade entre ellos. Solo cuando los tres estan de acuerdo, te llega la notificacion.',
+    desc: 'No es un bot que dispara señales a lo loco. Son 3 agentes de IA que analizan, cuestionan y confirman cada trade entre ellos. Solo cuando los tres están de acuerdo, te llega la notificación.',
   },
   {
     icon: BarChart3,
     title: '70+ Indicadores en Tiempo Real',
-    desc: 'SPY, QQQ, NVDA, Bitcoin, Ethereum, EUR/USD, oro. Dany monitorea todo simultaneamente — algo que ningun trader humano puede hacer solo.',
+    desc: 'SPY, QQQ, NVDA, Bitcoin, Ethereum, EUR/USD, oro. Dany monitorea todo simultáneamente — algo que ningún trader humano puede hacer solo.',
   },
   {
     icon: Shield,
     title: 'Transparencia Verificable',
-    desc: 'Cada prediccion queda grabada de forma permanente. No se puede borrar ni editar. Por primera vez, puedes verificar el historial completo de senales.',
+    desc: 'Cada predicción queda grabada de forma permanente. No se puede borrar ni editar. Por primera vez, puedes verificar el historial completo de señales.',
   },
 ];
 
 const STEPS = [
   {
     step: '01',
-    title: 'Inscribete en Global Investor',
-    desc: 'Accedes al programa completo de formacion + Dany Agent Trader desde el dia uno.',
+    title: 'Inscríbete en Global Investor',
+    desc: 'Accedes al programa completo de formación + Dany Agent Trader desde el día uno.',
   },
   {
     step: '02',
     title: 'Aprende con PTS',
-    desc: '9 modulos, lives con Javier y Daniel, comunidad de traders reales que comparten setups y estructura de mercado.',
+    desc: '9 módulos, lives con Javier y Daniel, comunidad de traders reales que comparten setups y estructura de mercado.',
   },
   {
     step: '03',
     title: 'Activa a Dany en Telegram',
-    desc: 'Senales de IA 24/7 directo a tu Telegram. Entrada, stop loss, take profit — todo analizado por 3 agentes.',
+    desc: 'Señales de IA 24/7 directo a tu Telegram. Entrada, stop loss, take profit — todo analizado por 3 agentes.',
   },
   {
     step: '04',
     title: 'Opera con ventaja',
-    desc: 'Tu decides, Dany analiza. Tu pones la disciplina, la IA pone los datos. Juntos ganan.',
+    desc: 'Tú decides, Dany analiza. Tú pones la disciplina, la IA pone los datos. Juntos ganan.',
   },
 ];
 
 const CHECKLIST = [
-  'Programa completo de formacion PTS (9 modulos + 40 lecciones)',
-  'Sesiones en vivo con Javier y Daniel (lunes, miercoles, viernes)',
-  'Acceso a Dany Agent Trader — senales de IA 24/7',
+  'Programa completo de formación PTS (9 módulos + 40 lecciones)',
+  'Sesiones en vivo con Javier y Daniel (lunes, miércoles, viernes)',
+  'Acceso a Dany Agent Trader — señales de IA 24/7',
   '3 agentes que debaten cada trade antes de notificarte',
-  '70+ indicadores tecnicos en tiempo real',
-  'Historial verificable de cada prediccion',
+  '70+ indicadores técnicos en tiempo real',
+  'Historial verificable de cada predicción',
   'Canal exclusivo de Global Investor en Telegram',
   'Soporte directo con el equipo PTS',
 ];
@@ -93,20 +93,20 @@ const DEMO_CHIPS = ['SPY', 'QQQ', 'NVDA', 'BTC', 'ETH', 'GOLD'];
 
 const FAQ_ITEMS = [
   {
-    q: 'La IA me va a reemplazar como trader?',
-    a: 'Para nada. Dany no toma trades por ti. Tu sigues siendo el que decide cuando entrar, donde poner el stop loss, y cuando cerrar la operacion. Dany te da el analisis — la accion del precio, la estructura de mercado, los indicadores — y tu tomas la decision final. Piensa en Dany como tu analista personal que trabaja 24/7.',
+    q: '¿La IA me va a reemplazar como trader?',
+    a: 'Para nada. Dany no toma trades por ti. Tú sigues siendo el que decide cuándo entrar, dónde poner el stop loss, y cuándo cerrar la operación. Dany te da el análisis — la acción del precio, la estructura de mercado, los indicadores — y tú tomas la decisión final. Piensa en Dany como tu analista personal que trabaja 24/7.',
   },
   {
-    q: 'Y si las senales son malas?',
-    a: 'Buena pregunta. Cada prediccion queda grabada de forma permanente y publica. No se puede borrar ni editar despues del hecho. Si Dany se equivoca, queda registrado igual que cuando acierta. Esa transparencia es lo que nos diferencia de cualquier otro servicio de senales. Ademas, los 3 agentes debaten entre ellos antes de emitir una senal — no es un indicador basico tirando flechas.',
+    q: '¿Y si las señales son malas?',
+    a: 'Buena pregunta. Cada predicción queda grabada de forma permanente y pública. No se puede borrar ni editar después del hecho. Si Dany se equivoca, queda registrado igual que cuando acierta. Esa transparencia es lo que nos diferencia de cualquier otro servicio de señales. Además, los 3 agentes debaten entre ellos antes de emitir una señal — no es un indicador básico tirando flechas.',
   },
   {
-    q: 'No sera otro bot de senales?',
-    a: 'No tiene nada que ver. Los bots tipicos son un indicador basico que cruza una media movil y te manda "COMPRA BTC". Dany tiene 3 agentes: el Alpha Hunter busca la oportunidad y analiza la estructura de mercado, el Red Team intenta destruir la tesis con riesgos y contraargumentos, y el CIO toma la decision final con entry, stop loss y take profit. Es como tener un equipo de analistas institucionales debatiendo cada setup.',
+    q: '¿No será otro bot de señales?',
+    a: 'No tiene nada que ver. Los bots típicos son un indicador básico que cruza una media móvil y te manda "COMPRA BTC". Dany tiene 3 agentes: el Alpha Hunter busca la oportunidad y analiza la estructura de mercado, el Red Team intenta destruir la tesis con riesgos y contraargumentos, y el CIO toma la decisión final con entry, stop loss y take profit. Es como tener un equipo de analistas institucionales debatiendo cada setup.',
   },
   {
-    q: 'Necesito saber de tecnologia?',
-    a: 'Cero. Si sabes usar Telegram, sabes usar Dany. Te llega una notificacion con el analisis completo: que activo, en que direccion, donde entrar, donde salir si pierdes, y donde tomar ganancias. Todo en espanol, todo explicado para que aprendas mientras operas.',
+    q: '¿Necesito saber de tecnología?',
+    a: 'Cero. Si sabes usar Telegram, sabes usar Dany. Te llega una notificación con el análisis completo: qué activo, en qué dirección, dónde entrar, dónde salir si pierdes, y dónde tomar ganancias. Todo en español, todo explicado para que aprendas mientras operas.',
   },
 ];
 
@@ -118,10 +118,10 @@ const TERMINAL_LINES = [
   { text: '[Alpha Hunter] SPY en $582.34 — estructura alcista intacta', color: '#6ee7b7', delay: 800 },
   { text: '[Alpha Hunter] RSI(14): 58.2 | MACD: cruce alcista | Bollinger: banda media', color: '#6ee7b7', delay: 1600 },
   { text: '[Red Team] Alerta: VIX subiendo +8% hoy. Resistencia en $585', color: '#fca5a5', delay: 2800 },
-  { text: '[Red Team] Volumen cayendo en rally — distribucion?', color: '#fca5a5', delay: 3600 },
-  { text: '[CIO] VEREDICTO: LONG CAUTELOSO — 60% del tamano maximo', color: PTS.gold, delay: 5000 },
+  { text: '[Red Team] Volumen cayendo en rally — ¿distribución?', color: '#fca5a5', delay: 3600 },
+  { text: '[CIO] VEREDICTO: LONG CAUTELOSO — 60% del tamaño máximo', color: PTS.gold, delay: 5000 },
   { text: '[CIO] Entrada: $581.50 | Stop Loss: $576.20 | Take Profit: $592.00', color: PTS.gold, delay: 5800 },
-  { text: '[Sistema] Senal registrada permanentemente: 0x3f7a...c21d', color: '#a5b4fc', delay: 7000 },
+  { text: '[Sistema] Señal registrada permanentemente: 0x3f7a...c21d', color: '#a5b4fc', delay: 7000 },
   { text: '> _', color: PTS.gold, delay: 8000 },
 ];
 
@@ -250,7 +250,7 @@ export default function PTSDemoPage() {
     <div className="min-h-screen" style={{ background: PTS.bg, color: PTS.text }}>
       <Helmet>
         <title>Global Investor — Aprende a Operar con IA | Pro Trading Skills</title>
-        <meta name="description" content="Global Investor es el primer programa de trading en espanol con inteligencia artificial. 3 agentes de IA debaten cada trade. Formacion + IA 24/7." />
+        <meta name="description" content="Global Investor es el primer programa de trading en español con inteligencia artificial. 3 agentes de IA debaten cada trade. Formación + IA 24/7." />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Helmet>
 
@@ -327,14 +327,14 @@ export default function PTSDemoPage() {
                 className="text-sm sm:text-base leading-relaxed mb-4 max-w-lg"
                 style={{ color: 'rgba(226,225,242,0.55)', fontFamily: 'Inter, sans-serif' }}
               >
-                Global Investor es el primer programa de trading en espanol que combina formacion profesional con un sistema de inteligencia artificial que analiza 70+ indicadores, debate cada senal entre 3 agentes, y opera 24/7 en tu Telegram.
+                Global Investor es el primer programa de trading en español que combina formación profesional con un sistema de inteligencia artificial que analiza 70+ indicadores, debate cada señal entre 3 agentes, y opera 24/7 en tu Telegram.
               </p>
 
               <p
                 className="text-base font-semibold mb-8"
                 style={{ color: PTS.gold, fontFamily: 'Manrope, sans-serif' }}
               >
-                Tu aprendes. Dany analiza. Juntos, operan mejor.
+                Tú aprendes. Dany analiza. Juntos, operan mejor.
               </p>
 
               <a
@@ -421,11 +421,11 @@ export default function PTSDemoPage() {
                 className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
                 style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
               >
-                POR QUE GLOBAL INVESTOR ES DIFERENTE
+                POR QUÉ GLOBAL INVESTOR ES DIFERENTE
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                No es un curso mas.{' '}
-                <span style={{ color: PTS.gold }}>Es formacion + IA.</span>
+                No es un curso más.{' '}
+                <span style={{ color: PTS.gold }}>Es formación + IA.</span>
               </h2>
             </div>
           </AnimatedSection>
@@ -472,7 +472,7 @@ export default function PTSDemoPage() {
                 className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
                 style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
               >
-                COMO FUNCIONA
+                CÓMO FUNCIONA
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 De cero a operar con IA{' '}
@@ -524,14 +524,14 @@ export default function PTSDemoPage() {
                   className="text-[10px] tracking-[0.2em] mb-2 font-semibold"
                   style={{ color: PTS.textMuted, fontFamily: 'Space Grotesk, monospace' }}
                 >
-                  QUE INCLUYE
+                  QUÉ INCLUYE
                 </div>
                 <h2 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
                   Todo lo que recibes con{' '}
                   <span style={{ color: PTS.gold }}>Global Investor</span>
                 </h2>
                 <p className="text-sm leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                  Formacion profesional de trading + un sistema de inteligencia artificial que analiza los mercados por ti. No existe otro programa asi en espanol.
+                  Formación profesional de trading + un sistema de inteligencia artificial que analiza los mercados por ti. No existe otro programa así en español.
                 </p>
               </div>
               <div className="space-y-3">
@@ -582,7 +582,7 @@ export default function PTSDemoPage() {
                 <span style={{ color: PTS.gold }}>ahora mismo</span>
               </h2>
               <p className="text-sm mb-8" style={{ color: 'rgba(226,225,242,0.45)', fontFamily: 'Inter, sans-serif' }}>
-                Escribe cualquier activo y Dany te dara un analisis completo con debate de 3 agentes, entrada, stop loss y take profit
+                Escribe cualquier activo y Dany te dará un análisis completo con debate de 3 agentes, entrada, stop loss y take profit
               </p>
 
               {/* Quick action chips */}
@@ -632,7 +632,7 @@ export default function PTSDemoPage() {
                 PREGUNTAS FRECUENTES
               </div>
               <h2 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Dudas?{' '}
+                ¿Dudas?{' '}
                 <span style={{ color: PTS.gold }}>Te las resolvemos.</span>
               </h2>
             </div>
@@ -655,10 +655,10 @@ export default function PTSDemoPage() {
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4 leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 Tu Equipo de IA{' '}
-                <span style={{ color: PTS.gold }}>ya Esta Operando</span>
+                <span style={{ color: PTS.gold }}>ya Está Operando</span>
               </h2>
               <p className="text-sm mb-8 leading-relaxed" style={{ color: 'rgba(226,225,242,0.4)', fontFamily: 'Inter, sans-serif' }}>
-                Los primeros 50 alumnos acceden a Dany sin costo adicional. Despues se convierte en add-on de pago. No te quedes fuera.
+                Los primeros 50 alumnos acceden a Dany sin costo adicional. Después se convierte en add-on de pago. No te quedes fuera.
               </p>
 
               <a
@@ -703,7 +703,7 @@ export default function PTSDemoPage() {
             </span>
             <div className="flex items-center gap-4">
               <a href="#" className="text-[10px] transition-colors hover:underline" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
-                Terminos
+                Términos
               </a>
               <a href="#" className="text-[10px] transition-colors hover:underline" style={{ color: 'rgba(226,225,242,0.3)', fontFamily: 'Space Grotesk, monospace' }}>
                 Privacidad
@@ -713,7 +713,7 @@ export default function PTSDemoPage() {
               </a>
             </div>
             <span className="text-[10px]" style={{ color: 'rgba(226,225,242,0.15)', fontFamily: 'Space Grotesk, monospace' }}>
-              Dany Agent Trader — Powered by Bobby Agent Trader
+              Dany Agent Trader — Powered by Pro Trading Skills
             </span>
           </div>
         </div>

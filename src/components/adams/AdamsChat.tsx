@@ -394,7 +394,7 @@ function InlinePriceCard({ price, highlighted, labels }: { price: PriceCard; hig
 const AGENT_STYLES: Record<string, { border: string; name: string; nameColor: string; icon: string }> = {
   alpha: { border: 'border-l-green-500/60', name: 'ALPHA HUNTER', nameColor: 'text-green-400', icon: '🟢' },
   redteam: { border: 'border-l-red-500/60', name: 'RED TEAM', nameColor: 'text-red-400', icon: '🔴' },
-  cio: { border: 'border-l-yellow-500/60', name: 'BOBBY CIO', nameColor: 'text-yellow-400', icon: '🟡' },
+  cio: { border: 'border-l-yellow-500/60', name: 'CIO', nameColor: 'text-yellow-400', icon: '🟡' },
 };
 
 function DebateText({ text }: { text: string }) {
@@ -1068,14 +1068,14 @@ export function AdamsChat() {
   // ---- i18n strings keyed by language ----
   const i18n = {
     intro: {
-      es: `Soy Bobby, tu CIO. Tres agentes debaten cada decisión antes de que yo hable: Alpha Hunter busca la oportunidad, Red Team intenta destruirla, y yo decido. 15 fuentes de datos — whale flows, funding, Polymarket, Fear & Greed, DXY, stocks, y más.\n\nDame un ticker, un vibe macro, o pide un debate.`,
-      en: `I'm Bobby, your CIO. Three agents debate every decision before I speak: Alpha Hunter finds the opportunity, Red Team tries to destroy it, and I decide. 15 data sources — whale flows, funding, Polymarket, Fear & Greed, DXY, stocks, and more.\n\nGive me a ticker, a macro vibe, or ask for a debate.`,
-      pt: `Sou Bobby, seu CIO. Tenho minha Alpha Hunter buscando oportunidades e meu Red Team destruindo cada tese fraca. 9 fontes de dados em tempo real — whale flows, funding rates, Fear & Greed, DXY, e mais. Quando falo, é porque sobrevivi meu próprio debate interno.\n\nO que quer que eu analise?`,
+      es: `Soy ${advisorName}, tu CIO. Tres agentes debaten cada decisión antes de que yo hable: Alpha Hunter busca la oportunidad, Red Team intenta destruirla, y yo decido. 15 fuentes de datos — whale flows, funding, Polymarket, Fear & Greed, DXY, stocks, y más.\n\nDame un ticker, un vibe macro, o pide un debate.`,
+      en: `I'm ${advisorName}, your CIO. Three agents debate every decision before I speak: Alpha Hunter finds the opportunity, Red Team tries to destroy it, and I decide. 15 data sources — whale flows, funding, Polymarket, Fear & Greed, DXY, stocks, and more.\n\nGive me a ticker, a macro vibe, or ask for a debate.`,
+      pt: `Sou ${advisorName}, seu CIO. Tenho minha Alpha Hunter buscando oportunidades e meu Red Team destruindo cada tese fraca. 9 fontes de dados em tempo real — whale flows, funding rates, Fear & Greed, DXY, e mais. Quando falo, é porque sobrevivi meu próprio debate interno.\n\nO que quer que eu analise?`,
     },
     introShort: {
-      es: `Soy Bobby. 3 agentes + 15 fuentes de datos. Dame un ticker o un vibe.`,
-      en: `I'm Bobby. 3 agents + 15 data sources. Give me a ticker or a vibe.`,
-      pt: `Sou Bobby, seu CIO. Alpha Hunter + Red Team + 9 fontes de dados. Pergunte o que quiser.`,
+      es: `Soy ${advisorName}. 3 agentes + 15 fuentes de datos. Dame un ticker o un vibe.`,
+      en: `I'm ${advisorName}. 3 agents + 15 data sources. Give me a ticker or a vibe.`,
+      pt: `Sou ${advisorName}, seu CIO. Alpha Hunter + Red Team + 9 fontes de dados. Pergunte o que quiser.`,
     },
     analyzeFillers: {
       es: [
@@ -1586,13 +1586,13 @@ export function AdamsChat() {
       const greetings: Record<string, string[]> = {
         es: [
           '¿Qué onda? Dame un ticker o un vibe y arrancamos.',
-          'Aquí Bobby. ¿Qué quieres analizar?',
-          'Bobby al habla. Dame un activo, una tesis macro, o pide un debate.',
+          `Aquí ${advisorName}. ¿Qué quieres analizar?`,
+          `${advisorName} al habla. Dame un activo, una tesis macro, o pide un debate.`,
         ],
         en: [
           'What\'s up? Give me a ticker or a vibe and let\'s go.',
-          'Bobby here. What do you want to analyze?',
-          'Bobby speaking. Give me an asset, a macro thesis, or ask for a debate.',
+          `${advisorName} here. What do you want to analyze?`,
+          `${advisorName} speaking. Give me an asset, a macro thesis, or ask for a debate.`,
         ],
       };
       const pool = greetings[lang] || greetings.en;
@@ -1807,9 +1807,9 @@ export function AdamsChat() {
     // IDENTITY
     // ========================
     if (intent === ('identity' as any)) {
-      const resp = lang === 'es' 
-        ? 'Soy Bobby, tu Chief Investment Officer. Analizo mercados, debato posiciones con mi equipo y ejecuto operaciones on-chain. Dame un ticker o pide un análisis.' 
-        : 'I am Bobby, your Chief Investment Officer. I analyze markets, debate positions with my team, and execute on-chain. Give me a ticker or ask for an analysis.';
+      const resp = lang === 'es'
+        ? `Soy ${advisorName}, tu Chief Investment Officer. Analizo mercados, debato posiciones con mi equipo y ejecuto operaciones on-chain. Dame un ticker o pide un análisis.`
+        : `I am ${advisorName}, your Chief Investment Officer. I analyze markets, debate positions with my team, and execute on-chain. Give me a ticker or ask for an analysis.`;
       setMessages(prev => [...prev, { id: uid(), role: 'advisor', timestamp: Date.now(), text: resp, isLive: true }]);
       speakIfEnabled(resp);
       setIsProcessing(false);
@@ -3265,7 +3265,7 @@ export function AdamsChat() {
           <div className="hidden sm:block"><VoiceOrb analyser={analyser} state={orbState} mood={orbMood} size={100} /></div>
           <span className={`text-[8px] sm:text-[9px] font-mono mt-1 sm:mt-1.5 tracking-[2px] ${activeAgent === 'alpha' ? 'text-green-400/60' : activeAgent === 'redteam' ? 'text-red-400/60' : activeAgent === 'cio' ? 'text-yellow-400/60' : 'text-green-400/40'
             }`}>
-            {orbState === 'listening' ? (lang === 'es' ? 'TOCA PARA PARAR · ESCUCHANDO...' : 'TAP TO STOP · LISTENING...') : orbState === 'thinking' ? (lang === 'es' ? 'PROCESANDO...' : 'PROCESSING...') : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? '🟡 BOBBY CIO' : (lang === 'es' ? 'TOCA PARA INTERRUMPIR' : 'TAP TO INTERRUPT')) : (lang === 'es' ? 'TOCA PARA HABLAR' : 'TAP TO TALK')}
+            {orbState === 'listening' ? (lang === 'es' ? 'TOCA PARA PARAR · ESCUCHANDO...' : 'TAP TO STOP · LISTENING...') : orbState === 'thinking' ? (lang === 'es' ? 'PROCESANDO...' : 'PROCESSING...') : orbState === 'speaking' ? (activeAgent === 'alpha' ? '🟢 ALPHA HUNTER' : activeAgent === 'redteam' ? '🔴 RED TEAM' : activeAgent === 'cio' ? `🟡 ${advisorName.toUpperCase()} CIO` : (lang === 'es' ? 'TOCA PARA INTERRUMPIR' : 'TAP TO INTERRUPT')) : (lang === 'es' ? 'TOCA PARA HABLAR' : 'TAP TO TALK')}
           </span>
           {/* Live market sentiment badges */}
           {marketBadge && orbState === 'idle' && (

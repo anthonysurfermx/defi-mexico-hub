@@ -25,7 +25,7 @@ const XLAYER_CHAIN_ID = 196;
 const DEMO_CONVERSATION = [
   {
     type: 'user',
-    text: 'Bobby, should I long BTC?',
+    text: 'Should I long BTC?',
     time: '14:02',
   },
   {
@@ -60,6 +60,8 @@ export default function BobbyTelegramPage() {
   const activateGroupId = searchParams.get('activate');
   const { address, isConnected } = useAccount();
   const { open: openWallet } = useAppKit();
+  const agentName = localStorage.getItem('bobby_agent_name') || 'Bobby';
+  const isPTS = agentName === 'DANY';
 
   const [groupInfo, setGroupInfo] = useState<{ name: string; status: string } | null>(null);
   const [paymentState, setPaymentState] = useState<'idle' | 'connected' | 'signing' | 'verifying' | 'success' | 'error'>('idle');
@@ -211,15 +213,17 @@ export default function BobbyTelegramPage() {
 
   return (
     <KineticShell activeTab="terminal">
-      <Helmet><title>Telegram | Bobby Agent Trader</title></Helmet>
+      <Helmet><title>Telegram | {isPTS ? 'Dany' : 'Bobby'} Agent Trader</title></Helmet>
 
       <div className="max-w-md mx-auto px-5 pt-6 pb-20">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-          <span className="text-[8px] font-mono text-green-400/40 tracking-widest">TELEGRAM_INTEGRATION</span>
-          <h1 className="text-2xl font-black tracking-tight mt-1">Your Agent on Telegram</h1>
+          <span className="text-[8px] font-mono text-green-400/40 tracking-widest">{isPTS ? 'INTEGRACIÓN_TELEGRAM' : 'TELEGRAM_INTEGRATION'}</span>
+          <h1 className="text-2xl font-black tracking-tight mt-1">{isPTS ? 'Tu Agente en Telegram' : 'Your Agent on Telegram'}</h1>
           <p className="text-[10px] font-mono text-white/30 mt-2 max-w-xs mx-auto leading-relaxed">
-            Get your agent's debates and signals directly in Telegram. Three agents debate — you decide.
+            {isPTS
+              ? `Recibe los debates y señales de ${agentName} directamente en Telegram. Tres agentes debaten — tú decides.`
+              : 'Get your agent\'s debates and signals directly in Telegram. Three agents debate — you decide.'}
           </p>
         </motion.div>
 
@@ -236,9 +240,9 @@ export default function BobbyTelegramPage() {
                   <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/40 flex items-center justify-center mx-auto mb-4">
                     <Check className="w-8 h-8 text-green-400" />
                   </div>
-                  <h3 className="text-xl font-black text-green-400 mb-1">BOBBY IS LIVE</h3>
-                  <p className="text-[10px] font-mono text-white/40 mb-1">{groupInfo?.name || 'Your group'}</p>
-                  <p className="text-[9px] font-mono text-white/20 mb-4">Bobby is now fully integrated.</p>
+                  <h3 className="text-xl font-black text-green-400 mb-1">{isPTS ? `${agentName} ESTÁ ACTIVO` : `${agentName.toUpperCase()} IS LIVE`}</h3>
+                  <p className="text-[10px] font-mono text-white/40 mb-1">{groupInfo?.name || (isPTS ? 'Tu grupo' : 'Your group')}</p>
+                  <p className="text-[9px] font-mono text-white/20 mb-4">{isPTS ? `${agentName} está completamente integrado.` : `${agentName} is now fully integrated.`}</p>
                   {txHash && (
                     <a href={`https://www.oklink.com/xlayer/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
                       className="text-[8px] font-mono text-green-400/40 hover:text-green-400 mb-3 block">
@@ -255,8 +259,8 @@ export default function BobbyTelegramPage() {
                     Link not working? Click to copy: t.me/Bobbyagentraderbot
                   </button>
                   <p className="text-[8px] font-mono text-white/15 mt-2">
-                    Bot not responding? Make sure Bobby has admin privileges.{' '}
-                    <a href="https://t.me/Bobbyagentraderbot" className="text-green-400/40 hover:text-green-400">Contact Support</a>
+                    {isPTS ? `¿El bot no responde? Asegúrate de que ${agentName} tenga privilegios de administrador. ` : `Bot not responding? Make sure ${agentName} has admin privileges. `}
+                    <a href="https://t.me/Bobbyagentraderbot" className="text-green-400/40 hover:text-green-400">{isPTS ? 'Contactar Soporte' : 'Contact Support'}</a>
                   </p>
                 </>
               )}
@@ -303,7 +307,7 @@ export default function BobbyTelegramPage() {
                     <span className="text-green-400 text-lg">⚡</span>
                   </div>
                   <h3 className="text-sm font-black mb-1">
-                    ACTIVATE BOBBY IN {groupInfo?.name?.toUpperCase() || 'YOUR GROUP'}
+                    {isPTS ? `ACTIVAR ${agentName} EN ${groupInfo?.name?.toUpperCase() || 'TU GRUPO'}` : `ACTIVATE ${agentName.toUpperCase()} IN ${groupInfo?.name?.toUpperCase() || 'YOUR GROUP'}`}
                   </h3>
 
                   {/* Wallet connected indicator */}
@@ -428,7 +432,7 @@ export default function BobbyTelegramPage() {
               {/* Bobby's Verdict */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[9px] font-mono font-bold text-yellow-400">Bobby's Verdict</span>
+                  <span className="text-[9px] font-mono font-bold text-yellow-400">{isPTS ? `Veredicto de ${agentName}` : `${agentName}'s Verdict`}</span>
                   <span className="text-[7px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{DEMO_CONVERSATION[1].verdict!.action}</span>
                 </div>
                 <p className="text-[10px] text-white/50 leading-relaxed mb-3">{DEMO_CONVERSATION[1].verdict!.reasoning}</p>
@@ -468,15 +472,17 @@ export default function BobbyTelegramPage() {
               <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
                 <span className="text-lg">⚡</span>
               </div>
-              <h3 className="text-sm font-bold mb-1">ACTIVATE BOBBY IN YOUR GROUP</h3>
+              <h3 className="text-sm font-bold mb-1">{isPTS ? `ACTIVAR ${agentName} EN TU GRUPO` : `ACTIVATE ${agentName.toUpperCase()} IN YOUR GROUP`}</h3>
               <p className="text-[10px] font-mono text-white/30 mb-3 max-w-xs mx-auto">
-                Activate Bobby in your Telegram group. Multi-agent trading intelligence, voice notes, real-time signals.
+                {isPTS
+                  ? `Activa a ${agentName} en tu grupo de Telegram. Inteligencia de trading multi-agente, notas de voz, señales en tiempo real.`
+                  : `Activate ${agentName} in your Telegram group. Multi-agent trading intelligence, voice notes, real-time signals.`}
               </p>
               {/* Payment info */}
               <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 mb-4 max-w-xs mx-auto">
                 <div className="flex justify-between text-[9px] font-mono mb-1">
-                  <span className="text-white/30">SERVICE</span>
-                  <span className="text-white/60">Bobby Agent Trader</span>
+                  <span className="text-white/30">{isPTS ? 'SERVICIO' : 'SERVICE'}</span>
+                  <span className="text-white/60">{isPTS ? 'Dany' : 'Bobby'} Agent Trader</span>
                 </div>
                 <div className="flex justify-between text-[9px] font-mono mb-1">
                   <span className="text-white/30">NETWORK</span>
@@ -498,7 +504,7 @@ export default function BobbyTelegramPage() {
                 STEP 1: ADD BOT TO GROUP →
               </a>
               <p className="text-[8px] font-mono text-white/15 mt-2">
-                After adding, Bobby will send you a payment link to activate.
+                {isPTS ? `Después de agregarlo, ${agentName} te enviará un enlace de pago para activar.` : `After adding, ${agentName} will send you a payment link to activate.`}
               </p>
               <button onClick={() => navigator.clipboard.writeText('https://t.me/Bobbyagentraderbot?startgroup=true')}
                 className="text-[7px] font-mono text-white/10 mt-1 hover:text-white/25 transition-colors">
@@ -511,12 +517,17 @@ export default function BobbyTelegramPage() {
         {/* Features */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
           className="mt-6 grid grid-cols-2 gap-2">
-          {[
+          {(isPTS ? [
+            { label: 'MULTI_AGENTE', desc: '3 agentes de IA debaten' },
+            { label: 'NOTAS_VOZ', desc: 'Respuestas en audio' },
+            { label: 'TIEMPO_REAL', desc: 'Datos de mercado OKX' },
+            { label: 'ON_CHAIN', desc: 'Verificado en X Layer' },
+          ] : [
             { label: 'MULTI_AGENT', desc: '3 AI agents debate' },
             { label: 'VOICE_NOTES', desc: 'Audio responses' },
             { label: 'REAL_TIME', desc: 'OKX market data' },
             { label: 'ON_CHAIN', desc: 'X Layer verified' },
-          ].map(f => (
+          ]).map(f => (
             <div key={f.label} className="bg-white/[0.02] border border-white/[0.04] rounded p-3">
               <span className="text-[8px] font-mono text-green-400/50 tracking-widest">{f.label}</span>
               <p className="text-[10px] font-mono text-white/40 mt-0.5">{f.desc}</p>
@@ -526,8 +537,8 @@ export default function BobbyTelegramPage() {
 
         {/* Back link */}
         <div className="mt-6 text-center">
-          <Link to="/agentic-world/bobby" className="text-[9px] font-mono text-white/20 hover:text-green-400 transition-colors">
-            ← BACK_TO_TERMINAL
+          <Link to={isPTS ? '/demopts/terminal' : '/agentic-world/bobby'} className="text-[9px] font-mono text-white/20 hover:text-green-400 transition-colors">
+            {isPTS ? '← VOLVER_AL_TERMINAL' : '← BACK_TO_TERMINAL'}
           </Link>
         </div>
       </div>
