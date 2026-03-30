@@ -16,11 +16,11 @@ import KineticShell from '@/components/kinetic/KineticShell';
 // ── Components ─────────────────────────────────────────────
 
 function LiveAgentsCounter() {
-  const [count, setCount] = useState(3492);
+  const [count, setCount] = useState(4);
   useEffect(() => {
     const interval = setInterval(() => {
-      setCount(prev => prev + (Math.random() > 0.5 ? 1 : Math.random() > 0.8 ? -1 : 0));
-    }, 4000);
+      setCount(prev => Math.max(3, Math.min(6, prev + (Math.random() > 0.6 ? 1 : Math.random() > 0.7 ? -1 : 0))));
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
   return <>{count.toLocaleString()}</>;
