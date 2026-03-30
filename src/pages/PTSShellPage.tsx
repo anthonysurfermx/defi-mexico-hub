@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'meta', label: 'META', path: '/demopts/meta' },
   { id: 'signals', label: 'SEÑALES', path: '/demopts/signals' },
   { id: 'defi', label: 'DEFI', path: '/demopts/defi' },
+  { id: 'forum', label: 'DEBATES', path: '/demopts/forum' },
   { id: 'telegram', label: 'TELEGRAM', path: '/demopts/telegram' },
 ];
 

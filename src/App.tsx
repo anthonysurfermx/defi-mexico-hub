@@ -320,6 +320,7 @@ const router = createBrowserRouter(
             { path: 'signals', element: <Suspense fallback={<PageLoader />}><BobbySignalsPage /></Suspense> },
             { path: 'telegram', element: <Suspense fallback={<PageLoader />}><BobbyTelegramPage /></Suspense> },
             { path: 'defi', element: <Suspense fallback={<PageLoader />}><BobbyDeFiPage /></Suspense> },
+            { path: 'forum', element: <Suspense fallback={<PageLoader />}><AgentForumPage /></Suspense> },
           ],
         },
         // ==========================================
