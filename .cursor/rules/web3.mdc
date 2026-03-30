@@ -1,0 +1,27 @@
+---
+description: Web3 and blockchain development rules. Activates for Solidity, smart contract interactions, wallet connections, on-chain payments, and any blockchain-related code.
+globs: "**/*.sol, **/contracts/**, **/hooks/useContract*, **/hooks/useWallet*, **/lib/web3/**, **/lib/chain/**"
+alwaysApply: false
+---
+
+# Web3 Development Rules
+
+## Security First
+- Never hardcode private keys, bot tokens, or API secrets in source code
+- Never simulate payments — always use real contract calls (writeContract + sendTransaction)
+- Validate all on-chain data server-side, never trust client-side wallet state alone
+- Always handle transaction reverts gracefully with user-facing error messages
+
+## Wallet & Payment Flows
+- Every payment flow must have these states: connecting, connected, approving, paying, confirming, success, error
+- Always show gas estimates before user signs
+- Handle wallet disconnection mid-flow (don't assume wallet stays connected)
+- Use deeplinks to close web→Telegram loops when applicable
+
+## Smart Contracts
+- Check chain ID before every transaction
+- Handle different RPC endpoints per environment (testnet vs mainnet)
+- Never assume transaction confirmation — wait for receipt
+
+## When in doubt
+If any Web3 decision has trade-offs (gas optimization, contract pattern, chain selection), suggest generating a Codex brief via the multi-LLM workflow.

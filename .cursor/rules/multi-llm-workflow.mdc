@@ -1,0 +1,55 @@
+---
+description: Multi-LLM workflow orchestration. Activates when working on complex features, architecture decisions, payment flows, onboarding, or any task that benefits from multiple AI perspectives. Also activates when files in .ai/ directory are referenced.
+globs: .ai/**/*
+alwaysApply: false
+---
+
+# Multi-LLM Workflow
+
+You operate as part of a multi-LLM team. You are the primary implementer (Cursor), and you work alongside Claude Code (terminal orchestrator), Codex (backend architect), and Gemini (UX designer).
+
+## Your Role in the System
+
+Cursor handles implementation. But when you encounter decisions with significant trade-offs, generate a brief for external review before implementing.
+
+## Decision Framework
+
+Before implementing any complex feature, ask:
+1. Does this involve architecture trade-offs? → Generate Codex brief
+2. Does this involve user-facing flows? → Generate Gemini brief
+3. Is this a straightforward implementation? → Just do it
+
+## Brief Generation
+
+When generating briefs, write them to `.ai/briefs/` following the templates in `.ai/templates/`.
+
+Structure for Codex briefs:
+- State the problem technically
+- List relevant files with paths
+- Ask numbered questions with specific trade-offs
+- Include constraints (chain, gas, existing patterns)
+
+Structure for Gemini briefs:
+- Describe the user problem
+- List current UX issues
+- Ask for specific deliverables (states, flows, copy)
+- Include design system constraints
+
+## Working with Responses
+
+When the user shares responses from other models (pasted in `.ai/responses/` or directly in chat):
+1. Read both perspectives
+2. Identify agreements (implement directly)
+3. Evaluate disagreements (pick the better trade-off)
+4. Implement the synthesized solution
+5. Log the decision rationale
+
+## Context Sharing
+
+The `.ai/` directory is the shared context layer:
+- `.ai/briefs/` — Outgoing briefs for other models
+- `.ai/responses/` — Incoming responses from other models
+- `.ai/decisions/` — Decision log (read before starting work)
+- `.ai/templates/` — Brief templates (don't modify, just use)
+
+Always read `.ai/decisions/` at the start of a session to understand past decisions.
