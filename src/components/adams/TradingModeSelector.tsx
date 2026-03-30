@@ -93,7 +93,7 @@ export default function TradingModeSelector({ onSelect, language = 'es', onInitV
                   <div className="w-3 h-3 rounded-sm bg-green-500" />
                 </div>
                 <div>
-                  <h1 className="text-white font-bold text-sm tracking-wide">BOBBY AGENT TRADER</h1>
+                  <h1 className="text-white font-bold text-sm tracking-wide">{(() => { try { const n = localStorage.getItem('bobby_agent_name'); return n && n.length >= 2 ? `${n} AGENT TRADER` : 'BOBBY AGENT TRADER'; } catch { return 'BOBBY AGENT TRADER'; } })()}</h1>
                   <span className="text-[9px] font-mono text-white/30 tracking-[2px]">SYSTEM INITIALIZATION v4.2</span>
                 </div>
               </div>
@@ -108,8 +108,8 @@ export default function TradingModeSelector({ onSelect, language = 'es', onInitV
             </h2>
             <p className="text-white/40 text-xs leading-relaxed">
               {isEs
-                ? 'Estás a punto de interactuar con Bobby, una red neural de trading. Antes de sincronizar, define tus parámetros de ejecución.'
-                : 'You are about to interface with Bobby, a high-frequency trading neural network. Before we synchronize your neural link, define your execution parameters.'}
+                ? `Estás a punto de interactuar con ${(() => { try { return localStorage.getItem('bobby_agent_name') || 'Bobby'; } catch { return 'Bobby'; } })()}, una red neural de trading. Antes de sincronizar, define tus parámetros de ejecución.`
+                : `You are about to interface with ${(() => { try { return localStorage.getItem('bobby_agent_name') || 'Bobby'; } catch { return 'Bobby'; } })()}, a high-frequency trading neural network. Before we synchronize your neural link, define your execution parameters.`}
             </p>
           </div>
 
@@ -121,8 +121,8 @@ export default function TradingModeSelector({ onSelect, language = 'es', onInitV
                 <span className="text-amber-400/90 text-[10px] font-mono font-bold tracking-wider">RISK DISCLAIMER</span>
                 <p className="text-amber-400/50 text-[9px] mt-1 leading-relaxed font-mono">
                   {isEs
-                    ? 'TRADING INVOLUCRA RIESGO SIGNIFICATIVO. PARÁMETROS DEL SISTEMA PUEDEN RESULTAR EN PÉRDIDA TOTAL DE CAPITAL. BOBBY ES UN SISTEMA AGÉNTICO; LA RESPONSABILIDAD DE EJECUCIÓN PERMANECE CON EL OPERADOR.'
-                    : 'TRADING INVOLVES SIGNIFICANT RISK. SYSTEM PARAMETERS MAY RESULT IN TOTAL CAPITAL DEPLETION. BOBBY IS AN AGENTIC SYSTEM; FINAL EXECUTION RESPONSIBILITY REMAINS WITH THE OPERATOR.'}
+                    ? `TRADING INVOLUCRA RIESGO SIGNIFICATIVO. PARÁMETROS DEL SISTEMA PUEDEN RESULTAR EN PÉRDIDA TOTAL DE CAPITAL. ${(() => { try { return (localStorage.getItem('bobby_agent_name') || 'BOBBY').toUpperCase(); } catch { return 'BOBBY'; } })()} ES UN SISTEMA AGÉNTICO; LA RESPONSABILIDAD DE EJECUCIÓN PERMANECE CON EL OPERADOR.`
+                    : `TRADING INVOLVES SIGNIFICANT RISK. SYSTEM PARAMETERS MAY RESULT IN TOTAL CAPITAL DEPLETION. ${(() => { try { return (localStorage.getItem('bobby_agent_name') || 'BOBBY').toUpperCase(); } catch { return 'BOBBY'; } })()} IS AN AGENTIC SYSTEM; FINAL EXECUTION RESPONSIBILITY REMAINS WITH THE OPERATOR.`}
                 </p>
               </div>
             </div>

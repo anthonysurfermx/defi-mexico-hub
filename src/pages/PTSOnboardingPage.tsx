@@ -51,6 +51,13 @@ export default function PTSOnboardingPage() {
   const [featureIdx, setFeatureIdx] = useState(0);
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
 
+  // Set DANY name immediately on onboarding entry
+  useEffect(() => {
+    localStorage.setItem('bobby_agent_name', 'DANY');
+    localStorage.setItem('i18nextLng', 'es');
+    localStorage.setItem('bobby_language', 'es');
+  }, []);
+
   // Auto-advance welcome after 2s
   useEffect(() => {
     if (phase === 'welcome') {

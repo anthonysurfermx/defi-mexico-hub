@@ -815,7 +815,12 @@ export function AdamsChat() {
 
   // ---- Trading Mode (onboarding selection) ----
   const [tradingMode, setTradingMode] = useState<TradingMode | null>(() => {
-    try { return localStorage.getItem('bobby_trading_mode') as TradingMode | null; } catch { return null; }
+    try {
+      // Auto-skip init modal in PTS demo mode
+      const agentName = localStorage.getItem('bobby_agent_name');
+      if (agentName === 'DANY') return 'paper';
+      return localStorage.getItem('bobby_trading_mode') as TradingMode | null;
+    } catch { return null; }
   });
 
   // ---- Trading Room mode (multi-agent debate with 3 voices) ----
