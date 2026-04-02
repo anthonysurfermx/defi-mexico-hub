@@ -1262,7 +1262,9 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
       ? availableCashUsd
       : effectiveBalanceForExecution;
 
-    const shouldConsiderYield = !executionResult && conviction !== null && conviction < 0.35 && effectivePositions.length === 0;
+    // Only consider yield if conviction is in the "no trade but not dead" range (0.15-0.35)
+    // Below 0.15 = market is dead, skip yield to save LLM calls and avoid timeout
+    const shouldConsiderYield = !executionResult && conviction !== null && conviction >= 0.15 && conviction < 0.35 && effectivePositions.length === 0;
     if (shouldConsiderYield) {
       if (activeYieldPosition) {
         yieldDebateSkipReason = `Existing yield state ${activeYieldPosition.status} on ${activeYieldPosition.platform || 'unknown'} ${activeYieldPosition.token || ''}`.trim();
@@ -1637,7 +1639,8 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
     // Haiku takes ~2-3s, acceptable overhead for real data.
     // ============================================================
     // Skip quality scoring on very low conviction — saves ~$0.001/cycle, 70% of cycles
-    const shouldScoreQuality = threadId && !useTestVerdict && (conviction === null || conviction >= 0.3);
+    // Only score quality on meaningful debates (conviction >= 0.35) to save LLM calls
+    const shouldScoreQuality = threadId && !useTestVerdict && conviction !== null && conviction >= 0.35;
     if (shouldScoreQuality) {
       try {
         const qualityRaw = await callClaude('claude-haiku-4-5-20251001',
