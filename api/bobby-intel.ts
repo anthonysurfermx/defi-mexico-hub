@@ -1250,212 +1250,156 @@ function buildBriefing(
 ): string {
   const blocks: string[] = [];
 
-  // Market regime
-  blocks.push(`<MARKET_REGIME>${regime.label}</MARKET_REGIME>`);
+  blocks.push('<MORNING_BRIEFING>\n');
 
-  // Live prices as JSON
+  // --- LAYER 1: REGIME & MACRO ---
+  blocks.push('  <LAYER_1_REGIME>');
+  blocks.push(`    <MARKET_REGIME>${regime.label}</MARKET_REGIME>`);
+  
   const priceData = prices.map(p => ({
-    symbol: p.symbol, price: p.price,
-    change_24h_pct: p.change24h,
+    symbol: p.symbol, price: p.price, change_24h_pct: p.change24h,
   }));
-  blocks.push(`<LIVE_PRICES>\n${JSON.stringify(priceData)}\n</LIVE_PRICES>`);
+  blocks.push(`    <LIVE_PRICES>\n${JSON.stringify(priceData)}\n    </LIVE_PRICES>`);
 
-  // Funding rates (squeeze detection)
+  if (fearGreed) {
+    blocks.push(`    <SENTIMENT>\n${JSON.stringify({ fear_greed_index: fearGreed.value, classification: fearGreed.classification, signal: fearGreed.value <= 25 ? 'EXTREME_FEAR_BUY_ZONE' : fearGreed.value >= 75 ? 'EXTREME_GREED_SELL_ZONE' : 'NEUTRAL' })}\n    </SENTIMENT>`);
+  }
+
+  if (dxyData) {
+    blocks.push(`    <MACRO_CONTEXT>\n${JSON.stringify({ dxy_index: dxyData.dxy, interpretation: dxyData.dxy > 104 ? 'STRONG_DOLLAR_HEADWIND' : dxyData.dxy < 100 ? 'WEAK_DOLLAR_TAILWIND' : 'NEUTRAL_DOLLAR' })}\n    </MACRO_CONTEXT>`);
+  }
+  blocks.push('  </LAYER_1_REGIME>\n');
+
+  // --- LAYER 2: SIGNALS & CONVICTION ---
+  blocks.push('  <LAYER_2_SIGNALS>');
+  
   if (fundingRates.length > 0) {
     const fundingData = fundingRates.map(f => ({
-      symbol: f.symbol,
-      rate_pct: parseFloat((f.rate * 100).toFixed(4)),
-      annualized_pct: f.annualized,
-      squeeze_risk: Math.abs(f.rate) > 0.01 ? (f.rate > 0 ? 'LONG_SQUEEZE' : 'SHORT_SQUEEZE') : 'NEUTRAL',
+      symbol: f.symbol, rate_pct: parseFloat((f.rate * 100).toFixed(4)),
+      annualized_pct: f.annualized, squeeze_risk: Math.abs(f.rate) > 0.01 ? (f.rate > 0 ? 'LONG_SQUEEZE' : 'SHORT_SQUEEZE') : 'NEUTRAL',
     }));
-    blocks.push(`<FUNDING_RATES>\n${JSON.stringify(fundingData)}\n</FUNDING_RATES>`);
+    blocks.push(`    <FUNDING_RATES>\n${JSON.stringify(fundingData)}\n    </FUNDING_RATES>`);
   }
 
-  // OKX whale signals as JSON
   if (signals.length > 0) {
     const signalData = signals.slice(0, 5).map(s => ({
-      symbol: s.symbol, chain: s.chain,
-      amount_K: parseFloat((s.amountUsd / 1000).toFixed(1)),
-      wallet_type: s.walletType,
-      conviction_pct: parseFloat((s.conviction * 100).toFixed(0)),
-      reasons: s.reasons,
+      symbol: s.symbol, chain: s.chain, amount_K: parseFloat((s.amountUsd / 1000).toFixed(1)),
+      wallet_type: s.walletType, conviction_pct: parseFloat((s.conviction * 100).toFixed(0)), reasons: s.reasons,
     }));
-    blocks.push(`<WHALE_SIGNALS count="${signals.length}">\n${JSON.stringify(signalData)}\n</WHALE_SIGNALS>`);
+    blocks.push(`    <WHALE_SIGNALS count="${signals.length}">\n${JSON.stringify(signalData)}\n    </WHALE_SIGNALS>`);
   } else {
-    blocks.push(`<WHALE_SIGNALS count="0">No significant whale movements detected.</WHALE_SIGNALS>`);
+    blocks.push(`    <WHALE_SIGNALS count="0">No significant whale movements detected.</WHALE_SIGNALS>`);
   }
 
-  // Polymarket consensus as JSON
   if (polymarket.length > 0) {
     const polyData = polymarket.slice(0, 5).map(m => ({
-      title: m.title, traders: m.traderCount,
-      outcome: m.topOutcome, consensus_pct: m.topOutcomePct,
-      price_cents: m.currentPrice, entry_cents: m.entryPrice,
-      edge_pct: m.edgePct,
+      title: m.title, traders: m.traderCount, outcome: m.topOutcome, consensus_pct: m.topOutcomePct,
+      price_cents: m.currentPrice, entry_cents: m.entryPrice, edge_pct: m.edgePct,
     }));
-    blocks.push(`<PREDICTION_MARKETS count="${polymarket.length}">\n${JSON.stringify(polyData)}\n</PREDICTION_MARKETS>`);
+    blocks.push(`    <PREDICTION_MARKETS count="${polymarket.length}">\n${JSON.stringify(polyData)}\n    </PREDICTION_MARKETS>`);
   } else {
-    blocks.push(`<PREDICTION_MARKETS count="0">No strong smart money consensus detected.</PREDICTION_MARKETS>`);
+    blocks.push(`    <PREDICTION_MARKETS count="0">No strong smart money consensus detected.</PREDICTION_MARKETS>`);
   }
 
-  // Open Interest (crowded trade detection)
   if (openInterest.length > 0) {
     const oiData = openInterest.map(o => ({
-      symbol: o.symbol,
-      open_interest_contracts: o.oi,
-      open_interest_coins: parseFloat(o.oiCcy.toFixed(2)),
+      symbol: o.symbol, open_interest_contracts: o.oi, open_interest_coins: parseFloat(o.oiCcy.toFixed(2)),
     }));
-    blocks.push(`<OPEN_INTEREST>\n${JSON.stringify(oiData)}\n</OPEN_INTEREST>`);
+    blocks.push(`    <OPEN_INTEREST>\n${JSON.stringify(oiData)}\n    </OPEN_INTEREST>`);
   }
 
-  // Top traders long/short ratio (smart money positioning)
   if (topTradersLS.length > 0) {
     const lsData = topTradersLS.map(ls => ({
-      symbol: ls.symbol,
-      top_traders_long_pct: ls.longRatio,
-      top_traders_short_pct: ls.shortRatio,
+      symbol: ls.symbol, top_traders_long_pct: ls.longRatio, top_traders_short_pct: ls.shortRatio,
       bias: ls.longRatio > 60 ? 'HEAVILY_LONG' : ls.shortRatio > 60 ? 'HEAVILY_SHORT' : 'BALANCED',
     }));
-    blocks.push(`<TOP_TRADERS_POSITIONING>\n${JSON.stringify(lsData)}\n</TOP_TRADERS_POSITIONING>`);
+    blocks.push(`    <TOP_TRADERS_POSITIONING>\n${JSON.stringify(lsData)}\n    </TOP_TRADERS_POSITIONING>`);
   }
 
-  // Fear & Greed Index (market sentiment)
-  if (fearGreed) {
-    blocks.push(`<SENTIMENT>\n${JSON.stringify({ fear_greed_index: fearGreed.value, classification: fearGreed.classification, signal: fearGreed.value <= 25 ? 'EXTREME_FEAR_BUY_ZONE' : fearGreed.value >= 75 ? 'EXTREME_GREED_SELL_ZONE' : 'NEUTRAL' })}\n</SENTIMENT>`);
-  }
-
-  // DXY (US Dollar strength — inverse correlation with crypto)
-  if (dxyData) {
-    blocks.push(`<MACRO_CONTEXT>\n${JSON.stringify({ dxy_index: dxyData.dxy, interpretation: dxyData.dxy > 104 ? 'STRONG_DOLLAR_HEADWIND' : dxyData.dxy < 100 ? 'WEAK_DOLLAR_TAILWIND' : 'NEUTRAL_DOLLAR' })}\n</MACRO_CONTEXT>`);
-  }
-
-  // X Layer on-chain signals (smart money activity on OKX L2)
   if (xlayerSignals && xlayerSignals.length > 0) {
-    blocks.push(`<XLAYER_SIGNALS count="${xlayerSignals.length}">\n${JSON.stringify(xlayerSignals)}\n</XLAYER_SIGNALS>`);
+    blocks.push(`    <XLAYER_SIGNALS count="${xlayerSignals.length}">\n${JSON.stringify(xlayerSignals)}\n    </XLAYER_SIGNALS>`);
   }
 
-  // Performance / metacognition
+  if (dexLeaderboard && dexLeaderboard.length > 0) {
+    blocks.push(`    <DEX_LEADERBOARD>\n${JSON.stringify(dexLeaderboard.map(t => ({
+      address: t.address, pnl: t.pnl, win_rate: t.winRate, trades: t.tradeCount,
+    })))}\n    </DEX_LEADERBOARD>`);
+  }
+
+  if (trendingTokens && trendingTokens.length > 0) {
+    blocks.push(`    <TRENDING_TOKENS>\n${JSON.stringify(trendingTokens.map(t => ({
+      symbol: t.symbol, price: t.price, change_24h: t.change24h, volume: t.volume24h,
+    })))}\n    </TRENDING_TOKENS>`);
+  }
+
+  if (trenchTokens && trenchTokens.length > 0) {
+    const trenchData = trenchTokens.map(t => ({
+      symbol: t.symbol, chain: t.chain, dev: t.devAddress, dev_launches: t.devLaunchCount, dev_rugs: t.devRugCount,
+      bonding_pct: t.bondingProgress, migrated: t.isMigrated, liquidity: t.liquidity,
+      warning: t.devRugCount > 0 ? `DEV HAS RUGGED ${t.devRugCount} TIMES` : null,
+    }));
+    blocks.push(`    <MEME_TRENCHES count="${trenchTokens.length}">\n${JSON.stringify(trenchData)}\nIMPORTANT: If dev_rugs > 0, Bobby MUST warn user. If dev_rugs >= 3, refuse to recommend.\n    </MEME_TRENCHES>`);
+  }
+
+  if (securityResults && securityResults.length > 0) {
+    const secData = securityResults.map(s => ({
+      symbol: s.symbol, risk: s.riskLevel, honeypot: s.isHoneypot, issues: s.risks.length > 0 ? s.risks : ['Clean'],
+    }));
+    const dangerous = securityResults.filter(s => s.riskLevel === 'danger');
+    blocks.push(`    <TOKEN_SECURITY scanned="${securityResults.length}" dangerous="${dangerous.length}">\n${JSON.stringify(secData)}\nIMPORTANT: If any token has risk=danger or honeypot=true, Bobby MUST refuse to recommend it. Say: "Security scan flagged [symbol] as [risk]. I won't touch this."\n    </TOKEN_SECURITY>`);
+  }
+
+  if (technicalPulse && technicalPulse.assets.length > 0) {
+    const technicalData = {
+      regime: technicalPulse.regime,
+      leader: technicalPulse.leader ? { ...technicalPulse.leader, conviction_pct: Math.round(technicalPulse.leader.conviction * 100), agreement_pct: Math.round(technicalPulse.leader.agreement * 100) } : null,
+      assets: technicalPulse.assets.map(asset => ({ ...asset, conviction_pct: Math.round(asset.conviction * 100), agreement_pct: Math.round(asset.agreement * 100) })),
+    };
+    blocks.push(`    <TECHNICAL_PULSE>\n${JSON.stringify(technicalData)}\nIMPORTANT: Treat composite_score as the deterministic technical anchor. Favor setups where CIO direction matches technical direction and conviction_pct exceeds 55.\n    </TECHNICAL_PULSE>`);
+  }
+  blocks.push('  </LAYER_2_SIGNALS>\n');
+
+  // --- LAYER 3: METACOGNITION ---
+  blocks.push('  <LAYER_3_METACOGNITION>');
+  
   const metaData = {
     win_rate_pct: performance.winRate,
     mood: performance.mood,
     safe_mode: performance.isSafeMode,
     latency_s: parseFloat((latencyMs / 1000).toFixed(1)),
   };
-  blocks.push(`<AGENT_META>\n${JSON.stringify(metaData)}\n</AGENT_META>`);
-
-  if (technicalPulse && technicalPulse.assets.length > 0) {
-    const technicalData = {
-      regime: technicalPulse.regime,
-      leader: technicalPulse.leader
-        ? {
-            symbol: technicalPulse.leader.symbol,
-            signal: technicalPulse.leader.signal,
-            direction: technicalPulse.leader.direction,
-            composite_score: technicalPulse.leader.compositeScore,
-            conviction_pct: Math.round(technicalPulse.leader.conviction * 100),
-            agreement_pct: Math.round(technicalPulse.leader.agreement * 100),
-            trade_plan: technicalPulse.leader.tradePlan,
-          }
-        : null,
-      assets: technicalPulse.assets.map(asset => ({
-        symbol: asset.symbol,
-        signal: asset.signal,
-        direction: asset.direction,
-        composite_score: asset.compositeScore,
-        conviction_pct: Math.round(asset.conviction * 100),
-        agreement_pct: Math.round(asset.agreement * 100),
-        overview: asset.overview,
-        trade_plan: asset.tradePlan,
-        indicators: Object.entries(asset.breakdown).map(([name, reading]) => ({
-          name,
-          bias: reading.bias,
-          score: reading.score,
-          weight: reading.weight,
-          summary: reading.summary,
-        })),
-      })),
-    };
-    blocks.push(`<TECHNICAL_PULSE>\n${JSON.stringify(technicalData)}\nIMPORTANT: Treat composite_score as the deterministic technical anchor. Favor setups where CIO direction matches technical direction and conviction_pct exceeds 55.\n</TECHNICAL_PULSE>`);
-  }
+  blocks.push(`    <AGENT_META>\n${JSON.stringify(metaData)}\n    </AGENT_META>`);
 
   if (convictionModel) {
-    blocks.push(`<CONVICTION_MODEL>\n${JSON.stringify({
-      okx_score: convictionModel.okxScore,
-      polymarket_score: convictionModel.polyScore,
-      technical_score: convictionModel.technicalScore,
-      latency_penalty: convictionModel.latencyPenalty,
-      weights: convictionModel.weights,
-      base_conviction: convictionModel.score,
-    })}\nIMPORTANT: base_conviction is the backend anchor before LLM judgment and calibration.\n</CONVICTION_MODEL>`);
+    blocks.push(`    <CONVICTION_MODEL>\n${JSON.stringify({
+      okx_score: convictionModel.okxScore, polymarket_score: convictionModel.polyScore,
+      technical_score: convictionModel.technicalScore, latency_penalty: convictionModel.latencyPenalty,
+      weights: convictionModel.weights, base_conviction: convictionModel.score,
+    })}\nIMPORTANT: base_conviction is the backend anchor before LLM judgment and calibration.\n    </CONVICTION_MODEL>`);
   }
 
-  // Prediction Calibration (Metacognition Upgrade A)
   if (calibrationData && calibrationData.sampleSize >= 5) {
     const calBlock: Record<string, unknown> = {
-      sample_size: calibrationData.sampleSize,
-      break_even_excluded: calibrationData.breakEvenCount,
-      calibration_error: calibrationData.calibrationError,
-      is_overconfident: calibrationData.isOverconfident,
+      sample_size: calibrationData.sampleSize, break_even_excluded: calibrationData.breakEvenCount,
+      calibration_error: calibrationData.calibrationError, is_overconfident: calibrationData.isOverconfident,
       conviction_adjustment: calibrationData.adjustment,
-      buckets: calibrationData.curve.map(c => ({
-        range: c.bucket,
-        predicted: c.midpoint,
-        actual_win_rate: c.actual,
-        n: c.count,
-        reliable: c.reliable,
-        verdict: c.reliable ? (c.overconfident ? 'OVERCONFIDENT' : 'CALIBRATED') : 'LOW_SAMPLE',
-      })),
+      buckets: calibrationData.curve.map(c => ({ range: c.bucket, predicted: c.midpoint, actual_win_rate: c.actual, n: c.count, reliable: c.reliable, verdict: c.reliable ? (c.overconfident ? 'OVERCONFIDENT' : 'CALIBRATED') : 'LOW_SAMPLE' })),
     };
-    let instruction = '';
-    if (calibrationData.isOverconfident) {
-      instruction = `\nWARNING: You are OVERCONFIDENT. When you say high conviction, you win less than expected. Apply ${calibrationData.adjustment.toFixed(2)}x multiplier to your raw conviction. Example: if you feel 8/10, report ${Math.round(8 * calibrationData.adjustment)}/10.`;
-    } else if (calibrationData.calibrationError < 0.1) {
-      instruction = '\nYour predictions are well-calibrated. Maintain current conviction levels.';
-    }
-    blocks.push(`<CALIBRATION>\n${JSON.stringify(calBlock)}${instruction}\n</CALIBRATION>`);
+    // Codex: calibration enforcement is code-only (bobby-cycle Phase 3b). Prompt provides awareness, not numeric instructions.
+    const instruction = calibrationData.isOverconfident
+      ? '\nNOTE: Recent high-conviction calls have underperformed. The system has already applied a correction to your scores.'
+      : calibrationData.calibrationError < 0.1
+        ? '\nNOTE: Predictions are well-calibrated. Recent calls align with outcomes.'
+        : '';
+    blocks.push(`    <CALIBRATION>\n${JSON.stringify(calBlock)}${instruction}\n    </CALIBRATION>`);
   }
 
-  // DEX Leaderboard — top on-chain traders by PnL
-  if (dexLeaderboard && dexLeaderboard.length > 0) {
-    blocks.push(`<DEX_LEADERBOARD>\n${JSON.stringify(dexLeaderboard.map(t => ({
-      address: t.address, pnl: t.pnl, win_rate: t.winRate, trades: t.tradeCount,
-    })))}\n</DEX_LEADERBOARD>`);
-  }
-
-  // Trending tokens — hot on-chain right now
-  if (trendingTokens && trendingTokens.length > 0) {
-    blocks.push(`<TRENDING_TOKENS>\n${JSON.stringify(trendingTokens.map(t => ({
-      symbol: t.symbol, price: t.price, change_24h: t.change24h, volume: t.volume24h,
-    })))}\n</TRENDING_TOKENS>`);
-  }
-
-  // Meme/Pump.fun trenches — new launches with dev reputation
-  if (trenchTokens && trenchTokens.length > 0) {
-    const trenchData = trenchTokens.map(t => ({
-      symbol: t.symbol, chain: t.chain, dev: t.devAddress,
-      dev_launches: t.devLaunchCount, dev_rugs: t.devRugCount,
-      bonding_pct: t.bondingProgress, migrated: t.isMigrated,
-      liquidity: t.liquidity,
-      warning: t.devRugCount > 0 ? `DEV HAS RUGGED ${t.devRugCount} TIMES` : null,
-    }));
-    blocks.push(`<MEME_TRENCHES count="${trenchTokens.length}">\n${JSON.stringify(trenchData)}\nIMPORTANT: If dev_rugs > 0, Bobby MUST warn user. If dev_rugs >= 3, refuse to recommend.\n</MEME_TRENCHES>`);
-  }
-
-  // Token security scan results — hard gate for Bobby
-  if (securityResults && securityResults.length > 0) {
-    const secData = securityResults.map(s => ({
-      symbol: s.symbol, risk: s.riskLevel, honeypot: s.isHoneypot,
-      issues: s.risks.length > 0 ? s.risks : ['Clean'],
-    }));
-    const dangerous = securityResults.filter(s => s.riskLevel === 'danger');
-    blocks.push(`<TOKEN_SECURITY scanned="${securityResults.length}" dangerous="${dangerous.length}">\n${JSON.stringify(secData)}\nIMPORTANT: If any token has risk=danger or honeypot=true, Bobby MUST refuse to recommend it. Say: "Security scan flagged [symbol] as [risk]. I won't touch this."\n</TOKEN_SECURITY>`);
-  }
-
-  // Gemini+Codex: inject BASE_CONVICTION as anchor for LLM
-  // This is the deterministic score from backend math — LLM can adjust +/- 0.15 max
   if (performance.dynamicConviction != null) {
-    blocks.push(`<BASE_CONVICTION>${performance.dynamicConviction.toFixed(2)}</BASE_CONVICTION>`);
+    blocks.push(`    <BASE_CONVICTION>${performance.dynamicConviction.toFixed(2)}</BASE_CONVICTION>`);
   }
+  
+  blocks.push('  </LAYER_3_METACOGNITION>\n');
+  blocks.push('</MORNING_BRIEFING>');
 
-  return blocks.join('\n\n');
+  return blocks.join('\n');
 }
