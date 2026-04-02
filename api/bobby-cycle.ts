@@ -807,11 +807,21 @@ RULES:
 - 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
 - This is a TRADE verdict only. Yield parking is handled separately.
 - You MUST end with EXACTLY these two lines (no markdown fences):
-VERDICT: {"execute":true,"conviction":6,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
-VIBE_PHRASE: SOL defending the 50 MA with aggressive spot buying. We're stepping on the gas here.
-- If genuinely no edge at all:
-VERDICT: {"execute":false,"conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if structure changes"}
+
+To OPEN a new position:
+VERDICT: {"action":"open","conviction":6,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
+VIBE_PHRASE: SOL defending the 50 MA with aggressive spot buying. Stepping on the gas.
+
+To CLOSE an existing position (check OPEN POSITIONS above):
+VERDICT: {"action":"close","conviction":7,"symbol":"BTC","direction":"long","entry":null,"stop":null,"target":null,"invalidation":"thesis invalidated — closing for capital preservation"}
+VIBE_PHRASE: BTC lost the structure I was playing. Cutting it here, no ego.
+
+To sit out (no open, no close):
+VERDICT: {"action":"none","conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if structure changes"}
 VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
+
+- IMPORTANT: If there are OPEN POSITIONS, evaluate them FIRST. If the thesis is broken or target is hit, CLOSE before opening anything new.
+- action must be "open", "close", or "none". "close" means close the existing position for that symbol.
 - conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL.
 - direction must be "long", "short", or "none".
 - CONVICTION GUIDE — use the FULL 1-10 scale dynamically:
@@ -841,7 +851,9 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
     let stopPrice: number | null = null;
     let targetPrice: number | null = null;
     let cioSaysExecute = false; // CRITICAL: only execute if CIO explicitly says so
+    let cioSaysClose = false; // NEW: CIO can close existing positions
     let structuredExecuteRequested = false;
+    let structuredCloseRequested = false;
     let structuredVerdictRejectReason: string | null = null;
     let technicalAlignment: 'aligned' | 'contrarian' | 'neutral' | 'unknown' = 'unknown';
     const convictionAnchor = typeof intel.performance?.dynamicConviction === 'number'
@@ -852,7 +864,10 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
     if (verdictMatch) {
       try {
         const v = JSON.parse(verdictMatch[1]);
-        structuredExecuteRequested = v.execute === true;
+        // Support both legacy "execute" and new "action" field
+        const action = v.action || (v.execute === true ? 'open' : 'none');
+        structuredExecuteRequested = action === 'open';
+        structuredCloseRequested = action === 'close';
         conviction = typeof v.conviction === 'number' ? v.conviction / 10 : null;
         symbol = v.symbol && v.symbol !== 'none' ? v.symbol.toUpperCase() : null;
         direction = v.direction && v.direction !== 'none' ? v.direction.toLowerCase() : null;
@@ -903,7 +918,10 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
       if (targetPrice === null && technicalPlan.target !== null) targetPrice = technicalPlan.target;
     }
 
-    if (structuredExecuteRequested && symbol && direction && conviction !== null && stopPrice) {
+    if (structuredCloseRequested && symbol && direction) {
+      cioSaysClose = true;
+      console.log(`[Cycle] CIO says CLOSE ${direction} ${symbol} (conviction ${conviction})`);
+    } else if (structuredExecuteRequested && symbol && direction && conviction !== null && stopPrice) {
       cioSaysExecute = true;
     } else if (structuredExecuteRequested) {
       const missing: string[] = [];
@@ -1186,6 +1204,38 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
         }
       } catch (err) {
         tradeRejectedReason = `Execution exception: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    } else if (!isDryRun && cioSaysClose && symbol && direction) {
+      // ── CLOSE EXISTING POSITION ──
+      try {
+        console.log(`[Cycle] Closing position: ${direction} ${symbol}`);
+        const closeRes = await fetchLocalApi('/api/okx-perps', {
+          action: 'close_position',
+          params: { symbol, direction, mode: okxMode, internalSecret: process.env.BOBBY_CYCLE_SECRET || process.env.CRON_SECRET || '' }
+        }, true);
+        if (closeRes?.ok) {
+          executionResult = { ...closeRes, action: 'close' };
+          tradeRejectedReason = null;
+          console.log(`[Cycle] Position closed: ${direction} ${symbol}`);
+          // Notify via Telegram
+          const TG_BOT = process.env.TELEGRAM_BOT_TOKEN;
+          const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '1026323121';
+          if (TG_BOT) {
+            fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: TG_CHAT,
+                text: `📤 Bobby CLOSED ${direction.toUpperCase()} ${symbol}\n\nConviction: ${conviction ? (conviction * 10).toFixed(0) : '?'}/10\nReason: ${vibePhrase || 'Thesis invalidated'}`,
+              }),
+            }).catch(() => {});
+          }
+        } else {
+          tradeRejectedReason = `Close failed: ${closeRes?.error || 'unknown'}`;
+          console.error(`[Cycle] Close failed:`, closeRes?.error);
+        }
+      } catch (err) {
+        tradeRejectedReason = `Close exception: ${err instanceof Error ? err.message : String(err)}`;
       }
     } else if (conviction !== null && conviction < 0.35) {
       tradeRejectedReason = `Conviction ${(conviction * 10).toFixed(1)}/10 below 3.5/10 threshold`;
