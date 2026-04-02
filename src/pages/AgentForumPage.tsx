@@ -111,17 +111,20 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
 
       {/* Compact card header */}
       <div className="cursor-pointer p-4 flex items-start gap-4" onClick={onToggle}>
-        {/* Conviction score */}
+        {/* Conviction Waterfall */}
         <div className="flex flex-col items-center flex-shrink-0 w-12">
-          <span className={`text-2xl font-mono font-black ${
-            convPct >= 70 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'
-          }`}>{conviction !== null ? Math.round(conviction * 10) : '?'}</span>
-          <span className="text-[7px] font-mono text-white/20">/10</span>
-          {/* Confidence bars */}
-          <div className="flex gap-[2px] mt-1.5">
-            {Array.from({ length: 7 }, (_, i) => (
-              <div key={i} className={`w-1.5 h-3 ${i < Math.round(convPct / 14) ? (convPct >= 70 ? 'bg-green-500' : convPct >= 40 ? 'bg-amber-500' : 'bg-red-500') : 'bg-white/[0.04]'}`} />
-            ))}
+          <span className={`text-[10px] font-mono font-bold tracking-widest ${convPct >= 70 ? 'text-green-400' : convPct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+            {conviction !== null ? `${Math.round(conviction * 10)}/10` : '?'}
+          </span>
+          <div className="flex items-end gap-[1.5px] mt-1 h-6 w-full justify-center">
+            {Array.from({ length: 10 }, (_, i) => {
+              const active = i < Math.round(convPct / 10);
+              const color = convPct >= 70 ? 'bg-green-500' : convPct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+              const height = 4 + (i * 2); // 4px to 22px
+              return (
+                <div key={i} style={{ height: `${height}px` }} className={`w-[3px] rounded-t-sm transition-all duration-300 ${active ? color : 'bg-white/[0.04]'}`} />
+              );
+            })}
           </div>
         </div>
 
@@ -134,25 +137,32 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 thread.direction === 'long' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
               }`}>{thread.direction === 'long' ? '↑' : '↓'} {thread.symbol}</span>
             )}
-            {/* OKX Agent Trade Kit indicator badges — extracted from debate content */}
+            {/* Data Citation Badges */}
             {(() => {
               const allContent = (thread.posts || []).map((p: ForumPost) => p.content).join(' ');
-              const indicators: string[] = [];
-              if (/RSI/i.test(allContent)) indicators.push('RSI');
-              if (/MACD/i.test(allContent)) indicators.push('MACD');
-              if (/Bollinger|BB\b/i.test(allContent)) indicators.push('BB');
-              if (/SuperTrend/i.test(allContent)) indicators.push('ST');
-              if (/AHR999/i.test(allContent)) indicators.push('AHR999');
-              if (/Rainbow/i.test(allContent)) indicators.push('RAINBOW');
-              if (/ATR/i.test(allContent)) indicators.push('ATR');
-              if (/KDJ/i.test(allContent)) indicators.push('KDJ');
-              if (/EMA/i.test(allContent)) indicators.push('EMA');
-              if (!indicators.length) return null;
+              const badges: string[] = [];
+              
+              const rsiMatch = allContent.match(/RSI[^0-9]{1,10}(\d{1,2}(?:\.\d+)?)/i);
+              if (rsiMatch) badges.push(`[TA: RSI ${rsiMatch[1]}]`);
+              
+              const fundMatch = allContent.match(/funding[^0-9]{1,10}([-+]?\d+(?:\.\d+)?%)/i);
+              if (fundMatch) badges.push(`[ONCHAIN: FUNDING ${fundMatch[1]}]`);
+              
+              const scoreMatch = allContent.match(/(?:composite|tech|technical) score[^0-9]{1,10}(\d{1,3}(?:\.\d+)?)/i);
+              if (scoreMatch) badges.push(`[PULSE: SCORE ${scoreMatch[1]}]`);
+              
+              if (!badges.length) {
+                if (/MACD/i.test(allContent)) badges.push('[TA: MACD]');
+                if (/Bollinger/i.test(allContent)) badges.push('[TA: BOLLINGER]');
+              }
+
+              if (!badges.length) return null;
               return (
-                <span className="flex items-center gap-1">
-                  <span className="text-[7px] font-mono text-cyan-400/40">OKX_TA:</span>
-                  {indicators.slice(0, 4).map(ind => (
-                    <span key={ind} className="text-[7px] font-mono px-1 py-0.5 rounded bg-cyan-500/10 text-cyan-400/70 border border-cyan-500/10">{ind}</span>
+                <span className="flex items-center gap-1.5 overflow-hidden">
+                  {badges.slice(0, 3).map((b, i) => (
+                    <span key={i} className="text-[7.5px] font-mono px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/30 whitespace-nowrap flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.2)]">
+                      {b}
+                    </span>
                   ))}
                 </span>
               );
@@ -190,6 +200,44 @@ function ThreadCard({ thread, expanded, onToggle }: { thread: ForumThread; expan
                 direction={thread.direction}
                 height={220}
               />
+
+              {/* ── Conviction Waterfall — Gemini Phase 4 ── */}
+              {conviction !== null && (
+                <div className="mt-4 mb-2 p-3 bg-white/[0.015] border border-white/[0.04] rounded-lg">
+                  <p className="text-[7px] font-mono text-green-400/40 tracking-widest mb-2">CONVICTION FLOW</p>
+                  <div className="flex items-center gap-1 sm:gap-2 text-[9px] font-mono overflow-x-auto">
+                    {(() => {
+                      // Extract backend conviction from trigger_data if available
+                      const backendConv = (thread as any).trigger_data?.backend_blend?.backend_anchor;
+                      const steps: Array<{ label: string; value: number | null; color: string }> = [];
+                      if (typeof backendConv === 'number') steps.push({ label: 'BACKEND', value: Math.round(backendConv * 10), color: 'text-blue-400' });
+                      steps.push({ label: 'ALPHA', value: null, color: 'text-green-400' }); // Alpha doesn't output a number
+                      steps.push({ label: 'RED', value: null, color: 'text-red-400' });
+                      steps.push({ label: 'CIO', value: Math.round(conviction * 10), color: 'text-amber-400' });
+                      return steps.map((s, i) => (
+                        <div key={s.label} className="flex items-center gap-1 sm:gap-2">
+                          {i > 0 && <span className="text-white/10">→</span>}
+                          <div className="flex flex-col items-center">
+                            <span className={`font-bold ${s.color}`}>{s.value != null ? `${s.value}/10` : '...'}</span>
+                            <span className="text-white/20 text-[7px]">{s.label}</span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                    {/* Net delta */}
+                    {(() => {
+                      const backendConv = (thread as any).trigger_data?.backend_blend?.backend_anchor;
+                      if (typeof backendConv !== 'number' || conviction === null) return null;
+                      const delta = Math.round(conviction * 10) - Math.round(backendConv * 10);
+                      return (
+                        <span className={`ml-auto px-2 py-0.5 rounded text-[8px] font-bold ${delta >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                          {delta >= 0 ? '+' : ''}{delta} NET
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* ── Expanded Agent Debate — Stitch 3-section layout ── */}
               <div className="space-y-3 mt-4">

@@ -87,9 +87,9 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function calibrationColor(error: number): string {
-  if (error < 0.1) return 'text-green-400';
-  if (error < 0.2) return 'text-amber-400';
+function trustIndexColor(trust: number): string {
+  if (trust >= 85) return 'text-green-400';
+  if (trust >= 65) return 'text-amber-400';
   return 'text-red-400';
 }
 
@@ -218,6 +218,7 @@ export default function BobbyMetacognitionPage() {
   const [debatesScoredCount, setDebatesScoredCount] = useState(0);
   const [totalDebates, setTotalDebates] = useState(0);
   const [agreementRate, setAgreementRate] = useState<number | null>(null);
+  const [regimeStats, setRegimeStats] = useState<Record<string, { wins: number; total: number }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -288,6 +289,25 @@ export default function BobbyMetacognitionPage() {
         }
       })
       .catch(() => {});
+
+    // Fetch win rate by regime from resolved threads with trigger_data
+    fetch(
+      `${SB}/rest/v1/forum_threads?resolution=in.(win,loss)&trigger_data=not.is.null&select=resolution,trigger_data&limit=200`,
+      { headers: SB_HEADERS },
+    )
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        const stats: Record<string, { wins: number; total: number }> = {};
+        for (const row of rows) {
+          const regime = row.trigger_data?.regime?.regime || row.trigger_data?.regime || 'unknown';
+          if (!stats[regime]) stats[regime] = { wins: 0, total: 0 };
+          stats[regime].total++;
+          if (row.resolution === 'win') stats[regime].wins++;
+        }
+        setRegimeStats(stats);
+      })
+      .catch(() => {});
   }, []);
 
   // Transform calibration curve for chart
@@ -336,21 +356,30 @@ export default function BobbyMetacognitionPage() {
 
         {/* ========== ROW 1: STAT CARDS ========== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Calibration Error */}
+          {/* Trust Index */}
           <motion.div {...fadeUp} transition={{ delay: 0.05 }}
             className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 hover:bg-white/[0.04] transition-all duration-300">
-            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-1">CALIBRATION ERROR</p>
+            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-1">TRUST INDEX</p>
             {loading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <>
-                <p className={`text-2xl font-black font-mono ${calibrationColor(cal?.calibrationError ?? 1)}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {cal?.calibrationError != null ? cal.calibrationError.toFixed(3) : '--'}
-                </p>
-                <p className="text-[8px] font-mono text-white/20 mt-1">
-                  {cal?.isOverconfident ? 'OVERCONFIDENT' : cal?.calibrationError != null && cal.calibrationError < 0.1 ? 'WELL CALIBRATED' : 'NEEDS DATA'}
-                </p>
-              </>
+              (() => {
+                // Gemini: Bobby Trust Index = composite of calibration accuracy + win rate + regime compatibility
+                const calScore = cal?.calibrationError != null ? Math.max(0, 1 - cal.calibrationError) : 0.5;
+                const wrScore = perf?.winRate != null ? perf.winRate / 100 : 0.5;
+                const moodScore = perf?.mood === 'confident' ? 0.8 : perf?.mood === 'cautious' ? 0.5 : 0.2;
+                const trustIndex = Math.round((calScore * 40 + wrScore * 40 + moodScore * 20));
+                return (
+                  <>
+                    <p className={`text-2xl font-black font-mono ${trustIndexColor(trustIndex)}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {trustIndex}
+                    </p>
+                    <p className="text-[8px] font-mono text-white/20 mt-1">
+                      {trustIndex >= 75 ? 'HIGH TRUST' : trustIndex >= 50 ? 'MODERATE' : 'LOW TRUST — BE SKEPTICAL'}
+                    </p>
+                  </>
+                );
+              })()
             )}
           </motion.div>
 
@@ -374,42 +403,63 @@ export default function BobbyMetacognitionPage() {
             )}
           </motion.div>
 
-          {/* Regime */}
+          {/* Regime Skill Heatmap */}
           <motion.div {...fadeUp} transition={{ delay: 0.15 }}
             className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 hover:bg-white/[0.04] transition-all duration-300">
-            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-1">MARKET REGIME</p>
+            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-2">SKILL BY REGIME</p>
             {loading ? (
-              <Skeleton className="h-8 w-28" />
+              <div className="space-y-1"><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-full" /></div>
             ) : (
-              <>
-                <p className="text-sm font-black text-white font-mono leading-tight">
-                  {intel?.regime || '--'}
-                </p>
-                {intel?.fearGreed && (
-                  <p className="text-[8px] font-mono text-white/30 mt-1">
-                    Fear & Greed: <span className={
-                      intel.fearGreed.value <= 25 ? 'text-red-400' :
-                      intel.fearGreed.value >= 75 ? 'text-green-400' : 'text-amber-400'
-                    }>{intel.fearGreed.value}</span> ({intel.fearGreed.classification})
-                  </p>
-                )}
-              </>
+              <div className="space-y-1.5 text-[10px] font-mono">
+                {['high_volatility', 'normal', 'low_volatility'].map(r => {
+                  const stat = regimeStats[r];
+                  const wr = stat && stat.total > 0 ? Math.round((stat.wins / stat.total) * 100) : null;
+                  const label = r === 'high_volatility' ? 'HIGH VOL' : r === 'normal' ? 'NORMAL' : 'LOW VOL';
+                  const isActive = intel?.regime?.toLowerCase().includes(r.split('_')[0]);
+                  return (
+                    <div key={r} className="flex justify-between items-center">
+                      <span className={isActive ? 'text-green-400 font-bold' : 'text-white/40'}>{label}</span>
+                      <div className="flex items-center gap-2">
+                        {stat && stat.total > 0 ? (
+                          <>
+                            <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${wr! >= 60 ? 'bg-green-500' : wr! >= 40 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${wr}%` }} />
+                            </div>
+                            <span className="text-white/80 w-8 text-right">{wr}%</span>
+                            <span className="text-white/20 w-6 text-right">n={stat.total}</span>
+                          </>
+                        ) : (
+                          <span className="text-white/20">--</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </motion.div>
 
-          {/* Self-Corrections */}
+          {/* Predicted Edge Trendline */}
           <motion.div {...fadeUp} transition={{ delay: 0.2 }}
             className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 hover:bg-white/[0.04] transition-all duration-300">
-            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-1">SELF-CORRECTIONS</p>
+            <p className="text-[8px] font-mono text-green-400/40 tracking-widest mb-1">PREDICTED EDGE</p>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
               <>
-                <p className="text-2xl font-black text-white font-mono" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {contradictions.length}
-                </p>
-                <p className="text-[8px] font-mono text-white/20 mt-1">
-                  ERRORS ACKNOWLEDGED (72H)
+                {(() => {
+                  // Real trailing PnL from contradictions (which are recent resolved trades)
+                  const allResolved = contradictions; // these are losses from last 72h
+                  const totalPnl = allResolved.reduce((sum, c) => sum + (c.resolution_pnl_pct || 0), 0);
+                  const avgPnl = allResolved.length > 0 ? totalPnl / allResolved.length : 0;
+                  return (
+                    <p className={`text-2xl font-black font-mono ${avgPnl >= 0 ? 'text-green-400' : 'text-red-400'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {allResolved.length > 0 ? `${avgPnl >= 0 ? '+' : ''}${avgPnl.toFixed(1)}%` : '--'}
+                    </p>
+                  );
+                })()}
+                <p className="text-[8px] font-mono text-white/20 mt-1 flex items-center gap-1">
+                  TRAILING 72H
                 </p>
               </>
             )}
