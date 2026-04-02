@@ -1629,7 +1629,7 @@ Return ONLY valid JSON, no markdown, no explanation:
       await fetch(`${SB_URL}/rest/v1/agent_cycles?id=eq.${cycleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
-        body: JSON.stringify({ status: 'error', completed_at: new Date().toISOString(), vibe_phrase: `Error: ${msg.slice(0, 150)}` }),
+        body: JSON.stringify({ status: 'failed', completed_at: new Date().toISOString(), vibe_phrase: `Error: ${msg.slice(0, 150)}` }),
       }).catch(() => {});
     }
 
