@@ -85,11 +85,11 @@ const OPENAI_FALLBACK: Record<string, string> = {
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
-async function callClaude(model: string, system: string, userMsg: string, maxTokens: number, forceAnthropic = false): Promise<string> {
+async function callClaude(model: string, system: string, userMsg: string, maxTokens: number): Promise<string> {
   const openaiModel = OPENAI_FALLBACK[model] || 'gpt-4o-mini';
 
-  // Try OpenAI first (primary) — unless forceAnthropic is set (e.g. CIO needs Sonnet judgment)
-  if (OPENAI_API_KEY && !forceAnthropic) {
+  // Always try OpenAI first (primary) — Anthropic credits exhausted
+  if (OPENAI_API_KEY) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -829,8 +829,7 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
   Sitting out: "Zero edge today. Tape is a chop fest. Powder dry until volatility picks a direction."${
         track.winRate < 60 ? '\nRecent calls have been poor. Be selective but don\'t freeze.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, explain what changed or sit out.` : ''}`,
-      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500,
-      !!ANTHROPIC_API_KEY, // forceAnthropic: CIO must use Sonnet for judgment quality
+      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
     );
     } // end else (non-test debate)
 
