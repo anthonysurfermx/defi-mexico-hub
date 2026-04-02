@@ -753,19 +753,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `MARKET SCAN:\n${contextBlock}`, 350
     );
 
-    // Red Team (Haiku — adversarial, cost-optimized)
-    const redTeamIntensity = backendConv >= 0.6
-      ? `You are Red Team — risk analyst. Challenge Alpha's thesis but be FAIR. If the technical setup is genuinely strong, acknowledge it and focus on sizing/stop placement rather than killing the trade entirely. Your job is risk MANAGEMENT, not risk AVOIDANCE. A tight stop makes any trade acceptable.`
-      : `You are Red Team — 15-year risk veteran. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. Every paragraph is a kill shot.`;
+    // Red Team (Haiku — adversarial, 3-tier intensity per Gemini review)
+    let redTeamIntensity: string;
+    if (backendConv >= 0.7) {
+      redTeamIntensity = `You are Red Team — risk analyst. The backend signal is STRONG, so your job is NOT to kill the trade, but to optimize it. Focus heavily on finding hidden traps in sizing, entry timing, and stop placement. Be constructive and demand tight invalidation.`;
+    } else if (backendConv >= 0.45) {
+      redTeamIntensity = `You are Red Team — risk analyst. Challenge Alpha's thesis aggressively but fairly. Expose the weakest link in their argument. If the trade is viable, demand a tighter stop or smaller size.`;
+    } else {
+      redTeamIntensity = `You are Red Team — 15-year risk veteran. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. Every paragraph is a kill shot.`;
+    }
     redPost = await callClaude('claude-haiku-4-5-20251001',
       `${redTeamIntensity} Reference the TECHNICAL_PULSE composite score — if it contradicts Alpha, use it as ammunition. Cite specific indicator readings (RSI, MACD, BB, SuperTrend) from OKX Agent Trade Kit with exact numbers. ${langRule} 2-3 short paragraphs.${
         hasContradictions ? ` Recent failures: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
     );
 
-    // Bobby CIO — always use Sonnet for better judgment
+    // Bobby CIO — always use Sonnet for better judgment (Gemini-reviewed prompts)
     const backendBias = backendConv >= 0.6
-      ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG. You have been sitting out for 9+ days — the $100 Challenge needs trades to prove the system works. If ANY reasonable setup exists, TAKE IT with tight risk management (small size, tight stop). Sitting out forever is worse than a small controlled loss. Your job is to TRADE, not just watch.`
+      ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG. You have been sitting out for multiple days, and the quantitative data suggests conditions are ripe. If a valid technical setup exists, you are ENCOURAGED to take a calculated, exploratory risk (small size, tight stop). Do not force a trade if the structure is broken, but bias heavily towards action with tight invalidation. Let the stop-loss do the risk management.`
       : backendConv >= 0.45
         ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward even if conviction is not sky-high.`
         : '';
@@ -776,16 +781,26 @@ RULES:
 - 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
 - This is a TRADE verdict only. Yield parking is handled separately.
 - You MUST end with EXACTLY these two lines (no markdown fences):
-VERDICT: {"execute":true,"conviction":5,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
-VIBE_PHRASE: BTC holding 84k with decent flow. Small position, tight stop, let it prove itself.
+VERDICT: {"execute":true,"conviction":6,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
+VIBE_PHRASE: SOL defending the 50 MA with aggressive spot buying. We're stepping on the gas here.
 - If genuinely no edge at all:
 VERDICT: {"execute":false,"conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if structure changes"}
-VIBE_PHRASE: Nothing cooking right now. Patience.
+VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
 - conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL.
 - direction must be "long", "short", or "none".
-- CONVICTION GUIDE: 4-5/10 = small exploratory position with tight stop. 6-7/10 = normal position. 8+/10 = high conviction. Even 4/10 is enough to take a SMALL trade — you don't need 8/10 to act.
+- CONVICTION GUIDE — use the FULL 1-10 scale dynamically:
+  1-3/10: Sitting out. No edge.
+  4-5/10: Exploratory risk. Small position, tight leash.
+  6-7/10: Core position. Standard risk parameters.
+  8-10/10: High conviction. Asymmetric upside, let winners run.
+  Use the appropriate tier. Do not cluster at 4-5; if the setup is mediocre, stay out. If it is excellent, size up.
 - NEVER omit VERDICT or VIBE_PHRASE. Both mandatory.
-- VIBE_PHRASE: casual 1-2 sentence mood (max 200 chars). Like texting a friend.${
+- VIBE_PHRASE: casual 1-2 sentence mood (max 200 chars). Like texting a friend.
+  Examples by scenario:
+  Bullish: "SOL defending the 50 MA with aggressive spot buying. Stepping on the gas."
+  Cautious: "ETH funding just reset. Dipping a toe with a tight leash. Loses $3100, we're out."
+  Bearish: "DXY surging and retail still leveraged long. Perfect storm for a flush."
+  Sitting out: "Zero edge today. Tape is a chop fest. Powder dry until volatility picks a direction."${
         track.winRate < 60 ? '\nRecent calls have been poor. Be selective but don\'t freeze.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, explain what changed or sit out.` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
