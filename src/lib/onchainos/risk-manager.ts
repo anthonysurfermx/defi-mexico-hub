@@ -99,7 +99,7 @@ export function canOpenPosition(
 
   // 1. Min Conviction
   if (conviction < CHALLENGE_RULES.MIN_CONVICTION) {
-    return { valid: false, reason: `Convicción insuficiente: ${(conviction*10)}/10 < 6/10` };
+    return { valid: false, reason: `Convicción insuficiente: ${(conviction*10).toFixed(1)}/10 < ${(CHALLENGE_RULES.MIN_CONVICTION*10).toFixed(1)}/10` };
   }
 
   // 2. Circuit Breaker Verify
@@ -135,10 +135,12 @@ export function canOpenPosition(
     
     // Loss in USD = PositionSize * levDropPct
     const maxLossUsd = tradeSizeUsd * levDropPct;
-    const maxAllowedLossUsd = totalEq * CHALLENGE_RULES.MAX_LOSS_PER_TRADE_PCT;
+    // Codex Q3: Tighter loss cap for low-conviction trades (5% vs 10%)
+    const effectiveLossPct = conviction < 0.5 ? 0.05 : CHALLENGE_RULES.MAX_LOSS_PER_TRADE_PCT;
+    const maxAllowedLossUsd = totalEq * effectiveLossPct;
     
     if (maxLossUsd > maxAllowedLossUsd) {
-       return { valid: false, reason: `Stop loss muy amplio: Pérdida potencial $${maxLossUsd.toFixed(2)} excede 10% del balance ($${maxAllowedLossUsd.toFixed(2)})` };
+       return { valid: false, reason: `Stop loss muy amplio: Pérdida potencial $${maxLossUsd.toFixed(2)} excede ${(effectiveLossPct * 100).toFixed(0)}% del balance ($${maxAllowedLossUsd.toFixed(2)})` };
     }
   }
 

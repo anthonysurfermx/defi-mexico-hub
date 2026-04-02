@@ -85,11 +85,11 @@ const OPENAI_FALLBACK: Record<string, string> = {
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
-async function callClaude(model: string, system: string, userMsg: string, maxTokens: number): Promise<string> {
+async function callClaude(model: string, system: string, userMsg: string, maxTokens: number, forceAnthropic = false): Promise<string> {
   const openaiModel = OPENAI_FALLBACK[model] || 'gpt-4o-mini';
 
-  // Try OpenAI first (primary)
-  if (OPENAI_API_KEY) {
+  // Try OpenAI first (primary) — unless forceAnthropic is set (e.g. CIO needs Sonnet judgment)
+  if (OPENAI_API_KEY && !forceAnthropic) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -630,6 +630,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // ============================================================
+    // PHASE 0: Clean up stale "running" cycles (Vercel hard-kill recovery)
+    // ============================================================
+    const staleThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10min ago
+    await fetch(`${SB_URL}/rest/v1/agent_cycles?status=eq.running&started_at=lt.${staleThreshold}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+      body: JSON.stringify({ status: 'failed', completed_at: new Date().toISOString(), vibe_phrase: 'Timed out (cleaned by next cycle)' }),
+    }).catch(() => {});
+
+    // ============================================================
     // PHASE 1: Freeze market snapshot
     // ============================================================
     const [intel, positions, track, corrections] = await Promise.all([
@@ -739,6 +749,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`[Cycle] TEST VERDICT: ${testVerdict.direction} ${testVerdict.symbol} conviction ${testVerdict.conviction}/10`);
     } else {
 
+    // Compute hours since last executed trade (for dynamic drought bias)
+    const lastTradeRows = await sbQuery('forum_threads', 'direction=neq.none&direction=not.is.null&execution_status=eq.executed&order=created_at.desc&limit=1');
+    const lastTradeAt = lastTradeRows[0]?.created_at ? new Date(lastTradeRows[0].created_at).getTime() : 0;
+    const hoursSinceLastTrade = lastTradeAt > 0 ? Math.round((Date.now() - lastTradeAt) / (1000 * 60 * 60)) : 999;
+
     // Contradiction-aware prompts (Metacognition Upgrade C)
     const hasContradictions = corrections.contradictions.length > 0;
     const contradictionNote = hasContradictions
@@ -754,8 +769,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     // Red Team (Haiku — adversarial, 3-tier intensity per Gemini review)
+    // Codex Q4 circuit breaker: 3+ consecutive losses → restore full aggression regardless of backend score
+    const consecutiveLosses = corrections.contradictions.length;
+    const redTeamCircuitBreaker = consecutiveLosses >= 3 || (calibration?.isOverconfident && (calibration?.adjustment ?? 1) < 0.7);
     let redTeamIntensity: string;
-    if (backendConv >= 0.7) {
+    if (redTeamCircuitBreaker) {
+      redTeamIntensity = `You are Red Team — 15-year risk veteran. CIRCUIT BREAKER ACTIVE: Bobby has ${consecutiveLosses} recent losses. Be MAXIMALLY aggressive. Destroy Alpha's thesis. The system is bleeding and needs harsh truth, not encouragement. Every paragraph is a kill shot.`;
+    } else if (backendConv >= 0.7) {
       redTeamIntensity = `You are Red Team — risk analyst. The backend signal is STRONG, so your job is NOT to kill the trade, but to optimize it. Focus heavily on finding hidden traps in sizing, entry timing, and stop placement. Be constructive and demand tight invalidation.`;
     } else if (backendConv >= 0.45) {
       redTeamIntensity = `You are Red Team — risk analyst. Challenge Alpha's thesis aggressively but fairly. Expose the weakest link in their argument. If the trade is viable, demand a tighter stop or smaller size.`;
@@ -769,11 +789,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     // Bobby CIO — always use Sonnet for better judgment (Gemini-reviewed prompts)
-    const backendBias = backendConv >= 0.6
-      ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG. You have been sitting out for multiple days, and the quantitative data suggests conditions are ripe. If a valid technical setup exists, you are ENCOURAGED to take a calculated, exploratory risk (small size, tight stop). Do not force a trade if the structure is broken, but bias heavily towards action with tight invalidation. Let the stop-loss do the risk management.`
-      : backendConv >= 0.45
-        ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward even if conviction is not sky-high.`
-        : '';
+    const droughtNote = hoursSinceLastTrade >= 72
+      ? ` You have been sitting out for ${Math.round(hoursSinceLastTrade / 24)} days, and the quantitative data suggests conditions are ripe.`
+      : '';
+    // Suppress trade encouragement when circuit breaker is active (losing streak)
+    const backendBias = redTeamCircuitBreaker
+      ? `\nCIRCUIT BREAKER: ${consecutiveLosses} recent losses. Be EXTRA cautious. Only trade if the setup is exceptional and risk is minimal.`
+      : backendConv >= 0.6
+        ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG.${droughtNote} If a valid technical setup exists, you are ENCOURAGED to take a calculated, exploratory risk (small size, tight stop). Do not force a trade if the structure is broken, but bias heavily towards action with tight invalidation. Let the stop-loss do the risk management.`
+        : backendConv >= 0.45
+          ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward even if conviction is not sky-high.`
+          : '';
     cioPost = await callClaude('claude-sonnet-4-20250514',
       `You are Bobby CIO. You heard Alpha and Red Team. Pick a side.
 ${backendBias}
@@ -803,7 +829,8 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
   Sitting out: "Zero edge today. Tape is a chop fest. Powder dry until volatility picks a direction."${
         track.winRate < 60 ? '\nRecent calls have been poor. Be selective but don\'t freeze.' : ''
       }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, explain what changed or sit out.` : ''}`,
-      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
+      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500,
+      !!ANTHROPIC_API_KEY, // forceAnthropic: CIO must use Sonnet for judgment quality
     );
     } // end else (non-test debate)
 
@@ -1161,8 +1188,8 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
       } catch (err) {
         tradeRejectedReason = `Execution exception: ${err instanceof Error ? err.message : String(err)}`;
       }
-    } else if (conviction !== null && conviction < 0.5) {
-      tradeRejectedReason = 'Conviction below 6/10 threshold';
+    } else if (conviction !== null && conviction < 0.35) {
+      tradeRejectedReason = `Conviction ${(conviction * 10).toFixed(1)}/10 below 3.5/10 threshold`;
     } else if (!isDryRun && structuredVerdictRejectReason) {
       tradeRejectedReason = structuredVerdictRejectReason;
     }
@@ -1186,7 +1213,7 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
       ? availableCashUsd
       : effectiveBalanceForExecution;
 
-    const shouldConsiderYield = !executionResult && conviction !== null && conviction < 0.5 && effectivePositions.length === 0;
+    const shouldConsiderYield = !executionResult && conviction !== null && conviction < 0.35 && effectivePositions.length === 0;
     if (shouldConsiderYield) {
       if (activeYieldPosition) {
         yieldDebateSkipReason = `Existing yield state ${activeYieldPosition.status} on ${activeYieldPosition.platform || 'unknown'} ${activeYieldPosition.token || ''}`.trim();
@@ -1457,7 +1484,7 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
       symbol: digestSymbol,
       direction: digestDirection,
       conviction: convNum,
-      verdict: conviction !== null && conviction >= 0.35 ? 'execute' : conviction !== null && conviction >= 0.25 ? 'watch' : 'reject',
+      verdict: executionResult ? 'executed' : conviction !== null && conviction >= 0.35 ? 'qualified' : conviction !== null && conviction >= 0.25 ? 'watch' : 'reject',
     }];
 
     // Save global digest (for anonymous users + anyone who opens Bobby)
