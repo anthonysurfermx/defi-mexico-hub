@@ -662,6 +662,41 @@ async function fetchTopTradersLSRatio(): Promise<LongShortRatio[]> {
   } catch { return []; }
 }
 
+// ---- Taker Buy/Sell Volume (Order Flow Imbalance) ----
+interface TakerVolume { symbol: string; buyVol: number; sellVol: number; imbalance: number; signal: string }
+
+async function fetchTakerVolume(): Promise<TakerVolume[]> {
+  const instruments = [
+    { symbol: 'BTC', instId: 'BTC-USDT-SWAP' },
+    { symbol: 'ETH', instId: 'ETH-USDT-SWAP' },
+    { symbol: 'SOL', instId: 'SOL-USDT-SWAP' },
+  ];
+  try {
+    const results = await Promise.all(instruments.map(async ({ symbol, instId }) => {
+      try {
+        const res = await fetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume-contract?instId=${instId}&period=1H`);
+        if (!res.ok) return null;
+        const json = await res.json() as { code: string; data: string[][] };
+        if (json.code !== '0' || !json.data?.[0]) return null;
+        // data: [[ts, buyVol, sellVol, ...]]
+        const latest = json.data[0];
+        const buyVol = parseFloat(latest[1] || '0');
+        const sellVol = parseFloat(latest[2] || '0');
+        const total = buyVol + sellVol;
+        const imbalance = total > 0 ? (buyVol - sellVol) / total : 0; // -1 to +1
+        return {
+          symbol,
+          buyVol,
+          sellVol,
+          imbalance: parseFloat(imbalance.toFixed(3)),
+          signal: imbalance > 0.15 ? 'STRONG_BUY_PRESSURE' : imbalance < -0.15 ? 'STRONG_SELL_PRESSURE' : 'BALANCED',
+        };
+      } catch { return null; }
+    }));
+    return results.filter(Boolean) as TakerVolume[];
+  } catch { return []; }
+}
+
 // ---- Fear & Greed Index (Market Sentiment) ----
 interface FearGreedData { value: number; classification: string }
 
@@ -1029,7 +1064,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Run all intelligence sources in parallel
-    const [rawSignals, polyConsensus, recentCycles, cryptoPrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData, stockPrices, xlayerSignals, dexLeaderboard, trendingTokens, trenchTokens, calibration, btcIndicators, ethIndicators, solIndicators] = await Promise.allSettled([
+    const [rawSignals, polyConsensus, recentCycles, cryptoPrices, fundingRates, openInterest, topTradersLS, fearGreed, dxyData, stockPrices, xlayerSignals, dexLeaderboard, trendingTokens, trenchTokens, calibration, btcIndicators, ethIndicators, solIndicators, takerVolume] = await Promise.allSettled([
       collectDexSignals(),
       collectPolymarketIntelligence(),
       fetchRecentCycles(5),
@@ -1052,7 +1087,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fetchTechnicalIndicators('BTC-USDT', '1H'),
       fetchTechnicalIndicators('ETH-USDT', '1H'),
       fetchTechnicalIndicators('SOL-USDT', '1H'),
-    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null)) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null, any, any, DexLeaderEntry[], TrendingToken[], TrenchToken[], CalibrationData | null, TechnicalIndicatorBundle | null, TechnicalIndicatorBundle | null, TechnicalIndicatorBundle | null];
+      fetchTakerVolume(),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null)) as [any, any, any, any, FundingRate[], OpenInterestData[], LongShortRatio[], FearGreedData | null, { dxy: number } | null, any, any, DexLeaderEntry[], TrendingToken[], TrenchToken[], CalibrationData | null, TechnicalIndicatorBundle | null, TechnicalIndicatorBundle | null, TechnicalIndicatorBundle | null, TakerVolume[] | null];
 
     const livePrices = [...(cryptoPrices || []), ...(stockPrices || [])];
 
@@ -1122,6 +1158,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       signalAgeMs,
       regime.regime,
     );
+
+    // Codex Phase 3: Microstructure adjustment from taker volume (bounded ±0.15)
+    let microstructureAdj = 0;
+    if (takerVolume && takerVolume.length > 0 && technicalPulse.leader) {
+      const leaderSymbol = technicalPulse.leader.symbol;
+      const leaderTaker = takerVolume.find((t: TakerVolume) => t.symbol === leaderSymbol);
+      if (leaderTaker) {
+        // If taker imbalance agrees with technical direction, boost conviction; if disagrees, reduce
+        const techDirection = technicalPulse.leader.direction; // 'long' or 'short'
+        const takerAgreement = (techDirection === 'long' && leaderTaker.imbalance > 0)
+          || (techDirection === 'short' && leaderTaker.imbalance < 0);
+        // Scale adjustment by imbalance magnitude, capped at ±0.15
+        microstructureAdj = Math.min(0.15, Math.max(-0.15,
+          Math.abs(leaderTaker.imbalance) * (takerAgreement ? 0.5 : -0.5)
+        ));
+      }
+    }
+    convictionModel.score = Math.max(0, Math.min(1, parseFloat((convictionModel.score + microstructureAdj).toFixed(3))));
+    (convictionModel as any).microstructureAdj = microstructureAdj;
     const dynamicConviction = convictionModel.score;
 
     // Performance context
@@ -1176,7 +1231,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build the intelligence briefing text for Bobby's brain
     const trenchFormatted = (trenchTokens || []).slice(0, 5);
-    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData, xlayerFormatted, leaderFormatted, trendingFormatted, securityResults, trenchFormatted, calibration, technicalPulse, convictionModel);
+    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData, xlayerFormatted, leaderFormatted, trendingFormatted, securityResults, trenchFormatted, calibration, technicalPulse, convictionModel, takerVolume || []);
+
+    // Fire-and-forget: save market snapshots for funding velocity / OI velocity computation
+    const SB_URL_SNAP = process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
+    const SB_KEY_SNAP = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+    if (SB_KEY_SNAP) {
+      const snapshots = ['BTC', 'ETH', 'SOL'].map(sym => {
+        const price = (livePrices || []).find((p: any) => p.symbol === sym)?.price || null;
+        const fr = (fundingRates || []).find((f: any) => f.symbol === sym);
+        const oi = (openInterest || []).find((o: any) => o.symbol === sym);
+        const ls = (topTradersLS || []).find((l: any) => l.symbol === sym);
+        const tv = (takerVolume || []).find((t: TakerVolume) => t.symbol === sym);
+        return {
+          symbol: sym, venue: 'okx', price,
+          funding_rate: fr?.rate || null,
+          open_interest: oi?.oi || null, oi_ccy: oi?.oiCcy || null,
+          top_trader_long_pct: ls?.longRatio || null, top_trader_short_pct: ls?.shortRatio || null,
+          taker_buy_volume: tv?.buyVol || null, taker_sell_volume: tv?.sellVol || null,
+          regime: regime.regime,
+          derived: { microstructure_adj: microstructureAdj, dynamic_conviction: dynamicConviction },
+        };
+      });
+      fetch(`${SB_URL_SNAP}/rest/v1/agent_market_snapshots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SB_KEY_SNAP, Authorization: `Bearer ${SB_KEY_SNAP}`, Prefer: 'return=minimal' },
+        body: JSON.stringify(snapshots),
+      }).catch(() => {}); // fire-and-forget
+    }
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
@@ -1200,6 +1282,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       calibration: calibration || { curve: [], calibrationError: 0, isOverconfident: false, adjustment: 1.0, sampleSize: 0, breakEvenCount: 0 },
       technicalIndicators,
       technicalPulse,
+      takerVolume: takerVolume || [],
       regime: regime.label,
       meta: {
         signalsRaw: rawSignals.length,
@@ -1247,6 +1330,7 @@ function buildBriefing(
   calibrationData?: CalibrationData | null,
   technicalPulse?: ReturnType<typeof buildTechnicalMarketSummary>,
   convictionModel?: ConvictionModel,
+  takerVolumeData?: TakerVolume[],
 ): string {
   const blocks: string[] = [];
 
@@ -1268,6 +1352,38 @@ function buildBriefing(
   if (dxyData) {
     blocks.push(`    <MACRO_CONTEXT>\n${JSON.stringify({ dxy_index: dxyData.dxy, interpretation: dxyData.dxy > 104 ? 'STRONG_DOLLAR_HEADWIND' : dxyData.dxy < 100 ? 'WEAK_DOLLAR_TAILWIND' : 'NEUTRAL_DOLLAR' })}\n    </MACRO_CONTEXT>`);
   }
+
+  // Macro calendar: check for upcoming high-impact events (FOMC, CPI, NFP)
+  try {
+    const SB_URL_M = process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
+    const SB_KEY_M = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+    if (SB_KEY_M) {
+      const now = new Date().toISOString();
+      const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const macroRes = await fetch(
+        `${SB_URL_M}/rest/v1/agent_macro_events?state=eq.upcoming&scheduled_at=gte.${now}&scheduled_at=lte.${in48h}&order=scheduled_at.asc&limit=3`,
+        { headers: { apikey: SB_KEY_M, Authorization: `Bearer ${SB_KEY_M}` } }
+      );
+      if (macroRes.ok) {
+        const events = await macroRes.json() as Array<{ event_type: string; title: string; scheduled_at: string; severity: number; risk_window_before_min: number }>;
+        if (events.length > 0) {
+          const inRiskWindow = events.some(e => {
+            const eventTime = new Date(e.scheduled_at).getTime();
+            const windowStart = eventTime - (e.risk_window_before_min * 60 * 1000);
+            return Date.now() >= windowStart && Date.now() < eventTime;
+          });
+          const macroData = events.map(e => ({
+            type: e.event_type, title: e.title,
+            when: e.scheduled_at,
+            hours_away: Math.round((new Date(e.scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60)),
+            severity: e.severity,
+          }));
+          blocks.push(`    <MACRO_CALENDAR in_risk_window="${inRiskWindow}">\n${JSON.stringify(macroData)}\n${inRiskWindow ? 'WARNING: A major macro event is imminent. Reduce position sizing or avoid new opens until the event passes.' : 'Events upcoming but outside risk window. Proceed normally but be aware.'}\n    </MACRO_CALENDAR>`);
+        }
+      }
+    }
+  } catch { /* non-blocking */ }
+
   blocks.push('  </LAYER_1_REGIME>\n');
 
   // --- LAYER 2: SIGNALS & CONVICTION ---
@@ -1347,6 +1463,10 @@ function buildBriefing(
     }));
     const dangerous = securityResults.filter(s => s.riskLevel === 'danger');
     blocks.push(`    <TOKEN_SECURITY scanned="${securityResults.length}" dangerous="${dangerous.length}">\n${JSON.stringify(secData)}\nIMPORTANT: If any token has risk=danger or honeypot=true, Bobby MUST refuse to recommend it. Say: "Security scan flagged [symbol] as [risk]. I won't touch this."\n    </TOKEN_SECURITY>`);
+  }
+
+  if (takerVolumeData && takerVolumeData.length > 0) {
+    blocks.push(`    <TAKER_VOLUME>\n${JSON.stringify(takerVolumeData)}\nIMPORTANT: imbalance > 0.15 = strong buy pressure (bullish), < -0.15 = strong sell pressure (bearish). This is the most direct short-term directional signal.\n    </TAKER_VOLUME>`);
   }
 
   if (technicalPulse && technicalPulse.assets.length > 0) {
