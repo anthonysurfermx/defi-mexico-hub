@@ -208,19 +208,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `${SB_URL}/rest/v1/forum_threads?resolution=neq.pending&resolution=not.is.null&select=resolution,resolution_pnl_pct`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
     );
-    let trackRecord = { total: 0, wins: 0, losses: 0, winRate: 0, avgPnl: 0 };
+    let trackRecord = { total: 0, wins: 0, losses: 0, breakEvens: 0, winRateDecisive: 0, effectiveHitRate: 0, avgPnl: 0, winRate: 0 };
     if (allResolvedRes.ok) {
       const resolved = await allResolvedRes.json() as Array<{ resolution: string; resolution_pnl_pct: number | null }>;
       const wins = resolved.filter(r => r.resolution === 'win').length;
       const losses = resolved.filter(r => r.resolution === 'loss').length;
+      const breakEvens = resolved.filter(r => r.resolution === 'break_even').length;
       const total = resolved.length;
+      const decisive = wins + losses;
       const pnls = resolved.map(r => r.resolution_pnl_pct || 0);
       const avgPnl = pnls.length > 0 ? pnls.reduce((a, b) => a + b, 0) / pnls.length : 0;
+      // Codex: split decisive vs break-even. Primary = decisive win rate. Secondary = effective hit rate
+      const winRateDecisive = decisive > 0 ? parseFloat(((wins / decisive) * 100).toFixed(1)) : 0;
+      const effectiveHitRate = total > 0 ? parseFloat((((wins + 0.5 * breakEvens) / total) * 100).toFixed(1)) : 0;
       trackRecord = {
         total,
         wins,
         losses,
-        winRate: total > 0 ? parseFloat(((wins / total) * 100).toFixed(1)) : 0,
+        breakEvens,
+        winRateDecisive,
+        effectiveHitRate,
+        winRate: winRateDecisive, // backwards compat: winRate = decisive rate
         avgPnl: parseFloat(avgPnl.toFixed(2)),
       };
     }

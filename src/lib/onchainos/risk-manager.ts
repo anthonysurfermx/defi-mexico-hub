@@ -39,20 +39,22 @@ export function checkCircuitBreaker(currentEq: number, initialEq: number = CHALL
 }
 
 // 2. Position Sizing (Kelly simplified)
-export function getPositionSize(balance: number, conviction: number): number {
+// safeMode: when true, halve position size (Codex: enforce metacognition, not just display)
+export function getPositionSize(balance: number, conviction: number, safeMode = false): number {
   if (conviction < CHALLENGE_RULES.MIN_CONVICTION) return 0;
-  
-  // Tamaño máximo permitido por trade (20% del balance)
-  const maxAllowedUsd = balance * CHALLENGE_RULES.MAX_POSITION_PCT;
-  
+
+  // Tamaño máximo permitido por trade (20% del balance, 10% in safe mode)
+  const maxPct = safeMode ? CHALLENGE_RULES.MAX_POSITION_PCT * 0.5 : CHALLENGE_RULES.MAX_POSITION_PCT;
+  const maxAllowedUsd = balance * maxPct;
+
   // Kelly base size (linear scaled: si es 10/10 usa el 100% de su límite permitido)
   let targetSizeUsd = maxAllowedUsd * conviction;
-  
-  // Hard cap 20%
+
+  // Hard cap
   if (targetSizeUsd > maxAllowedUsd) {
     targetSizeUsd = maxAllowedUsd;
   }
-  
+
   return targetSizeUsd;
 }
 

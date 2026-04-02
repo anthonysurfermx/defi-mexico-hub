@@ -714,12 +714,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sampleSize?: number; curve?: Array<{ bucket: string; midpoint: number; actual: number; count: number; reliable: boolean }>;
     } | undefined;
 
+    // Codex: calibration is enforced in code (Phase 3b), prompt should only provide awareness
     const calibrationBlock = calibration && calibration.sampleSize && calibration.sampleSize >= 5
-      ? `\nCALIBRATION: Error=${calibration.calibrationError?.toFixed(2)} | ${
+      ? `\nCALIBRATION: ${
           calibration.isOverconfident
-            ? `OVERCONFIDENT — your high-conviction calls win ${Math.round((calibration.adjustment || 1) * 100)}% of what you predict. Adjust down.`
-            : 'Well-calibrated. Maintain levels.'
-        } | Sample: ${calibration.sampleSize} resolved trades`
+            ? `Your recent high-conviction calls have underperformed. The system has already applied a correction. Focus on thesis quality, not conviction numbers.`
+            : 'Well-calibrated. Recent predictions align with outcomes.'
+        } (${calibration.sampleSize} resolved trades)`
       : '';
 
     const memoryBlock = `\nBOBBY'S TRACK RECORD: Win Rate ${track.winRate}% | Last calls: ${track.lastCalls}${
@@ -788,6 +789,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
     );
 
+    // Analyst (Haiku — fast distillation of the data and debate)
+    const analystPost = await callClaude('claude-haiku-4-5-20251001',
+      `You are the Head Quantitative Analyst. Distill the <MORNING_BRIEFING> XML data and the Alpha/Red Team debates into a concise <EXECUTIVE_SUMMARY> plain-text report. Highlight market regime, conviction clusters, and major risks / points of friction. Keep it 3 bullet points exactly.`,
+      `DATA:\n${contextBlock}\n\nALPHA HUNTER:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 350
+    );
+
+    // Extract Layer 1, 3, 4 for the CIO
+    const layer1 = contextBlock.match(/<LAYER_1_REGIME>[\s\S]*?<\/LAYER_1_REGIME>/)?.[0] || '';
+    const layer3 = contextBlock.match(/<LAYER_3_METACOGNITION>[\s\S]*?<\/LAYER_3_METACOGNITION>/)?.[0] || '';
+    const cioContext = `${layer1}\n${layer3}\n\nOPEN POSITIONS:\n${positionsBlock}\n\nANALYST EXECUTIVE SUMMARY:\n${analystPost}`;
+
     // Bobby CIO — always use Sonnet for better judgment (Gemini-reviewed prompts)
     const droughtNote = hoursSinceLastTrade >= 72
       ? ` You have been sitting out for ${Math.round(hoursSinceLastTrade / 24)} days, and the quantitative data suggests conditions are ripe.`
@@ -796,50 +808,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const backendBias = redTeamCircuitBreaker
       ? `\nCIRCUIT BREAKER: ${consecutiveLosses} recent losses. Be EXTRA cautious. Only trade if the setup is exceptional and risk is minimal.`
       : backendConv >= 0.6
-        ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG.${droughtNote} If a valid technical setup exists, you are ENCOURAGED to take a calculated, exploratory risk (small size, tight stop). Do not force a trade if the structure is broken, but bias heavily towards action with tight invalidation. Let the stop-loss do the risk management.`
+        ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG.${droughtNote} If a valid technical setup exists, you are ENCOURAGED to take a calculated, exploratory risk (small size, tight stop). Let the stop-loss do the risk management.`
         : backendConv >= 0.45
-          ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward even if conviction is not sky-high.`
+          ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward.`
           : '';
+
     cioPost = await callClaude('claude-sonnet-4-20250514',
-      `You are Bobby CIO. You heard Alpha and Red Team. Pick a side.
+      `You are Bobby CIO. You are a sovereign, ruthless CIO (think Bobby Axelrod meets a cynical quant). Impatient with noise but analytical.
+Never apologize, never hedge with "Not financial advice" or "As an AI". Emojis are strictly banned. Do not use "Hey guys".
+This is your 6AM Wall Street phone call. Lead with a gut feeling, back it up with math.
+You have the Head Quant's summary and portfolio state. Pick a side.
 ${backendBias}
 RULES:
-- 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
-- This is a TRADE verdict only. Yield parking is handled separately.
+- 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}. Open with a 1-sentence sharp hook.
+- Use assertive vocabulary: pain trade, liquidity sweep, leverage flush, structural breakdown.
+- This is a TRADE verdict only.
 - You MUST end with EXACTLY these two lines (no markdown fences):
 
 To OPEN a new position:
 VERDICT: {"action":"open","conviction":6,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
 VIBE_PHRASE: SOL defending the 50 MA with aggressive spot buying. Stepping on the gas.
 
-To CLOSE an existing position (check OPEN POSITIONS above):
-VERDICT: {"action":"close","conviction":7,"symbol":"BTC","direction":"long","entry":null,"stop":null,"target":null,"invalidation":"thesis invalidated — closing for capital preservation"}
+To CLOSE an existing position:
+VERDICT: {"action":"close","conviction":7,"symbol":"BTC","direction":"long","entry":null,"stop":null,"target":null,"invalidation":"thesis invalidated"}
 VIBE_PHRASE: BTC lost the structure I was playing. Cutting it here, no ego.
 
-To sit out (no open, no close):
-VERDICT: {"action":"none","conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if structure changes"}
+To sit out:
+VERDICT: {"action":"none","conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"structure broken"}
 VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
 
-- IMPORTANT: If there are OPEN POSITIONS, evaluate them FIRST. If the thesis is broken or target is hit, CLOSE before opening anything new.
-- action must be "open", "close", or "none". "close" means close the existing position for that symbol.
-- conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL.
-- direction must be "long", "short", or "none".
-- CONVICTION GUIDE — use the FULL 1-10 scale dynamically:
-  1-3/10: Sitting out. No edge.
-  4-5/10: Exploratory risk. Small position, tight leash.
-  6-7/10: Core position. Standard risk parameters.
-  8-10/10: High conviction. Asymmetric upside, let winners run.
-  Use the appropriate tier. Do not cluster at 4-5; if the setup is mediocre, stay out. If it is excellent, size up.
-- NEVER omit VERDICT or VIBE_PHRASE. Both mandatory.
-- VIBE_PHRASE: casual 1-2 sentence mood (max 200 chars). Like texting a friend.
-  Examples by scenario:
-  Bullish: "SOL defending the 50 MA with aggressive spot buying. Stepping on the gas."
-  Cautious: "ETH funding just reset. Dipping a toe with a tight leash. Loses $3100, we're out."
-  Bearish: "DXY surging and retail still leveraged long. Perfect storm for a flush."
-  Sitting out: "Zero edge today. Tape is a chop fest. Powder dry until volatility picks a direction."${
+- CONVICTION GUIDE: 1-3 = sit out, 4-5 = small exploratory risk, 6-7 = core position, 8-10 = high conviction asymmetric upside.
+- IMPORTANT: CLOSE existing positions FIRST if the thesis is broken.
+- NEVER omit VERDICT or VIBE_PHRASE.${
         track.winRate < 60 ? '\nRecent calls have been poor. Be selective but don\'t freeze.' : ''
-      }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, explain what changed or sit out.` : ''}`,
-      `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
+      }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, sit out.` : ''}`,
+      `MARKET CONTEXT:\n${cioContext}`, 500
     );
     } // end else (non-test debate)
 
@@ -1100,7 +1103,8 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
           availableCashUsd = availBal;
           const balanceObj = { ccy: 'USDT', availBal: String(availBal), totalEq: String(totalEq), frozenBal: '0' };
           
-          const positionSizeUsd = getPositionSize(totalEq, conviction);
+          const isSafeMode = intel.performance?.isSafeMode === true;
+          const positionSizeUsd = getPositionSize(totalEq, conviction, isSafeMode);
           const leverage = 5; // Hardcoded for challenge
           
           if (positionSizeUsd > 0) {
