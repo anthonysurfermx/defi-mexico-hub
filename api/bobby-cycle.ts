@@ -12,7 +12,7 @@ import type { TradeParams } from '../src/lib/onchainos/types.js';
 import type { TechnicalAssetSignal, TechnicalMarketSummary } from '../src/lib/bobby-technical.js';
 import { ethers } from 'ethers';
 
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 300 };
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const SB_URL = process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
@@ -626,6 +626,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const shouldCommitOnchain = challengeMode === 'live';
   const shouldPublishTwitter = challengeMode === 'live';
   const startTime = Date.now();
+  let cycleId: string | undefined;
 
   try {
     // ============================================================
@@ -680,7 +681,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       safe_mode_active: intel.performance?.isSafeMode || false,
       mood: intel.performance?.mood || 'cautious',
     });
-    const cycleId = cycle?.id as string | undefined;
+    cycleId = cycle?.id as string | undefined;
 
     // ============================================================
     // PHASE 3: Multi-agent debate (frozen on the snapshot)
@@ -744,6 +745,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? ` Bobby recently failed on: ${corrections.contradictions.slice(0, 3).map(c => `${c.direction.toUpperCase()} ${c.symbol}`).join(', ')}. If your thesis resembles a recent failure, explain what changed.`
       : '';
 
+    const backendConv = typeof intel.performance?.dynamicConviction === 'number' ? intel.performance.dynamicConviction : 0;
+
     // Alpha Hunter (Haiku — cheap, aggressive, scans full market)
     alphaPost = await callClaude('claude-haiku-4-5-20251001',
       `You are Alpha Hunter — a young hungry female trader. Scan ALL assets (crypto + stocks). Find the single BEST trade. Be SPECIFIC: entry, target, stop, leverage. You MUST reference the TECHNICAL_PULSE section — cite the composite score, the signal (BULLISH/BEARISH), and at least 2 specific indicators (RSI, MACD, BB, SuperTrend, AHR999) with their exact values from OKX Agent Trade Kit. If the technical score supports your thesis, say so explicitly.${contradictionNote} ${langRule} 2-3 short paragraphs.`,
@@ -751,35 +754,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     // Red Team (Haiku — adversarial, cost-optimized)
+    const redTeamIntensity = backendConv >= 0.6
+      ? `You are Red Team — risk analyst. Challenge Alpha's thesis but be FAIR. If the technical setup is genuinely strong, acknowledge it and focus on sizing/stop placement rather than killing the trade entirely. Your job is risk MANAGEMENT, not risk AVOIDANCE. A tight stop makes any trade acceptable.`
+      : `You are Red Team — 15-year risk veteran. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. Every paragraph is a kill shot.`;
     redPost = await callClaude('claude-haiku-4-5-20251001',
-      `You are Red Team — 15-year risk veteran who lost $30M trusting "obvious" trades. Destroy Alpha's thesis. Attack data gaps, selection bias, timing. Reference the TECHNICAL_PULSE composite score — if it contradicts Alpha, use it as ammunition. Cite specific indicator readings (RSI overbought, MACD divergence, BB squeeze, death cross) from OKX Agent Trade Kit with exact numbers. ${langRule} 2-3 short paragraphs. Every paragraph is a kill shot.${
-        track.winRate < 60 ? ' Bobby has been WRONG recently. Be extra aggressive.' : ''
-      }${hasContradictions ? ` Use Bobby's recent failures as ammunition: ${corrections.block}` : ''}`,
+      `${redTeamIntensity} Reference the TECHNICAL_PULSE composite score — if it contradicts Alpha, use it as ammunition. Cite specific indicator readings (RSI, MACD, BB, SuperTrend) from OKX Agent Trade Kit with exact numbers. ${langRule} 2-3 short paragraphs.${
+        hasContradictions ? ` Recent failures: ${corrections.block}` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA HUNTER'S THESIS:\n${alphaPost}`, 350
     );
 
-    // Bobby CIO — Sonnet when conviction could be high, Haiku when market is clearly dead
-    // Cost optimization: ~70% of cycles are low conviction, save Sonnet for real decisions
-    const marketLooksWeak = track.winRate < 40 || (intel.fearGreed?.value ?? 50) < 15;
-    const cioModel = marketLooksWeak ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-20250514';
-    cioPost = await callClaude(cioModel,
+    // Bobby CIO — always use Sonnet for better judgment
+    const backendBias = backendConv >= 0.6
+      ? `\nBACKEND SIGNAL BIAS: The quantitative model scores conviction at ${(backendConv * 10).toFixed(1)}/10. This is STRONG. You have been sitting out for 9+ days — the $100 Challenge needs trades to prove the system works. If ANY reasonable setup exists, TAKE IT with tight risk management (small size, tight stop). Sitting out forever is worse than a small controlled loss. Your job is to TRADE, not just watch.`
+      : backendConv >= 0.45
+        ? `\nBACKEND SIGNAL BIAS: Quantitative model scores ${(backendConv * 10).toFixed(1)}/10. Moderate — look for setups with good risk/reward even if conviction is not sky-high.`
+        : '';
+    cioPost = await callClaude('claude-sonnet-4-20250514',
       `You are Bobby CIO. You heard Alpha and Red Team. Pick a side.
-
+${backendBias}
 RULES:
 - 2 short paragraphs of reasoning in ${lang === 'es' ? 'Spanish' : 'English'}.
-- This is a TRADE verdict only. If there is no trade edge, say execute:false. Yield parking is handled in a separate debate.
-- Then you MUST end with EXACTLY these two lines (no markdown fences):
-VERDICT: {"execute":true,"conviction":7,"symbol":"BTC","direction":"long","entry":70500,"stop":69200,"target":73900,"invalidation":"DXY breaks above 126"}
-VIBE_PHRASE: BTC order flow stacking at 70.5k, whales loading quietly. Let's ride.
-- If sitting out:
-VERDICT: {"execute":false,"conviction":3,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if DXY drops below 124"}
-VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time.
-- conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL (only these 3 for now).
+- This is a TRADE verdict only. Yield parking is handled separately.
+- You MUST end with EXACTLY these two lines (no markdown fences):
+VERDICT: {"execute":true,"conviction":5,"symbol":"BTC","direction":"long","entry":84500,"stop":83200,"target":87000,"invalidation":"loses 83k support"}
+VIBE_PHRASE: BTC holding 84k with decent flow. Small position, tight stop, let it prove itself.
+- If genuinely no edge at all:
+VERDICT: {"execute":false,"conviction":2,"symbol":"BTC","direction":"none","entry":null,"stop":null,"target":null,"invalidation":"Would enter if structure changes"}
+VIBE_PHRASE: Nothing cooking right now. Patience.
+- conviction is 1-10 integer. symbol must be one of: BTC,ETH,SOL.
 - direction must be "long", "short", or "none".
-- NEVER omit VERDICT or VIBE_PHRASE. Both are mandatory. VIBE_PHRASE must come right after VERDICT.
-- VIBE_PHRASE is a casual 1-2 sentence trading mood (max 200 chars). Write like texting a friend. Reference specific prices/conditions you analyzed.${
-        track.winRate < 60 ? '\nYour recent calls have been poor. Acknowledge it.' : ''
-      }${hasContradictions ? `\nSELF-CORRECTION: You recently failed on these calls. If your current thesis resembles one, explain what is DIFFERENT this time or sit out.` : ''}`,
+- CONVICTION GUIDE: 4-5/10 = small exploratory position with tight stop. 6-7/10 = normal position. 8+/10 = high conviction. Even 4/10 is enough to take a SMALL trade — you don't need 8/10 to act.
+- NEVER omit VERDICT or VIBE_PHRASE. Both mandatory.
+- VIBE_PHRASE: casual 1-2 sentence mood (max 200 chars). Like texting a friend.${
+        track.winRate < 60 ? '\nRecent calls have been poor. Be selective but don\'t freeze.' : ''
+      }${hasContradictions ? `\nSELF-CORRECTION: Recent failures — if thesis resembles one, explain what changed or sit out.` : ''}`,
       `MARKET DATA:\n${contextBlock}\n\nALPHA:\n${alphaPost}\n\nRED TEAM:\n${redPost}`, 500
     );
     } // end else (non-test debate)
@@ -1013,7 +1021,7 @@ VIBE_PHRASE: DXY at 126 is crushing everything. Cash is king today. Netflix time
       } catch { /* non-blocking */ }
     }
 
-    if (!isDryRun && cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.5) {
+    if (!isDryRun && cioSaysExecute && symbol && direction && conviction !== null && conviction >= 0.35) {
       try {
         const currentPrice = intel.prices?.find((p: any) => p.symbol === symbol)?.price || entryPrice;
         
@@ -1434,7 +1442,7 @@ ${lang === 'es' ? 'Responde en español mexicano, casual pero inteligente. Como 
       symbol: digestSymbol,
       direction: digestDirection,
       conviction: convNum,
-      verdict: conviction !== null && conviction >= 0.5 ? 'execute' : conviction !== null && conviction >= 0.4 ? 'watch' : 'reject',
+      verdict: conviction !== null && conviction >= 0.35 ? 'execute' : conviction !== null && conviction >= 0.25 ? 'watch' : 'reject',
     }];
 
     // Save global digest (for anonymous users + anyone who opens Bobby)
@@ -1615,6 +1623,16 @@ Return ONLY valid JSON, no markdown, no explanation:
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Cycle] Error:', msg);
+
+    // Mark cycle as error so it doesn't stay "running" forever
+    if (cycleId) {
+      await fetch(`${SB_URL}/rest/v1/agent_cycles?id=eq.${cycleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+        body: JSON.stringify({ status: 'error', completed_at: new Date().toISOString(), vibe_phrase: `Error: ${msg.slice(0, 150)}` }),
+      }).catch(() => {});
+    }
+
     return res.status(500).json({ error: msg });
   }
 }
