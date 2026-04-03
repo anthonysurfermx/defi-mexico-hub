@@ -1014,47 +1014,50 @@ VIBE_PHRASE: Zero edge today. Tape is a chop fest. Keeping our powder dry.
         trackRecord: track,
         technicalLeader: technicalPulse?.leader || null,
       };
-      for (const post of [
+      // Save debate posts in parallel (was sequential — saves ~2s)
+      await Promise.all([
         { agent: 'alpha', content: alphaPost },
         { agent: 'redteam', content: redPost },
         { agent: 'cio', content: cioPost },
-      ]) {
-        await sbInsert('forum_posts', {
-          thread_id: threadId,
-          agent: post.agent,
-          content: post.content,
-          data_snapshot: snapshot,
-        });
-      }
+      ].map(post => sbInsert('forum_posts', {
+        thread_id: threadId,
+        agent: post.agent,
+        content: post.content,
+        data_snapshot: snapshot,
+      })));
 
-      // On-chain commit: EVERY debate gets recorded on X Layer
-      // Direct ethers call — no HTTP self-call (avoids timeout in Vercel)
+      // On-chain commit: fire-and-forget to avoid blocking the cycle
+      // X Layer RPC can be slow — this should NEVER cause a timeout
       const xlayerContract = process.env.BOBBY_CONTRACT_ADDRESS || '';
       const xlayerKey = process.env.BOBBY_RECORDER_KEY || '';
       const currentPrice = (intel.prices || []).find((p: any) => p.symbol === symbol)?.price || 0;
       const commitEntry = entryPrice || currentPrice;
       if (symbol && conviction !== null && commitEntry > 0 && xlayerContract && xlayerKey) {
-        try {
-          const provider = new ethers.JsonRpcProvider('https://rpc.xlayer.tech');
-          const wallet = new ethers.Wallet(xlayerKey, provider);
-          const iface = new ethers.Interface([
-            'function commitTrade(bytes32,string,uint8,uint8,uint96,uint96,uint96)',
-          ]);
-          const debateHash = ethers.keccak256(ethers.toUtf8Bytes(threadId));
-          const convInt = Math.round((conviction ?? 0) * 10);
-          const txData = iface.encodeFunctionData('commitTrade', [
-            debateHash, symbol, 0, convInt,
-            BigInt(Math.round(commitEntry * 1e8)),
-            BigInt(Math.round((targetPrice || commitEntry * 1.05) * 1e8)),
-            BigInt(Math.round((stopPrice || commitEntry * 0.95) * 1e8)),
-          ]);
-          const txPromise = wallet.sendTransaction({ to: xlayerContract, data: txData, gasLimit: 300000n });
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TX timeout 10s')), 10000));
-          const tx = await Promise.race([txPromise, timeoutPromise]) as any;
-          console.log(`[Cycle] On-chain commit: ${tx.hash}`);
-        } catch (e: any) {
-          console.warn('[Cycle] On-chain commit failed (non-critical):', e.message);
-        }
+        // Fire-and-forget — don't await
+        (async () => {
+          try {
+            const provider = new ethers.JsonRpcProvider('https://rpc.xlayer.tech');
+            const wallet = new ethers.Wallet(xlayerKey, provider);
+            const iface = new ethers.Interface([
+              'function commitTrade(bytes32,string,uint8,uint8,uint96,uint96,uint96)',
+            ]);
+            const debateHash = ethers.keccak256(ethers.toUtf8Bytes(threadId));
+            const convInt = Math.round((conviction ?? 0) * 10);
+            const txData = iface.encodeFunctionData('commitTrade', [
+              debateHash, symbol, 0, convInt,
+              BigInt(Math.round(commitEntry * 1e8)),
+              BigInt(Math.round((targetPrice || commitEntry * 1.05) * 1e8)),
+              BigInt(Math.round((stopPrice || commitEntry * 0.95) * 1e8)),
+            ]);
+            const tx = await Promise.race([
+              wallet.sendTransaction({ to: xlayerContract, data: txData, gasLimit: 300000n }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('TX timeout 8s')), 8000)),
+            ]) as any;
+            console.log(`[Cycle] On-chain commit: ${tx.hash}`);
+          } catch (e: any) {
+            console.warn('[Cycle] On-chain commit failed (non-critical):', e.message);
+          }
+        })();
       }
     }
 
@@ -1644,7 +1647,9 @@ ${txHash ? `🔗 On-chain: ${txHash.slice(0, 10)}...` : '🔗 No on-chain commit
     // ============================================================
     // Skip quality scoring on very low conviction — saves ~$0.001/cycle, 70% of cycles
     // Only score quality on meaningful debates (conviction >= 0.35) to save LLM calls
-    const shouldScoreQuality = threadId && !useTestVerdict && conviction !== null && conviction >= 0.35;
+    // Skip quality scoring on cron cycles to save ~10s and prevent timeout
+    // Quality scoring runs async after resolution instead (Post-Mortem Oracle — Phase 5)
+    const shouldScoreQuality = threadId && !useTestVerdict && kind !== 'cron' && conviction !== null && conviction >= 0.35;
     if (shouldScoreQuality) {
       try {
         const qualityRaw = await callClaude('claude-haiku-4-5-20251001',
