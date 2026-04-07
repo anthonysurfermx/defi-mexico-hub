@@ -6,14 +6,16 @@ export const BOBBY_AGENT_ECONOMY = '0xa4704E92E9d9eCA646716C14a124907C356C78D7';
 export const PREMIUM_MCP_FEE_WEI = 1000000000000000n; // 0.001 OKB
 
 const ECONOMY_INTERFACE = new Interface([
-  'function payMCPCall(string toolName) payable',
+  'function payMCPCall(bytes32 challengeId, string toolName) payable',
   'function getEconomyStats() view returns (uint256,uint256,uint256,uint256,uint256)',
+  'function getStats() view returns (uint256,uint256,uint256)',
 ]);
 
 export interface VerifiedMcpPayment {
   txHash: string;
   payer: string;
   to: string;
+  challengeId: string;
   toolName: string;
   valueWei: string;
   valueOkb: string;
@@ -87,7 +89,9 @@ export async function verifyMcpPaymentTx(
     throw new Error('Payment tx is not a payMCPCall invocation');
   }
 
-  const toolName = String(parsed.args?.[0] || '');
+  // V2: args[0] = challengeId (bytes32), args[1] = toolName (string)
+  const challengeId = String(parsed.args?.[0] || '');
+  const toolName = String(parsed.args?.[1] || '');
   if (toolName !== expectedToolName) {
     throw new Error(`Payment tx tool mismatch: expected ${expectedToolName}, got ${toolName || 'unknown'}`);
   }
@@ -96,6 +100,7 @@ export async function verifyMcpPaymentTx(
     txHash,
     payer: String(tx.from || '').toLowerCase(),
     to,
+    challengeId,
     toolName,
     valueWei: valueWei.toString(),
     valueOkb: formatEther(valueWei),
