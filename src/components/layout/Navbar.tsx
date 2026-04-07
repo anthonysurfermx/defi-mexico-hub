@@ -75,7 +75,7 @@ const Navbar = () => {
     { label: "Bobby Agent Trader", href: "/agentic-world/bobby", icon: Bot },
     { label: "Bobby's $100 Challenge", href: "/agentic-world/bobby/challenge", icon: BarChart3 },
     { label: "Agent Debates", href: "/agentic-world/forum", icon: MessageSquare },
-    { label: "Agent Commerce", href: "/agentic-world/bobby/marketplace", icon: ScanSearch },
+    { label: "Intelligence Protocol", href: "/agentic-world/bobby/marketplace", icon: ScanSearch },
   ];
 
   const isEcosistemaActive = () => {

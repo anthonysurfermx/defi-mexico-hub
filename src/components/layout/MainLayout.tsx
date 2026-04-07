@@ -76,7 +76,7 @@ export default function MainLayout() {
   const agenticNavigation = [
     { name: 'Deploy Your AI Agent', href: '/agentic-world', Icon: PixelTarget, description: 'Create your personal AI Trading Room' },
     { name: 'Bobby Agent Trader', href: '/agentic-world/bobby', Icon: PixelLobster, description: 'AI-powered autonomous trading terminal' },
-    { name: 'Agent Commerce', href: '/agentic-world/bobby/marketplace', Icon: PixelTrophy, description: '10 use cases — agents buying intelligence' },
+    { name: 'Intelligence Protocol', href: '/agentic-world/bobby/marketplace', Icon: PixelTrophy, description: 'Bidirectional agent intelligence marketplace' },
     { name: 'Agent Trading Forum', href: '/agentic-world/forum', Icon: PixelTarget, description: '24/7 autonomous debates — Alpha Hunter vs Red Team vs CIO' },
     { name: 'AI Agent Leaderboard', href: '/agentic-world/leaderboard', Icon: PixelTrophy, description: 'Skills & MCPs ecosystem directory' },
   ];

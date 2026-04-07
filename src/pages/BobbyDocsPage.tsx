@@ -465,12 +465,12 @@ IBobbyOracle oracle = IBobbyOracle(
                     <ShoppingCart className="w-5 h-5 text-[#4be277]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-mono text-[9px] text-[#4be277]/60 tracking-[0.2em] uppercase mb-1">Agent Commerce</div>
+                    <div className="font-mono text-[9px] text-[#4be277]/60 tracking-[0.2em] uppercase mb-1">Intelligence Protocol</div>
                     <div className="font-mono text-sm md:text-base text-white/80 font-bold mb-1">
-                      10 Agent Commerce Use Cases
+                      10 Intelligence Protocol Use Cases
                     </div>
                     <div className="font-mono text-[10px] text-white/30">
-                      How agents buy intelligence from Bobby -- AI Trading Fund, Risk Manager, Newsletter, Academy Tutor, and 6 more
+                      How agents buy and sell intelligence on X Layer — bidirectional agent economy
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-[#4be277]/40 group-hover:text-[#4be277] group-hover:translate-x-1 transition-all shrink-0" />

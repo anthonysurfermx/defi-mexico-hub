@@ -1,5 +1,5 @@
 // ============================================================
-// Bobby Agent Commerce — 10 Use Cases on X Layer
+// Bobby Protocol — Intelligence Protocol on X Layer
 // Stitch Design System rewrite
 // ============================================================
 
@@ -93,7 +93,7 @@ const USE_CASES: UseCase[] = [
     icon: TrendingUp,
     description: 'A DeFi vault agent calls Bobby for conviction signals, then rebalances portfolio allocation based on the score.',
     flow: 'CALL bobby_analyze → RECEIVE conviction 8/10 LONG → INCREASE BTC allocation → LOG on X Layer',
-    interface: 'MCP: bobby_analyze', payment: '0.01 USDC per call', paymentType: 'x402', status: 'READY',
+    interface: 'MCP: bobby_analyze', payment: '0.001 OKB per call', paymentType: 'x402', status: 'READY',
     examplePayload: '{"method":"tools/call","params":{"name":"bobby_analyze","arguments":{"symbol":"BTC"}}}',
     proofLink: 'https://defimexico.org/api/mcp-bobby', missingStep: 'Requires external vault executor',
     featured: true,
@@ -113,7 +113,7 @@ const USE_CASES: UseCase[] = [
     icon: Newspaper,
     description: 'A content agent triggers a 3-agent debate, then formats Alpha vs Red Team vs CIO into a daily newsletter.',
     flow: 'CALL bobby_debate → RECEIVE 3-agent analysis → FORMAT as report → PUBLISH to subscribers',
-    interface: 'MCP: bobby_debate', payment: '0.01 USDC per debate', paymentType: 'x402', status: 'LIVE',
+    interface: 'MCP: bobby_debate', payment: '0.001 OKB per debate', paymentType: 'x402', status: 'LIVE',
     examplePayload: '{"method":"tools/call","params":{"name":"bobby_debate","arguments":{"question":"Should I long SOL?"}}}',
     proofLink: 'https://defimexico.org/api/mcp-bobby', missingStep: 'MCP endpoint returns 402 challenge. Full flow callable now.',
   },
@@ -140,7 +140,7 @@ const USE_CASES: UseCase[] = [
     icon: GraduationCap,
     description: 'A trading academy agent asks Bobby to debate a student\'s thesis, then compares reasoning quality for grading.',
     flow: 'STUDENT says "long NVDA" → CALL bobby_debate → COMPARE student vs Bobby → GRADE analysis',
-    interface: 'MCP: bobby_debate + bobby_ta', payment: '0.01 USDC per session', paymentType: 'x402', status: 'READY',
+    interface: 'MCP: bobby_debate + bobby_ta', payment: '0.001 OKB per session', paymentType: 'x402', status: 'READY',
     examplePayload: '{"method":"tools/call","params":{"name":"bobby_debate","arguments":{"question":"Evaluate: long NVDA at $130"}}}',
     proofLink: 'https://defimexico.org/api/mcp-bobby', missingStep: 'Requires academy platform integration',
   },
@@ -158,7 +158,7 @@ const USE_CASES: UseCase[] = [
     icon: Cpu,
     description: 'A social media agent calls Bobby for debates and converts them into X/Twitter threads with conviction scores.',
     flow: 'CALL bobby_debate → FORMAT Alpha vs Red Team as thread → ADD Technical Pulse → POST to X',
-    interface: 'MCP: bobby_debate + bobby_ta', payment: '0.01 USDC per thread', paymentType: 'x402', status: 'LIVE',
+    interface: 'MCP: bobby_debate + bobby_ta', payment: '0.001 OKB per thread', paymentType: 'x402', status: 'LIVE',
     examplePayload: '{"method":"tools/call","params":{"name":"bobby_debate","arguments":{"question":"BTC weekly outlook"}}}',
     proofLink: 'https://defimexico.org/api/mcp-bobby', missingStep: 'MCP callable now. Social posting requires X API.',
   },
@@ -263,16 +263,19 @@ function PrimeAgentCard({ uc, index }: { uc: UseCase; index: number }) {
   const Icon = uc.icon;
   const st = STATUS_STYLE[uc.status];
   const pm = PAYMENT_STYLE[uc.paymentType];
-  const [isCalling, setIsCalling] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
 
+  const [copied, setCopied] = useState(false);
+
   const handleCall = () => {
-    setIsCalling(true);
-    setResponse(null);
-    setTimeout(() => {
-      setIsCalling(false);
-      setResponse(`// MCP Call Executed\n{\n  "status": "success",\n  "node": "${uc.node}",\n  "action": "${uc.action}",\n  "timestamp": "${new Date().toISOString()}",\n  "data": {\n    "success": true,\n    "settlement_tx": "0xa9f8...b31e",\n    "message": "Operation completed."\n  }\n}`);
-    }, 1500);
+    const snippet = uc.paymentType === 'oracle_read'
+      ? `# Read ConvictionOracle on X Layer\ncast call 0x03fa39b3a5b316b7cacdabd3442577ee32ab5f3a \\\n  "getConviction(string)" "ETH" \\\n  --rpc-url https://rpc.xlayer.tech`
+      : `# MCP Call via cURL\ncurl -X POST https://defimexico.org/api/mcp-bobby \\\n  -H "Content-Type: application/json" \\\n  -d '${uc.examplePayload}'`;
+    setResponse(snippet);
+    navigator.clipboard.writeText(snippet).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
@@ -335,18 +338,17 @@ function PrimeAgentCard({ uc, index }: { uc: UseCase; index: number }) {
             </a>
             <button
                onClick={handleCall}
-               disabled={isCalling}
                className="font-mono text-[9px] bg-[#4be277]/10 hover:bg-[#4be277]/20 text-[#4be277] border border-[#4be277]/30 px-3 py-1.5 rounded transition-all flex items-center gap-1.5 font-bold"
             >
-              {isCalling ? <span className="animate-spin inline-block w-3 h-3 border-2 border-[#4be277]/30 border-t-[#4be277] rounded-full" /> : <Zap className="w-3 h-3" />}
-              TRY IT NOW
+              {copied ? <span className="text-[#4be277]">✓</span> : <Terminal className="w-3 h-3" />}
+              {copied ? 'COPIED' : 'COPY CODE'}
             </button>
           </div>
         </div>
         
-        {/* Mock Response Area */}
+        {/* Code Snippet Area */}
         <AnimatePresence>
-          {(isCalling || response) && (
+          {response && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -354,20 +356,12 @@ function PrimeAgentCard({ uc, index }: { uc: UseCase; index: number }) {
               className="overflow-hidden"
             >
               <div className="mt-2 bg-[#0a0a0a] border border-[#4be277]/20 rounded-lg p-3 relative">
-                {isCalling && (
-                   <div className="flex items-center gap-3 text-[#4be277]/70 font-mono text-[10px]">
-                     <span className="animate-spin inline-block w-4 h-4 border-2 border-[#4be277]/30 border-t-[#4be277] rounded-full" />
-                     Negotiating x402 challenge with Bobby Core and connecting to X Layer...
-                   </div>
-                )}
-                {response && (
-                   <motion.pre 
-                     initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                     className="font-mono text-[10px] text-[#4be277] whitespace-pre-wrap break-all"
-                   >
-                     {response}
-                   </motion.pre>
-                )}
+                <motion.pre
+                  initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                  className="font-mono text-[10px] text-[#4be277] whitespace-pre-wrap break-all"
+                >
+                  {response}
+                </motion.pre>
               </div>
             </motion.div>
           )}
@@ -460,14 +454,14 @@ export default function BobbyMarketplacePage() {
   const standard = USE_CASES.filter(u => !u.featured);
 
   const tabs = [
-    { key: 'commerce' as const, label: 'Agent Commerce', icon: Zap },
+    { key: 'commerce' as const, label: 'Intelligence Protocol', icon: Zap },
     { key: 'docs' as const, label: 'AI Docs', icon: FileText },
     { key: 'status' as const, label: 'API Status', icon: Activity },
   ];
 
   return (
     <KineticShell activeTab="marketplace">
-      <Helmet><title>Agent Commerce | Bobby Agent Trader</title></Helmet>
+      <Helmet><title>Intelligence Protocol | Bobby Protocol</title></Helmet>
 
       <div className="min-h-screen bg-[#131313] pb-20 md:pb-8">
         <motion.div

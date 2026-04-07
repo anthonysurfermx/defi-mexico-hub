@@ -25,10 +25,10 @@ curl -X POST https://defimexico.org/api/mcp-bobby \
 - `bobby_dex_signals` — Smart money / whale / KOL buy signals
 
 ### Premium Tools (x402 payment on X Layer)
-- `bobby_analyze` — Full market analysis with 12 data sources (0.01 USDC)
-- `bobby_debate` — Trigger 3-agent adversarial debate (0.01 USDC)
-- `bobby_security_scan` — Token contract safety scan (0.01 USDC)
-- `bobby_wallet_portfolio` — Multi-chain wallet analysis (0.01 USDC)
+- `bobby_analyze` — Full market analysis with 12 data sources (0.001 OKB)
+- `bobby_debate` — Trigger 3-agent adversarial debate (0.001 OKB)
+- `bobby_security_scan` — Token contract safety scan (0.001 OKB)
+- `bobby_wallet_portfolio` — Multi-chain wallet analysis (0.001 OKB)
 
 ### Other Tools
 - `bobby_wallet_balance` — Check any wallet balance

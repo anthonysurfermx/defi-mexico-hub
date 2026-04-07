@@ -115,11 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         verificationDetails.status = 'tx_failed_or_not_found';
       }
     } else {
-      // Not a valid TX hash — for demo, accept "demo-proof" as a freebie
-      if (txHash === 'demo-proof') {
-        verified = true;
-        verificationDetails = { ...verificationDetails, status: 'demo_mode', note: 'Demo proof accepted for hackathon' };
-      }
+      verificationDetails.status = 'invalid_tx_hash';
     }
 
     if (!verified) {
