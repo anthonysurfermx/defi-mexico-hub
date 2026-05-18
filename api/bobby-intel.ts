@@ -1231,7 +1231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build the intelligence briefing text for Bobby's brain
     const trenchFormatted = (trenchTokens || []).slice(0, 5);
-    const briefing = buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData, xlayerFormatted, leaderFormatted, trendingFormatted, securityResults, trenchFormatted, calibration, technicalPulse, convictionModel, takerVolume || []);
+    const briefing = await buildBriefing(signalsWithConviction, polyFormatted, livePrices || [], fundingRates || [], performance, regime, latencyMs, openInterest || [], topTradersLS || [], fearGreed, dxyData, xlayerFormatted, leaderFormatted, trendingFormatted, securityResults, trenchFormatted, calibration, technicalPulse, convictionModel, takerVolume || []);
 
     // Fire-and-forget: save market snapshots for funding velocity / OI velocity computation
     const SB_URL_SNAP = process.env.VITE_SUPABASE_URL || 'https://egpixaunlnzauztbrnuz.supabase.co';
@@ -1302,7 +1302,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 // ---- Build XML-tagged intelligence briefing ----
 // XML tags = high-priority structural markers for Claude.
 // Prevents context hallucination — Bobby cites specific keys, not vibes.
-function buildBriefing(
+async function buildBriefing(
   signals: Array<{ symbol: string; chain: string; amountUsd: number; filterScore: number; conviction: number; reasons: string[]; walletType: string }>,
   polymarket: Array<{ title: string; traderCount: number; topOutcome: string; topOutcomePct: number; currentPrice: number; entryPrice: number; edgePct: number }>,
   prices: Array<{ symbol: string; price: number; change24h: number }>,
@@ -1331,7 +1331,7 @@ function buildBriefing(
   technicalPulse?: ReturnType<typeof buildTechnicalMarketSummary>,
   convictionModel?: ConvictionModel,
   takerVolumeData?: TakerVolume[],
-): string {
+): Promise<string> {
   const blocks: string[] = [];
 
   blocks.push('<MORNING_BRIEFING>\n');
