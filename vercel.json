@@ -42,26 +42,15 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/content-machine.ts": { "maxDuration": 120 },
-    "api/agent-run.ts": { "maxDuration": 120 },
+    "api/content-machine.ts": { "maxDuration": 60 },
+    "api/agent-run.ts": { "maxDuration": 60 },
     "api/openclaw-chat.ts": { "maxDuration": 60 },
     "api/bobby-voice.ts": { "maxDuration": 30 },
     "api/bobby-intel.ts": { "maxDuration": 30 },
-    "api/stock-price.ts": { "maxDuration": 10 },
-    "api/okx-candles.ts": { "maxDuration": 10 },
-    "api/stock-candles.ts": { "maxDuration": 10 },
-    "api/forum-generate.ts": { "maxDuration": 120 },
-    "api/technical-analysis.ts": { "maxDuration": 15 },
-    "api/bobby-voice-free.ts": { "maxDuration": 30 },
-    "api/forum-resolve.ts": { "maxDuration": 30 },
-    "api/forum-morning.ts": { "maxDuration": 120 },
-    "api/ghost-wallet.ts": { "maxDuration": 15 },
-    "api/forum-agent-register.ts": { "maxDuration": 10 },
-    "api/xlayer-record.ts": { "maxDuration": 30 },
+    "api/forum-generate.ts": { "maxDuration": 60 },
+    "api/forum-morning.ts": { "maxDuration": 60 },
+    "api/bobby-cycle.ts": { "maxDuration": 60 },
     "api/mcp-bobby.ts": { "maxDuration": 60 },
-    "api/okx-perps.ts": { "maxDuration": 30 },
-    "api/blog-audio.ts": { "maxDuration": 60 },
-    "api/bobby-cycle.ts": { "maxDuration": 300 },
-    "api/bobby-digest.ts": { "maxDuration": 10 }
+    "api/blog-audio.ts": { "maxDuration": 60 }
   }
 }
