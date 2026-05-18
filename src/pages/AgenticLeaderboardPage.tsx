@@ -6,6 +6,7 @@
 
 import { Helmet } from 'react-helmet-async';
 import { SkillsComparisonSection } from '@/components/agentic/SkillsComparisonSection';
+import { CexAiVerdictSection } from '@/components/agentic/CexAiVerdictSection';
 import { Link } from 'react-router-dom';
 
 export default function AgenticLeaderboardPage() {
@@ -37,8 +38,13 @@ export default function AgenticLeaderboardPage() {
         </div>
       </div>
 
-      {/* Skills Table */}
+      {/* CEX AI Verdict — Multi-LLM Consensus (top-5 most important first) */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        <CexAiVerdictSection />
+      </div>
+
+      {/* Skills Table — Full ecosystem breakdown */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
         <SkillsComparisonSection />
       </div>
     </div>
