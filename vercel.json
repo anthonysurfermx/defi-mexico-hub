@@ -41,16 +41,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "crons": [
-    {
-      "path": "/api/bobby-cycle",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/user-cycle",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "functions": {
     "api/content-machine.ts": {
       "maxDuration": 120,
