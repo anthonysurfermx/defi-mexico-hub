@@ -7,7 +7,7 @@
 ## Where They Agree
 
 1. **The idea is good** — Both validate it as genuinely differentiating. Codex: "La idea es buena". Gemini: "La idea no es mala; de hecho, es brillante."
-2. **Separate contract** — Codex is explicit: don't extend BobbyAgentEconomyV2, deploy `BobbyAdversarialBounties` separately. Gemini doesn't address contract architecture but doesn't contradict.
+2. **Separate contract** — Codex is explicit: don't extend BobbyAgentEconomyV2, deploy `BobbyAdversarialBounties` separately. Gemini doesn't address contract architecture but doesn't contradict.E
 3. **Bootstrap contrarian agent is fine** — Both agree running your own responder is not cheating if disclosed. Codex: "reference agent". Gemini: "Mock Challenger Script".
 4. **Off-chain judging, on-chain settlement** — Both agree evaluation happens off-chain (Claude) with hashes on-chain. No IPFS required for MVP.
 5. **Don't touch Days 1-5** — Both agree this is an addon, not a replacement. Codex: "If bobby_analyze + ConvictionOracle + Judge Mode aren't live by Day 5, don't add bounties."

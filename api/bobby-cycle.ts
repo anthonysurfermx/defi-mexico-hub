@@ -170,7 +170,7 @@ const VERDICT_SCHEMA = {
     direction: { type: 'string' as const, enum: ['long', 'short', 'none'] },
     conviction: { type: 'number' as const, description: 'Conviction 1-10. 1-3=sit out, 4-5=small exploratory, 6-7=core position, 8-10=high conviction' },
     entry: { type: ['number', 'null'] as any, description: 'Entry price or null' },
-    stop: { type: ['number', 'null'] as any, description: 'Stop loss price or null' },
+    stop: { type: ['number', 'null'] as any, description: 'Stop loss price. MANDATORY when action=open — never null for trades. Use a tight technical level (support/resistance) or 3% from entry.' },
     target: { type: ['number', 'null'] as any, description: 'Take profit price or null' },
     invalidation: { type: 'string' as const, description: 'What invalidates this thesis' },
     vibe_phrase: { type: 'string' as const, description: 'One punchy sentence capturing your mood. Like Bobby Axelrod on a phone call.' },
@@ -865,7 +865,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
 
     // Compute hours since last executed trade (for dynamic drought bias)
-    const lastTradeRows = await sbQuery('forum_threads', 'direction=neq.none&direction=not.is.null&execution_status=eq.executed&order=created_at.desc&limit=1');
+    const lastTradeRows = await sbQuery('forum_threads', 'direction=neq.none&direction=not.is.null&status=eq.executed&order=created_at.desc&limit=1');
     const lastTradeAt = lastTradeRows[0]?.created_at ? new Date(lastTradeRows[0].created_at).getTime() : 0;
     const hoursSinceLastTrade = lastTradeAt > 0 ? Math.round((Date.now() - lastTradeAt) / (1000 * 60 * 60)) : 999;
 
@@ -941,6 +941,7 @@ Never apologize. No "Not financial advice". No emojis. No "Hey guys".
 This is your 6AM Wall Street phone call. Lead with a gut feeling, back it up with math.
 ${backendBias}
 CONVICTION GUIDE: 1-3 = sit out, 4-5 = small exploratory risk, 6-7 = core position, 8-10 = high conviction asymmetric upside.
+IMPORTANT: When action=open, you MUST provide entry, stop, and target prices — NEVER null. Use the nearest technical level for stop, or 3% from entry if no clear level exists.
 IMPORTANT: CLOSE existing positions FIRST if the thesis is broken.
 Use assertive vocabulary: pain trade, liquidity sweep, leverage flush, structural breakdown.
 Write your thesis in ${lang === 'es' ? 'Spanish' : 'English'}.${
@@ -1043,6 +1044,18 @@ Write your thesis in ${lang === 'es' ? 'Spanish' : 'English'}.${
       if (entryPrice === null && technicalPlan.entry !== null) entryPrice = technicalPlan.entry;
       if (stopPrice === null && technicalPlan.stop !== null) stopPrice = technicalPlan.stop;
       if (targetPrice === null && technicalPlan.target !== null) targetPrice = technicalPlan.target;
+    }
+
+    // Fallback stop price: if CIO wants to open but didn't provide stop (and no technical plan),
+    // calculate a default 3% stop from entry/current price to avoid rejecting valid trades
+    if (structuredExecuteRequested && symbol && direction && !stopPrice) {
+      const refPrice = entryPrice || (intel.prices || []).find((p: any) => p.symbol === symbol)?.price;
+      if (refPrice && refPrice > 0) {
+        stopPrice = direction === 'long'
+          ? parseFloat((refPrice * 0.97).toFixed(2))
+          : parseFloat((refPrice * 1.03).toFixed(2));
+        console.log(`[Cycle] Stop fallback: ${direction} ${symbol} stop=${stopPrice} (3% from ${refPrice})`);
+      }
     }
 
     if (structuredCloseRequested && symbol && direction) {
@@ -1622,11 +1635,13 @@ VIBE_PHRASE: No edge in the market and no clean yield rail yet. Stay liquid.
     if (threadId) {
       try {
         // Update status — columns may not exist yet, so non-blocking
+        const threadStatus = executionResult ? 'executed' : (tradeRejectedReason ? 'rejected' : 'active');
         await fetch(`${SB_URL}/rest/v1/forum_threads?id=eq.${threadId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
           body: JSON.stringify({
-            status: executionResult ? 'executed' : (tradeRejectedReason ? 'rejected' : 'active'),
+            status: threadStatus,
+            execution_status: threadStatus,
           }),
       });
       } catch (patchErr) {
