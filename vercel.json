@@ -24,33 +24,15 @@
       "headers": [
         { "key": "Cache-Control", "value": "s-maxage=300, stale-while-revalidate=60" }
       ]
-    },
-    {
-      "source": "/api/discover-markets",
-      "headers": [
-        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=30" }
-      ]
-    },
-    {
-      "source": "/api/scan-traders",
-      "headers": [
-        { "key": "Cache-Control", "value": "s-maxage=120, stale-while-revalidate=60" }
-      ]
     }
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/content-machine.ts": { "maxDuration": 60 },
-    "api/agent-run.ts": { "maxDuration": 60 },
     "api/openclaw-chat.ts": { "maxDuration": 60 },
-    "api/bobby-voice.ts": { "maxDuration": 30 },
     "api/bobby-intel.ts": { "maxDuration": 30 },
-    "api/forum-generate.ts": { "maxDuration": 60 },
-    "api/forum-morning.ts": { "maxDuration": 60 },
     "api/bobby-cycle.ts": { "maxDuration": 60 },
-    "api/mcp-bobby.ts": { "maxDuration": 60 },
-    "api/blog-audio.ts": { "maxDuration": 60 }
+    "api/mcp-bobby.ts": { "maxDuration": 60 }
   }
 }
